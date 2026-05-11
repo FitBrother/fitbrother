@@ -33,7 +33,7 @@ npm run dev:server          # Fastify em :3000
 npm run dev:mobile          # Expo Metro + dev menu
 ```
 
-Pré-requisitos: Node ≥ 20, Docker, Supabase CLI (`npm i -g supabase`), Expo Go ou dev build.
+Pré-requisitos: Node ≥ 20, Docker (para o Postgres local da Supabase), Expo Go ou dev build. A Supabase CLI vem como `devDependency` do monorepo — `npm install` já a instala.
 
 ---
 

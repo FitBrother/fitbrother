@@ -128,25 +128,25 @@ SUPABASE_SERVICE_ROLE_KEY=<service_role secret>
 
 ### 2.3 Supabase CLI local
 
-```bash
-npm i -g supabase
-supabase --version  # deve ser >= 1.200
-```
-
-Login (link com sua conta):
+A CLI vem como `devDependency` do monorepo — `npm install` na raiz já a coloca em `node_modules/.bin/supabase`, e os scripts `npm run db:*` resolvem automaticamente. Instalar globalmente **não** é suportado pela Supabase.
 
 ```bash
-supabase login
+npx supabase --version   # ou: node_modules/.bin/supabase --version
 ```
 
-> **Pitfall:** Docker precisa estar rodando antes de `supabase start` (M0 task). No Linux: `systemctl status docker`.
+Login (link com sua conta — opcional, só pra gerenciar projetos remotos):
+
+```bash
+npx supabase login
+```
+
+> **Pitfall:** Docker precisa estar rodando antes de `npm run db:start`. No Linux: `systemctl status docker`.
 
 ### Verificação
 
 ```bash
-# Vai pedir confirmação e iniciar containers locais (~3min na 1ª vez)
-mkdir /tmp/sb-test && cd /tmp/sb-test && supabase init && supabase start
-supabase stop
+npm run db:start   # sobe Postgres + auth + studio local (~3min na 1ª vez)
+npm run db:stop
 ```
 
 ---

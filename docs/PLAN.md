@@ -84,7 +84,7 @@ fitbrother/
 
 ### Walkthrough de contas (ordem importa)
 
-1. **Supabase** — org gratuita; projetos `fitbrother-dev` e `fitbrother-staging` (prod só no M6). Salvar `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` no 1Password. `npm i -g supabase`.
+1. **Supabase** — org gratuita; projetos `fitbrother-dev` e `fitbrother-staging` (prod só no M6). Salvar `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` no 1Password. CLI já vem como `devDependency` do monorepo (`npm install` na raiz).
 2. **Google Cloud / Gemini** — projeto GCP → habilitar "Generative Language API" → API key restrita a essa API. `GEMINI_API_KEY`.
 3. **OpenAI** — billing com **hard cap USD 20/mês**, `OPENAI_API_KEY` (escopo Whisper).
 4. **Meta for Developers** — Business Manager → app *Business* → adicionar produto WhatsApp → usar test number gratuito. Salvar `WHATSAPP_APP_SECRET` (app), `WHATSAPP_VERIFY_TOKEN` (string sua), `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_ACCESS_TOKEN`. **Submissão para revisão** (1–5 dias) — não bloqueia M0–M3.
