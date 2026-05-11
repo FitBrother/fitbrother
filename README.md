@@ -16,7 +16,7 @@ React Native · Expo Router · TypeScript · NativeWind v4 · Supabase (Postgres
 
 ```bash
 # 1. Clonar e instalar
-git clone https://github.com/Pebritto/fitbrother.git
+git clone https://github.com/FitBrother/fitbrother.git
 cd fitbrother
 npm install
 
