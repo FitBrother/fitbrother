@@ -1,0 +1,54 @@
+node_modules/
+**/node_modules/
+
+# Build artifacts
+dist/
+build/
+.expo/
+.expo-shared/
+*.tsbuildinfo
+
+# Env
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+
+# Supabase
+supabase/.branches/
+supabase/.temp/
+supabase/.env
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.example.json
+
+# Native
+ios/
+android/
+*.jks
+*.keystore
+*.p8
+*.p12
+*.mobileprovision
+*.orig.*
+
+# Test / coverage
+coverage/
+.nyc_output/
+
+# Misc
+.cache/
+*.tgz
