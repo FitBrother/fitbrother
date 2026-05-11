@@ -1,4 +1,4 @@
-# Design System — Firefit
+# Design System — Fitbrother
 
 App de nutrição com IA. Stack: **React Native · Expo · TypeScript · NativeWind v4 · Tailwind v3**.
 
@@ -112,7 +112,7 @@ A cor de marca é um teal vibrante: splash, CTAs, ícones, progresso de calorias
 | `warning-400` | `#FBBF24` | Estrelas, badges de destaque |
 | `warning-500` | `#F59E0B` | Avisos médios |
 
-### 2.4 Macros (domínio Firefit)
+### 2.4 Macros (domínio Fitbrother)
 
 Cores semânticas para os 3 macronutrientes. Calorias usam `primary-400` (anel central do dashboard).
 
@@ -352,7 +352,7 @@ Não usar `@expo/vector-icons` em código novo. (O `EyeIcon` "fake" feito com `<
 
 **Status: V2 — fora do MVP.**
 
-NativeWind v4 já suporta `dark:` nativamente, mas a paleta dark do Firefit ainda **não está definida**. Não usar `dark:` em código no MVP. Pós-MVP, definir tokens dark e o switch para passar pelo design review novamente.
+NativeWind v4 já suporta `dark:` nativamente, mas a paleta dark do Fitbrother ainda **não está definida**. Não usar `dark:` em código no MVP. Pós-MVP, definir tokens dark e o switch para passar pelo design review novamente.
 
 ---
 

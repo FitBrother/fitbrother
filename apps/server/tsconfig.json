@@ -8,8 +8,8 @@
     "lib": ["ES2022"],
     "types": ["node"],
     "paths": {
-      "@firefit/shared": ["../../packages/shared/src"],
-      "@firefit/shared/*": ["../../packages/shared/src/*"]
+      "@fitbrother/shared": ["../../packages/shared/src"],
+      "@fitbrother/shared/*": ["../../packages/shared/src/*"]
     }
   },
   "include": ["src/**/*"]

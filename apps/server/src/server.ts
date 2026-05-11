@@ -28,7 +28,7 @@ app.setErrorHandler((err, _req, reply) => {
 const port = env.PORT;
 try {
   await app.listen({ port, host: "0.0.0.0" });
-  app.log.info(`firefit-server listening on :${port}`);
+  app.log.info(`fitbrother-server listening on :${port}`);
 } catch (err) {
   app.log.error({ err }, "boot_failed");
   process.exit(1);

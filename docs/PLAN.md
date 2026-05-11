@@ -1,4 +1,4 @@
-# Plano de Desenvolvimento — Firefit
+# Plano de Desenvolvimento — Fitbrother
 
 ## Contexto
 
@@ -50,7 +50,7 @@ M3 e M4 são independentes depois de M2 (dashboard vs WhatsApp). Tudo o resto é
 ## Layout final do monorepo
 
 ```
-firefit/
+fitbrother/
 ├── package.json                # workspaces: apps/*, packages/*
 ├── .env.example                # vars consolidadas mobile + server
 ├── tsconfig.base.json
@@ -84,12 +84,12 @@ firefit/
 
 ### Walkthrough de contas (ordem importa)
 
-1. **Supabase** — org gratuita; projetos `firefit-dev` e `firefit-staging` (prod só no M6). Salvar `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` no 1Password. `npm i -g supabase`.
+1. **Supabase** — org gratuita; projetos `fitbrother-dev` e `fitbrother-staging` (prod só no M6). Salvar `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` no 1Password. `npm i -g supabase`.
 2. **Google Cloud / Gemini** — projeto GCP → habilitar "Generative Language API" → API key restrita a essa API. `GEMINI_API_KEY`.
 3. **OpenAI** — billing com **hard cap USD 20/mês**, `OPENAI_API_KEY` (escopo Whisper).
 4. **Meta for Developers** — Business Manager → app *Business* → adicionar produto WhatsApp → usar test number gratuito. Salvar `WHATSAPP_APP_SECRET` (app), `WHATSAPP_VERIFY_TOKEN` (string sua), `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_ACCESS_TOKEN`. **Submissão para revisão** (1–5 dias) — não bloqueia M0–M3.
 5. **Expo / EAS** — `npx eas-cli@latest login` → `eas init` em `apps/mobile`. `EAS_PROJECT_ID`.
-6. **Sentry** — 2 projetos: `firefit-mobile` (React Native) e `firefit-server` (Node). `SENTRY_DSN_MOBILE`, `SENTRY_DSN_SERVER`.
+6. **Sentry** — 2 projetos: `fitbrother-mobile` (React Native) e `fitbrother-server` (Node). `SENTRY_DSN_MOBILE`, `SENTRY_DSN_SERVER`.
 7. **Cloudflare Tunnel** (dev): `cloudflared tunnel login` — para expor webhook local no M4.
 
 ### Tasks de código
@@ -156,8 +156,8 @@ firefit/
 - `0008_foods.sql` + índice GIN `name_normalized gin_trgm_ops`.
 - `0009_meals.sql` (com `deleted_at`, `review_required`, `total_*` mantidos por trigger — **não** GENERATED), índice `(user_id, consumed_at DESC) WHERE deleted_at IS NULL`.
 - `0010_meal_items.sql` (ON DELETE CASCADE).
-- `0011_meal_triggers.sql` — `AFTER INSERT/UPDATE/DELETE` em `meal_items` recalcula `meals.total_*` (somando todos `meal_items` da mesma meal) e chama `firefit_recompute_daily_summary(user_id, day)`. Edição de `consumed_at` recalcula ambos os dias afetados.
-- `0012_daily_summaries.sql` + função `firefit_recompute_daily_summary(p_user_id uuid, p_day date)` que **respeita boundary `day_start_hour`** conforme `FEATURES §3.3` e seta `goal_hit` segundo regra fixa.
+- `0011_meal_triggers.sql` — `AFTER INSERT/UPDATE/DELETE` em `meal_items` recalcula `meals.total_*` (somando todos `meal_items` da mesma meal) e chama `fitbrother_recompute_daily_summary(user_id, day)`. Edição de `consumed_at` recalcula ambos os dias afetados.
+- `0012_daily_summaries.sql` + função `fitbrother_recompute_daily_summary(p_user_id uuid, p_day date)` que **respeita boundary `day_start_hour`** conforme `FEATURES §3.3` e seta `goal_hit` segundo regra fixa.
 - `0013_ai_usage.sql`.
 - `0014_transcriptions.sql` (`audio_hash` PK).
 - `0015_ai_extractions.sql` (`input_hash` PK).
@@ -209,7 +209,7 @@ firefit/
 ### Backend
 
 - View `vw_today_summary(user_id)` retorna linha de `daily_summaries` para o `day` atual calculado por boundary.
-- Função `firefit_today(user_id)` retorna `date` atual respeitando `timezone + day_start_hour`.
+- Função `fitbrother_today(user_id)` retorna `date` atual respeitando `timezone + day_start_hour`.
 - Habilitar Realtime no Supabase em `daily_summaries` e `meals`.
 
 ### Mobile

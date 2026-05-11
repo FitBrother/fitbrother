@@ -5,15 +5,9 @@
     "noUncheckedIndexedAccess": true,
     "paths": {
       "@/*": ["./*"],
-      "@firefit/shared": ["../../packages/shared/src"],
-      "@firefit/shared/*": ["../../packages/shared/src/*"]
+      "@fitbrother/shared": ["../../packages/shared/src"],
+      "@fitbrother/shared/*": ["../../packages/shared/src/*"]
     }
   },
-  "include": [
-    "**/*.ts",
-    "**/*.tsx",
-    ".expo/types/**/*.ts",
-    "expo-env.d.ts",
-    "nativewind-env.d.ts"
-  ]
+  "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts", "nativewind-env.d.ts"]
 }

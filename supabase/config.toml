@@ -1,6 +1,6 @@
 # Supabase local config — `supabase start` reads this.
 # Reference: https://supabase.com/docs/guides/local-development/cli/config
-project_id = "firefit"
+project_id = "fitbrother"
 
 [api]
 enabled = true
