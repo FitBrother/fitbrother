@@ -6,6 +6,7 @@ import {
   type TextInputProps,
   View,
 } from "react-native";
+import { Eye, EyeOff } from "lucide-react-native";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -16,26 +17,6 @@ interface InputProps extends Omit<TextInputProps, "style"> {
   secureTextEntry?: boolean;
   className?: string;
   containerClassName?: string;
-}
-
-// ─── Eye Icon (inline — sem dependência de biblioteca de ícone) ───────────────
-
-function EyeIcon({ visible, color }: { visible: boolean; color: string }) {
-  // SVG-like representation using View shapes — substituível por @expo/vector-icons
-  return (
-    <View className="w-5 h-5 items-center justify-center">
-      <View
-        className="w-5 h-3 rounded-full border-2"
-        style={{ borderColor: color }}
-      />
-      {!visible && (
-        <View
-          className="absolute w-6 h-[1.5px] rotate-45"
-          style={{ backgroundColor: color }}
-        />
-      )}
-    </View>
-  );
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -97,10 +78,11 @@ export function Input({
             className="ml-2 p-1"
             hitSlop={8}
           >
-            <EyeIcon
-              visible={isPasswordVisible}
-              color={isFocused ? "#2DD4BF" : "#94A3B8"}
-            />
+            {isPasswordVisible ? (
+              <EyeOff size={20} color={isFocused ? "#2DD4BF" : "#94A3B8"} />
+            ) : (
+              <Eye size={20} color={isFocused ? "#2DD4BF" : "#94A3B8"} />
+            )}
           </Pressable>
         )}
       </View>
@@ -118,7 +100,7 @@ export function Input({
 // ─── Usage Examples ───────────────────────────────────────────────────────────
 /*
 import { Input } from "@/components/Input";
-import { Ionicons } from "@expo/vector-icons";
+import { Mail, Lock } from "lucide-react-native";
 
 // Email input
 <Input
@@ -128,7 +110,7 @@ import { Ionicons } from "@expo/vector-icons";
   autoCapitalize="none"
   value={email}
   onChangeText={setEmail}
-  leadingIcon={<Ionicons name="mail-outline" size={20} color="#94A3B8" />}
+  leadingIcon={<Mail size={20} color="#94A3B8" />}
   error={errors.email}
 />
 
@@ -139,17 +121,7 @@ import { Ionicons } from "@expo/vector-icons";
   secureTextEntry
   value={password}
   onChangeText={setPassword}
-  leadingIcon={<Ionicons name="lock-closed-outline" size={20} color="#94A3B8" />}
+  leadingIcon={<Lock size={20} color="#94A3B8" />}
   error={errors.password}
-/>
-
-// Confirm password
-<Input
-  label="Confirm Password"
-  placeholder="••••••••••••••••"
-  secureTextEntry
-  value={confirmPassword}
-  onChangeText={setConfirmPassword}
-  leadingIcon={<Ionicons name="lock-closed-outline" size={20} color="#94A3B8" />}
 />
 */

@@ -1,4 +1,4 @@
-# 🍏 FEATURES.md — Firefit (App de Nutrição com IA)
+# 🍏 FEATURES.md — Fitbrother (App de Nutrição com IA)
 
 > Fonte de verdade do produto e da arquitetura. Este documento é lido pelo Claude Code antes de gerar qualquer feature. Mudanças aqui devem refletir decisões já consolidadas.
 
@@ -382,7 +382,7 @@ Webhook Fastify em `POST /webhooks/whatsapp`:
 
 A Meta só permite envio **livre** nas 24h após a última mensagem inbound do usuário. Fora dessa janela, apenas templates pré-aprovados (pagos).
 
-**Estratégia Firefit:**
+**Estratégia Fitbrother:**
 - Trigger AFTER INSERT em `wa_messages` (`direction='in'`):
   ```sql
   UPDATE profiles

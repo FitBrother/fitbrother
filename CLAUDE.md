@@ -1,4 +1,4 @@
-# CLAUDE.md — Firefit
+# CLAUDE.md — Fitbrother
 
 App de nutrição com IA. Usuário registra refeições em **linguagem natural** (texto ou áudio, no app ou via WhatsApp); IA transcreve, extrai macros e sincroniza tudo em tempo real. Gamificação estilo Duolingo (streaks, amigos, ranking).
 

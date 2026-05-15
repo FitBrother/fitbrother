@@ -91,38 +91,37 @@ export function Card({
 // ─── Usage Examples ───────────────────────────────────────────────────────────
 /*
 import { Card } from "@/components/Card";
+import { Heart, Mail } from "lucide-react-native";
 
-// Health metric card (onboarding)
+// Health metric card
 <Card variant="elevated">
   <View className="flex-row items-center justify-between mb-2">
     <View className="flex-row items-center gap-2">
-      <Ionicons name="heart" size={18} color="#EF4444" />
-      <Text className="text-base font-semibold text-neutral-800">Heart Rate</Text>
+      <Heart size={18} color="#EF4444" />
+      <Text className="text-base font-sans-semibold text-neutral-800">Heart Rate</Text>
     </View>
-    <Text className="text-sm text-neutral-400">Today</Text>
+    <Text className="text-sm font-sans text-neutral-400">Today</Text>
   </View>
-  <Text className="text-2xl font-bold text-neutral-900">72 bpm</Text>
-  <Text className="text-sm text-neutral-500">Resting Rate</Text>
-</Card>
-
-// Pharmacy card (outlined)
-<Card variant="outlined">
-  <Text className="text-base font-bold text-neutral-800">Safeway</Text>
-  <Text className="text-sm text-neutral-500">19.2 miles</Text>
+  <Text
+    className="text-2xl font-sans-bold text-neutral-900"
+    style={{ fontVariant: ["tabular-nums"] }}
+  >
+    72 bpm
+  </Text>
 </Card>
 
 // Tappable card (navigates to details)
-<Card variant="elevated" onPress={() => router.push("/medication/123")}>
-  <Text className="text-base font-semibold text-neutral-800">Acetaminophen 500mg</Text>
+<Card variant="elevated" onPress={() => router.push("/meal/123")}>
+  <Text className="text-base font-sans-semibold text-neutral-800">Café da manhã</Text>
 </Card>
 
-// Flat card (list items, Forgot Password options)
+// Flat card (list items)
 <Card variant="flat">
   <View className="flex-row items-center gap-3">
     <View className="w-10 h-10 rounded-full bg-primary-50 items-center justify-center">
-      <Ionicons name="mail-outline" size={20} color="#2DD4BF" />
+      <Mail size={20} color="#2DD4BF" />
     </View>
-    <Text className="text-base font-medium text-neutral-800">Send via Email</Text>
+    <Text className="text-base font-sans-medium text-neutral-800">Send via Email</Text>
   </View>
 </Card>
 */
