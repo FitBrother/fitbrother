@@ -1,8 +1,10 @@
 import sensible from "@fastify/sensible";
-import Fastify from "fastify";
+import Fastify, { type FastifyError } from "fastify";
 import { env } from "./lib/env.js";
 import { initSentry, Sentry } from "./lib/sentry.js";
 import { healthRoutes } from "./routes/health.js";
+import { meRoutes } from "./routes/me.js";
+import { onboardingRoutes } from "./routes/onboarding.js";
 
 initSentry();
 
@@ -18,8 +20,10 @@ const app = Fastify({
 
 await app.register(sensible);
 await app.register(healthRoutes);
+await app.register(onboardingRoutes);
+await app.register(meRoutes);
 
-app.setErrorHandler((err, _req, reply) => {
+app.setErrorHandler((err: FastifyError, _req, reply) => {
   app.log.error({ err }, "request_failed");
   if (env.SENTRY_DSN) Sentry.captureException(err);
   reply.status(err.statusCode ?? 500).send({ error: err.message });

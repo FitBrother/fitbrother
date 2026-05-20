@@ -40,7 +40,11 @@ export type MealExtraction = z.infer<typeof MealExtractionSchema>;
 
 export const OnboardingPayloadSchema = z.object({
   full_name: z.string().min(1),
-  phone_e164: z.string().regex(/^\+\d{10,15}$/, "Phone must be E.164"),
+  // Phone is captured in step 7 but only verified later via WhatsApp handshake (§4.5).
+  phone_e164: z
+    .string()
+    .regex(/^\+[1-9]\d{7,14}$/, "Phone must be E.164")
+    .optional(),
   birth_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   sex: SexSchema,
   weight_kg: z.number().positive().max(500),

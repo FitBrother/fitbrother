@@ -1,7 +1,18 @@
+import { config as loadDotenv } from "dotenv";
 import { cleanEnv, num, port, str } from "envalid";
 
+// The repo root .env / .envrc may export keys pointing at a remote Supabase
+// project. In dev we want apps/server/.env to win so local services hit the
+// local Supabase stack.
+if (process.env.NODE_ENV !== "production") {
+  loadDotenv({ path: ".env", override: true });
+}
+
 export const env = cleanEnv(process.env, {
-  NODE_ENV: str({ choices: ["development", "test", "staging", "production"], default: "development" }),
+  NODE_ENV: str({
+    choices: ["development", "test", "staging", "production"],
+    default: "development",
+  }),
   PORT: port({ default: 3000 }),
   LOG_LEVEL: str({ default: "info" }),
 

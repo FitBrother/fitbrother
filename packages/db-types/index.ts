@@ -216,6 +216,7 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      complete_onboarding: { Args: { payload: Json }; Returns: Json };
       show_limit: { Args: never; Returns: number };
       show_trgm: { Args: { "": string }; Returns: string[] };
       unaccent: { Args: { "": string }; Returns: string };
