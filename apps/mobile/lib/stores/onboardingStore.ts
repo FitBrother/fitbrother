@@ -6,6 +6,7 @@ import type {
 } from "@fitbrother/shared";
 import { create } from "zustand";
 import type { z } from "zod";
+import { brDateToIso } from "@/lib/masks";
 
 type Sex = z.infer<typeof SexSchema>;
 type ActivityLevel = z.infer<typeof ActivityLevelSchema>;
@@ -74,9 +75,12 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
 
   toPayload: () => {
     const s = get();
+    const full_name = s.full_name.trim();
+    const phone_e164 = s.phone_e164.trim();
+    const birth_date_iso = brDateToIso(s.birth_date);
     if (
-      !s.full_name ||
-      !s.birth_date ||
+      !full_name ||
+      !birth_date_iso ||
       !s.sex ||
       s.weight_kg === undefined ||
       s.height_cm === undefined ||
@@ -89,9 +93,9 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
       return null;
     }
     return {
-      full_name: s.full_name,
-      phone_e164: s.phone_e164 || undefined,
-      birth_date: s.birth_date,
+      full_name,
+      phone_e164: phone_e164 || undefined,
+      birth_date: birth_date_iso,
       sex: s.sex,
       weight_kg: s.weight_kg,
       height_cm: s.height_cm,

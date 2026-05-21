@@ -2,6 +2,7 @@ import { router } from "expo-router";
 import { Pressable, Text, View } from "react-native";
 import { Input } from "@/components/Input";
 import { OnboardingStepShell } from "@/components/OnboardingStepShell";
+import { maskDate } from "@/lib/masks";
 import { useOnboardingStore } from "@/lib/stores/onboardingStore";
 
 const TOTAL_STEPS = 8;
@@ -17,7 +18,7 @@ export default function Step2SexBirthdate() {
   const birth_date = useOnboardingStore((s) => s.birth_date);
   const setField = useOnboardingStore((s) => s.setField);
 
-  const isValidDate = /^\d{4}-\d{2}-\d{2}$/.test(birth_date);
+  const isValidDate = /^\d{2}\/\d{2}\/\d{4}$/.test(birth_date);
 
   return (
     <OnboardingStepShell
@@ -51,11 +52,13 @@ export default function Step2SexBirthdate() {
 
         <View className="mt-4">
           <Input
-            label="Data de nascimento (AAAA-MM-DD)"
+            label="Data de nascimento"
             value={birth_date}
-            onChangeText={(v) => setField("birth_date", v)}
-            placeholder="1995-06-15"
-            keyboardType="numbers-and-punctuation"
+            onChangeText={(v) => setField("birth_date", maskDate(v))}
+            placeholder="DD/MM/AAAA"
+            keyboardType="number-pad"
+            autoComplete="birthdate-full"
+            maxLength={10}
           />
         </View>
       </View>

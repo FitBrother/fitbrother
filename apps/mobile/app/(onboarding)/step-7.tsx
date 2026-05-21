@@ -2,6 +2,7 @@ import { router } from "expo-router";
 import { Text, View } from "react-native";
 import { Input } from "@/components/Input";
 import { OnboardingStepShell } from "@/components/OnboardingStepShell";
+import { clampHour, maskPhoneE164 } from "@/lib/masks";
 import { useOnboardingStore } from "@/lib/stores/onboardingStore";
 
 const TOTAL_STEPS = 8;
@@ -30,10 +31,11 @@ export default function Step7PhoneTimezone() {
         <Input
           label="WhatsApp (opcional)"
           value={phone_e164}
-          onChangeText={(v) => setField("phone_e164", v)}
+          onChangeText={(v) => setField("phone_e164", maskPhoneE164(v))}
           placeholder="+5511999999999"
           keyboardType="phone-pad"
           autoComplete="tel"
+          maxLength={16}
           error={phoneValid ? undefined : "Use o formato E.164 (+55…)"}
         />
 
@@ -45,13 +47,10 @@ export default function Step7PhoneTimezone() {
         <Input
           label="A que horas seu dia nutricional vira? (0-23)"
           value={String(day_start_hour)}
-          onChangeText={(v) => {
-            const n = parseInt(v, 10);
-            if (Number.isNaN(n)) setField("day_start_hour", 0);
-            else setField("day_start_hour", Math.max(0, Math.min(23, n)));
-          }}
+          onChangeText={(v) => setField("day_start_hour", clampHour(v))}
           keyboardType="number-pad"
           placeholder="0"
+          maxLength={2}
         />
         <Text className="text-xs font-sans text-neutral-500">
           Refeições antes desse horário contam para o dia anterior — útil pra quem come tarde.

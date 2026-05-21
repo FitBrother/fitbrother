@@ -25,6 +25,10 @@ export default function Step1Name() {
         onChangeText={(v) => setField("full_name", v)}
         placeholder="Seu nome"
         autoCapitalize="words"
+        autoCorrect={false}
+        textContentType="givenName"
+        returnKeyType="done"
+        maxLength={80}
       />
     </OnboardingStepShell>
   );
