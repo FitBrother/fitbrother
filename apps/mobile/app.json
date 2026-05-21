@@ -4,7 +4,6 @@
     "slug": "fitbrother",
     "version": "0.1.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
     "scheme": "fitbrother",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
@@ -15,7 +14,6 @@
     "android": {
       "package": "com.fitbrother.app",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#F0FDFC"
       }
     },

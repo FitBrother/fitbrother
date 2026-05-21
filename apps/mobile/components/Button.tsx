@@ -1,11 +1,5 @@
 import React from "react";
-import {
-  ActivityIndicator,
-  Pressable,
-  Text,
-  View,
-  type PressableProps,
-} from "react-native";
+import { ActivityIndicator, Pressable, Text, View, type PressableProps } from "react-native";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -24,18 +18,14 @@ interface ButtonProps extends Omit<PressableProps, "style"> {
 
 // ─── Style Maps ───────────────────────────────────────────────────────────────
 
+// NativeWind v4 (SDK 54) no longer accepts a `className` callback on Pressable.
+// Pressed-state colours are now expressed with the `active:` modifier so the
+// styles can be resolved at parse time.
 const containerStyles: Record<ButtonVariant, string> = {
-  primary: "bg-primary-400 border-transparent",
-  dark: "bg-neutral-900 border-transparent",
-  outline: "bg-transparent border border-neutral-200",
-  ghost: "bg-transparent border-transparent",
-};
-
-const containerPressedStyles: Record<ButtonVariant, string> = {
-  primary: "bg-primary-500",
-  dark: "bg-neutral-700",
-  outline: "bg-neutral-100",
-  ghost: "bg-neutral-100",
+  primary: "bg-primary-400 border-transparent active:bg-primary-500",
+  dark: "bg-neutral-900 border-transparent active:bg-neutral-700",
+  outline: "bg-transparent border border-neutral-200 active:bg-neutral-100",
+  ghost: "bg-transparent border-transparent active:bg-neutral-100",
 };
 
 const containerDisabledStyles: Record<ButtonVariant, string> = {
@@ -79,19 +69,12 @@ export function Button({
 }: ButtonProps) {
   const isDisabled = disabled || loading;
 
+  const variantStyle = isDisabled ? containerDisabledStyles[variant] : containerStyles[variant];
+
   return (
     <Pressable
       disabled={isDisabled}
-      className={({ pressed }) => {
-        const base = "rounded-full flex-row items-center justify-center";
-        const variantStyle = isDisabled
-          ? containerDisabledStyles[variant]
-          : pressed
-            ? containerPressedStyles[variant]
-            : containerStyles[variant];
-
-        return `${base} ${sizeContainerStyles[size]} ${variantStyle} ${className}`;
-      }}
+      className={`rounded-full flex-row items-center justify-center ${sizeContainerStyles[size]} ${variantStyle} ${className}`}
       {...rest}
     >
       {loading ? (
@@ -102,9 +85,7 @@ export function Button({
       ) : (
         <>
           {leftIcon && <View className="mr-2">{leftIcon}</View>}
-          <Text
-            className={`font-sans-semibold ${sizeLabelStyles[size]} ${labelStyles[variant]}`}
-          >
+          <Text className={`font-sans-semibold ${sizeLabelStyles[size]} ${labelStyles[variant]}`}>
             {label}
           </Text>
           {rightIcon && <View className="ml-2">{rightIcon}</View>}

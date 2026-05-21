@@ -27,19 +27,6 @@ const shadowStyleElevated = Platform.select({
   default: {},
 });
 
-const shadowStyleElevatedPressed = Platform.select({
-  ios: {
-    shadowColor: "#000000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.10,
-    shadowRadius: 12,
-  },
-  android: {
-    elevation: 5,
-  },
-  default: {},
-});
-
 // ─── Style Maps ───────────────────────────────────────────────────────────────
 
 const variantContainerClass: Record<CardVariant, string> = {
@@ -50,28 +37,17 @@ const variantContainerClass: Record<CardVariant, string> = {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function Card({
-  children,
-  variant = "elevated",
-  onPress,
-  className = "",
-}: CardProps) {
+export function Card({ children, variant = "elevated", onPress, className = "" }: CardProps) {
   const baseClass = `${variantContainerClass[variant]} ${className}`;
 
   if (onPress) {
+    // NativeWind v4 (SDK 54) doesn't accept callback className — use the
+    // `active:` modifier and a plain style for the pressed shadow.
     return (
       <Pressable
         onPress={onPress}
-        style={({ pressed }) =>
-          variant === "elevated"
-            ? pressed
-              ? shadowStyleElevatedPressed
-              : shadowStyleElevated
-            : undefined
-        }
-        className={({ pressed }) =>
-          `${baseClass} ${pressed && variant !== "elevated" ? "opacity-80" : ""}`
-        }
+        style={variant === "elevated" ? shadowStyleElevated : undefined}
+        className={`${baseClass} ${variant !== "elevated" ? "active:opacity-80" : ""}`}
       >
         {children}
       </Pressable>
@@ -79,10 +55,7 @@ export function Card({
   }
 
   return (
-    <View
-      className={baseClass}
-      style={variant === "elevated" ? shadowStyleElevated : undefined}
-    >
+    <View className={baseClass} style={variant === "elevated" ? shadowStyleElevated : undefined}>
       {children}
     </View>
   );
