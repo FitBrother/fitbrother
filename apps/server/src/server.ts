@@ -1,3 +1,4 @@
+import cors from "@fastify/cors";
 import sensible from "@fastify/sensible";
 import Fastify, { type FastifyError } from "fastify";
 import { env } from "./lib/env.js";
@@ -19,6 +20,13 @@ const app = Fastify({
 });
 
 await app.register(sensible);
+// Web/Expo Go bundles served from a different origin (e.g. localhost:8081 →
+// localhost:3000) need CORS. In dev we mirror the request origin; lock this
+// down to specific origins before shipping.
+await app.register(cors, {
+  origin: env.NODE_ENV === "production" ? false : true,
+  credentials: true,
+});
 await app.register(healthRoutes);
 await app.register(onboardingRoutes);
 await app.register(meRoutes);
