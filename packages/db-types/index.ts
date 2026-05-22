@@ -569,6 +569,19 @@ export type Database = {
         Args: { p_cap: number; p_kind: string; p_user_id: string };
         Returns: undefined;
       };
+      fitbrother_foods_fuzzy_match: {
+        Args: { p_needle: string; p_threshold?: number };
+        Returns: {
+          carbs_per_100g: number;
+          fat_per_100g: number;
+          id: string;
+          kcal_per_100g: number;
+          name: string;
+          protein_per_100g: number;
+          serving_grams: number;
+          similarity: number;
+        }[];
+      };
       fitbrother_nutritional_day: {
         Args: { p_ts?: string; p_user_id: string };
         Returns: string;

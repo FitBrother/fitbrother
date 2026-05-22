@@ -36,6 +36,91 @@ export const MealExtractionSchema = z.object({
 export type MealItemExtraction = z.infer<typeof MealItemExtractionSchema>;
 export type MealExtraction = z.infer<typeof MealExtractionSchema>;
 
+/* ─── Meal API requests + responses (M2) ─────────────────────────────────── */
+
+const UuidSchema = z.string().uuid();
+
+export const CreateMealTextRequestSchema = z.object({
+  // Client-generated UUID. Used as meals.id for optimistic UI + idempotent
+  // retries (server INSERTs with ON CONFLICT DO NOTHING).
+  client_meal_id: UuidSchema,
+  text: z.string().min(1).max(2000),
+  consumed_at: z.string().datetime().optional(),
+  locale: z.string().default("pt-BR"),
+});
+export type CreateMealTextRequest = z.infer<typeof CreateMealTextRequestSchema>;
+
+export const MealItemResponseSchema = z.object({
+  id: UuidSchema,
+  food_id: UuidSchema.nullable(),
+  description: z.string(),
+  quantity: z.number(),
+  unit: UnitSchema,
+  kcal: z.number(),
+  protein_g: z.number(),
+  carbs_g: z.number(),
+  fat_g: z.number(),
+  density_assumed: z.boolean(),
+});
+
+export const MealResponseSchema = z.object({
+  id: UuidSchema,
+  source: z.enum(["app_text", "app_audio", "wa_text", "wa_audio", "manual"]),
+  raw_input: z.string().nullable(),
+  audio_path: z.string().nullable(),
+  meal_type: MealTypeSchema,
+  consumed_at: z.string(),
+  total_kcal: z.number(),
+  total_protein_g: z.number(),
+  total_carbs_g: z.number(),
+  total_fat_g: z.number(),
+  confidence: z.number().nullable(),
+  review_required: z.boolean(),
+  created_at: z.string(),
+  deleted_at: z.string().nullable(),
+  items: z.array(MealItemResponseSchema),
+});
+export type MealResponse = z.infer<typeof MealResponseSchema>;
+
+export const DailySummaryResponseSchema = z.object({
+  user_id: UuidSchema,
+  day: z.string(),
+  kcal: z.number(),
+  protein_g: z.number(),
+  carbs_g: z.number(),
+  fat_g: z.number(),
+  goal_kcal: z.number().nullable(),
+  goal_protein_g: z.number().nullable(),
+  goal_carbs_g: z.number().nullable(),
+  goal_fat_g: z.number().nullable(),
+  goal_hit: z.boolean(),
+  meals_count: z.number().int(),
+  updated_at: z.string(),
+});
+export type DailySummaryResponse = z.infer<typeof DailySummaryResponseSchema>;
+
+export const PatchMealItemSchema = z.object({
+  // Pass id to update existing; omit to insert new. Server enforces ownership.
+  id: UuidSchema.optional(),
+  description: z.string().min(1),
+  quantity: z.number().positive(),
+  unit: UnitSchema,
+  kcal: z.number().nonnegative(),
+  protein_g: z.number().nonnegative(),
+  carbs_g: z.number().nonnegative(),
+  fat_g: z.number().nonnegative(),
+});
+
+export const PatchMealRequestSchema = z.object({
+  // Optional fields — only present ones get updated.
+  meal_type: MealTypeSchema.optional(),
+  consumed_at: z.string().datetime().optional(),
+  // If provided, server replaces all items with this list (full PUT semantics
+  // for items). Easier client logic than mixing patch + delete + add.
+  items: z.array(PatchMealItemSchema).min(1).optional(),
+});
+export type PatchMealRequest = z.infer<typeof PatchMealRequestSchema>;
+
 /* ─── Onboarding payload (FEATURES §4.1) ─────────────────────────────────── */
 
 export const OnboardingPayloadSchema = z.object({
