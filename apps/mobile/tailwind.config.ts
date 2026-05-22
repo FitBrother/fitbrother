@@ -1,11 +1,14 @@
 import type { Config } from "tailwindcss";
 
+// nativewind/preset ships an empty .d.ts so its `import` form fails the
+// "not a module" check. `require` is the loader Tailwind uses anyway when
+// resolving the preset, so we keep it — but mute the lint rule, narrowly.
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const nativewindPreset = require("nativewind/preset");
+
 const config: Config = {
-  content: [
-    "./app/**/*.{js,jsx,ts,tsx}",
-    "./components/**/*.{js,jsx,ts,tsx}",
-  ],
-  presets: [require("nativewind/preset")],
+  content: ["./app/**/*.{js,jsx,ts,tsx}", "./components/**/*.{js,jsx,ts,tsx}"],
+  presets: [nativewindPreset],
   theme: {
     extend: {
       // ─── Colors ──────────────────────────────────────────────────────────────
@@ -149,8 +152,8 @@ const config: Config = {
       // tokens semânticos específicos do app.
       spacing: {
         "safe-horizontal": "20px", // padding horizontal das telas
-        "input-height": "52px",    // altura dos inputs
-        "button-height": "52px",   // altura dos botões md
+        "input-height": "52px", // altura dos inputs
+        "button-height": "52px", // altura dos botões md
         "button-height-sm": "40px",
         "button-height-lg": "60px",
       },
@@ -159,11 +162,11 @@ const config: Config = {
       borderRadius: {
         // Já existem no Tailwind: rounded-xl (12px), rounded-2xl (16px), rounded-full
         // Tokens semânticos para manter consistência:
-        input: "12px",   // → use rounded-xl
-        card: "16px",    // → use rounded-2xl
+        input: "12px", // → use rounded-xl
+        card: "16px", // → use rounded-2xl
         button: "9999px", // → use rounded-full
         badge: "9999px", // → use rounded-full
-        banner: "12px",  // → use rounded-xl
+        banner: "12px", // → use rounded-xl
       },
 
       // ─── Box Shadows (iOS) ───────────────────────────────────────────────────

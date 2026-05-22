@@ -4,7 +4,6 @@
     "slug": "fitbrother",
     "version": "0.1.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
     "scheme": "fitbrother",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
@@ -15,19 +14,24 @@
     "android": {
       "package": "com.fitbrother.app",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#F0FDFC"
       }
     },
-    "web": { "bundler": "metro" },
-    "plugins": ["expo-router", "expo-font", "expo-secure-store"],
+    "web": {
+      "bundler": "metro"
+    },
+    "plugins": ["expo-router", "expo-font", "expo-secure-store", "expo-localization"],
     "experiments": {
       "typedRoutes": true
     },
     "extra": {
       "eas": {
-        "projectId": ""
+        "projectId": "e84a197d-563b-46e1-a40b-1bec6afc244a"
+      },
+      "router": {
+        "origin": false
       }
-    }
+    },
+    "owner": "fitbrother"
   }
 }
