@@ -4,17 +4,22 @@ import { KeyboardAvoidingView, Platform, Text, type TextInput, View } from "reac
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Button } from "@/components/Button";
 import { Input } from "@/components/Input";
+import { PasswordInput } from "@/components/PasswordInput";
 import { supabase } from "@/lib/supabase";
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function SignIn() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [emailTouched, setEmailTouched] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const passwordRef = useRef<TextInput>(null);
 
   const normalizedEmail = email.trim().toLowerCase();
-  const canSubmit = normalizedEmail.length > 3 && password.length >= 6 && !loading;
+  const emailValid = EMAIL_RE.test(normalizedEmail);
+  const canSubmit = emailValid && password.length >= 6 && !loading;
 
   async function handleSubmit() {
     if (!canSubmit) return;
@@ -51,24 +56,28 @@ export default function SignIn() {
               label="E-mail"
               value={email}
               onChangeText={setEmail}
+              onBlur={() => setEmailTouched(true)}
               autoCapitalize="none"
               autoCorrect={false}
+              spellCheck={false}
               keyboardType="email-address"
+              inputMode="email"
               autoComplete="email"
               textContentType="emailAddress"
               placeholder="voce@exemplo.com"
               returnKeyType="next"
               onSubmitEditing={() => passwordRef.current?.focus()}
               submitBehavior="submit"
+              error={
+                emailTouched && !emailValid && email.length > 0 ? "E-mail inválido" : undefined
+              }
             />
-            <Input
+            <PasswordInput
               ref={passwordRef}
               label="Senha"
               value={password}
               onChangeText={setPassword}
-              secureTextEntry
-              autoCapitalize="none"
-              autoCorrect={false}
+              autoComplete="password"
               textContentType="password"
               placeholder="••••••••"
               returnKeyType="go"

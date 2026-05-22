@@ -2,9 +2,9 @@ import { router } from "expo-router";
 import { View } from "react-native";
 import { OnboardingStepShell } from "@/components/OnboardingStepShell";
 import { WheelPicker } from "@/components/WheelPicker";
+import { ONBOARDING_STEPS } from "@/lib/constants";
 import { useOnboardingStore } from "@/lib/stores/onboardingStore";
 
-const TOTAL_STEPS = 8;
 const DEFAULT_HEIGHT = 170;
 
 export default function Step3Height() {
@@ -14,12 +14,13 @@ export default function Step3Height() {
   return (
     <OnboardingStepShell
       step={3}
-      total={TOTAL_STEPS}
+      total={ONBOARDING_STEPS}
       title="Qual sua altura?"
       subtitle="Em centímetros."
       onBack={() => router.back()}
       onNext={() => router.push("/(onboarding)/step-4")}
       nextDisabled={height_cm === undefined}
+      scrollable={false}
     >
       <View className="flex-1 items-center justify-center">
         <WheelPicker

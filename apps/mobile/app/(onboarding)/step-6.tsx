@@ -1,9 +1,9 @@
 import { router } from "expo-router";
+import * as Haptics from "expo-haptics";
 import { Pressable, Text, View } from "react-native";
 import { OnboardingStepShell } from "@/components/OnboardingStepShell";
+import { ONBOARDING_STEPS } from "@/lib/constants";
 import { useOnboardingStore } from "@/lib/stores/onboardingStore";
-
-const TOTAL_STEPS = 8;
 
 const OPTIONS = [
   { value: "lose", title: "Perder gordura", desc: "Déficit calórico de 20%." },
@@ -23,18 +23,21 @@ export default function Step6Goal() {
   return (
     <OnboardingStepShell
       step={6}
-      total={TOTAL_STEPS}
+      total={ONBOARDING_STEPS}
       title="Qual seu objetivo?"
       subtitle="Define as metas iniciais de calorias e macros."
       onBack={() => router.back()}
       onNext={() => router.push("/(onboarding)/step-7")}
       nextDisabled={!goal}
     >
-      <View className="gap-2">
+      <View accessibilityRole="radiogroup" className="gap-2">
         {OPTIONS.map((opt) => (
           <Pressable
             key={opt.value}
-            onPress={() => setField("goal", opt.value)}
+            onPress={() => {
+              void Haptics.selectionAsync();
+              setField("goal", opt.value);
+            }}
             accessibilityRole="radio"
             accessibilityState={{ selected: goal === opt.value }}
             className={`min-h-[64px] rounded-xl border p-3 ${

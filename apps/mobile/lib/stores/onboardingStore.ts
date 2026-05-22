@@ -6,6 +6,7 @@ import type {
 } from "@fitbrother/shared";
 import { create } from "zustand";
 import type { z } from "zod";
+import { POLICY_VERSION } from "@/lib/constants";
 import { brDateToIso } from "@/lib/masks";
 
 type Sex = z.infer<typeof SexSchema>;
@@ -108,7 +109,7 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
         terms: true,
         privacy: true,
         ai_processing: true,
-        policy_version: "v1.0",
+        policy_version: POLICY_VERSION,
       },
     };
   },

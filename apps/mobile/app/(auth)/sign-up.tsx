@@ -4,17 +4,25 @@ import { KeyboardAvoidingView, Platform, Text, type TextInput, View } from "reac
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Button } from "@/components/Button";
 import { Input } from "@/components/Input";
+import { PasswordInput, passwordStrength } from "@/components/PasswordInput";
 import { supabase } from "@/lib/supabase";
+
+// Cheap RFC-5322-adjacent check — the verification email is the real validator.
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function SignUp() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [emailTouched, setEmailTouched] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const passwordRef = useRef<TextInput>(null);
 
   const normalizedEmail = email.trim().toLowerCase();
-  const canSubmit = normalizedEmail.length > 3 && password.length >= 6 && !loading;
+  const emailValid = EMAIL_RE.test(normalizedEmail);
+  // Require strength >= 2 ("Razoável") for sign-up — matches the heuristic.
+  const passwordValid = passwordStrength(password) >= 2;
+  const canSubmit = emailValid && passwordValid && !loading;
 
   async function handleSubmit() {
     if (!canSubmit) return;
@@ -49,27 +57,32 @@ export default function SignUp() {
               label="E-mail"
               value={email}
               onChangeText={setEmail}
+              onBlur={() => setEmailTouched(true)}
               autoCapitalize="none"
               autoCorrect={false}
+              spellCheck={false}
               keyboardType="email-address"
+              inputMode="email"
               autoComplete="email"
               textContentType="emailAddress"
               placeholder="voce@exemplo.com"
               returnKeyType="next"
               onSubmitEditing={() => passwordRef.current?.focus()}
               submitBehavior="submit"
+              error={
+                emailTouched && !emailValid && email.length > 0 ? "E-mail inválido" : undefined
+              }
             />
-            <Input
+            <PasswordInput
               ref={passwordRef}
               label="Senha"
               value={password}
               onChangeText={setPassword}
-              secureTextEntry
-              autoCapitalize="none"
-              autoCorrect={false}
+              showStrength
+              autoComplete="password-new"
               textContentType="newPassword"
-              passwordRules="minlength: 6;"
-              placeholder="mínimo 6 caracteres"
+              passwordRules="minlength: 8;"
+              placeholder="Crie uma senha segura"
               returnKeyType="go"
               onSubmitEditing={handleSubmit}
             />

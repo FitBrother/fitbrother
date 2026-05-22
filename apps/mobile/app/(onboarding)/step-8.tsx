@@ -5,9 +5,8 @@ import { Pressable, Text, View } from "react-native";
 import { Button } from "@/components/Button";
 import { OnboardingStepShell } from "@/components/OnboardingStepShell";
 import { postOnboarding } from "@/lib/api";
+import { ONBOARDING_STEPS } from "@/lib/constants";
 import { useOnboardingStore } from "@/lib/stores/onboardingStore";
-
-const TOTAL_STEPS = 8;
 
 const CONSENTS = [
   {
@@ -58,7 +57,7 @@ export default function Step8Terms() {
   return (
     <OnboardingStepShell
       step={8}
-      total={TOTAL_STEPS}
+      total={ONBOARDING_STEPS}
       title="Antes de continuar"
       subtitle="Precisamos do seu consentimento para guardar e processar seus dados."
       onBack={() => router.back()}

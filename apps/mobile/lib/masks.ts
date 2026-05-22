@@ -1,14 +1,8 @@
-// Progressive DD/MM/AAAA mask. Strips non-digits, caps at 8 digits, inserts
-// slashes as the user types so they never need to type a separator.
-export function maskDate(input: string): string {
-  const d = input.replace(/\D/g, "").slice(0, 8);
-  if (d.length <= 2) return d;
-  if (d.length <= 4) return `${d.slice(0, 2)}/${d.slice(2)}`;
-  return `${d.slice(0, 2)}/${d.slice(2, 4)}/${d.slice(4)}`;
-}
-
 // `DD/MM/AAAA` → `AAAA-MM-DD` (ISO 8601). Returns null when the input
-// isn't a complete BR date or the month/day are out of range.
+// isn't a complete BR date or the month/day are out of range. Uses the JS
+// Date constructor to reject impossible dates like 31/02 or 29/02 in
+// non-leap years (the constructor silently rolls them forward — we detect
+// that by re-checking the components match).
 export function brDateToIso(input: string): string | null {
   const m = input.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
   if (!m) return null;
@@ -18,28 +12,41 @@ export function brDateToIso(input: string): string | null {
   const year = Number(yyyy);
   if (month < 1 || month > 12) return null;
   if (day < 1 || day > 31) return null;
-  if (year < 1900 || year > 2100) return null;
+  if (year < 1900) return null;
+  const d = new Date(Date.UTC(year, month - 1, day));
+  if (d.getUTCFullYear() !== year || d.getUTCMonth() !== month - 1 || d.getUTCDate() !== day) {
+    return null;
+  }
   return `${yyyy}-${mm}-${dd}`;
 }
 
-// E.164 with a Brazil-friendly default. If the user types digits without a
-// leading "+", we assume +55 (Brazil) — covers the 95% case while still
-// letting somebody paste an explicit "+44…" for other countries.
-//
-// The `+` is sticky: once the input has it, we keep whatever the user typed
-// after it (digits only). When the field becomes empty (e.g. user holds
-// backspace) we return "" so the placeholder reappears.
-export function maskPhoneE164(input: string): string {
-  if (!input) return "";
-  if (input.startsWith("+")) {
-    const digits = input.slice(1).replace(/\D/g, "").slice(0, 15);
-    return digits ? `+${digits}` : "";
-  }
-  const digits = input.replace(/\D/g, "").slice(0, 13);
-  if (!digits) return "";
-  // Avoid "+5555…" when the user already typed the 55 country code.
-  const normalized = digits.startsWith("55") ? digits : `55${digits}`.slice(0, 15);
-  return `+${normalized}`;
+/** Validate a `DD/MM/AAAA` string as a birth date. Returns a user-facing
+ *  error message in pt-BR, or `null` when the value is valid. Empty input
+ *  returns `null` only if `required` is false — callers gating "Continue"
+ *  should AND-check with their own required flag. */
+export function validateBirthDate(
+  input: string,
+  options: { minAgeYears?: number; required?: boolean } = {},
+): string | null {
+  const { minAgeYears = 13, required = true } = options;
+  if (!input) return required ? "Informe sua data de nascimento" : null;
+  if (input.length < 10) return "Data incompleta";
+
+  const iso = brDateToIso(input);
+  if (!iso) return "Data inválida";
+
+  const parts = iso.split("-").map(Number);
+  const yyyy = parts[0]!;
+  const mm = parts[1]!;
+  const dd = parts[2]!;
+  const today = new Date();
+  let age = today.getFullYear() - yyyy;
+  const monthDiff = today.getMonth() + 1 - mm;
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dd)) age -= 1;
+
+  if (age < minAgeYears) return `Idade mínima é ${minAgeYears} anos`;
+  if (age > 120) return "Data inválida";
+  return null;
 }
 
 // 0-23 inclusive, no leading zeros padded.

@@ -1,19 +1,12 @@
+import WheelPickerLib from "@quidone/react-native-wheel-picker";
+import * as Haptics from "expo-haptics";
 import { Minus, Plus } from "lucide-react-native";
-import { useEffect, useMemo, useRef } from "react";
-import {
-  FlatList,
-  type NativeScrollEvent,
-  type NativeSyntheticEvent,
-  Platform,
-  Pressable,
-  Text,
-  View,
-} from "react-native";
+import { useMemo } from "react";
+import { Platform, Pressable, Text, View } from "react-native";
 
 const ITEM_HEIGHT = 44;
 const VISIBLE_ITEMS = 5;
 const PICKER_HEIGHT = ITEM_HEIGHT * VISIBLE_ITEMS;
-const PADDING_ITEMS = Math.floor(VISIBLE_ITEMS / 2);
 
 interface WheelPickerProps {
   min: number;
@@ -25,16 +18,75 @@ interface WheelPickerProps {
 }
 
 export function WheelPicker(props: WheelPickerProps) {
-  // FlatList snap-scrolling doesn't translate well to react-native-web; the
-  // user can't drag the wheel with a mouse. Swap to a simple stepper on web.
+  // The wheel needs touch-drag physics, which @quidone implements via
+  // Reanimated worklets. react-native-web has no equivalent (mouse drag
+  // doesn't translate to inertial snap), so we ship a stepper there.
   if (Platform.OS === "web") {
     return <WebStepper {...props} />;
   }
   return <NativeWheel {...props} />;
 }
 
+function decimalsFor(step: number) {
+  if (step >= 1) return 0;
+  // 0.5 → 1, 0.05 → 2, etc. Cap at 2 to keep labels short.
+  return Math.min(2, String(step).split(".")[1]?.length ?? 0);
+}
+
+function NativeWheel({ min, max, step = 1, value, unit, onChange }: WheelPickerProps) {
+  const decimals = decimalsFor(step);
+
+  const data = useMemo(() => {
+    const out: { value: number; label: string }[] = [];
+    for (let v = min; v <= max + 1e-9; v += step) {
+      const rounded = Number(v.toFixed(decimals));
+      out.push({
+        value: rounded,
+        label: unit ? `${rounded.toFixed(decimals)} ${unit}` : rounded.toFixed(decimals),
+      });
+    }
+    return out;
+  }, [min, max, step, unit, decimals]);
+
+  return (
+    <View
+      accessibilityRole="adjustable"
+      accessibilityValue={{ text: unit ? `${value} ${unit}` : String(value) }}
+      style={{ height: PICKER_HEIGHT }}
+      className="w-full"
+    >
+      <WheelPickerLib
+        data={data}
+        value={value}
+        itemHeight={ITEM_HEIGHT}
+        visibleItemCount={VISIBLE_ITEMS}
+        enableScrollByTapOnItem
+        onValueChanging={() => {
+          // Soft haptic on every tick the wheel passes — what makes Apple's
+          // pickers feel "premium". Selection is the lightest tap; Light /
+          // Medium would feel laggy at scroll speed.
+          void Haptics.selectionAsync();
+        }}
+        onValueChanged={({ item }) => onChange(item.value)}
+        itemTextStyle={{
+          fontFamily: "PlusJakartaSans_500Medium",
+          fontSize: 22,
+          color: "#94a3b8",
+          fontVariant: ["tabular-nums"],
+        }}
+        overlayItemStyle={{
+          backgroundColor: "transparent",
+          borderTopWidth: 1,
+          borderBottomWidth: 1,
+          borderColor: "#e2e8f0",
+        }}
+      />
+    </View>
+  );
+}
+
 function WebStepper({ min, max, step = 1, value, unit, onChange }: WheelPickerProps) {
-  const decimals = step < 1 ? Math.min(2, String(step).split(".")[1]?.length ?? 0) : 0;
+  const decimals = decimalsFor(step);
   const format = (n: number) => n.toFixed(decimals);
 
   const clamp = (n: number) => Math.max(min, Math.min(max, Number(n.toFixed(decimals))));
@@ -90,87 +142,5 @@ function StepButton({
     >
       <Icon size={20} color="#ffffff" />
     </Pressable>
-  );
-}
-
-function NativeWheel({ min, max, step = 1, value, unit, onChange }: WheelPickerProps) {
-  const values = useMemo(() => {
-    const out: number[] = [];
-    for (let v = min; v <= max; v += step) out.push(Number(v.toFixed(2)));
-    return out;
-  }, [min, max, step]);
-
-  const listRef = useRef<FlatList<number>>(null);
-  const initialIndex = Math.max(
-    0,
-    values.findIndex((v) => v === value),
-  );
-
-  useEffect(() => {
-    if (initialIndex >= 0 && listRef.current) {
-      listRef.current.scrollToOffset({ offset: initialIndex * ITEM_HEIGHT, animated: false });
-    }
-  }, [initialIndex]);
-
-  const handleMomentumEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const offset = e.nativeEvent.contentOffset.y;
-    const index = Math.round(offset / ITEM_HEIGHT);
-    const next = values[index];
-    if (next !== undefined && next !== value) onChange(next);
-  };
-
-  // accessibilityValue.now requires an integer on iOS — `text` carries the
-  // human-readable form so decimals (e.g. 87.5 kg) don't crash the bridge.
-  return (
-    <View
-      accessibilityRole="adjustable"
-      accessibilityValue={{ text: unit ? `${value} ${unit}` : String(value) }}
-      style={{ height: PICKER_HEIGHT }}
-      className="relative w-full"
-    >
-      <View
-        pointerEvents="none"
-        style={{
-          position: "absolute",
-          top: PADDING_ITEMS * ITEM_HEIGHT,
-          height: ITEM_HEIGHT,
-          left: 0,
-          right: 0,
-        }}
-        className="border-y border-neutral-200"
-      />
-      <FlatList
-        ref={listRef}
-        data={values}
-        keyExtractor={(v) => String(v)}
-        renderItem={({ item }) => {
-          const isSelected = item === value;
-          return (
-            <View style={{ height: ITEM_HEIGHT }} className="items-center justify-center">
-              <Text
-                className={[
-                  "text-2xl",
-                  isSelected ? "font-sans-semibold text-neutral-900" : "font-sans text-neutral-400",
-                ].join(" ")}
-                style={{ fontVariant: ["tabular-nums"] }}
-              >
-                {item}
-                {unit && isSelected ? ` ${unit}` : ""}
-              </Text>
-            </View>
-          );
-        }}
-        showsVerticalScrollIndicator={false}
-        snapToInterval={ITEM_HEIGHT}
-        decelerationRate="fast"
-        onMomentumScrollEnd={handleMomentumEnd}
-        getItemLayout={(_, index) => ({
-          length: ITEM_HEIGHT,
-          offset: ITEM_HEIGHT * index,
-          index,
-        })}
-        contentContainerStyle={{ paddingVertical: PADDING_ITEMS * ITEM_HEIGHT }}
-      />
-    </View>
   );
 }

@@ -2,9 +2,9 @@ import { router } from "expo-router";
 import { View } from "react-native";
 import { OnboardingStepShell } from "@/components/OnboardingStepShell";
 import { WheelPicker } from "@/components/WheelPicker";
+import { ONBOARDING_STEPS } from "@/lib/constants";
 import { useOnboardingStore } from "@/lib/stores/onboardingStore";
 
-const TOTAL_STEPS = 8;
 const DEFAULT_WEIGHT = 70;
 
 export default function Step4Weight() {
@@ -14,12 +14,13 @@ export default function Step4Weight() {
   return (
     <OnboardingStepShell
       step={4}
-      total={TOTAL_STEPS}
+      total={ONBOARDING_STEPS}
       title="E seu peso atual?"
       subtitle="Em quilos. Você pode atualizar isso a qualquer momento."
       onBack={() => router.back()}
       onNext={() => router.push("/(onboarding)/step-5")}
       nextDisabled={weight_kg === undefined}
+      scrollable={false}
     >
       <View className="flex-1 items-center justify-center">
         <WheelPicker

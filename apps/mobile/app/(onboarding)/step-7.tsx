@@ -2,11 +2,10 @@ import { router } from "expo-router";
 import { Text, View } from "react-native";
 import { Input } from "@/components/Input";
 import { OnboardingStepShell } from "@/components/OnboardingStepShell";
-import { clampHour, maskPhoneE164 } from "@/lib/masks";
+import { isValidPhone, PhoneInput } from "@/components/PhoneInput";
+import { ONBOARDING_STEPS } from "@/lib/constants";
+import { clampHour } from "@/lib/masks";
 import { useOnboardingStore } from "@/lib/stores/onboardingStore";
-
-const TOTAL_STEPS = 8;
-const E164_RE = /^\+[1-9]\d{7,14}$/;
 
 export default function Step7PhoneTimezone() {
   const phone_e164 = useOnboardingStore((s) => s.phone_e164);
@@ -14,13 +13,13 @@ export default function Step7PhoneTimezone() {
   const day_start_hour = useOnboardingStore((s) => s.day_start_hour);
   const setField = useOnboardingStore((s) => s.setField);
 
-  // Phone is optional; if filled, it must be valid E.164.
-  const phoneValid = phone_e164.length === 0 || E164_RE.test(phone_e164);
+  // Phone is optional; isValidPhone() returns true for empty input.
+  const phoneValid = isValidPhone(phone_e164);
 
   return (
     <OnboardingStepShell
       step={7}
-      total={TOTAL_STEPS}
+      total={ONBOARDING_STEPS}
       title="Quase lá"
       subtitle="Telefone é opcional — usado depois pra ativar o registro via WhatsApp."
       onBack={() => router.back()}
@@ -28,15 +27,11 @@ export default function Step7PhoneTimezone() {
       nextDisabled={!phoneValid}
     >
       <View className="gap-3">
-        <Input
+        <PhoneInput
           label="WhatsApp (opcional)"
           value={phone_e164}
-          onChangeText={(v) => setField("phone_e164", maskPhoneE164(v))}
-          placeholder="+5511999999999"
-          keyboardType="phone-pad"
-          autoComplete="tel"
-          maxLength={16}
-          error={phoneValid ? undefined : "Use o formato E.164 (+55…)"}
+          onChangeText={(v) => setField("phone_e164", v)}
+          error={phoneValid ? undefined : "Número inválido"}
         />
 
         <View className="rounded-xl border border-neutral-200 bg-white p-4">
