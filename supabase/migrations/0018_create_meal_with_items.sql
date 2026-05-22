@@ -1,0 +1,111 @@
+-- M2 §backend. Atomic meal creation: meals + meal_items + recompute, all in
+-- one PL/pgSQL block. Mirrors the M1 `complete_onboarding` pattern.
+--
+-- Why a single RPC instead of N round-trips from the server:
+--   * Single transaction → either everything lands or nothing (no
+--     orphan meals with missing items).
+--   * Single recompute at the end (via the bulk_insert GUC) → daily_summary
+--     gets touched once, not once per item.
+--   * Idempotent: ON CONFLICT (id) DO NOTHING means a retry of the same
+--     request (network glitch, double-tap) returns the existing meal
+--     instead of creating a duplicate. This is what enables the
+--     "client_meal_id from the client, optimistic UI without temp swap"
+--     pattern — client UUID + server idempotency = clean Realtime de-dup.
+--
+-- SECURITY INVOKER (default): runs as the authenticated user. RLS on
+-- meals/meal_items validates that auth.uid() = user_id; if a client tries
+-- to spoof another user's id in the payload, the WITH CHECK clause blocks it.
+
+CREATE OR REPLACE FUNCTION public.create_meal_with_items(payload jsonb)
+RETURNS jsonb
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  uid              uuid := auth.uid();
+  v_meal_id        uuid := (payload->>'id')::uuid;
+  v_source         meal_source := (payload->>'source')::meal_source;
+  v_raw_input      text := payload->>'raw_input';
+  v_audio_path     text := NULLIF(payload->>'audio_path', '');
+  v_meal_type      meal_type := COALESCE((payload->>'meal_type')::meal_type, 'other');
+  v_consumed_at    timestamptz := COALESCE(
+                      (payload->>'consumed_at')::timestamptz, now());
+  v_confidence     numeric := NULLIF(payload->>'confidence', '')::numeric;
+  v_review_required boolean := COALESCE(v_confidence < 0.6, false);
+  v_inserted_id    uuid;
+  v_item           jsonb;
+  v_day            date;
+BEGIN
+  IF uid IS NULL THEN
+    RAISE EXCEPTION 'create_meal_with_items requires authenticated user';
+  END IF;
+  IF v_meal_id IS NULL THEN
+    RAISE EXCEPTION 'create_meal_with_items requires payload.id (client UUID)';
+  END IF;
+  IF v_source IS NULL THEN
+    RAISE EXCEPTION 'create_meal_with_items requires payload.source';
+  END IF;
+
+  -- 1. Insert the meal. ON CONFLICT means a retry returns existing row
+  -- rather than duplicating; meal_items inserts below are skipped.
+  INSERT INTO public.meals (
+    id, user_id, source, raw_input, audio_path, meal_type,
+    consumed_at, confidence, review_required
+  )
+  VALUES (
+    v_meal_id, uid, v_source, v_raw_input, v_audio_path, v_meal_type,
+    v_consumed_at, v_confidence, v_review_required
+  )
+  ON CONFLICT (id) DO NOTHING
+  RETURNING id INTO v_inserted_id;
+
+  IF v_inserted_id IS NULL THEN
+    -- Already existed (idempotent retry). Return current state without
+    -- touching meal_items.
+    RETURN jsonb_build_object(
+      'id', v_meal_id,
+      'already_existed', true
+    );
+  END IF;
+
+  -- 2. Bulk-insert meal_items. The GUC short-circuits the trigger so we
+  -- recompute exactly once at the end.
+  PERFORM set_config('fitbrother.bulk_insert', 'on', true);
+
+  FOR v_item IN SELECT * FROM jsonb_array_elements(payload->'items') LOOP
+    INSERT INTO public.meal_items (
+      meal_id, food_id, description, quantity, unit,
+      kcal, protein_g, carbs_g, fat_g, density_assumed
+    )
+    VALUES (
+      v_meal_id,
+      NULLIF(v_item->>'food_id', '')::uuid,
+      v_item->>'description',
+      (v_item->>'quantity')::numeric,
+      (v_item->>'unit')::unit,
+      (v_item->>'kcal')::numeric,
+      (v_item->>'protein_g')::numeric,
+      (v_item->>'carbs_g')::numeric,
+      (v_item->>'fat_g')::numeric,
+      COALESCE((v_item->>'density_assumed')::bool, false)
+    );
+  END LOOP;
+
+  PERFORM set_config('fitbrother.bulk_insert', 'off', true);
+
+  -- 3. One-shot recompute: meals.total_* and the affected daily_summary.
+  PERFORM public.fitbrother_recompute_meal_totals(v_meal_id);
+
+  -- Only count toward the day when the meal is countable (not in review).
+  IF NOT v_review_required THEN
+    v_day := public.fitbrother_nutritional_day(uid, v_consumed_at);
+    PERFORM public.fitbrother_recompute_daily_summary(uid, v_day);
+  END IF;
+
+  RETURN jsonb_build_object(
+    'id', v_meal_id,
+    'already_existed', false,
+    'review_required', v_review_required,
+    'day', public.fitbrother_nutritional_day(uid, v_consumed_at)
+  );
+END;
+$$;
