@@ -12,9 +12,11 @@
   },
   "dependencies": {
     "@fastify/cors": "^11.2.0",
+    "@fastify/rate-limit": "^10.3.0",
     "@fastify/sensible": "^6.0.2",
     "@fitbrother/db-types": "*",
     "@fitbrother/shared": "*",
+    "@google/generative-ai": "^0.24.1",
     "@sentry/node": "^8.45.0",
     "@supabase/supabase-js": "^2.47.10",
     "dotenv": "^16.4.7",

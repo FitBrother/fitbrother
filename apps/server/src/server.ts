@@ -1,9 +1,11 @@
 import cors from "@fastify/cors";
+import rateLimit from "@fastify/rate-limit";
 import sensible from "@fastify/sensible";
-import Fastify, { type FastifyError } from "fastify";
+import Fastify, { type FastifyError, type FastifyRequest } from "fastify";
 import { env } from "./lib/env.js";
 import { initSentry, Sentry } from "./lib/sentry.js";
 import { healthRoutes } from "./routes/health.js";
+import { mealsRoutes } from "./routes/meals.js";
 import { meRoutes } from "./routes/me.js";
 import { onboardingRoutes } from "./routes/onboarding.js";
 
@@ -27,9 +29,22 @@ await app.register(cors, {
   origin: env.NODE_ENV === "production" ? false : true,
   credentials: true,
 });
+
+// Rate limit: 30 req/min per authenticated user (falls back to IP for
+// pre-auth routes — sign-in / sign-up are handled by Supabase directly,
+// not this server, so the IP fallback only matters for /health probes).
+// AI_QUOTA_EXCEEDED is the per-day cost gate; this is the per-minute
+// abuse gate.
+await app.register(rateLimit, {
+  max: 30,
+  timeWindow: "1 minute",
+  keyGenerator: (req: FastifyRequest) => req.user?.id ?? req.ip,
+});
+
 await app.register(healthRoutes);
 await app.register(onboardingRoutes);
 await app.register(meRoutes);
+await app.register(mealsRoutes);
 
 app.setErrorHandler((err: FastifyError, _req, reply) => {
   app.log.error({ err }, "request_failed");
