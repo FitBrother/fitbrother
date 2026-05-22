@@ -198,6 +198,10 @@ fitbrother/
 - Error Banner para `AI_QUOTA_EXCEEDED` com CTA "Adicionar manualmente".
 - React Query para `GET /meals?day=...`; refetch on submit.
 
+### Tech debt carregado de M1
+
+- **SecureStore > 2048 bytes** (warning na boot do app, vira erro em SDKs futuros): a sessão Supabase (access + refresh token serializados num único valor) ultrapassa o limite do `expo-secure-store` no iOS. Trocar o storage adapter em `apps/mobile/lib/supabase.ts` por: (a) split em 2 keys (`sb-access` / `sb-refresh`), ou (b) `AsyncStorage` + criptografia em camada acima. Card no Trello (Backlog).
+
 **Feito quando:** "Comi 2 ovos e café" no app → 5–8s depois Meal Card visível com ~140 kcal, ~12g P; segundo registro idêntico não chama Gemini/Whisper (log mostra cache hit); `AI_CAP_LLM_TOKENS=10` → segunda tentativa retorna `AI_QUOTA_EXCEEDED`; `daily_summaries` atualiza após INSERT em `meal_items`; `confidence < 0.6` → `review_required=true` e Meal Card mostra borda warning + chip Confirmar.
 
 ---
