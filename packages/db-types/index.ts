@@ -28,6 +28,107 @@ export type Database = {
   };
   public: {
     Tables: {
+      ai_extraction_hits: {
+        Row: {
+          id: string;
+          input_hash: string;
+          occurred_at: string;
+          user_id: string;
+          was_cache_hit: boolean;
+        };
+        Insert: {
+          id?: string;
+          input_hash: string;
+          occurred_at?: string;
+          user_id: string;
+          was_cache_hit: boolean;
+        };
+        Update: {
+          id?: string;
+          input_hash?: string;
+          occurred_at?: string;
+          user_id?: string;
+          was_cache_hit?: boolean;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "ai_extraction_hits_input_hash_fkey";
+            columns: ["input_hash"];
+            isOneToOne: false;
+            referencedRelation: "ai_extractions";
+            referencedColumns: ["input_hash"];
+          },
+        ];
+      };
+      ai_extractions: {
+        Row: {
+          confidence: number | null;
+          cost_cents: number;
+          created_at: string;
+          input_hash: string;
+          model: string;
+          prompt_version: string;
+          result_json: Json;
+          tokens_input: number;
+          tokens_output: number;
+        };
+        Insert: {
+          confidence?: number | null;
+          cost_cents?: number;
+          created_at?: string;
+          input_hash: string;
+          model: string;
+          prompt_version: string;
+          result_json: Json;
+          tokens_input?: number;
+          tokens_output?: number;
+        };
+        Update: {
+          confidence?: number | null;
+          cost_cents?: number;
+          created_at?: string;
+          input_hash?: string;
+          model?: string;
+          prompt_version?: string;
+          result_json?: Json;
+          tokens_input?: number;
+          tokens_output?: number;
+        };
+        Relationships: [];
+      };
+      ai_usage: {
+        Row: {
+          day: string;
+          llm_cost_cents: number;
+          llm_input_tokens: number;
+          llm_output_tokens: number;
+          transcription_cost_cents: number;
+          transcription_seconds: number;
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          day: string;
+          llm_cost_cents?: number;
+          llm_input_tokens?: number;
+          llm_output_tokens?: number;
+          transcription_cost_cents?: number;
+          transcription_seconds?: number;
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          day?: string;
+          llm_cost_cents?: number;
+          llm_input_tokens?: number;
+          llm_output_tokens?: number;
+          transcription_cost_cents?: number;
+          transcription_seconds?: number;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
       anthropometrics: {
         Row: {
           bmr_kcal: number | null;
@@ -81,6 +182,222 @@ export type Database = {
           policy_version?: string;
           revoked_at?: string | null;
           scope?: Database["public"]["Enums"]["consent_scope"];
+          user_id?: string;
+        };
+        Relationships: [];
+      };
+      daily_summaries: {
+        Row: {
+          carbs_g: number;
+          day: string;
+          fat_g: number;
+          goal_carbs_g: number | null;
+          goal_fat_g: number | null;
+          goal_hit: boolean;
+          goal_kcal: number | null;
+          goal_protein_g: number | null;
+          kcal: number;
+          meals_count: number;
+          protein_g: number;
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          carbs_g?: number;
+          day: string;
+          fat_g?: number;
+          goal_carbs_g?: number | null;
+          goal_fat_g?: number | null;
+          goal_hit?: boolean;
+          goal_kcal?: number | null;
+          goal_protein_g?: number | null;
+          kcal?: number;
+          meals_count?: number;
+          protein_g?: number;
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          carbs_g?: number;
+          day?: string;
+          fat_g?: number;
+          goal_carbs_g?: number | null;
+          goal_fat_g?: number | null;
+          goal_hit?: boolean;
+          goal_kcal?: number | null;
+          goal_protein_g?: number | null;
+          kcal?: number;
+          meals_count?: number;
+          protein_g?: number;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
+      foods: {
+        Row: {
+          carbs_per_100g: number;
+          created_at: string;
+          fat_per_100g: number;
+          id: string;
+          kcal_per_100g: number;
+          name: string;
+          name_normalized: string;
+          protein_per_100g: number;
+          serving_grams: number | null;
+          serving_label: string | null;
+          source: Database["public"]["Enums"]["food_source"];
+          updated_at: string;
+          verified: boolean;
+        };
+        Insert: {
+          carbs_per_100g: number;
+          created_at?: string;
+          fat_per_100g: number;
+          id?: string;
+          kcal_per_100g: number;
+          name: string;
+          name_normalized: string;
+          protein_per_100g: number;
+          serving_grams?: number | null;
+          serving_label?: string | null;
+          source: Database["public"]["Enums"]["food_source"];
+          updated_at?: string;
+          verified?: boolean;
+        };
+        Update: {
+          carbs_per_100g?: number;
+          created_at?: string;
+          fat_per_100g?: number;
+          id?: string;
+          kcal_per_100g?: number;
+          name?: string;
+          name_normalized?: string;
+          protein_per_100g?: number;
+          serving_grams?: number | null;
+          serving_label?: string | null;
+          source?: Database["public"]["Enums"]["food_source"];
+          updated_at?: string;
+          verified?: boolean;
+        };
+        Relationships: [];
+      };
+      meal_items: {
+        Row: {
+          carbs_g: number;
+          created_at: string;
+          deleted_at: string | null;
+          density_assumed: boolean;
+          description: string;
+          fat_g: number;
+          food_id: string | null;
+          id: string;
+          kcal: number;
+          meal_id: string;
+          protein_g: number;
+          quantity: number;
+          unit: Database["public"]["Enums"]["unit"];
+        };
+        Insert: {
+          carbs_g: number;
+          created_at?: string;
+          deleted_at?: string | null;
+          density_assumed?: boolean;
+          description: string;
+          fat_g: number;
+          food_id?: string | null;
+          id?: string;
+          kcal: number;
+          meal_id: string;
+          protein_g: number;
+          quantity: number;
+          unit: Database["public"]["Enums"]["unit"];
+        };
+        Update: {
+          carbs_g?: number;
+          created_at?: string;
+          deleted_at?: string | null;
+          density_assumed?: boolean;
+          description?: string;
+          fat_g?: number;
+          food_id?: string | null;
+          id?: string;
+          kcal?: number;
+          meal_id?: string;
+          protein_g?: number;
+          quantity?: number;
+          unit?: Database["public"]["Enums"]["unit"];
+        };
+        Relationships: [
+          {
+            foreignKeyName: "meal_items_food_id_fkey";
+            columns: ["food_id"];
+            isOneToOne: false;
+            referencedRelation: "foods";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "meal_items_meal_id_fkey";
+            columns: ["meal_id"];
+            isOneToOne: false;
+            referencedRelation: "meals";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      meals: {
+        Row: {
+          audio_path: string | null;
+          confidence: number | null;
+          consumed_at: string;
+          created_at: string;
+          deleted_at: string | null;
+          id: string;
+          meal_type: Database["public"]["Enums"]["meal_type"];
+          raw_input: string | null;
+          review_required: boolean;
+          source: Database["public"]["Enums"]["meal_source"];
+          total_carbs_g: number;
+          total_fat_g: number;
+          total_kcal: number;
+          total_protein_g: number;
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          audio_path?: string | null;
+          confidence?: number | null;
+          consumed_at?: string;
+          created_at?: string;
+          deleted_at?: string | null;
+          id: string;
+          meal_type: Database["public"]["Enums"]["meal_type"];
+          raw_input?: string | null;
+          review_required?: boolean;
+          source: Database["public"]["Enums"]["meal_source"];
+          total_carbs_g?: number;
+          total_fat_g?: number;
+          total_kcal?: number;
+          total_protein_g?: number;
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          audio_path?: string | null;
+          confidence?: number | null;
+          consumed_at?: string;
+          created_at?: string;
+          deleted_at?: string | null;
+          id?: string;
+          meal_type?: Database["public"]["Enums"]["meal_type"];
+          raw_input?: string | null;
+          review_required?: boolean;
+          source?: Database["public"]["Enums"]["meal_source"];
+          total_carbs_g?: number;
+          total_fat_g?: number;
+          total_kcal?: number;
+          total_protein_g?: number;
+          updated_at?: string;
           user_id?: string;
         };
         Relationships: [];
@@ -211,12 +528,70 @@ export type Database = {
         };
         Relationships: [];
       };
+      transcriptions: {
+        Row: {
+          audio_hash: string;
+          cost_cents: number;
+          created_at: string;
+          duration_s: number;
+          language: string | null;
+          model: string;
+          text: string;
+        };
+        Insert: {
+          audio_hash: string;
+          cost_cents?: number;
+          created_at?: string;
+          duration_s: number;
+          language?: string | null;
+          model: string;
+          text: string;
+        };
+        Update: {
+          audio_hash?: string;
+          cost_cents?: number;
+          created_at?: string;
+          duration_s?: number;
+          language?: string | null;
+          model?: string;
+          text?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       [_ in never]: never;
     };
     Functions: {
       complete_onboarding: { Args: { payload: Json }; Returns: Json };
+      create_meal_with_items: { Args: { payload: Json }; Returns: Json };
+      fitbrother_assert_ai_cap: {
+        Args: { p_cap: number; p_kind: string; p_user_id: string };
+        Returns: undefined;
+      };
+      fitbrother_nutritional_day: {
+        Args: { p_ts?: string; p_user_id: string };
+        Returns: string;
+      };
+      fitbrother_recompute_daily_summary: {
+        Args: { p_day: string; p_user_id: string };
+        Returns: undefined;
+      };
+      fitbrother_recompute_meal_totals: {
+        Args: { p_meal_id: string };
+        Returns: undefined;
+      };
+      fitbrother_record_ai_usage: {
+        Args: {
+          p_llm_cost_cents?: number;
+          p_llm_input_tokens?: number;
+          p_llm_output_tokens?: number;
+          p_transcription_cost_cents?: number;
+          p_transcription_seconds?: number;
+          p_user_id: string;
+        };
+        Returns: undefined;
+      };
       show_limit: { Args: never; Returns: number };
       show_trgm: { Args: { "": string }; Returns: string[] };
       unaccent: { Args: { "": string }; Returns: string };

@@ -153,14 +153,18 @@ fitbrother/
 
 ### Migrations
 
-- `0008_foods.sql` + índice GIN `name_normalized gin_trgm_ops`.
-- `0009_meals.sql` (com `deleted_at`, `review_required`, `total_*` mantidos por trigger — **não** GENERATED), índice `(user_id, consumed_at DESC) WHERE deleted_at IS NULL`.
-- `0010_meal_items.sql` (ON DELETE CASCADE).
-- `0011_meal_triggers.sql` — `AFTER INSERT/UPDATE/DELETE` em `meal_items` recalcula `meals.total_*` (somando todos `meal_items` da mesma meal) e chama `fitbrother_recompute_daily_summary(user_id, day)`. Edição de `consumed_at` recalcula ambos os dias afetados.
-- `0012_daily_summaries.sql` + função `fitbrother_recompute_daily_summary(p_user_id uuid, p_day date)` que **respeita boundary `day_start_hour`** conforme `FEATURES §3.3` e seta `goal_hit` segundo regra fixa.
-- `0013_ai_usage.sql`.
-- `0014_transcriptions.sql` (`audio_hash` PK).
-- `0015_ai_extractions.sql` (`input_hash` PK).
+> Numeração ajustada: M1 ocupou até `0009_anthropometrics_allow_delete.sql`, então M2 começa em `0010`.
+
+- `0010_foods.sql` + índice GIN `name_normalized gin_trgm_ops`.
+- `0011_meals.sql` (com `deleted_at`, `review_required`, `total_*` mantidos por trigger — **não** GENERATED, `id uuid PK sem default` pra optimistic UI), índice `(user_id, consumed_at DESC) WHERE deleted_at IS NULL`.
+- `0012_meal_items.sql` (ON DELETE CASCADE de `meals` + soft delete próprio em sincronia com parent).
+- `0013_meal_triggers.sql` — **STATEMENT-level** trigger em `meal_items` (transition tables) recalcula `meals.total_*` e enfileira recompute de `daily_summaries`. `AFTER UPDATE OF deleted_at ON meals` e `AFTER UPDATE OF review_required ON meals` também disparam recompute.
+- `0014_daily_summaries.sql` + função `fitbrother_recompute_daily_summary(p_user_id uuid, p_day date)` que **respeita boundary `day_start_hour`**, pega `pg_advisory_xact_lock` (race-safe) e seta `goal_hit` segundo regra fixa.
+- `0015_ai_usage.sql` + função `fitbrother_assert_ai_cap(user, kind)` lança `AI_QUOTA_EXCEEDED`.
+- `0016_transcriptions.sql` (`audio_hash` PK).
+- `0017_ai_extractions.sql` (`input_hash` PK) + tabela `ai_extraction_hits` separada pra analytics per-user.
+- `0018_create_meal_with_items.sql` — RPC atômico (espelhando `complete_onboarding` do M1).
+- **Storage bucket `meal-audios`** privado, RLS `auth.uid()::text = (storage.foldername(name))[1]`.
 - **Seed `foods`** — script `supabase/seed/foods-taco.ts` baixa CSV TACO/UNICAMP, normaliza (`lower(unaccent(name))`), insere ~600 rows `verified=true source='taco'`.
 
 ### Backend
@@ -188,15 +192,20 @@ fitbrother/
   - `DELETE /meals/:id` (soft)
   - `GET /me/daily-summary?day=...`
 
-### Mobile
+### Mobile — capture-first (composer persistente)
 
-- `app/(tabs)/index.tsx` — lista simples de Meal Cards do dia.
-- FAB Plus → Bottom Sheet (`@gorhom/bottom-sheet`) com 3 opções: Texto, Áudio, Manual.
-- Texto: `TextInput multiline` + send.
-- Áudio: Audio Recorder Button (`DESIGN_SYSTEM §12.5`) com `expo-av` recording opus 24kbps; tap-to-toggle; haptics `Medium` ao iniciar/parar.
-- Manual: lista de items adicionáveis com nome + quantidade + unidade.
-- Error Banner para `AI_QUOTA_EXCEEDED` com CTA "Adicionar manualmente".
-- React Query para `GET /meals?day=...`; refetch on submit.
+> Decisão de UX (mai/2026): em vez de FAB + Bottom Sheet, o app adota composer fixo no rodapé (estilo iMessage/WhatsApp) e remove a tab bar. Friends/Profile viram ícones no header superior. Pattern apropriado pra app onde toda visita tem a mesma intenção (registrar refeição).
+
+- `app/index.tsx` — Home com HomeHeader (saudação + ícones Users/User), lista de Meal Cards, EmptyMealsState, MealComposer fixo no rodapé.
+- `app/friends.tsx`, `app/profile.tsx` — push do header (placeholders pra M5/M6).
+- `app/meal/[id].tsx` — detalhe + edição inline (M3 expande com rings).
+- **MealComposer** (`components/domain/MealComposer.tsx`): state machine `idle | typing | recording | processing`. TextInput multiline + mic à direita. Mic vira ➤ quando há texto. Tap mic = recording in-place (input vira waveform + timer + cancel/stop). Long-press mic = hold-to-record. Long-press input = "Adicionar manualmente".
+- **AudioRecorder** com `expo-av` (opus 24kbps + metering) — haptics: `Heavy` start, `Success` stop, `Warning` cancel, `Medium` processing, `Success` saved.
+- **MealCard** (`components/domain/MealCard.tsx`): §12.3 do DESIGN_SYSTEM, amber border + chip "Revisar" quando `review_required=true`. Swipe-left revela delete.
+- **MealSkeleton** durante processamento (2-8s).
+- **Optimistic UI** com `client_meal_id` gerado no cliente — server usa como `meals.id`, Realtime de-dup automático.
+- **ErrorBanner** sticky abaixo do header pra `AI_QUOTA_EXCEEDED` — desabilita mic, mantém input pra cache hits, CTA full-screen manual.
+- React Query para `GET /meals?day=...`; `useMealsRealtime` invalida em UPDATE/INSERT em `meals`.
 
 ### Tech debt carregado de M1
 
@@ -225,13 +234,15 @@ fitbrother/
 - `app/meal/[id].tsx` — detalhe + edição de items; botão Confirmar; Skeleton (§12.11) no loading.
 - `app/history/index.tsx` — agrupada por dia, infinite scroll por semana via `daily_summaries`.
 - Hooks: `useDailySummaryRealtime(user_id)` assina `realtime:public:daily_summaries:user_id=eq.<id>` e invalida React Query. `useMealsRealtime(user_id, day)` análogo.
-- Bottom Tab Bar (§12.7): Home, Friends (placeholder), [+] FAB, Profile (placeholder).
+- (Sem tab bar — Friends/Profile via ícones no HomeHeader já implementados em M2.4. M3 só polirá o header com StreakCounter.)
 
 **Feito quando:** dia com 3 refeições renderiza com macros e rings corretos; deletar meal → ring atualiza em <1s sem refresh manual; 2 dispositivos do mesmo user logados refletem em <2s; edição de `quantity` recalcula totais.
 
 ---
 
-## M4 — WhatsApp end-to-end (semana 5)
+## M4 — WhatsApp end-to-end (PAUSADO — Meta business verification recusada em 2026-05-22)
+
+> **Status:** Pausado. Meta recusou a business verification em mai/2026. Sequência ajustada: M0 → M1 → M2 → M3 → **M5 → M6** → M4 (quando Meta destravar). Test number da Meta continua funcionando pra dev sem verification.
 
 **Meta:** áudio/texto no WhatsApp aparece no app em <8s; idempotência funciona; cota respeitada; verificação de telefone via handshake.
 
