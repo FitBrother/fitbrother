@@ -19,7 +19,10 @@ import {
   type OptimisticMeal,
 } from "@/lib/hooks/useCreateMealText";
 import { useDeleteMeal } from "@/lib/hooks/useDeleteMeal";
+import { useAuthSession } from "@/lib/hooks/useAuthSession";
+import { useCreateMealAudio } from "@/lib/hooks/useCreateMealAudio";
 import { QuotaExceededError, getErrorStatus } from "@/lib/api/meals";
+import { uploadMealAudio } from "@/lib/storage";
 import { HomeHeader } from "@/components/domain/HomeHeader";
 import { MealCardSwipeable } from "@/components/domain/MealCardSwipeable";
 import { MealCardSkeleton } from "@/components/domain/MealCardSkeleton";
@@ -38,6 +41,9 @@ export default function HomeScreen() {
   const day = nutritionalToday(profile);
   const mealsQuery = useMealsForDay(day);
   const createMeal = useCreateMealText();
+  const createMealAudio = useCreateMealAudio();
+  const session = useAuthSession();
+  const userId = session.status === "signed_in" ? session.session.user.id : undefined;
   const deleteMeal = useDeleteMeal();
   const [banner, setBanner] = useState<ErrorBannerVariant | null>(null);
 
@@ -68,13 +74,49 @@ export default function HomeScreen() {
     );
   };
 
-  const handleAudioReady = (_params: {
-    fileUri: string;
-    durationMs: number;
-    ext: "m4a" | "opus";
-  }) => {
-    // M2.4: audio upload pipeline wired in Task 15+.
-  };
+  const handleAudioReady = useCallback(
+    async (params: { fileUri: string; durationMs: number; ext: "m4a" | "opus" }) => {
+      if (!userId) return;
+      setBanner(null);
+      const client_meal_id = newClientMealId();
+      const duration_s = Math.max(1, Math.round(params.durationMs / 1000));
+      try {
+        const { path } = await uploadMealAudio({
+          userId,
+          mealId: client_meal_id,
+          fileUri: params.fileUri,
+          ext: params.ext,
+        });
+        createMealAudio.mutate(
+          {
+            client_meal_id,
+            audio_path: path,
+            duration_s,
+            locale: detectLocale(),
+            day,
+          },
+          {
+            onError: (err) => {
+              if (err instanceof QuotaExceededError) {
+                setBanner("quota_exceeded");
+              } else if (err.message === "empty_transcription") {
+                setBanner("network"); // re-use network banner copy "tente de novo"
+              } else if (err.message === "request_timeout") {
+                setBanner("offline");
+              } else if ((getErrorStatus(err) ?? 0) >= 500) {
+                setBanner("server_error");
+              } else {
+                setBanner("network");
+              }
+            },
+          },
+        );
+      } catch {
+        setBanner("network");
+      }
+    },
+    [createMealAudio, day, userId],
+  );
 
   const handleDelete = useCallback(
     (id: string) => {
@@ -174,7 +216,7 @@ export default function HomeScreen() {
           onSend={handleSend}
           onAudioReady={handleAudioReady}
           disabled={banner === "quota_exceeded"}
-          processing={createMeal.isPending}
+          processing={createMeal.isPending || createMealAudio.isPending}
         />
       </Animated.View>
     </SafeAreaView>
