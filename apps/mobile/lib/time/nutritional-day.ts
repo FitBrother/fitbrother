@@ -5,6 +5,10 @@
  *
  * Server stays the source of truth — this is only used to pick the React
  * Query cache key and the `day` parameter for GET /meals?day=.
+ *
+ * @param ts - any UTC timestamp.
+ * @param profile.timezone - IANA timezone (e.g. "America/Sao_Paulo").
+ * @param profile.day_start_hour - integer 0-23. Fractional values are not supported (mirrors Postgres INTERVAL 'N hours').
  */
 export function nutritionalDay(
   ts: Date,
@@ -21,6 +25,9 @@ export function nutritionalDay(
   // whose TZ differs from the profile's TZ.
   // sv-SE format is guaranteed: "YYYY-MM-DD HH:mm:ss"
   const spaceIdx = localStr.indexOf(" ");
+  if (spaceIdx === -1) {
+    throw new Error(`nutritional-day: unexpected toLocaleString format: ${localStr}`);
+  }
   const datePart = localStr.slice(0, spaceIdx);
   const timePart = localStr.slice(spaceIdx + 1);
 
