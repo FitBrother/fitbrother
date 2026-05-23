@@ -3,6 +3,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { ChevronLeft } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { supabase } from "@/lib/supabase";
+import { colors } from "@/lib/colors";
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -15,7 +16,7 @@ export default function ProfileScreen() {
           accessibilityRole="button"
           className="min-h-[44px] min-w-[44px] items-center justify-center"
         >
-          <ChevronLeft size={24} color="#1E293B" />
+          <ChevronLeft size={24} color={colors.neutral[800]} />
         </Pressable>
         <Text className="ml-2 text-xl font-sans-bold text-neutral-800">Perfil</Text>
       </View>

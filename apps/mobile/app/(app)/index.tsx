@@ -1,4 +1,5 @@
 import { ActivityIndicator, View } from "react-native";
+import { colors } from "@/lib/colors";
 
 /**
  * Placeholder index for the (app) group.
@@ -7,7 +8,7 @@ import { ActivityIndicator, View } from "react-native";
 export default function AppIndex() {
   return (
     <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-      <ActivityIndicator size="large" color="#2DD4BF" />
+      <ActivityIndicator size="large" color={colors.primary[400]} />
     </View>
   );
 }
