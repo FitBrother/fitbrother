@@ -109,7 +109,7 @@ export const geminiProvider: LLMProvider = {
   async extractMeal({ text, locale }) {
     const client = getClient();
     const model = client.getGenerativeModel({
-      model: "gemini-1.5-flash",
+      model: "gemini-2.5-flash",
       systemInstruction: SYSTEM_PROMPT,
       tools: [{ functionDeclarations: [extractMealFunctionDeclaration] }],
       toolConfig: {

@@ -75,14 +75,6 @@ export default function Index() {
     );
   }
 
-  return (
-    <SafeAreaView className="flex-1 bg-neutral-50">
-      <View className="flex-1 items-center justify-center px-5">
-        <Text className="mb-2 text-3xl font-sans-extrabold text-primary-400">Fitbrother</Text>
-        <Text className="text-center text-base font-sans text-neutral-600">
-          Conta ativa. Dashboard nutricional em breve.
-        </Text>
-      </View>
-    </SafeAreaView>
-  );
+  // profile.kind === "present"
+  return <Redirect href="/(app)" />;
 }
