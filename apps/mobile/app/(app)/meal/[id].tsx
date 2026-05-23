@@ -10,6 +10,7 @@ import { useDeleteMeal } from "@/lib/hooks/useDeleteMeal";
 import { useProfile } from "@/lib/profile/profile-context";
 import { nutritionalDay } from "@/lib/time/nutritional-day";
 import { colors } from "@/lib/colors";
+import { shadows } from "@/lib/shadows";
 
 const NUM: { fontVariant: ["tabular-nums"] } = { fontVariant: ["tabular-nums"] };
 
@@ -97,7 +98,7 @@ export default function MealDetailScreen() {
       </View>
 
       <ScrollView contentContainerStyle={{ paddingBottom: 32 }}>
-        <View className="mx-4 mt-2 rounded-2xl bg-white p-4 shadow-sm">
+        <View style={shadows.card} className="mx-4 mt-2 rounded-2xl bg-white p-4">
           <Text style={NUM} className="text-3xl font-sans-extrabold text-neutral-800">
             {Math.round(meal.total_kcal)} kcal
           </Text>
@@ -112,7 +113,7 @@ export default function MealDetailScreen() {
         </Text>
         <View className="mx-4 mt-2 gap-2">
           {meal.items.map((item) => (
-            <View key={item.id} className="rounded-2xl bg-white p-4 shadow-sm">
+            <View key={item.id} style={shadows.card} className="rounded-2xl bg-white p-4">
               <Text className="text-base font-sans-medium text-neutral-800">
                 {item.description}
               </Text>

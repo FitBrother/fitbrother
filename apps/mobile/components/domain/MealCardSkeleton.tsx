@@ -7,6 +7,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { colors } from "@/lib/colors";
+import { shadows } from "@/lib/shadows";
 
 import type { DimensionValue } from "react-native";
 
@@ -25,7 +26,7 @@ function Shimmer({ width, height }: { width: DimensionValue; height: number }) {
 
 export function MealCardSkeleton() {
   return (
-    <View className="mx-4 mt-3 gap-3 rounded-2xl bg-white p-4 shadow-sm">
+    <View style={shadows.card} className="mx-4 mt-3 gap-3 rounded-2xl bg-white p-4">
       <View className="flex-row items-center justify-between">
         <Shimmer width={140} height={16} />
         <Shimmer width={48} height={14} />

@@ -1,5 +1,6 @@
 import { Pressable, Text, View } from "react-native";
 import type { MealResponse } from "@fitbrother/shared";
+import { shadows } from "@/lib/shadows";
 
 const MEAL_TYPE_LABEL: Record<MealResponse["meal_type"], string> = {
   breakfast: "🍳 Café da manhã",
@@ -35,8 +36,9 @@ export function MealCard({ meal, onPress }: Props) {
       onPress={onPress}
       accessibilityRole={onPress ? "button" : undefined}
       accessibilityLabel={`Refeição ${MEAL_TYPE_LABEL[meal.meal_type]}, ${Math.round(meal.total_kcal)} kcal`}
+      style={shadows.card}
       className={[
-        "mx-4 mt-3 rounded-2xl bg-white p-4 shadow-sm",
+        "rounded-2xl bg-white p-4",
         isReview ? "border-[1.5px] border-warning-500" : "",
       ].join(" ")}
     >
