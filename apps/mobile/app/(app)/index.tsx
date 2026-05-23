@@ -12,7 +12,7 @@ import {
   type OptimisticMeal,
 } from "@/lib/hooks/useCreateMealText";
 import { useDeleteMeal } from "@/lib/hooks/useDeleteMeal";
-import { QuotaExceededError } from "@/lib/api/meals";
+import { QuotaExceededError, getErrorStatus } from "@/lib/api/meals";
 import { HomeHeader } from "@/components/domain/HomeHeader";
 import { MealCardSwipeable } from "@/components/domain/MealCardSwipeable";
 import { MealCardSkeleton } from "@/components/domain/MealCardSkeleton";
@@ -51,7 +51,7 @@ export default function HomeScreen() {
             setBanner("quota_exceeded");
           } else if (err.message === "request_timeout") {
             setBanner("offline");
-          } else if (err.message.startsWith("request_failed_5")) {
+          } else if ((getErrorStatus(err) ?? 0) >= 500) {
             setBanner("server_error");
           } else {
             setBanner("network");

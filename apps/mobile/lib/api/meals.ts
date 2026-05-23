@@ -8,6 +8,20 @@ export class QuotaExceededError extends Error {
   }
 }
 
+export function getErrorStatus(err: unknown): number | undefined {
+  if (
+    err &&
+    typeof err === "object" &&
+    "status" in err &&
+    typeof (err as { status: unknown }).status === "number"
+  ) {
+    return (err as { status: number }).status;
+  }
+  return undefined;
+}
+
+type ApiError = Error & { status?: number };
+
 async function parseOrThrow(res: Response): Promise<unknown> {
   if (res.ok) return res.json();
   if (res.status === 429) {
@@ -15,7 +29,9 @@ async function parseOrThrow(res: Response): Promise<unknown> {
     throw new QuotaExceededError(body.kind ?? "llm");
   }
   const body = (await res.json().catch(() => ({}))) as { error?: string };
-  throw new Error(body.error ?? `request_failed_${res.status}`);
+  const err: ApiError = new Error(body.error ?? `request_failed_${res.status}`);
+  err.status = res.status;
+  throw err;
 }
 
 export async function createMealText(input: {
