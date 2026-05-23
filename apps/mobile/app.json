@@ -9,7 +9,10 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.fitbrother.app"
+      "bundleIdentifier": "com.fitbrother.app",
+      "infoPlist": {
+        "NSMicrophoneUsageDescription": "O Fitbrother usa o microfone para gravar a descrição da sua refeição."
+      }
     },
     "android": {
       "package": "com.fitbrother.app",
