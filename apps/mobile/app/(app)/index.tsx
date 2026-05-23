@@ -68,9 +68,12 @@ export default function HomeScreen() {
     );
   };
 
-  const handleMic = () => {
-    // M2.4 will replace this stub with the AudioRecorder. The haptic feedback
-    // is fired inside MealComposer itself.
+  const handleAudioReady = (_params: {
+    fileUri: string;
+    durationMs: number;
+    ext: "m4a" | "opus";
+  }) => {
+    // M2.4: audio upload pipeline wired in Task 15+.
   };
 
   const handleDelete = useCallback(
@@ -169,7 +172,7 @@ export default function HomeScreen() {
       >
         <MealComposer
           onSend={handleSend}
-          onMicPress={handleMic}
+          onAudioReady={handleAudioReady}
           disabled={banner === "quota_exceeded"}
           processing={createMeal.isPending}
         />
