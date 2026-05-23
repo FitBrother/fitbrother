@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { FlatList, KeyboardAvoidingView, Platform, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -66,14 +66,17 @@ export default function HomeScreen() {
     // is fired inside MealComposer itself.
   };
 
-  const handleDelete = (id: string) => {
-    deleteMeal.mutate(
-      { id, day },
-      {
-        onError: () => setBanner("network"),
-      },
-    );
-  };
+  const handleDelete = useCallback(
+    (id: string) => {
+      deleteMeal.mutate(
+        { id, day },
+        {
+          onError: () => setBanner("network"),
+        },
+      );
+    },
+    [deleteMeal, day],
+  );
 
   const renderItem = useMemo(
     () =>
@@ -90,10 +93,9 @@ export default function HomeScreen() {
           />
         );
       },
-    // Re-create only when router changes (stable). Day changes are reflected
-    // through queryKey, not via renderItem identity.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [router],
+    // `handleDelete` captures `day`; including it ensures renderItem is
+    // recreated at day rollover — FlatList compares by data reference anyway.
+    [router, handleDelete],
   );
 
   return (
