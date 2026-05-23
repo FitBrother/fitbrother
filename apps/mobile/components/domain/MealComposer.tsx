@@ -31,7 +31,7 @@ export function MealComposer({ onSend, onMicPress, disabled, processing }: Props
         false,
       );
     } else {
-      rotation.value = 0;
+      rotation.value = withTiming(0, { duration: 150, easing: Easing.out(Easing.ease) });
     }
   }, [processing, rotation]);
 

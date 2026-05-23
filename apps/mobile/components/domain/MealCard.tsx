@@ -33,7 +33,7 @@ export function MealCard({ meal, onPress }: Props) {
   return (
     <Pressable
       onPress={onPress}
-      accessibilityRole="button"
+      accessibilityRole={onPress ? "button" : undefined}
       accessibilityLabel={`Refeição ${MEAL_TYPE_LABEL[meal.meal_type]}, ${Math.round(meal.total_kcal)} kcal`}
       className={[
         "mx-4 mt-3 rounded-2xl bg-white p-4 shadow-sm",
