@@ -13,13 +13,18 @@ export async function authedFetch(path: string, init: RequestInit = {}): Promise
   const timeout = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
 
   try {
+    // Only attach Content-Type when there's actually a body. Fastify rejects
+    // bodiless requests (e.g. DELETE, GET) that carry application/json with
+    // "FST_ERR_CTP_EMPTY_JSON_BODY".
+    const headers: Record<string, string> = {
+      ...((init.headers as Record<string, string> | undefined) ?? {}),
+      Authorization: `Bearer ${token}`,
+    };
+    if (init.body != null) headers["Content-Type"] = "application/json";
+
     const res = await fetch(`${API_BASE_URL}${path}`, {
       ...init,
-      headers: {
-        ...(init.headers ?? {}),
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
+      headers,
       signal: controller.signal,
     });
 

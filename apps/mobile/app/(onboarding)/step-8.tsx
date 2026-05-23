@@ -46,7 +46,7 @@ export default function Step8Terms() {
     try {
       await postOnboarding(payload);
       reset();
-      router.replace("/");
+      router.replace("/(app)");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Erro inesperado.");
     } finally {
