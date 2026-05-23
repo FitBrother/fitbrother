@@ -1,5 +1,12 @@
-import { useCallback, useMemo, useState } from "react";
-import { FlatList, KeyboardAvoidingView, Platform, View } from "react-native";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Keyboard, Platform, Pressable } from "react-native";
+import Animated, {
+  Easing,
+  LinearTransition,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import * as Localization from "expo-localization";
@@ -78,6 +85,41 @@ export default function HomeScreen() {
     [deleteMeal, day],
   );
 
+  // Drive the composer's translateY off the keyboard events directly. iOS
+  // sends `keyboardWillShow/Hide` BEFORE the animation begins and includes
+  // the duration the system will use — we mirror it with withTiming for a
+  // seamless follow. Android only fires `keyboardDid*` so we use a sensible
+  // default duration.
+  const keyboardHeight = useSharedValue(0);
+  useEffect(() => {
+    const showEvent = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+    const hideEvent = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
+
+    const showSub = Keyboard.addListener(showEvent, (e) => {
+      const duration = e.duration && e.duration > 0 ? e.duration : 250;
+      keyboardHeight.value = withTiming(e.endCoordinates.height, {
+        duration,
+        easing: Easing.bezier(0.17, 0.59, 0.4, 0.77),
+      });
+    });
+    const hideSub = Keyboard.addListener(hideEvent, (e) => {
+      const duration = e.duration && e.duration > 0 ? e.duration : 250;
+      keyboardHeight.value = withTiming(0, {
+        duration,
+        easing: Easing.bezier(0.17, 0.59, 0.4, 0.77),
+      });
+    });
+
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, [keyboardHeight]);
+
+  const composerStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: -keyboardHeight.value }],
+  }));
+
   const renderItem = useMemo(
     () =>
       function MealListItem({ item }: { item: OptimisticMeal }) {
@@ -100,31 +142,38 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-neutral-50" edges={["top", "left", "right"]}>
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-      >
-        <HomeHeader name={profile.full_name} />
-        {banner && <ErrorBanner variant={banner} onDismiss={() => setBanner(null)} />}
-        {mealsQuery.isLoading ? (
-          <View className="flex-1" />
-        ) : items.length === 0 ? (
+      <HomeHeader name={profile.full_name} />
+      {banner && <ErrorBanner variant={banner} onDismiss={() => setBanner(null)} />}
+      {mealsQuery.isLoading ? (
+        <Pressable className="flex-1" onPress={Keyboard.dismiss} />
+      ) : items.length === 0 ? (
+        <Pressable className="flex-1" onPress={Keyboard.dismiss}>
           <EmptyMealsState />
-        ) : (
-          <FlatList
-            data={items}
-            keyExtractor={(m) => m.id}
-            renderItem={renderItem}
-            contentContainerStyle={{ paddingBottom: 24 }}
-          />
-        )}
+        </Pressable>
+      ) : (
+        <Animated.FlatList
+          data={items}
+          keyExtractor={(m) => (m as OptimisticMeal).id}
+          renderItem={renderItem as never}
+          contentContainerStyle={{ paddingBottom: 140 }}
+          keyboardDismissMode="on-drag"
+          keyboardShouldPersistTaps="handled"
+          itemLayoutAnimation={LinearTransition.springify().damping(20).stiffness(180)}
+        />
+      )}
+      {/* Composer sits over the list. We drive its position from
+          useAnimatedKeyboard instead of KeyboardAvoidingView because absolute
+          children inside KAV don't observe the padding it adds. */}
+      <Animated.View
+        style={[{ position: "absolute", left: 0, right: 0, bottom: 0 }, composerStyle]}
+      >
         <MealComposer
           onSend={handleSend}
           onMicPress={handleMic}
           disabled={banner === "quota_exceeded"}
           processing={createMeal.isPending}
         />
-      </KeyboardAvoidingView>
+      </Animated.View>
     </SafeAreaView>
   );
 }
