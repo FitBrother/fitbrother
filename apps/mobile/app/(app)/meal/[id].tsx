@@ -45,7 +45,12 @@ export default function MealDetailScreen() {
   const day = nutritionalDay(new Date(meal.consumed_at), profile);
 
   const handleConfirm = () => {
-    confirm.mutate({ id: meal.id, day });
+    confirm.mutate(
+      { id: meal.id, day },
+      {
+        onError: () => Alert.alert("Não foi possível confirmar", "Tente novamente em instantes."),
+      },
+    );
   };
 
   const handleDelete = () => {
@@ -55,8 +60,14 @@ export default function MealDetailScreen() {
         text: "Excluir",
         style: "destructive",
         onPress: () => {
-          remove.mutate({ id: meal.id, day });
-          router.back();
+          remove.mutate(
+            { id: meal.id, day },
+            {
+              onSuccess: () => router.back(),
+              onError: () =>
+                Alert.alert("Não foi possível excluir", "Tente novamente em instantes."),
+            },
+          );
         },
       },
     ]);
@@ -76,9 +87,10 @@ export default function MealDetailScreen() {
         <Text className="ml-2 flex-1 text-xl font-sans-bold text-neutral-800">Refeição</Text>
         <Pressable
           onPress={handleDelete}
+          disabled={remove.isPending}
           accessibilityLabel="Excluir refeição"
           accessibilityRole="button"
-          className="min-h-[44px] min-w-[44px] items-center justify-center"
+          className="min-h-[44px] min-w-[44px] items-center justify-center disabled:opacity-50"
         >
           <Trash2 size={20} color={colors.danger[500]} />
         </Pressable>
