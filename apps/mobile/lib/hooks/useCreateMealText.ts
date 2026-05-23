@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { randomUUID } from "expo-crypto";
 import type { MealResponse } from "@fitbrother/shared";
 import { createMealText } from "@/lib/api/meals";
-import { mealsForDayKey } from "./useMealsForDay";
+import { mealsForDayKey, mealDetailKey } from "./useMealsForDay";
 
 export type OptimisticMeal = MealResponse & { __status?: "processing" };
 
@@ -67,6 +67,7 @@ export function useCreateMealText() {
         if (!old) return [result.meal];
         return old.map((m) => (m.id === args.client_meal_id ? result.meal : m));
       });
+      qc.setQueryData(mealDetailKey(result.meal.id), result.meal);
     },
     onError: (_err, args, ctx) => {
       if (ctx?.previous !== undefined) {

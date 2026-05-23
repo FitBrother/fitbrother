@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { MealResponse } from "@fitbrother/shared";
 import { deleteMeal } from "@/lib/api/meals";
-import { mealsForDayKey } from "./useMealsForDay";
+import { mealsForDayKey, mealDetailKey } from "./useMealsForDay";
 
 type Args = { id: string; day: string };
 type Context = { previous?: MealResponse[] };
@@ -17,6 +17,9 @@ export function useDeleteMeal() {
         old?.filter((m) => m.id !== args.id),
       );
       return { previous };
+    },
+    onSuccess: (_data, args) => {
+      qc.removeQueries({ queryKey: mealDetailKey(args.id) });
     },
     onError: (_err, args, ctx) => {
       if (ctx?.previous !== undefined) {
