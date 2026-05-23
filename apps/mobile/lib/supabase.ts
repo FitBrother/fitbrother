@@ -2,13 +2,14 @@ import { createClient } from "@supabase/supabase-js";
 import * as SecureStore from "expo-secure-store";
 import { Platform } from "react-native";
 import "react-native-url-polyfill/auto";
+import { supabaseLocalUrl } from "@/lib/dev-host";
 
-const url = process.env.EXPO_PUBLIC_SUPABASE_URL ?? "";
+const url = supabaseLocalUrl();
 const anonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? "";
 
-if (!url || !anonKey) {
+if (!anonKey) {
   console.warn(
-    "[supabase] EXPO_PUBLIC_SUPABASE_URL / EXPO_PUBLIC_SUPABASE_ANON_KEY missing — auth and realtime will not work.",
+    "[supabase] EXPO_PUBLIC_SUPABASE_ANON_KEY missing — auth and realtime will not work.",
   );
 }
 
