@@ -64,7 +64,7 @@ export async function patchMeal(id: string, patch: PatchMealRequest): Promise<Me
 
 export async function deleteMeal(id: string): Promise<void> {
   const res = await authedFetch(`/meals/${id}`, { method: "DELETE" });
-  if (!res.ok && res.status !== 204) {
+  if (!res.ok) {
     await parseOrThrow(res);
   }
 }
