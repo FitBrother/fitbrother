@@ -75,7 +75,7 @@ export async function extractMeal(params: {
   const { error: insertErr } = await svc.from("ai_extractions").insert({
     input_hash: inputHash,
     result_json: output,
-    model: provider.name === "gemini" ? "gemini-1.5-flash" : "gpt-4o-mini",
+    model: provider.name === "gemini" ? "gemini-2.5-flash" : "gpt-4o-mini",
     prompt_version: env.LLM_PROMPT_VERSION,
     tokens_input: usage.inputTokens,
     tokens_output: usage.outputTokens,

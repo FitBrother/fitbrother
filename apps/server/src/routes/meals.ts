@@ -58,7 +58,13 @@ export async function mealsRoutes(app: FastifyInstance) {
       if (err instanceof AiQuotaExceededError) {
         return reply.code(429).send({ error: err.code, kind: err.kind });
       }
-      throw err;
+      // Upstream LLM/provider failures may carry their own .status (e.g.
+      // Gemini 401 for an invalid key). We MUST NOT re-emit those — Fastify's
+      // default error handler would mirror them, and the mobile client treats
+      // 401 as "session expired" and signs the user out. Always 502 for
+      // upstream failures.
+      req.log.error({ err }, "extraction_failed");
+      return reply.code(502).send({ error: "ai_extraction_failed" });
     }
 
     const { applied } = await applyCatalogToItems(supabase, extraction.output);
