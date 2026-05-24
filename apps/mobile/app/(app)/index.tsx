@@ -97,6 +97,8 @@ export default function HomeScreen() {
           },
           {
             onError: (err) => {
+              // eslint-disable-next-line no-console
+              console.warn("[handleAudioReady] mutation error:", err);
               if (err instanceof QuotaExceededError) {
                 setBanner("quota_exceeded");
               } else if (err.message === "empty_transcription") {
@@ -111,7 +113,9 @@ export default function HomeScreen() {
             },
           },
         );
-      } catch {
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.warn("[handleAudioReady] upload error:", err);
         setBanner("network");
       }
     },

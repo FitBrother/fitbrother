@@ -148,6 +148,11 @@ export function MealComposer({ onSend, onAudioReady, disabled, processing }: Pro
             { text: "Abrir Configurações", onPress: () => Linking.openSettings() },
           ],
         );
+      } else {
+        // Anything else (audio mode setup, prepareToRecord) — surface it so
+        // we don't fail silently like before.
+        // eslint-disable-next-line no-console
+        console.warn("[MealComposer] startRecording failed:", err);
       }
       handleRef.current = null;
       setMode({ kind: "idle" });
@@ -253,11 +258,13 @@ export function MealComposer({ onSend, onAudioReady, disabled, processing }: Pro
     });
   }, [finishAndCancel, finishAndSend]);
 
-  // Pan gesture lives on the mic button. activeOffsetY [-9999, 9999] keeps
-  // FlatList vertical scroll dispatching to the list, not the gesture.
+  // Pan gesture lives on the mic button. minDistance(0) forces the gesture
+  // to activate on touch-down — without it, iOS' default Pan threshold means
+  // a static hold never fires `onBegin`/`onUpdate`. The mic button isn't
+  // inside a scroll surface, so eager activation doesn't conflict with the
+  // FlatList above it.
   const pan = Gesture.Pan()
-    .activeOffsetX([-12, 12])
-    .activeOffsetY([-9999, 9999])
+    .minDistance(0)
     .onBegin(() => {
       runOnJS(scheduleHoldCheck)();
     })

@@ -28,6 +28,23 @@ function costForSeconds(seconds: number): number {
   return Math.round(seconds * 0.01 * 100) / 100;
 }
 
+// Per-language anchor prompts. The text doesn't need to be transcribed
+// — Whisper just uses it as a stylistic seed. Including meal vocabulary
+// also nudges domain accuracy ("ovos mexidos" vs "ovos missed").
+function promptForLanguage(language?: string): string | undefined {
+  if (!language) return undefined;
+  switch (language) {
+    case "pt":
+      return "Esta gravação descreve uma refeição em português brasileiro: ovos, arroz, frango, banana, café.";
+    case "en":
+      return "This recording describes a meal in English: eggs, rice, chicken, banana, coffee.";
+    case "es":
+      return "Esta grabación describe una comida en español: huevos, arroz, pollo, plátano, café.";
+    default:
+      return undefined;
+  }
+}
+
 export type TranscribeResult = {
   text: string;
   durationS: number;
@@ -51,10 +68,17 @@ export async function transcribe(params: {
   });
   const file = new File([blob], `audio.${params.ext}`, { type: blob.type });
 
+  // The `language` field alone is a weak hint — whisper-1 still drifts to
+  // English on short / noisy clips. The `prompt` field carries an example
+  // sentence the model treats as in-domain context: an effective anchor
+  // for both language and the meal-logging vocabulary we expect.
+  const prompt = promptForLanguage(params.language);
+
   const response = await client.audio.transcriptions.create({
     file,
     model: WHISPER_MODEL,
     language: params.language,
+    prompt,
     // Plain text; we don't need timestamps for v1.
     response_format: "text",
   });

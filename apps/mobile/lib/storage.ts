@@ -10,6 +10,14 @@ const AUDIO_BUCKET = "meal-audios";
  *
  * `ext` controls both the filename and the MIME hint (iOS m4a → audio/mp4,
  * Android opus → audio/ogg). Both extensions are in the bucket allowlist.
+ *
+ * Why FormData and not fetch().blob():
+ *   On React Native iOS, `fetch(fileUri).blob()` against a `file://` URI
+ *   silently returns a 0-byte Blob (or fails opaquely). Supabase Storage
+ *   then accepts a corrupt/empty upload and the server-side Whisper call
+ *   crashes downstream. The canonical RN pattern — and what Supabase's
+ *   own docs recommend — is FormData carrying the URI directly; the
+ *   underlying networking layer streams the file bytes for us.
  */
 export async function uploadMealAudio(params: {
   userId: string;
@@ -20,12 +28,18 @@ export async function uploadMealAudio(params: {
   const path = `${params.userId}/${params.mealId}.${params.ext}`;
   const contentType = params.ext === "m4a" ? "audio/mp4" : "audio/ogg";
 
-  const response = await fetch(params.fileUri);
-  const blob = await response.blob();
+  const formData = new FormData();
+  formData.append("file", {
+    uri: params.fileUri,
+    name: `${params.mealId}.${params.ext}`,
+    type: contentType,
+    // RN's FormData accepts this object shape; the official types don't
+    // model it, so we cast at the boundary.
+  } as unknown as Blob);
 
   const { error } = await supabase.storage
     .from(AUDIO_BUCKET)
-    .upload(path, blob, { contentType, upsert: false });
+    .upload(path, formData, { contentType, upsert: false });
 
   if (error) throw error;
   return { path };
