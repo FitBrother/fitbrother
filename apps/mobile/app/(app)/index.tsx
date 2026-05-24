@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Keyboard, Platform, Pressable } from "react-native";
+import { Keyboard, Platform, Pressable, RefreshControl } from "react-native";
 import Animated, {
   Easing,
   LinearTransition,
@@ -19,7 +19,11 @@ import {
   type OptimisticMeal,
 } from "@/lib/hooks/useCreateMealText";
 import { useDeleteMeal } from "@/lib/hooks/useDeleteMeal";
+import { useAuthSession } from "@/lib/hooks/useAuthSession";
+import { useCreateMealAudio } from "@/lib/hooks/useCreateMealAudio";
 import { QuotaExceededError, getErrorStatus } from "@/lib/api/meals";
+import { colors } from "@/lib/colors";
+import { uploadMealAudio } from "@/lib/storage";
 import { HomeHeader } from "@/components/domain/HomeHeader";
 import { MealCardSwipeable } from "@/components/domain/MealCardSwipeable";
 import { MealCardSkeleton } from "@/components/domain/MealCardSkeleton";
@@ -38,6 +42,9 @@ export default function HomeScreen() {
   const day = nutritionalToday(profile);
   const mealsQuery = useMealsForDay(day);
   const createMeal = useCreateMealText();
+  const createMealAudio = useCreateMealAudio();
+  const session = useAuthSession();
+  const userId = session.status === "signed_in" ? session.session.user.id : undefined;
   const deleteMeal = useDeleteMeal();
   const [banner, setBanner] = useState<ErrorBannerVariant | null>(null);
 
@@ -68,10 +75,53 @@ export default function HomeScreen() {
     );
   };
 
-  const handleMic = () => {
-    // M2.4 will replace this stub with the AudioRecorder. The haptic feedback
-    // is fired inside MealComposer itself.
-  };
+  const handleAudioReady = useCallback(
+    async (params: { fileUri: string; durationMs: number; ext: "m4a" | "opus" }) => {
+      if (!userId) return;
+      setBanner(null);
+      const client_meal_id = newClientMealId();
+      const duration_s = Math.max(1, Math.round(params.durationMs / 1000));
+      try {
+        const { path } = await uploadMealAudio({
+          userId,
+          mealId: client_meal_id,
+          fileUri: params.fileUri,
+          ext: params.ext,
+        });
+        createMealAudio.mutate(
+          {
+            client_meal_id,
+            audio_path: path,
+            duration_s,
+            locale: detectLocale(),
+            day,
+          },
+          {
+            onError: (err) => {
+              // eslint-disable-next-line no-console
+              console.warn("[handleAudioReady] mutation error:", err);
+              if (err instanceof QuotaExceededError) {
+                setBanner("quota_exceeded");
+              } else if (err.message === "empty_transcription") {
+                setBanner("network"); // re-use network banner copy "tente de novo"
+              } else if (err.message === "request_timeout") {
+                setBanner("offline");
+              } else if ((getErrorStatus(err) ?? 0) >= 500) {
+                setBanner("server_error");
+              } else {
+                setBanner("network");
+              }
+            },
+          },
+        );
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.warn("[handleAudioReady] upload error:", err);
+        setBanner("network");
+      }
+    },
+    [createMealAudio, day, userId],
+  );
 
   const handleDelete = useCallback(
     (id: string) => {
@@ -159,6 +209,13 @@ export default function HomeScreen() {
           keyboardDismissMode="on-drag"
           keyboardShouldPersistTaps="handled"
           itemLayoutAnimation={LinearTransition.springify().damping(20).stiffness(180)}
+          refreshControl={
+            <RefreshControl
+              refreshing={mealsQuery.isRefetching}
+              onRefresh={() => mealsQuery.refetch()}
+              tintColor={colors.primary[400]}
+            />
+          }
         />
       )}
       {/* Composer sits over the list. We drive its position from
@@ -169,9 +226,9 @@ export default function HomeScreen() {
       >
         <MealComposer
           onSend={handleSend}
-          onMicPress={handleMic}
+          onAudioReady={handleAudioReady}
           disabled={banner === "quota_exceeded"}
-          processing={createMeal.isPending}
+          processing={createMeal.isPending || createMealAudio.isPending}
         />
       </Animated.View>
     </SafeAreaView>

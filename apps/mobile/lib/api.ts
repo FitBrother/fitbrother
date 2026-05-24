@@ -1,8 +1,9 @@
 import type { OnboardingPayload } from "@fitbrother/shared";
 import { API_TIMEOUT_MS } from "@/lib/constants";
+import { apiBaseUrl } from "@/lib/dev-host";
 import { supabase } from "@/lib/supabase";
 
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? "http://localhost:3000";
+const API_BASE_URL = apiBaseUrl();
 
 export async function authedFetch(path: string, init: RequestInit = {}): Promise<Response> {
   const { data } = await supabase.auth.getSession();

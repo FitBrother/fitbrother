@@ -1,9 +1,14 @@
-import { CreateMealTextRequestSchema, PatchMealRequestSchema } from "@fitbrother/shared";
+import {
+  CreateMealAudioRequestSchema,
+  CreateMealTextRequestSchema,
+  PatchMealRequestSchema,
+} from "@fitbrother/shared";
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import { authRequired, supabaseForRequest } from "../lib/auth.js";
 import { AiQuotaExceededError } from "../services/ai-usage.js";
 import { extractMeal } from "../services/extraction.js";
 import { applyCatalogToItems } from "../services/meals.js";
+import { transcribeFromPath } from "../services/transcription.js";
 
 /**
  * Meal endpoints — the M2 capture pipeline.
@@ -95,6 +100,97 @@ export async function mealsRoutes(app: FastifyInstance) {
     return reply.code(201).send({
       meal,
       cache_hit: extraction.cacheHit,
+      already_existed: (rpcResult as { already_existed?: boolean })?.already_existed === true,
+    });
+  });
+
+  /* ── POST /meals/audio ─────────────────────────────────────────────── */
+  app.post("/meals/audio", async (req, reply) => {
+    const parsed = CreateMealAudioRequestSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: "invalid_payload", issues: parsed.error.issues });
+    }
+    const { client_meal_id, audio_path, duration_s, consumed_at, locale } = parsed.data;
+    const userId = req.user!.id;
+    const supabase = supabaseForRequest(req);
+
+    // Ownership check: the storage RLS already gated the upload, but the
+    // server downloads via service_role (which bypasses RLS) so we must
+    // verify the prefix matches the caller before touching the bucket.
+    if (!audio_path.startsWith(`${userId}/`)) {
+      return reply.code(403).send({ error: "audio_path_ownership_mismatch" });
+    }
+
+    // 1. Transcribe (with cap + cache).
+    let transcription;
+    try {
+      transcription = await transcribeFromPath({
+        userClient: supabase,
+        userId,
+        audioPath: audio_path,
+        durationS: duration_s,
+        locale,
+      });
+    } catch (err) {
+      if (err instanceof AiQuotaExceededError) {
+        return reply.code(429).send({ error: err.code, kind: err.kind });
+      }
+      req.log.error({ err, audio_path }, "transcription_failed");
+      return reply.code(502).send({ error: "transcription_failed" });
+    }
+
+    if (!transcription.text || transcription.text.length === 0) {
+      // Whisper returns empty string for silence/noise. Treat as user error.
+      return reply.code(422).send({ error: "empty_transcription" });
+    }
+
+    // 2. Extract meal from transcribed text (reuses M2.3 service).
+    let extraction;
+    try {
+      extraction = await extractMeal({
+        userClient: supabase,
+        userId,
+        text: transcription.text,
+        locale,
+      });
+    } catch (err) {
+      if (err instanceof AiQuotaExceededError) {
+        return reply.code(429).send({ error: err.code, kind: err.kind });
+      }
+      req.log.error({ err }, "extraction_failed");
+      return reply.code(502).send({ error: "ai_extraction_failed" });
+    }
+
+    const { applied } = await applyCatalogToItems(supabase, extraction.output);
+
+    // 3. Persist meal via RPC. source="app_audio" + audio_path set.
+    const { data: rpcResult, error: rpcError } = await supabase.rpc("create_meal_with_items", {
+      payload: {
+        id: client_meal_id,
+        source: "app_audio",
+        raw_input: transcription.text,
+        audio_path,
+        meal_type: extraction.output.meal_type,
+        consumed_at: consumed_at ?? null,
+        confidence: extraction.output.confidence,
+        items: applied,
+      },
+    });
+
+    if (rpcError) {
+      req.log.error({ err: rpcError, client_meal_id }, "create_meal_rpc_failed");
+      return reply.code(500).send({ error: rpcError.message });
+    }
+
+    const meal = await loadMeal(supabase, client_meal_id, req);
+    if (!meal) {
+      return reply.code(500).send({ error: "meal_disappeared_after_create" });
+    }
+
+    return reply.code(201).send({
+      meal,
+      cache_hit_transcription: transcription.cacheHit,
+      cache_hit_extraction: extraction.cacheHit,
       already_existed: (rpcResult as { already_existed?: boolean })?.already_existed === true,
     });
   });

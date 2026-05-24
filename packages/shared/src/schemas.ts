@@ -50,6 +50,21 @@ export const CreateMealTextRequestSchema = z.object({
 });
 export type CreateMealTextRequest = z.infer<typeof CreateMealTextRequestSchema>;
 
+export const CreateMealAudioRequestSchema = z.object({
+  // Client-generated UUID; matches the meal id and the storage filename base.
+  client_meal_id: UuidSchema,
+  // Storage path returned by uploadMealAudio. Server verifies prefix matches
+  // auth.uid() before downloading. Format: "{user_id}/{client_meal_id}.{ext}".
+  audio_path: z.string().min(1),
+  // Recorded length in seconds. Used for ai_usage accounting BEFORE Whisper
+  // (cap is enforced in audio-seconds, not bytes). Cap at 600s = 10min hard
+  // limit also enforced client-side.
+  duration_s: z.number().positive().max(600),
+  consumed_at: z.string().datetime().optional(),
+  locale: z.string().default("pt-BR"),
+});
+export type CreateMealAudioRequest = z.infer<typeof CreateMealAudioRequestSchema>;
+
 export const MealItemResponseSchema = z.object({
   id: UuidSchema,
   food_id: UuidSchema.nullable(),
