@@ -31,7 +31,22 @@ export function MealCardSkeleton() {
         <Shimmer width={140} height={16} />
         <Shimmer width={48} height={14} />
       </View>
-      <Shimmer width="90%" height={14} />
+      {/* Three item rows: description (long) + quantity (short) to mirror
+          the real MealCard layout — same visual rhythm while loading. */}
+      <View className="gap-1.5">
+        <View className="flex-row items-center justify-between">
+          <Shimmer width="60%" height={14} />
+          <Shimmer width={40} height={12} />
+        </View>
+        <View className="flex-row items-center justify-between">
+          <Shimmer width="45%" height={14} />
+          <Shimmer width={48} height={12} />
+        </View>
+        <View className="flex-row items-center justify-between">
+          <Shimmer width="55%" height={14} />
+          <Shimmer width={36} height={12} />
+        </View>
+      </View>
       <View className="h-px bg-neutral-100" />
       <Shimmer width={200} height={14} />
     </View>

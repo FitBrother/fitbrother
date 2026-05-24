@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Keyboard, Platform, Pressable } from "react-native";
+import { Keyboard, Platform, Pressable, RefreshControl } from "react-native";
 import Animated, {
   Easing,
   LinearTransition,
@@ -22,6 +22,7 @@ import { useDeleteMeal } from "@/lib/hooks/useDeleteMeal";
 import { useAuthSession } from "@/lib/hooks/useAuthSession";
 import { useCreateMealAudio } from "@/lib/hooks/useCreateMealAudio";
 import { QuotaExceededError, getErrorStatus } from "@/lib/api/meals";
+import { colors } from "@/lib/colors";
 import { uploadMealAudio } from "@/lib/storage";
 import { HomeHeader } from "@/components/domain/HomeHeader";
 import { MealCardSwipeable } from "@/components/domain/MealCardSwipeable";
@@ -208,6 +209,13 @@ export default function HomeScreen() {
           keyboardDismissMode="on-drag"
           keyboardShouldPersistTaps="handled"
           itemLayoutAnimation={LinearTransition.springify().damping(20).stiffness(180)}
+          refreshControl={
+            <RefreshControl
+              refreshing={mealsQuery.isRefetching}
+              onRefresh={() => mealsQuery.refetch()}
+              tintColor={colors.primary[400]}
+            />
+          }
         />
       )}
       {/* Composer sits over the list. We drive its position from
