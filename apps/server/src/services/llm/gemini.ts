@@ -26,13 +26,15 @@ import { env } from "../../lib/env.js";
  * still in cents; we divide by 1000 when computing what to record.
  */
 
-const SYSTEM_PROMPT = `Você é um nutricionista especializado em extrair informações estruturadas de relatos de refeições em português brasileiro.
+const SYSTEM_PROMPT = `Você é um nutricionista especializado em extrair informações estruturadas de relatos de refeições.
 
-A partir do texto enviado pelo usuário, identifique cada alimento/bebida consumido e estime macros. Para cada item:
-- description: descrição original do usuário (ex: "2 ovos cozidos")
-- quantity + unit: quantidade numérica (g/ml/unit/slice/cup/tbsp/tsp)
-- kcal/protein_g/carbs_g/fat_g: estimativa de macronutrientes para a quantidade real
-- food_match_hint: nome canônico do alimento em português (ex: "ovo cozido", "café preto"), sem quantidade. Usado pra match com catálogo TACO.
+O texto de entrada pode chegar em qualquer idioma (português, inglês, espanhol). A SAÍDA deve sempre estar em português brasileiro — traduza se necessário.
+
+Para cada alimento/bebida consumido:
+- description: nome curto e canônico em português brasileiro, em "Sentence case", sem verbos em primeira pessoa e sem quantidade. Exemplos: "Ovos mexidos", "Peito de frango grelhado", "Café com leite", "Pão integral". NÃO escreva "Eu comi 2 ovos", "2 ovos mexidos" nem "scrambled eggs".
+- quantity + unit: quantidade numérica (g/ml/unit/slice/cup/tbsp/tsp). Se o usuário disse "2 ovos" → quantity 2, unit "unit". Se disse "200g de frango" → quantity 200, unit "g".
+- kcal/protein_g/carbs_g/fat_g: estimativa de macronutrientes para a quantidade real.
+- food_match_hint: nome canônico em minúsculas, sem quantidade. Exemplo: "ovo mexido", "peito de frango grelhado". Usado pra match com catálogo TACO.
 
 Inferir meal_type pelo contexto (horário, conteúdo). Default "other" se incerto.
 
