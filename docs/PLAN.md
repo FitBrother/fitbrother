@@ -215,6 +215,8 @@ fitbrother/
 
 **Status M2.3 (texto, sem áudio):** ✅ implementado em 2026-05-23 via branch `m2-3-mobile-capture-first`. Composer + Home + Detalhe com optimistic UI; áudio segue em M2.4 (mic já aparece no composer com handler stub).
 
+**Status M2.4 (áudio):** ✅ implementado em 2026-05-24 via branch `m2-4-audio-capture`. Hold-to-record WhatsApp-style com waveform animado, upload direto pro Storage, Whisper-1 com cache SHA-256, extração reaproveita Gemini (agora normalizando pra PT-BR canonical). MealCard atualizado pra listar itens em linhas. Pull-to-refresh + skeleton em linhas como polimento. PR #5 + #6 merged.
+
 ---
 
 ## M3 — Dashboard realtime, edição, histórico (semana 4)
