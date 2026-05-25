@@ -2,7 +2,7 @@ import { ActivityIndicator, Alert, Pressable, ScrollView, Text, View } from "rea
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronLeft, Trash2 } from "lucide-react-native";
+import { ChevronLeft, Pencil, Trash2 } from "lucide-react-native";
 import { getMeal } from "@/lib/api/meals";
 import { mealDetailKey } from "@/lib/hooks/useMealsForDay";
 import { useConfirmMeal } from "@/lib/hooks/useConfirmMeal";
@@ -86,6 +86,20 @@ export default function MealDetailScreen() {
           <ChevronLeft size={24} color={colors.neutral[800]} />
         </Pressable>
         <Text className="ml-2 flex-1 text-xl font-sans-bold text-neutral-800">Refeição</Text>
+        <Pressable
+          onPress={() =>
+            router.push({
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              pathname: "/(app)/meal/[id]/edit" as any,
+              params: { id: meal.id },
+            })
+          }
+          accessibilityLabel="Editar refeição"
+          accessibilityRole="button"
+          className="min-h-[44px] min-w-[44px] items-center justify-center"
+        >
+          <Pencil size={20} color={colors.neutral[800]} />
+        </Pressable>
         <Pressable
           onPress={handleDelete}
           disabled={remove.isPending}
