@@ -10,6 +10,11 @@ const dailySummaryQuerySchema = z.object({
     .optional(),
 });
 
+const dailySummariesQuerySchema = z.object({
+  from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "from must be YYYY-MM-DD"),
+  to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "to must be YYYY-MM-DD"),
+});
+
 export async function meRoutes(app: FastifyInstance) {
   app.get("/me", { preHandler: [authRequired] }, async (req, reply) => {
     const supabase = supabaseForRequest(req);
@@ -101,5 +106,33 @@ export async function meRoutes(app: FastifyInstance) {
     } satisfies DailySummary;
 
     return reply.send({ summary });
+  });
+
+  app.get("/me/daily-summaries", { preHandler: [authRequired] }, async (req, reply) => {
+    const parsed = dailySummariesQuerySchema.safeParse(req.query);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: parsed.error.issues[0]?.message ?? "bad_query" });
+    }
+    const { from, to } = parsed.data;
+    const daysDiff = Math.floor((Date.parse(to) - Date.parse(from)) / 86_400_000);
+    if (daysDiff < 0) return reply.code(400).send({ error: "from_after_to" });
+    if (daysDiff > 31) return reply.code(400).send({ error: "range_too_large" });
+
+    const supabase = supabaseForRequest(req);
+    const { data, error } = await supabase
+      .from("daily_summaries")
+      .select("*")
+      .gte("day", from)
+      .lte("day", to)
+      .order("day", { ascending: false });
+
+    if (error) {
+      req.log.error({ err: error }, "daily_summaries_query_failed");
+      return reply.code(500).send({ error: error.message });
+    }
+
+    return reply.send({
+      summaries: (data ?? []).map((row) => DailySummarySchema.parse(row)),
+    });
   });
 }
