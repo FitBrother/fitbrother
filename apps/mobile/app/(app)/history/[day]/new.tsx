@@ -1,6 +1,5 @@
 import { useCallback, useState } from "react";
 import { Keyboard, Pressable, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { X } from "lucide-react-native";
 import * as Localization from "expo-localization";
@@ -128,16 +127,16 @@ export default function BackfillScreen() {
 
   if (!day) {
     return (
-      <SafeAreaView className="flex-1 items-center justify-center bg-neutral-50">
+      <View className="flex-1 items-center justify-center bg-neutral-50">
         <Text className="text-base font-sans text-neutral-600">Dia inválido.</Text>
-      </SafeAreaView>
+      </View>
     );
   }
 
   const processing = createMeal.isPending || createMealAudio.isPending;
 
   return (
-    <SafeAreaView className="flex-1 bg-neutral-50" edges={["top", "left", "right"]}>
+    <View className="flex-1 bg-neutral-50">
       <View className="flex-row items-center px-4 py-2">
         <Pressable
           onPress={() => router.back()}
@@ -153,9 +152,8 @@ export default function BackfillScreen() {
       </View>
       <BackfillContextBar day={day} consumedAt={consumedAt} onChangeConsumedAt={setConsumedAt} />
       {banner && <ErrorBanner variant={banner} onDismiss={() => setBanner(null)} />}
-      <View className="flex-1 justify-end">
-        <MealComposer onSend={handleSend} onAudioReady={handleAudioReady} processing={processing} />
-      </View>
-    </SafeAreaView>
+      <View className="flex-1" />
+      <MealComposer onSend={handleSend} onAudioReady={handleAudioReady} processing={processing} />
+    </View>
   );
 }
