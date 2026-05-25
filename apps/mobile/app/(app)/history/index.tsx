@@ -6,7 +6,7 @@ import { useRouter } from "expo-router";
 import type { DailySummary } from "@fitbrother/shared";
 import { useDailySummaries } from "@/lib/hooks/useDailySummaries";
 import { useProfile } from "@/lib/profile/profile-context";
-import { nutritionalToday } from "@/lib/time/nutritional-day";
+import { nutritionalDay, nutritionalToday } from "@/lib/time/nutritional-day";
 import { colors } from "@/lib/colors";
 import { HistoryDayCard } from "@/components/domain/HistoryDayCard";
 import { HistoryEmptyDayCard } from "@/components/domain/HistoryEmptyDayCard";
@@ -21,28 +21,34 @@ function addDays(iso: string, n: number): string {
   return d.toISOString().slice(0, 10);
 }
 
-function expandWeek(from: string, summaries: DailySummary[]): DayEntry[] {
+function expandRange(from: string, to: string, summaries: DailySummary[]): DayEntry[] {
+  // Páginas com range variável (a última página pode ser menor que 7 dias se
+  // o cutoff de criação da conta cortar no meio da semana).
   const byDay = new Map(summaries.map((s) => [s.day, s]));
   const out: DayEntry[] = [];
-  for (let i = 0; i < 7; i++) {
-    const day = addDays(from, i);
+  let day = from;
+  while (day <= to) {
     const summary = byDay.get(day);
     out.push(summary ? { type: "filled", day, summary } : { type: "empty", day });
+    day = addDays(day, 1);
   }
-  return out.reverse(); // newest first within week
+  return out.reverse(); // newest first within page
 }
 
 export default function HistoryScreen() {
   const router = useRouter();
   const profile = useProfile();
   const today = nutritionalToday(profile);
-  const query = useDailySummaries(today);
+  // Cutoff = dia nutricional da criação da conta. History nunca retrocede
+  // além disso — sem cards motivacionais infinitos antes do signup.
+  const cutoff = nutritionalDay(new Date(profile.created_at), profile);
+  const query = useDailySummaries(today, cutoff);
 
   const entries = useMemo<DayEntry[]>(() => {
     if (!query.data) return [];
     return query.data.pages.flatMap((page, pageIdx) => {
       const param = query.data.pageParams[pageIdx] as { from: string; to: string };
-      return expandWeek(param.from, page);
+      return expandRange(param.from, param.to, page);
     });
   }, [query.data]);
 

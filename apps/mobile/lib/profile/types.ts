@@ -4,5 +4,6 @@ export type Profile = {
   timezone: string;
   day_start_hour: number;
   locale: string;
+  created_at: string;
   [k: string]: unknown;
 };
