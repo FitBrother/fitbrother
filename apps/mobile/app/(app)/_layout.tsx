@@ -32,7 +32,12 @@ function GuardedStack() {
     return <Redirect href="/" />;
   }
 
-  return <Stack screenOptions={{ headerShown: false }} />;
+  return (
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="meal/[id]/edit" options={{ presentation: "modal" }} />
+      <Stack.Screen name="history/[day]/new" options={{ presentation: "modal" }} />
+    </Stack>
+  );
 }
 
 export default function AppLayout() {

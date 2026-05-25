@@ -1,6 +1,6 @@
 import { ActivityIndicator, Text } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Stack, useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import { getMeal } from "@/lib/api/meals";
 import { mealDetailKey } from "@/lib/hooks/useMealsForDay";
@@ -19,23 +19,22 @@ export default function EditMealRoute() {
     enabled: Boolean(id),
   });
 
+  if (query.isLoading || !query.data) {
+    return (
+      <SafeAreaView className="flex-1 items-center justify-center bg-neutral-50">
+        {query.isError ? (
+          <Text className="text-base font-sans text-neutral-600">Refeição não encontrada.</Text>
+        ) : (
+          <ActivityIndicator size="large" color={colors.primary[400]} />
+        )}
+      </SafeAreaView>
+    );
+  }
+
   return (
-    <>
-      <Stack.Screen options={{ presentation: "modal", headerShown: false }} />
-      {query.isLoading || !query.data ? (
-        <SafeAreaView className="flex-1 items-center justify-center bg-neutral-50">
-          {query.isError ? (
-            <Text className="text-base font-sans text-neutral-600">Refeição não encontrada.</Text>
-          ) : (
-            <ActivityIndicator size="large" color={colors.primary[400]} />
-          )}
-        </SafeAreaView>
-      ) : (
-        <EditMealModal
-          meal={query.data}
-          day={nutritionalDay(new Date(query.data.consumed_at), profile)}
-        />
-      )}
-    </>
+    <EditMealModal
+      meal={query.data}
+      day={nutritionalDay(new Date(query.data.consumed_at), profile)}
+    />
   );
 }

@@ -1,7 +1,7 @@
 import { useCallback, useState } from "react";
 import { Keyboard, Pressable, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { X } from "lucide-react-native";
 import * as Localization from "expo-localization";
 import { useProfile } from "@/lib/profile/profile-context";
@@ -126,45 +126,36 @@ export default function BackfillScreen() {
     [createMealAudio, consumedAt, day, router, userId],
   );
 
+  if (!day) {
+    return (
+      <SafeAreaView className="flex-1 items-center justify-center bg-neutral-50">
+        <Text className="text-base font-sans text-neutral-600">Dia inválido.</Text>
+      </SafeAreaView>
+    );
+  }
+
   const processing = createMeal.isPending || createMealAudio.isPending;
 
   return (
-    <>
-      <Stack.Screen options={{ presentation: "modal", headerShown: false }} />
-      {!day ? (
-        <SafeAreaView className="flex-1 items-center justify-center bg-neutral-50">
-          <Text className="text-base font-sans text-neutral-600">Dia inválido.</Text>
-        </SafeAreaView>
-      ) : (
-        <SafeAreaView className="flex-1 bg-neutral-50" edges={["top", "left", "right"]}>
-          <View className="flex-row items-center px-4 py-2">
-            <Pressable
-              onPress={() => router.back()}
-              accessibilityLabel="Fechar"
-              accessibilityRole="button"
-              className="min-h-[44px] min-w-[44px] items-center justify-center"
-            >
-              <X size={24} color={colors.neutral[800]} />
-            </Pressable>
-            <Text className="ml-2 flex-1 text-lg font-sans-bold text-neutral-800">
-              {formatDayHeader(day)}
-            </Text>
-          </View>
-          <BackfillContextBar
-            day={day}
-            consumedAt={consumedAt}
-            onChangeConsumedAt={setConsumedAt}
-          />
-          {banner && <ErrorBanner variant={banner} onDismiss={() => setBanner(null)} />}
-          <View className="flex-1 justify-end">
-            <MealComposer
-              onSend={handleSend}
-              onAudioReady={handleAudioReady}
-              processing={processing}
-            />
-          </View>
-        </SafeAreaView>
-      )}
-    </>
+    <SafeAreaView className="flex-1 bg-neutral-50" edges={["top", "left", "right"]}>
+      <View className="flex-row items-center px-4 py-2">
+        <Pressable
+          onPress={() => router.back()}
+          accessibilityLabel="Fechar"
+          accessibilityRole="button"
+          className="min-h-[44px] min-w-[44px] items-center justify-center"
+        >
+          <X size={24} color={colors.neutral[800]} />
+        </Pressable>
+        <Text className="ml-2 flex-1 text-lg font-sans-bold text-neutral-800">
+          {formatDayHeader(day)}
+        </Text>
+      </View>
+      <BackfillContextBar day={day} consumedAt={consumedAt} onChangeConsumedAt={setConsumedAt} />
+      {banner && <ErrorBanner variant={banner} onDismiss={() => setBanner(null)} />}
+      <View className="flex-1 justify-end">
+        <MealComposer onSend={handleSend} onAudioReady={handleAudioReady} processing={processing} />
+      </View>
+    </SafeAreaView>
   );
 }
