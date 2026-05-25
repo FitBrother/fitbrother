@@ -13,6 +13,9 @@ import * as Localization from "expo-localization";
 import { useProfile } from "@/lib/profile/profile-context";
 import { nutritionalToday } from "@/lib/time/nutritional-day";
 import { useMealsForDay } from "@/lib/hooks/useMealsForDay";
+import { useDailySummary } from "@/lib/hooks/useDailySummary";
+import { useDailySummaryRealtime } from "@/lib/hooks/useDailySummaryRealtime";
+import { useMealsRealtime } from "@/lib/hooks/useMealsRealtime";
 import {
   newClientMealId,
   useCreateMealText,
@@ -30,6 +33,7 @@ import { MealCardSkeleton } from "@/components/domain/MealCardSkeleton";
 import { MealComposer } from "@/components/domain/MealComposer";
 import { EmptyMealsState } from "@/components/domain/EmptyMealsState";
 import { ErrorBanner, type ErrorBannerVariant } from "@/components/domain/ErrorBanner";
+import { TodaySummaryHeader } from "@/components/domain/TodaySummaryHeader";
 
 function detectLocale(): string {
   const tag = Localization.getLocales()[0]?.languageTag;
@@ -45,6 +49,9 @@ export default function HomeScreen() {
   const createMealAudio = useCreateMealAudio();
   const session = useAuthSession();
   const userId = session.status === "signed_in" ? session.session.user.id : undefined;
+  const summaryQuery = useDailySummary(day);
+  useDailySummaryRealtime(userId, day);
+  useMealsRealtime(userId, day);
   const deleteMeal = useDeleteMeal();
   const [banner, setBanner] = useState<ErrorBannerVariant | null>(null);
 
@@ -198,6 +205,7 @@ export default function HomeScreen() {
         <Pressable className="flex-1" onPress={Keyboard.dismiss} />
       ) : items.length === 0 ? (
         <Pressable className="flex-1" onPress={Keyboard.dismiss}>
+          <TodaySummaryHeader summary={summaryQuery.data} />
           <EmptyMealsState />
         </Pressable>
       ) : (
@@ -205,14 +213,18 @@ export default function HomeScreen() {
           data={items}
           keyExtractor={(m) => (m as OptimisticMeal).id}
           renderItem={renderItem as never}
+          ListHeaderComponent={<TodaySummaryHeader summary={summaryQuery.data} />}
           contentContainerStyle={{ paddingBottom: 140 }}
           keyboardDismissMode="on-drag"
           keyboardShouldPersistTaps="handled"
           itemLayoutAnimation={LinearTransition.springify().damping(20).stiffness(180)}
           refreshControl={
             <RefreshControl
-              refreshing={mealsQuery.isRefetching}
-              onRefresh={() => mealsQuery.refetch()}
+              refreshing={mealsQuery.isRefetching || summaryQuery.isRefetching}
+              onRefresh={() => {
+                void mealsQuery.refetch();
+                void summaryQuery.refetch();
+              }}
               tintColor={colors.primary[400]}
             />
           }
