@@ -29,6 +29,9 @@ type Props = {
   onAudioReady: (params: { fileUri: string; durationMs: number; ext: "m4a" | "opus" }) => void;
   disabled?: boolean;
   processing?: boolean;
+  // When false, omits the bottom-fading LinearGradient. Useful inside sheets
+  // where there's no scrollable list behind the composer to fade.
+  showBackdropFade?: boolean;
 };
 
 type ComposerMode =
@@ -57,7 +60,13 @@ function recorderStateOf(mode: ComposerMode): RecorderState | null {
   }
 }
 
-export function MealComposer({ onSend, onAudioReady, disabled, processing }: Props) {
+export function MealComposer({
+  onSend,
+  onAudioReady,
+  disabled,
+  processing,
+  showBackdropFade = true,
+}: Props) {
   const [text, setText] = useState("");
   const [contentHeight, setContentHeight] = useState(0);
   const [mode, setMode] = useState<ComposerMode>({ kind: "idle" });
@@ -320,18 +329,20 @@ export function MealComposer({ onSend, onAudioReady, disabled, processing }: Pro
 
   return (
     <View pointerEvents="box-none">
-      <LinearGradient
-        pointerEvents="none"
-        colors={["rgba(248, 250, 252, 0)", "rgba(248, 250, 252, 0.85)", "rgba(248, 250, 252, 1)"]}
-        locations={[0, 0.55, 1]}
-        style={{
-          position: "absolute",
-          left: 0,
-          right: 0,
-          bottom: 0,
-          height: 120 + bottomPad,
-        }}
-      />
+      {showBackdropFade && (
+        <LinearGradient
+          pointerEvents="none"
+          colors={["rgba(248, 250, 252, 0)", "rgba(248, 250, 252, 0.85)", "rgba(248, 250, 252, 1)"]}
+          locations={[0, 0.55, 1]}
+          style={{
+            position: "absolute",
+            left: 0,
+            right: 0,
+            bottom: 0,
+            height: 120 + bottomPad,
+          }}
+        />
+      )}
 
       <RecorderLockHint
         visible={mode.kind === "recording-pressing" || mode.kind === "cancel-hint"}

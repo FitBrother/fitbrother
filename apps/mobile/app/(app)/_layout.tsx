@@ -5,6 +5,8 @@ import { supabase } from "@/lib/supabase";
 import { ProfileProvider, useProfileState } from "@/lib/profile/profile-context";
 import { colors } from "@/lib/colors";
 
+const SHEET_BG = colors.neutral[50];
+
 function GuardedStack() {
   const state = useProfileState();
   const router = useRouter();
@@ -41,7 +43,7 @@ function GuardedStack() {
           presentation: "formSheet",
           sheetAllowedDetents: "fitToContents",
           sheetCornerRadius: 24,
-          sheetGrabberVisible: true,
+          contentStyle: { backgroundColor: SHEET_BG },
         }}
       />
     </Stack>
