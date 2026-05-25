@@ -19,7 +19,6 @@ import { transcribeFromPath } from "../services/transcription.js";
  *   PATCH /meals/:id         → edit type / consumed_at / items (full replace)
  *   POST /meals/:id/confirm  → flip review_required=false → counts in summary
  *   DELETE /meals/:id        → soft delete (sets meals.deleted_at)
- *   GET  /me/daily-summary?day=... → aggregate for home dashboard
  *
  * Auth: all routes require a Supabase JWT. The `supabaseForRequest(req)`
  * helper returns a user-scoped client; RLS owner_all on every table makes
@@ -312,23 +311,6 @@ export async function mealsRoutes(app: FastifyInstance) {
       .eq("id", req.params.id);
     if (error) return reply.code(500).send({ error: error.message });
     return reply.code(204).send();
-  });
-
-  /* ── GET /me/daily-summary?day=YYYY-MM-DD ─────────────────────────── */
-  app.get<{ Querystring: { day?: string } }>("/me/daily-summary", async (req, reply) => {
-    const day = req.query.day;
-    if (!day || !/^\d{4}-\d{2}-\d{2}$/.test(day)) {
-      return reply.code(400).send({ error: "day_required_YYYY_MM_DD" });
-    }
-    const supabase = supabaseForRequest(req);
-    const { data, error } = await supabase
-      .from("daily_summaries")
-      .select("*")
-      .eq("day", day)
-      .maybeSingle();
-    if (error) return reply.code(500).send({ error: error.message });
-    // Null is a valid response — the user hasn't eaten on this day.
-    return reply.send({ summary: data ?? null });
   });
 }
 
