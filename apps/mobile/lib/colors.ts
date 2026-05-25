@@ -18,6 +18,9 @@ export const colors = {
     800: "#115E59",
     900: "#134E4A",
   },
+  // Alias semântico pro hero ring de calorias. Brand teal é o token de
+  // calorias no domínio nutricional (DESIGN_SYSTEM §12.1).
+  calories: { 50: "#F0FDFC", 100: "#CCFBF1", 500: "#14B8A6", 600: "#0D9488" },
   neutral: {
     50: "#F8FAFC",
     100: "#F1F5F9",
