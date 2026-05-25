@@ -44,6 +44,7 @@ function GuardedStack() {
           sheetAllowedDetents: "fitToContents",
           sheetCornerRadius: 24,
           contentStyle: { backgroundColor: SHEET_BG },
+          gestureEnabled: false,
         }}
       />
     </Stack>
