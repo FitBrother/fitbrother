@@ -244,6 +244,8 @@ fitbrother/
 
 **Status M3.1 (rings + realtime):** ✅ implementado em 2026-05-24 via branch `m3-1-dashboard`. ProgressRing SVG animado, 1 hero kcal (160) + 3 rings macro (80) como `ListHeaderComponent` na Home, hooks `useDailySummary` + `useDailySummaryRealtime` + `useMealsRealtime`, view `vw_today_summary` (security_invoker), RPC `fitbrother_today()`, endpoint `GET /me/daily-summary` com empty fallback. Edição inline + history em M3.2.
 
+**Status M3.2 (edit + history):** ✅ implementado em 2026-05-25 via branch `m3-2-edit-history`. EditMealModal full-screen com `useReducer`, validação via `PatchMealItemSchema`, add/remove items, totais derivados. History list paginada por semana via `useInfiniteQuery` + `GET /me/daily-summaries` (cap 31d). HistoryDayCard com hero kcal + 3 MacroBars + meals_count. HistoryEmptyDayCard (visual motivacional, sem CTA — backfill em M3.3). Drill-down: history → history/[day] (read-only) → meal/[id] (com edit/delete). Calendar icon no HomeHeader. M3 completo.
+
 ---
 
 ## M4 — WhatsApp end-to-end (PAUSADO — Meta business verification recusada em 2026-05-22)
