@@ -1,4 +1,3 @@
-export * from "./schemas.js";
-export * from "./prompt-version.js";
-export type { LLMProvider } from "./llm/provider.js";
-export * from "./schemas/daily-summary.js";
+export * from "./schemas";
+export * from "./prompt-version";
+export type { LLMProvider } from "./llm/provider";

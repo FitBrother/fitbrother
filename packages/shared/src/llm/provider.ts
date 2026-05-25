@@ -1,4 +1,4 @@
-import type { MealExtraction } from "../schemas.js";
+import type { MealExtraction } from "../schemas";
 
 /**
  * Single interface for any meal-extraction LLM (Gemini, OpenAI, ...).
