@@ -71,15 +71,10 @@ export function HistoryDayCard({ summary }: Props) {
             value={summary.protein_g}
             max={summary.goal_protein_g}
             color="protein"
-            label="proteína"
+            label="Prot"
           />
-          <MacroBar
-            value={summary.carbs_g}
-            max={summary.goal_carbs_g}
-            color="carbs"
-            label="carboidrato"
-          />
-          <MacroBar value={summary.fat_g} max={summary.goal_fat_g} color="fat" label="gordura" />
+          <MacroBar value={summary.carbs_g} max={summary.goal_carbs_g} color="carbs" label="Carb" />
+          <MacroBar value={summary.fat_g} max={summary.goal_fat_g} color="fat" label="Gord" />
         </View>
       </Pressable>
     </View>

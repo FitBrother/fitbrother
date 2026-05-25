@@ -134,6 +134,10 @@ export default function MealDetailScreen() {
               <Text style={NUM} className="mt-1 text-sm font-sans text-neutral-500">
                 {item.quantity} {item.unit} · {Math.round(item.kcal)} kcal
               </Text>
+              <Text style={NUM} className="mt-0.5 text-xs font-sans text-neutral-500">
+                {Math.round(item.protein_g)}g P · {Math.round(item.carbs_g)}g C ·{" "}
+                {Math.round(item.fat_g)}g G
+              </Text>
             </View>
           ))}
         </View>

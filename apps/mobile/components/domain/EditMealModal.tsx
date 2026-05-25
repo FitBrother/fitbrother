@@ -2,6 +2,9 @@ import { useEffect, useMemo, useReducer, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
   Pressable,
   ScrollView,
   Text,
@@ -13,6 +16,7 @@ import { useRouter } from "expo-router";
 import { Plus, Trash2, X } from "lucide-react-native";
 import { PatchMealItemSchema, type MealResponse, type PatchMealRequest } from "@fitbrother/shared";
 import { useUpdateMeal } from "@/lib/hooks/useUpdateMeal";
+import { useDeleteMeal } from "@/lib/hooks/useDeleteMeal";
 import { colors } from "@/lib/colors";
 import { shadows } from "@/lib/shadows";
 
@@ -91,6 +95,7 @@ type Props = {
 export function EditMealModal({ meal, day }: Props) {
   const router = useRouter();
   const update = useUpdateMeal(meal.id, day);
+  const remove = useDeleteMeal();
 
   const [state, dispatch] = useReducer(reducer, {
     items: meal.items.map((it) => ({
@@ -131,6 +136,32 @@ export function EditMealModal({ meal, day }: Props) {
   };
 
   const handleSave = () => {
+    // Cascade: zero items → delete meal (com confirmação).
+    if (state.items.length === 0) {
+      Alert.alert(
+        "Excluir refeição?",
+        "Você removeu todos os itens. A refeição inteira será excluída.",
+        [
+          { text: "Cancelar", style: "cancel" },
+          {
+            text: "Excluir",
+            style: "destructive",
+            onPress: () => {
+              remove.mutate(
+                { id: meal.id, day },
+                {
+                  onSuccess: () => router.replace("/(app)"),
+                  onError: () =>
+                    Alert.alert("Não foi possível excluir", "Tente novamente em instantes."),
+                },
+              );
+            },
+          },
+        ],
+      );
+      return;
+    }
+
     const errors = new Set<number>();
     state.items.forEach((it, i) => {
       const parsed = PatchMealItemSchema.safeParse(it);
@@ -172,6 +203,8 @@ export function EditMealModal({ meal, day }: Props) {
     dispatch({ type: "update_item", index, patch });
   };
 
+  const isSaving = update.isPending || remove.isPending;
+
   return (
     <SafeAreaView className="flex-1 bg-neutral-50" edges={["top", "left", "right"]}>
       <View className="flex-row items-center justify-between px-4 py-2">
@@ -188,12 +221,12 @@ export function EditMealModal({ meal, day }: Props) {
         </Text>
         <Pressable
           onPress={handleSave}
-          disabled={!state.dirty || update.isPending}
+          disabled={!state.dirty || isSaving}
           accessibilityLabel="Salvar alterações"
           accessibilityRole="button"
           className="min-h-[44px] min-w-[64px] items-center justify-center px-3 disabled:opacity-50"
         >
-          {update.isPending ? (
+          {isSaving ? (
             <ActivityIndicator size="small" color={colors.primary[400]} />
           ) : (
             <Text className="text-base font-sans-semibold text-primary-500">Salvar</Text>
@@ -201,43 +234,63 @@ export function EditMealModal({ meal, day }: Props) {
         </Pressable>
       </View>
 
-      <ScrollView contentContainerStyle={{ paddingBottom: 32 }}>
-        {state.items.map((item, idx) => (
-          <ItemEditor
-            key={item.id ?? `new-${idx}`}
-            item={item}
-            hasError={errorIndexes.has(idx)}
-            canDelete={state.items.length > 1}
-            onChange={(patch) => updateItem(idx, patch)}
-            onRemove={() => dispatch({ type: "remove_item", index: idx })}
-          />
-        ))}
-
-        <Pressable
-          onPress={() => dispatch({ type: "add_item" })}
-          accessibilityRole="button"
-          accessibilityLabel="Adicionar item"
-          className="mx-4 mt-3 flex-row items-center justify-center gap-2 rounded-2xl border border-dashed border-neutral-300 py-3"
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 80 : 0}
+        className="flex-1"
+      >
+        <ScrollView
+          contentContainerStyle={{ paddingBottom: 32 }}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
         >
-          <Plus size={18} color={colors.neutral[600]} />
-          <Text className="text-base font-sans-medium text-neutral-600">Adicionar item</Text>
-        </Pressable>
+          {state.items.length === 0 ? (
+            <View
+              style={shadows.card}
+              className="mx-4 mt-3 rounded-2xl bg-warning-50 border border-warning-300 p-4"
+            >
+              <Text className="text-sm font-sans-semibold text-warning-700">Sem itens</Text>
+              <Text className="mt-1 text-xs font-sans text-warning-600">
+                Salvar sem itens vai excluir a refeição inteira.
+              </Text>
+            </View>
+          ) : null}
+          {state.items.map((item, idx) => (
+            <ItemEditor
+              key={item.id ?? `new-${idx}`}
+              item={item}
+              hasError={errorIndexes.has(idx)}
+              onChange={(patch) => updateItem(idx, patch)}
+              onRemove={() => dispatch({ type: "remove_item", index: idx })}
+            />
+          ))}
 
-        <View
-          style={shadows.card}
-          className="mx-4 mt-5 rounded-2xl bg-white p-4"
-          accessibilityLabel={`Totais: ${Math.round(totals.kcal)} kcal`}
-        >
-          <Text className="text-xs font-sans-semibold uppercase text-neutral-500">Totais</Text>
-          <Text style={NUM} className="mt-1 text-2xl font-sans-bold text-neutral-800">
-            {Math.round(totals.kcal)} kcal
-          </Text>
-          <Text style={NUM} className="mt-1 text-sm font-sans text-neutral-500">
-            {Math.round(totals.protein_g)}g P · {Math.round(totals.carbs_g)}g C ·{" "}
-            {Math.round(totals.fat_g)}g G
-          </Text>
-        </View>
-      </ScrollView>
+          <Pressable
+            onPress={() => dispatch({ type: "add_item" })}
+            accessibilityRole="button"
+            accessibilityLabel="Adicionar item"
+            className="mx-4 mt-3 flex-row items-center justify-center gap-2 rounded-2xl border border-dashed border-neutral-300 py-3"
+          >
+            <Plus size={18} color={colors.neutral[600]} />
+            <Text className="text-base font-sans-medium text-neutral-600">Adicionar item</Text>
+          </Pressable>
+
+          <View
+            style={shadows.card}
+            className="mx-4 mt-5 rounded-2xl bg-white p-4"
+            accessibilityLabel={`Totais: ${Math.round(totals.kcal)} kcal`}
+          >
+            <Text className="text-xs font-sans-semibold uppercase text-neutral-500">Totais</Text>
+            <Text style={NUM} className="mt-1 text-2xl font-sans-bold text-neutral-800">
+              {Math.round(totals.kcal)} kcal
+            </Text>
+            <Text style={NUM} className="mt-1 text-sm font-sans text-neutral-500">
+              {Math.round(totals.protein_g)}g P · {Math.round(totals.carbs_g)}g C ·{" "}
+              {Math.round(totals.fat_g)}g G
+            </Text>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -245,12 +298,11 @@ export function EditMealModal({ meal, day }: Props) {
 type ItemEditorProps = {
   item: ItemDraft;
   hasError: boolean;
-  canDelete: boolean;
   onChange: (patch: Partial<ItemDraft>) => void;
   onRemove: () => void;
 };
 
-function ItemEditor({ item, hasError, canDelete, onChange, onRemove }: ItemEditorProps) {
+function ItemEditor({ item, hasError, onChange, onRemove }: ItemEditorProps) {
   return (
     <View
       style={shadows.card}
@@ -291,10 +343,9 @@ function ItemEditor({ item, hasError, canDelete, onChange, onRemove }: ItemEdito
 
       <Pressable
         onPress={onRemove}
-        disabled={!canDelete}
         accessibilityLabel="Remover item"
         accessibilityRole="button"
-        className="mt-3 self-end min-h-[44px] min-w-[44px] items-center justify-center disabled:opacity-30"
+        className="mt-3 self-end min-h-[44px] min-w-[44px] items-center justify-center"
       >
         <Trash2 size={18} color={colors.danger[500]} />
       </Pressable>
@@ -337,33 +388,53 @@ function NumberInput({
 function UnitPicker({ value, onChange }: { value: Unit; onChange: (u: Unit) => void }) {
   const [open, setOpen] = useState(false);
   return (
-    <View className="relative">
+    <View>
       <Text className="text-xs font-sans-medium text-neutral-500">Unidade</Text>
       <Pressable
-        onPress={() => setOpen((o) => !o)}
+        onPress={() => setOpen(true)}
         accessibilityLabel="Escolher unidade"
         accessibilityRole="button"
         className="mt-1 min-w-[80px] rounded-lg border border-neutral-200 bg-white px-3 py-1.5"
       >
         <Text className="text-base font-sans-medium text-neutral-800">{UNIT_LABEL[value]}</Text>
       </Pressable>
-      {open ? (
-        <View style={shadows.card} className="absolute left-0 top-16 z-50 w-32 rounded-lg bg-white">
-          {UNIT_OPTIONS.map((u) => (
-            <Pressable
-              key={u}
-              onPress={() => {
-                onChange(u);
-                setOpen(false);
-              }}
-              accessibilityRole="button"
-              className="px-3 py-2 active:bg-neutral-50"
-            >
-              <Text className="text-base font-sans-medium text-neutral-800">{UNIT_LABEL[u]}</Text>
-            </Pressable>
-          ))}
-        </View>
-      ) : null}
+      <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
+        <Pressable
+          onPress={() => setOpen(false)}
+          accessibilityLabel="Fechar seletor de unidade"
+          accessibilityRole="button"
+          className="flex-1 items-center justify-center bg-black/40 px-8"
+        >
+          <View
+            style={shadows.card}
+            className="w-full max-w-xs rounded-2xl bg-white py-2"
+            onStartShouldSetResponder={() => true}
+          >
+            {UNIT_OPTIONS.map((u) => (
+              <Pressable
+                key={u}
+                onPress={() => {
+                  onChange(u);
+                  setOpen(false);
+                }}
+                accessibilityRole="button"
+                accessibilityState={{ selected: u === value }}
+                className="px-4 py-3 active:bg-neutral-50"
+              >
+                <Text
+                  className={`text-base ${
+                    u === value
+                      ? "font-sans-semibold text-primary-500"
+                      : "font-sans-medium text-neutral-800"
+                  }`}
+                >
+                  {UNIT_LABEL[u]}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
