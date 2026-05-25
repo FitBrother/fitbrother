@@ -119,6 +119,11 @@ export const DailySummaryResponseSchema = z.object({
 });
 export type DailySummaryResponse = z.infer<typeof DailySummaryResponseSchema>;
 
+export const DailySummariesResponseSchema = z.object({
+  summaries: z.array(DailySummarySchema),
+});
+export type DailySummariesResponse = z.infer<typeof DailySummariesResponseSchema>;
+
 export const PatchMealItemSchema = z.object({
   // Pass id to update existing; omit to insert new. Server enforces ownership.
   id: UuidSchema.optional(),
