@@ -1,10 +1,13 @@
 import { ActivityIndicator, FlatList, Pressable, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { ChevronLeft } from "lucide-react-native";
+import { ChevronLeft, Plus } from "lucide-react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import type { MealResponse } from "@fitbrother/shared";
 import { useMealsForDay } from "@/lib/hooks/useMealsForDay";
 import { useDailySummary } from "@/lib/hooks/useDailySummary";
+import { addDaysIso } from "@/lib/dateMath";
+import { nutritionalToday } from "@/lib/time/nutritional-day";
+import { useProfile } from "@/lib/profile/profile-context";
 import { colors } from "@/lib/colors";
 import { TodaySummaryHeader } from "@/components/domain/TodaySummaryHeader";
 import { MealCard } from "@/components/domain/MealCard";
@@ -22,6 +25,9 @@ function formatDayHeader(day: string): string {
 export default function HistoryDayScreen() {
   const { day } = useLocalSearchParams<{ day: string }>();
   const router = useRouter();
+  const profile = useProfile();
+  const today = nutritionalToday(profile);
+  const canBackfill = !!day && day !== today && day >= addDaysIso(today, -6);
   const summaryQuery = useDailySummary(day ?? "");
   const mealsQuery = useMealsForDay(day ?? "");
 
@@ -47,6 +53,23 @@ export default function HistoryDayScreen() {
         <Text className="ml-2 flex-1 text-xl font-sans-bold text-neutral-800">
           {formatDayHeader(day)}
         </Text>
+        {canBackfill && (
+          <Pressable
+            onPress={() =>
+              router.push({
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                pathname: "/(app)/history/[day]/new" as any,
+                params: { day },
+              })
+            }
+            accessibilityLabel="Registrar refeição neste dia"
+            accessibilityRole="button"
+            className="min-h-[44px] min-w-[44px] flex-row items-center gap-1 rounded-full bg-primary-500 px-3"
+          >
+            <Plus size={16} color="#ffffff" />
+            <Text className="text-xs font-sans-semibold text-white">Registrar</Text>
+          </Pressable>
+        )}
       </View>
       {mealsQuery.isLoading ? (
         <View className="flex-1 items-center justify-center">

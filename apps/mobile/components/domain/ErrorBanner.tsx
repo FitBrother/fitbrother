@@ -2,7 +2,12 @@ import { Pressable, Text, View } from "react-native";
 import { AlertTriangle, WifiOff, X, Zap } from "lucide-react-native";
 import { colors } from "@/lib/colors";
 
-export type ErrorBannerVariant = "quota_exceeded" | "offline" | "server_error" | "network";
+export type ErrorBannerVariant =
+  | "quota_exceeded"
+  | "offline"
+  | "server_error"
+  | "network"
+  | "backfill_window_exceeded";
 
 type Props = {
   variant: ErrorBannerVariant;
@@ -25,6 +30,10 @@ const COPY: Record<ErrorBannerVariant, { title: string; body: string }> = {
   network: {
     title: "Erro de rede",
     body: "Sua refeição não foi salva. Tente de novo.",
+  },
+  backfill_window_exceeded: {
+    title: "Janela expirada",
+    body: "Só é possível registrar refeições dos últimos 7 dias. Atualize o histórico.",
   },
 };
 

@@ -5,6 +5,7 @@ import {
 } from "@fitbrother/shared";
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import { authRequired, supabaseForRequest } from "../lib/auth.js";
+import { addDaysIso } from "../lib/dateMath.js";
 import { AiQuotaExceededError } from "../services/ai-usage.js";
 import { extractMeal } from "../services/extraction.js";
 import { applyCatalogToItems } from "../services/meals.js";
@@ -49,6 +50,33 @@ export async function mealsRoutes(app: FastifyInstance) {
     const { client_meal_id, text, consumed_at, locale } = parsed.data;
     const userId = req.user!.id;
     const supabase = supabaseForRequest(req);
+
+    if (consumed_at) {
+      const { data: backfillDayRaw, error: dayErr } = await supabase.rpc(
+        "fitbrother_nutritional_day",
+        { p_user_id: userId, p_ts: consumed_at },
+      );
+      if (dayErr || !backfillDayRaw) {
+        req.log.error({ err: dayErr, consumed_at }, "nutritional_day_failed");
+        return reply.code(500).send({ error: "nutritional_day_failed" });
+      }
+      const { data: todayRaw, error: todayErr } = await supabase.rpc("fitbrother_today", {
+        p_user_id: userId,
+      });
+      if (todayErr || !todayRaw) {
+        req.log.error({ err: todayErr, userId }, "today_lookup_failed");
+        return reply.code(500).send({ error: "today_lookup_failed" });
+      }
+      const backfillDay = backfillDayRaw as string;
+      const today = todayRaw as string;
+      const minDay = addDaysIso(today, -6);
+      if (backfillDay < minDay || backfillDay > today) {
+        return reply.code(400).send({
+          error: "backfill_window_exceeded",
+          window: { from: minDay, to: today },
+        });
+      }
+    }
 
     let extraction;
     try {
@@ -118,6 +146,33 @@ export async function mealsRoutes(app: FastifyInstance) {
     // verify the prefix matches the caller before touching the bucket.
     if (!audio_path.startsWith(`${userId}/`)) {
       return reply.code(403).send({ error: "audio_path_ownership_mismatch" });
+    }
+
+    if (consumed_at) {
+      const { data: backfillDayRaw, error: dayErr } = await supabase.rpc(
+        "fitbrother_nutritional_day",
+        { p_user_id: userId, p_ts: consumed_at },
+      );
+      if (dayErr || !backfillDayRaw) {
+        req.log.error({ err: dayErr, consumed_at }, "nutritional_day_failed");
+        return reply.code(500).send({ error: "nutritional_day_failed" });
+      }
+      const { data: todayRaw, error: todayErr } = await supabase.rpc("fitbrother_today", {
+        p_user_id: userId,
+      });
+      if (todayErr || !todayRaw) {
+        req.log.error({ err: todayErr, userId }, "today_lookup_failed");
+        return reply.code(500).send({ error: "today_lookup_failed" });
+      }
+      const backfillDay = backfillDayRaw as string;
+      const today = todayRaw as string;
+      const minDay = addDaysIso(today, -6);
+      if (backfillDay < minDay || backfillDay > today) {
+        return reply.code(400).send({
+          error: "backfill_window_exceeded",
+          window: { from: minDay, to: today },
+        });
+      }
     }
 
     // 1. Transcribe (with cap + cache).

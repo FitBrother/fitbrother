@@ -1,15 +1,8 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { fetchDailySummaries } from "@/lib/api/me";
+import { addDaysIso as addDays } from "@/lib/dateMath";
 
 const WEEK_DAYS = 7;
-
-function addDays(iso: string, n: number): string {
-  // Trabalhamos com strings YYYY-MM-DD pra evitar fuso. UTC-anchored interno
-  // só pra somar dias; o resultado volta como ISO calendar date.
-  const d = new Date(iso + "T00:00:00Z");
-  d.setUTCDate(d.getUTCDate() + n);
-  return d.toISOString().slice(0, 10);
-}
 
 function clampFrom(candidate: string, cutoff: string | undefined): string {
   if (!cutoff) return candidate;

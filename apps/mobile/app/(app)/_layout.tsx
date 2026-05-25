@@ -5,6 +5,8 @@ import { supabase } from "@/lib/supabase";
 import { ProfileProvider, useProfileState } from "@/lib/profile/profile-context";
 import { colors } from "@/lib/colors";
 
+const SHEET_BG = colors.neutral[50];
+
 function GuardedStack() {
   const state = useProfileState();
   const router = useRouter();
@@ -32,7 +34,21 @@ function GuardedStack() {
     return <Redirect href="/" />;
   }
 
-  return <Stack screenOptions={{ headerShown: false }} />;
+  return (
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="meal/[id]/edit" options={{ presentation: "modal" }} />
+      <Stack.Screen
+        name="history/[day]/new"
+        options={{
+          presentation: "formSheet",
+          sheetAllowedDetents: "fitToContents",
+          sheetCornerRadius: 24,
+          contentStyle: { backgroundColor: SHEET_BG },
+          gestureEnabled: false,
+        }}
+      />
+    </Stack>
+  );
 }
 
 export default function AppLayout() {
