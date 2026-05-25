@@ -1,4 +1,4 @@
-import { View } from "react-native";
+import { Text, View } from "react-native";
 import type { DailySummary } from "@fitbrother/shared";
 import { ProgressRing } from "./ProgressRing";
 
@@ -12,6 +12,36 @@ function fmtInt(n: number): string {
 
 function fmtGrams(n: number): string {
   return `${Math.round(n)}g`;
+}
+
+type MacroRingProps = {
+  value: number;
+  max: number | null;
+  color: "protein" | "carbs" | "fat";
+  label: string;
+};
+
+function MacroRing({ value, max, color, label }: MacroRingProps) {
+  return (
+    <View className="items-center gap-2">
+      <ProgressRing
+        value={value}
+        max={max}
+        color={color}
+        centerTop={fmtGrams(value)}
+        centerBottom={max ? `/ ${fmtGrams(max)}` : undefined}
+        accessibilityLabel={
+          max ? `${fmtGrams(value)} de ${fmtGrams(max)} ${label}` : `${fmtGrams(value)} ${label}`
+        }
+      />
+      <Text
+        className="font-sans-medium text-neutral-500 text-xs"
+        style={{ fontVariant: ["tabular-nums"] }}
+      >
+        {label}
+      </Text>
+    </View>
+  );
 }
 
 export function TodaySummaryHeader({ summary }: Props) {
@@ -40,42 +70,9 @@ export function TodaySummaryHeader({ summary }: Props) {
         }
       />
       <View className="flex-row justify-around w-full px-2">
-        <ProgressRing
-          value={protein}
-          max={goalProtein}
-          color="protein"
-          centerTop={fmtGrams(protein)}
-          centerBottom="proteína"
-          accessibilityLabel={
-            goalProtein
-              ? `${fmtGrams(protein)} de ${fmtGrams(goalProtein)} proteína`
-              : `${fmtGrams(protein)} proteína`
-          }
-        />
-        <ProgressRing
-          value={carbs}
-          max={goalCarbs}
-          color="carbs"
-          centerTop={fmtGrams(carbs)}
-          centerBottom="carboidrato"
-          accessibilityLabel={
-            goalCarbs
-              ? `${fmtGrams(carbs)} de ${fmtGrams(goalCarbs)} carboidrato`
-              : `${fmtGrams(carbs)} carboidrato`
-          }
-        />
-        <ProgressRing
-          value={fat}
-          max={goalFat}
-          color="fat"
-          centerTop={fmtGrams(fat)}
-          centerBottom="gordura"
-          accessibilityLabel={
-            goalFat
-              ? `${fmtGrams(fat)} de ${fmtGrams(goalFat)} gordura`
-              : `${fmtGrams(fat)} gordura`
-          }
-        />
+        <MacroRing value={protein} max={goalProtein} color="protein" label="proteína" />
+        <MacroRing value={carbs} max={goalCarbs} color="carbs" label="carboidrato" />
+        <MacroRing value={fat} max={goalFat} color="fat" label="gordura" />
       </View>
     </View>
   );
