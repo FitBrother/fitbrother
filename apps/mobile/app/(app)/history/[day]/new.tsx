@@ -1,5 +1,6 @@
 import { useCallback, useState } from "react";
 import { Keyboard, Pressable, Text, View } from "react-native";
+import { SafeAreaInsetsContext } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { X } from "lucide-react-native";
 import * as Localization from "expo-localization";
@@ -153,7 +154,11 @@ export default function BackfillScreen() {
       <BackfillContextBar day={day} consumedAt={consumedAt} onChangeConsumedAt={setConsumedAt} />
       {banner && <ErrorBanner variant={banner} onDismiss={() => setBanner(null)} />}
       <View className="flex-1" />
-      <MealComposer onSend={handleSend} onAudioReady={handleAudioReady} processing={processing} />
+      {/* Zera o bottom inset só pro composer — o sheet já está no fundo da
+          tela, então a home indicator não precisa ser respeitada de novo. */}
+      <SafeAreaInsetsContext.Provider value={{ top: 0, bottom: 0, left: 0, right: 0 }}>
+        <MealComposer onSend={handleSend} onAudioReady={handleAudioReady} processing={processing} />
+      </SafeAreaInsetsContext.Provider>
     </View>
   );
 }
