@@ -1,5 +1,5 @@
 import { Pressable, Text, View } from "react-native";
-import { User, Users } from "lucide-react-native";
+import { Calendar, User, Users } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { colors } from "@/lib/colors";
 
@@ -20,6 +20,14 @@ export function HomeHeader({ name }: { name: string }) {
         <Text className="text-2xl font-sans-extrabold text-neutral-800">{firstName}</Text>
       </View>
       <View className="flex-row items-center gap-2">
+        <Pressable
+          onPress={() => router.push("/(app)/history")}
+          accessibilityLabel="Histórico"
+          accessibilityRole="button"
+          className="min-h-[44px] min-w-[44px] items-center justify-center rounded-full"
+        >
+          <Calendar size={22} color={colors.neutral[800]} />
+        </Pressable>
         <Pressable
           onPress={() => router.push("/(app)/friends")}
           accessibilityLabel="Amigos"

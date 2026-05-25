@@ -35,8 +35,12 @@ await app.register(cors, {
 // not this server, so the IP fallback only matters for /health probes).
 // AI_QUOTA_EXCEEDED is the per-day cost gate; this is the per-minute
 // abuse gate.
+// 120 req/min/user. Sessões com Realtime + dashboard fazem facilmente 20-30
+// reads pacíficos em poucos segundos (cada mutation invalida 3-4 queries),
+// então um limite agressivo demais derruba ações legítimas. 2 req/s ainda
+// rejeita spam de scripts.
 await app.register(rateLimit, {
-  max: 30,
+  max: 120,
   timeWindow: "1 minute",
   keyGenerator: (req: FastifyRequest) => req.user?.id ?? req.ip,
 });

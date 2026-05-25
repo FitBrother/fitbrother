@@ -1,4 +1,8 @@
-import { DailySummaryResponseSchema, type DailySummary } from "@fitbrother/shared";
+import {
+  DailySummariesResponseSchema,
+  DailySummaryResponseSchema,
+  type DailySummary,
+} from "@fitbrother/shared";
 import { authedFetch } from "@/lib/api";
 
 type ApiError = Error & { status?: number };
@@ -15,4 +19,12 @@ export async function fetchDailySummary(day: string): Promise<DailySummary> {
   const res = await authedFetch(`/me/daily-summary?day=${encodeURIComponent(day)}`);
   const body = await parseOrThrow(res);
   return DailySummaryResponseSchema.parse(body).summary;
+}
+
+export async function fetchDailySummaries(from: string, to: string): Promise<DailySummary[]> {
+  const res = await authedFetch(
+    `/me/daily-summaries?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
+  );
+  const body = await parseOrThrow(res);
+  return DailySummariesResponseSchema.parse(body).summaries;
 }
