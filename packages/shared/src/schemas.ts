@@ -97,23 +97,6 @@ export const MealResponseSchema = z.object({
 });
 export type MealResponse = z.infer<typeof MealResponseSchema>;
 
-export const DailySummaryResponseSchema = z.object({
-  user_id: UuidSchema,
-  day: z.string(),
-  kcal: z.number(),
-  protein_g: z.number(),
-  carbs_g: z.number(),
-  fat_g: z.number(),
-  goal_kcal: z.number().nullable(),
-  goal_protein_g: z.number().nullable(),
-  goal_carbs_g: z.number().nullable(),
-  goal_fat_g: z.number().nullable(),
-  goal_hit: z.boolean(),
-  meals_count: z.number().int(),
-  updated_at: z.string(),
-});
-export type DailySummaryResponse = z.infer<typeof DailySummaryResponseSchema>;
-
 export const PatchMealItemSchema = z.object({
   // Pass id to update existing; omit to insert new. Server enforces ownership.
   id: UuidSchema.optional(),
