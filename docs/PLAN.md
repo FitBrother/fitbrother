@@ -242,6 +242,8 @@ fitbrother/
 
 **Feito quando:** dia com 3 refeições renderiza com macros e rings corretos; deletar meal → ring atualiza em <1s sem refresh manual; 2 dispositivos do mesmo user logados refletem em <2s; edição de `quantity` recalcula totais.
 
+**Status M3.1 (rings + realtime):** ✅ implementado em 2026-05-24 via branch `m3-1-dashboard`. ProgressRing SVG animado, 1 hero kcal (160) + 3 rings macro (80) como `ListHeaderComponent` na Home, hooks `useDailySummary` + `useDailySummaryRealtime` + `useMealsRealtime`, view `vw_today_summary` (security_invoker), RPC `fitbrother_today()`, endpoint `GET /me/daily-summary` com empty fallback. Edição inline + history em M3.2.
+
 ---
 
 ## M4 — WhatsApp end-to-end (PAUSADO — Meta business verification recusada em 2026-05-22)

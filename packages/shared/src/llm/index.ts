@@ -1,1 +1,1 @@
-export type { LLMProvider } from "./provider.js";
+export type { LLMProvider } from "./provider";
