@@ -3,14 +3,30 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronLeft, Pencil, Trash2 } from "lucide-react-native";
+import type { MealResponse } from "@fitbrother/shared";
 import { getMeal } from "@/lib/api/meals";
 import { mealDetailKey } from "@/lib/hooks/useMealsForDay";
 import { useConfirmMeal } from "@/lib/hooks/useConfirmMeal";
 import { useDeleteMeal } from "@/lib/hooks/useDeleteMeal";
+import { useUpdateMeal } from "@/lib/hooks/useUpdateMeal";
 import { useProfile } from "@/lib/profile/profile-context";
 import { nutritionalDay } from "@/lib/time/nutritional-day";
 import { colors } from "@/lib/colors";
 import { shadows } from "@/lib/shadows";
+import { MealItemRowSwipeable } from "@/components/domain/MealItemRowSwipeable";
+
+function toPatchItem(it: MealResponse["items"][number]) {
+  return {
+    id: it.id,
+    description: it.description,
+    quantity: it.quantity,
+    unit: it.unit,
+    kcal: it.kcal,
+    protein_g: it.protein_g,
+    carbs_g: it.carbs_g,
+    fat_g: it.fat_g,
+  };
+}
 
 const NUM: { fontVariant: ["tabular-nums"] } = { fontVariant: ["tabular-nums"] };
 
@@ -20,12 +36,15 @@ export default function MealDetailScreen() {
   const profile = useProfile();
   const confirm = useConfirmMeal();
   const remove = useDeleteMeal();
-
   const query = useQuery({
     queryKey: mealDetailKey(id ?? ""),
     queryFn: () => getMeal(id!),
     enabled: Boolean(id),
   });
+  // day depende do meal carregado; antes disso vai como "" (mutate só é
+  // chamado depois que `meal` já existe).
+  const day = query.data ? nutritionalDay(new Date(query.data.consumed_at), profile) : "";
+  const update = useUpdateMeal(id ?? "", day);
 
   if (query.isLoading || !id) {
     return (
@@ -43,7 +62,6 @@ export default function MealDetailScreen() {
   }
 
   const meal = query.data;
-  const day = nutritionalDay(new Date(meal.consumed_at), profile);
 
   const handleConfirm = () => {
     confirm.mutate(
@@ -72,6 +90,41 @@ export default function MealDetailScreen() {
         },
       },
     ]);
+  };
+
+  const handleRemoveItem = (itemId: string) => {
+    const remaining = meal.items.filter((it) => it.id !== itemId);
+    if (remaining.length === 0) {
+      // Cascade: remover o último item exclui a refeição.
+      Alert.alert(
+        "Excluir refeição?",
+        "Esse era o último item. Remover vai excluir a refeição inteira.",
+        [
+          { text: "Cancelar", style: "cancel" },
+          {
+            text: "Excluir",
+            style: "destructive",
+            onPress: () => {
+              remove.mutate(
+                { id: meal.id, day },
+                {
+                  onSuccess: () => router.back(),
+                  onError: () =>
+                    Alert.alert("Não foi possível excluir", "Tente novamente em instantes."),
+                },
+              );
+            },
+          },
+        ],
+      );
+      return;
+    }
+    update.mutate(
+      { items: remaining.map(toPatchItem) },
+      {
+        onError: () => Alert.alert("Não foi possível remover", "Tente novamente em instantes."),
+      },
+    );
   };
 
   return (
@@ -127,18 +180,11 @@ export default function MealDetailScreen() {
         </Text>
         <View className="mx-4 mt-2 gap-2">
           {meal.items.map((item) => (
-            <View key={item.id} style={shadows.card} className="rounded-2xl bg-white p-4">
-              <Text className="text-base font-sans-medium text-neutral-800">
-                {item.description}
-              </Text>
-              <Text style={NUM} className="mt-1 text-sm font-sans text-neutral-500">
-                {item.quantity} {item.unit} · {Math.round(item.kcal)} kcal
-              </Text>
-              <Text style={NUM} className="mt-0.5 text-xs font-sans text-neutral-500">
-                {Math.round(item.protein_g)}g P · {Math.round(item.carbs_g)}g C ·{" "}
-                {Math.round(item.fat_g)}g G
-              </Text>
-            </View>
+            <MealItemRowSwipeable
+              key={item.id}
+              item={item}
+              onDelete={() => handleRemoveItem(item.id)}
+            />
           ))}
         </View>
 
