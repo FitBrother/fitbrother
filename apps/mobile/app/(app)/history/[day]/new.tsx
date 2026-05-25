@@ -137,7 +137,7 @@ export default function BackfillScreen() {
   const processing = createMeal.isPending || createMealAudio.isPending;
 
   return (
-    <View className="flex-1 bg-neutral-50">
+    <View className="bg-neutral-50">
       <View className="flex-row items-center px-4 py-2">
         <Pressable
           onPress={() => router.back()}
@@ -153,7 +153,6 @@ export default function BackfillScreen() {
       </View>
       <BackfillContextBar day={day} consumedAt={consumedAt} onChangeConsumedAt={setConsumedAt} />
       {banner && <ErrorBanner variant={banner} onDismiss={() => setBanner(null)} />}
-      <View className="flex-1" />
       {/* Zera o bottom inset só pro composer — o sheet já está no fundo da
           tela, então a home indicator não precisa ser respeitada de novo. */}
       <SafeAreaInsetsContext.Provider value={{ top: 0, bottom: 0, left: 0, right: 0 }}>

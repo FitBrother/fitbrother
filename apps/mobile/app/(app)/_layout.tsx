@@ -39,7 +39,7 @@ function GuardedStack() {
         name="history/[day]/new"
         options={{
           presentation: "formSheet",
-          sheetAllowedDetents: [0.55, 0.9],
+          sheetAllowedDetents: "fitToContents",
           sheetCornerRadius: 24,
           sheetGrabberVisible: true,
         }}
