@@ -141,6 +141,7 @@ export type Streak = z.infer<typeof StreakSchema>;
 
 export const StreakResponseSchema = z.object({
   streak: StreakSchema,
+  at_risk: z.boolean(),
 });
 export type StreakResponse = z.infer<typeof StreakResponseSchema>;
 
@@ -245,3 +246,40 @@ export const OnboardingPayloadSchema = z.object({
 });
 
 export type OnboardingPayload = z.infer<typeof OnboardingPayloadSchema>;
+
+// ── M5.3 social ────────────────────────────────────────────────────────────
+export const ContactsSyncRequestSchema = z.object({
+  // hashes SHA-256 hex (lowercase) de números E.164, gerados no device.
+  hashes: z.array(z.string().regex(/^[0-9a-f]{64}$/)).max(5000),
+});
+export type ContactsSyncRequest = z.infer<typeof ContactsSyncRequestSchema>;
+
+export const FollowedProfileSchema = z.object({
+  user_id: z.string().uuid(),
+  full_name: z.string().nullable(),
+});
+export type FollowedProfile = z.infer<typeof FollowedProfileSchema>;
+
+export const ContactsSyncResponseSchema = z.object({
+  followed: z.array(FollowedProfileSchema),
+});
+export type ContactsSyncResponse = z.infer<typeof ContactsSyncResponseSchema>;
+
+export const FollowingResponseSchema = z.object({
+  following: z.array(FollowedProfileSchema),
+});
+export type FollowingResponse = z.infer<typeof FollowingResponseSchema>;
+
+export const LeaderboardRowSchema = z.object({
+  user_id: z.string().uuid(),
+  full_name: z.string().nullable(),
+  weekly_hits: z.number().int(),
+  window_streak: z.number().int(),
+  is_me: z.boolean(),
+});
+export type LeaderboardRow = z.infer<typeof LeaderboardRowSchema>;
+
+export const LeaderboardResponseSchema = z.object({
+  rows: z.array(LeaderboardRowSchema),
+});
+export type LeaderboardResponse = z.infer<typeof LeaderboardResponseSchema>;
