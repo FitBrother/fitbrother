@@ -124,6 +124,78 @@ export const DailySummariesResponseSchema = z.object({
 });
 export type DailySummariesResponse = z.infer<typeof DailySummariesResponseSchema>;
 
+/* ─── Streak (M5.1) ──────────────────────────────────────────────────────── */
+
+export const StreakSchema = z.object({
+  user_id: z.string().uuid(),
+  current_streak: z.number().int(),
+  longest_streak: z.number().int(),
+  last_hit_day: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .nullable(),
+  freezes_available: z.number().int(),
+  updated_at: z.string(),
+});
+export type Streak = z.infer<typeof StreakSchema>;
+
+export const StreakResponseSchema = z.object({
+  streak: StreakSchema,
+});
+export type StreakResponse = z.infer<typeof StreakResponseSchema>;
+
+/* ─── Achievements (M5.2) ────────────────────────────────────────────────── */
+
+export const AchievementCriteriaSchema = z.object({
+  type: z.enum([
+    "streak",
+    "meals_total",
+    "wa_meals_total",
+    "weekly_hits",
+    "days_active",
+    "friends_total",
+  ]),
+  value: z.number().int(),
+});
+
+export const AchievementSchema = z.object({
+  id: z.string().uuid(),
+  code: z.string(),
+  title: z.string(),
+  description: z.string(),
+  icon: z.string(),
+  criteria_json: AchievementCriteriaSchema,
+  sort_order: z.number().int(),
+});
+export type Achievement = z.infer<typeof AchievementSchema>;
+
+export const AchievementsResponseSchema = z.object({
+  achievements: z.array(AchievementSchema),
+});
+export type AchievementsResponse = z.infer<typeof AchievementsResponseSchema>;
+
+export const UserAchievementSchema = z.object({
+  achievement_id: z.string().uuid(),
+  unlocked_at: z.string(),
+});
+export type UserAchievement = z.infer<typeof UserAchievementSchema>;
+
+export const UserAchievementsResponseSchema = z.object({
+  achievements: z.array(UserAchievementSchema),
+});
+export type UserAchievementsResponse = z.infer<typeof UserAchievementsResponseSchema>;
+
+/* ─── Push tokens (M5.2) ─────────────────────────────────────────────────── */
+
+export const DevicePlatformSchema = z.enum(["ios", "android"]);
+export type DevicePlatform = z.infer<typeof DevicePlatformSchema>;
+
+export const RegisterPushTokenRequestSchema = z.object({
+  token: z.string().min(1),
+  platform: DevicePlatformSchema,
+});
+export type RegisterPushTokenRequest = z.infer<typeof RegisterPushTokenRequestSchema>;
+
 export const PatchMealItemSchema = z.object({
   // Pass id to update existing; omit to insert new. Server enforces ownership.
   id: UuidSchema.optional(),

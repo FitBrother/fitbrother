@@ -28,6 +28,36 @@ export type Database = {
   };
   public: {
     Tables: {
+      achievements: {
+        Row: {
+          code: string;
+          criteria_json: Json;
+          description: string;
+          icon: string;
+          id: string;
+          sort_order: number;
+          title: string;
+        };
+        Insert: {
+          code: string;
+          criteria_json: Json;
+          description: string;
+          icon: string;
+          id?: string;
+          sort_order?: number;
+          title: string;
+        };
+        Update: {
+          code?: string;
+          criteria_json?: Json;
+          description?: string;
+          icon?: string;
+          id?: string;
+          sort_order?: number;
+          title?: string;
+        };
+        Relationships: [];
+      };
       ai_extraction_hits: {
         Row: {
           id: string;
@@ -402,6 +432,45 @@ export type Database = {
         };
         Relationships: [];
       };
+      notifications: {
+        Row: {
+          channel: Database["public"]["Enums"]["notification_channel"];
+          created_at: string;
+          delivered_at: string | null;
+          error: string | null;
+          id: string;
+          kind: Database["public"]["Enums"]["notification_kind"];
+          payload: Json;
+          sent_at: string | null;
+          template: string;
+          user_id: string;
+        };
+        Insert: {
+          channel: Database["public"]["Enums"]["notification_channel"];
+          created_at?: string;
+          delivered_at?: string | null;
+          error?: string | null;
+          id?: string;
+          kind: Database["public"]["Enums"]["notification_kind"];
+          payload?: Json;
+          sent_at?: string | null;
+          template: string;
+          user_id: string;
+        };
+        Update: {
+          channel?: Database["public"]["Enums"]["notification_channel"];
+          created_at?: string;
+          delivered_at?: string | null;
+          error?: string | null;
+          id?: string;
+          kind?: Database["public"]["Enums"]["notification_kind"];
+          payload?: Json;
+          sent_at?: string | null;
+          template?: string;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
       nutrition_goals: {
         Row: {
           carbs_g: number;
@@ -492,6 +561,60 @@ export type Database = {
         };
         Relationships: [];
       };
+      push_tokens: {
+        Row: {
+          created_at: string;
+          id: string;
+          platform: Database["public"]["Enums"]["device_platform"];
+          revoked_at: string | null;
+          token: string;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          platform: Database["public"]["Enums"]["device_platform"];
+          revoked_at?: string | null;
+          token: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          platform?: Database["public"]["Enums"]["device_platform"];
+          revoked_at?: string | null;
+          token?: string;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
+      streaks: {
+        Row: {
+          current_streak: number;
+          freezes_available: number;
+          last_hit_day: string | null;
+          longest_streak: number;
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          current_streak?: number;
+          freezes_available?: number;
+          last_hit_day?: string | null;
+          longest_streak?: number;
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          current_streak?: number;
+          freezes_available?: number;
+          last_hit_day?: string | null;
+          longest_streak?: number;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
       subscriptions: {
         Row: {
           created_at: string;
@@ -558,15 +681,96 @@ export type Database = {
         };
         Relationships: [];
       };
+      user_achievements: {
+        Row: {
+          achievement_id: string;
+          unlocked_at: string;
+          user_id: string;
+        };
+        Insert: {
+          achievement_id: string;
+          unlocked_at?: string;
+          user_id: string;
+        };
+        Update: {
+          achievement_id?: string;
+          unlocked_at?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "user_achievements_achievement_id_fkey";
+            columns: ["achievement_id"];
+            isOneToOne: false;
+            referencedRelation: "achievements";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: {
-      [_ in never]: never;
+      vw_today_summary: {
+        Row: {
+          carbs_g: number | null;
+          day: string | null;
+          fat_g: number | null;
+          goal_carbs_g: number | null;
+          goal_fat_g: number | null;
+          goal_hit: boolean | null;
+          goal_kcal: number | null;
+          goal_protein_g: number | null;
+          kcal: number | null;
+          meals_count: number | null;
+          protein_g: number | null;
+          updated_at: string | null;
+          user_id: string | null;
+        };
+        Insert: {
+          carbs_g?: number | null;
+          day?: string | null;
+          fat_g?: number | null;
+          goal_carbs_g?: number | null;
+          goal_fat_g?: number | null;
+          goal_hit?: boolean | null;
+          goal_kcal?: number | null;
+          goal_protein_g?: number | null;
+          kcal?: number | null;
+          meals_count?: number | null;
+          protein_g?: number | null;
+          updated_at?: string | null;
+          user_id?: string | null;
+        };
+        Update: {
+          carbs_g?: number | null;
+          day?: string | null;
+          fat_g?: number | null;
+          goal_carbs_g?: number | null;
+          goal_fat_g?: number | null;
+          goal_hit?: boolean | null;
+          goal_kcal?: number | null;
+          goal_protein_g?: number | null;
+          kcal?: number | null;
+          meals_count?: number | null;
+          protein_g?: number | null;
+          updated_at?: string | null;
+          user_id?: string | null;
+        };
+        Relationships: [];
+      };
     };
     Functions: {
       complete_onboarding: { Args: { payload: Json }; Returns: Json };
       create_meal_with_items: { Args: { payload: Json }; Returns: Json };
+      fitbrother_apply_streak: {
+        Args: { p_day: string; p_user_id: string };
+        Returns: undefined;
+      };
       fitbrother_assert_ai_cap: {
         Args: { p_cap: number; p_kind: string; p_user_id: string };
+        Returns: undefined;
+      };
+      fitbrother_evaluate_achievements: {
+        Args: { p_user_id: string };
         Returns: undefined;
       };
       fitbrother_foods_fuzzy_match: {
@@ -605,6 +809,8 @@ export type Database = {
         };
         Returns: undefined;
       };
+      fitbrother_streak_tick: { Args: never; Returns: number };
+      fitbrother_today: { Args: { p_user_id: string }; Returns: string };
       show_limit: { Args: never; Returns: number };
       show_trgm: { Args: { "": string }; Returns: string[] };
       unaccent: { Args: { "": string }; Returns: string };

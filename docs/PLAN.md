@@ -316,18 +316,20 @@ Falha após passo 8 → `processed_at IS NULL` → cron retry; caches em 6 e 8 e
 
 **Meta:** streak diário funciona, conquistas desbloqueiam, amigos competem no ranking semanal, push notifications chegam.
 
+> **Numeração:** M2/M3 ocuparam até `0024`, então o M5 começa em `0025` (não `0018` como rascunhado abaixo). Fatiado em M5.1 (streaks) → M5.2 (achievements + push) → M5.3 (friends + leaderboard + alertas).
+
 ### Migrations
 
-- `0018_streaks.sql` (PK `user_id`).
-- `0019_achievements.sql` + seed 10 conquistas: streak 3/7/14/30, primeiro registro, 50 refeições totais, 7 dias com `goal_hit` numa semana, primeiro amigo, primeira refeição via WhatsApp, primeira semana completa.
-- `0020_user_achievements.sql` (PK composta).
-- `0021_friendships.sql` + view `friends_summaries_view` (UNION dos dois lados quando `status='accepted'`; expõe **apenas** `day, goal_hit, meals_count` — nunca macros).
-- `0022_push_tokens.sql`.
-- `0023_notifications.sql`.
+- `0025_streaks.sql` (PK `user_id`) — **feito (M5.1)**.
+- `achievements.sql` + seed 10 conquistas: streak 3/7/14/30, primeiro registro, 50 refeições totais, 7 dias com `goal_hit` numa semana, primeiro amigo, primeira refeição via WhatsApp, primeira semana completa.
+- `user_achievements.sql` (PK composta).
+- `friendships.sql` + view `friends_summaries_view` (UNION dos dois lados quando `status='accepted'`; expõe **apenas** `day, goal_hit, meals_count` — nunca macros).
+- `push_tokens.sql`.
+- `notifications.sql`.
 
 ### Backend
 
-- Cron horário `streak-tick` (pg-boss): para usuários cujo `EXTRACT(HOUR FROM now() AT TIME ZONE timezone)::int = day_start_hour`, lê `daily_summaries` do dia anterior; se `goal_hit=true`, incrementa `streaks.current_streak` e atualiza `longest_streak`; senão reseta para 0.
+- Cron horário `streak-tick` (pg-boss): para usuários cujo `EXTRACT(HOUR FROM now() AT TIME ZONE timezone)::int = day_start_hour`, avalia o dia que fechou. **Feito (M5.1):** infra pg-boss criada (`lib/jobs.ts` + `workers/streak-tick.ts`, schema `pgboss`, agenda `0 * * * *` UTC). A lógica vive em SQL (`fitbrother_streak_tick` → `fitbrother_apply_streak`, migration `0025`): em vez de incrementar, **deriva** `current_streak` recontando o run consecutivo de `goal_hit` terminando no dia — idempotente e auto-corrige após edição/backfill de dias passados.
 - Trigger `AFTER UPDATE` em `daily_summaries` → enfileira `evaluate-achievements`.
 - Worker `evaluate-achievements` lê `achievements.criteria_json` (DSL: `{"type":"streak","value":N}`, `{"type":"meals_total","value":N}`, `{"type":"weekly_hits","value":N}`); avalia; INSERT em `user_achievements` se cruzar limiar; enfileira `dispatch-notification`.
 - `services/notifications.ts → dispatch(user_id, notif)`:
@@ -347,6 +349,10 @@ Falha após passo 8 → `processed_at IS NULL` → cron retry; caches em 6 e 8 e
 - StreakCounter no header da Home (substitui placeholder M3).
 
 **Feito quando:** 3 dias `goal_hit=true` consecutivos → `streaks.current_streak = 3`; adicionar amigo por phone funciona; ranking semanal mostra ambos; push de risco às 21h do dia nutricional (simulável); conquista "Primeiro Streak" mostra toast + push; `friends_summaries_view` **não** expõe macros (validar via SQL com JWT de amigo).
+
+**Status M5.2 (achievements + push):** ✅ implementado em 2026-05-27 na branch `m5-2-achievements-push`. Migrations `0026` push_tokens, `0027` notifications (outbox), `0028` achievements + user_achievements + seed 10 + `fitbrother_evaluate_achievements` (DSL `criteria_json`: streak/meals_total/wa_meals_total/weekly_hits/days_active/friends_total) + triggers AFTER em daily_summaries/streaks, `0029` user_achievements no realtime. Rotas `GET /achievements`, `GET /me/achievements`, `POST /push-tokens`. `services/notifications.ts` + worker `dispatch-notification` (pg-boss 1/min, Expo Push, só push). Mobile: `expo-notifications`/`expo-device`, `lib/push.ts` (permissão + token no entry do app), `Toast` (§12.12) + `ToastProvider`, `useAchievementsRealtime` (toast instantâneo via Realtime). Backend verificado via SQL + e2e (dispatch → row stamped); UI mobile tipada/lintada mas **não rodada visualmente** (push exige device). **Pendentes pro M5.3:** `friends_total` (precisa friendships) e o estado "em risco" do StreakCounter. Tela de listagem de conquistas não foi feita (toast + dados via hooks já existem).
+
+**Status M5.1 (streaks):** ✅ implementado em 2026-05-26 na branch `m5-1-streaks`. Migration `0025` (tabela + `fitbrother_apply_streak`/`fitbrother_streak_tick`, RLS owner-read, lógica derive-based testada via SQL em 5 cenários: 3-consecutivos, idempotência, miss-reseta, gap, goal_hit=false). Infra pg-boss nova (`lib/jobs.ts`, `workers/streak-tick.ts`, `DATABASE_URL` no env) com cron horário UTC — worker validado e2e (enfileira job → `streak_tick_done`). `GET /me/streak` + `StreakSchema` no shared. Mobile: `useStreak` + `StreakCounter` (§12.4, pulse/risco/quebrado, `useReducedMotion`) no `HomeHeader`. **Pendente pro M5.3:** estado "em risco" (`atRisk`) precisa do reset-time + hit de hoje. Achievements + push = M5.2.
 
 ---
 

@@ -3,6 +3,9 @@ import { useEffect } from "react";
 import { ActivityIndicator, View } from "react-native";
 import { supabase } from "@/lib/supabase";
 import { ProfileProvider, useProfileState } from "@/lib/profile/profile-context";
+import { useAuthSession } from "@/lib/hooks/useAuthSession";
+import { useAchievementsRealtime } from "@/lib/hooks/useAchievementsRealtime";
+import { registerForPushNotificationsAsync } from "@/lib/push";
 import { colors } from "@/lib/colors";
 
 const SHEET_BG = colors.neutral[50];
@@ -10,6 +13,11 @@ const SHEET_BG = colors.neutral[50];
 function GuardedStack() {
   const state = useProfileState();
   const router = useRouter();
+  const session = useAuthSession();
+  const userId = session.status === "signed_in" ? session.session.user.id : undefined;
+
+  // In-app conquista toast (instant, via Realtime).
+  useAchievementsRealtime(userId);
 
   useEffect(() => {
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -19,6 +27,14 @@ function GuardedStack() {
     });
     return () => sub.subscription.unsubscribe();
   }, [router]);
+
+  // Ask for push permission + register the token once the user reaches the app
+  // (i.e. right after onboarding, and on every subsequent launch). Idempotent.
+  useEffect(() => {
+    if (state.status === "ready") {
+      void registerForPushNotificationsAsync();
+    }
+  }, [state.status]);
 
   if (state.status === "loading") {
     return (
