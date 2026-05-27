@@ -37,13 +37,22 @@ export function apiBaseUrl(): string {
 }
 
 /**
- * Resolve the Supabase URL with the same fallback chain as apiBaseUrl.
+ * Resolve the Supabase URL.
+ *
+ * In dev, Supabase runs inside Docker which often fails to reach mobile
+ * devices on the LAN due to iptables/Docker networking quirks. To work
+ * around this, the Fastify server at :3000 proxies /supabase/* to the
+ * local Supabase. The mobile app only needs to reach port 3000.
+ *
+ * Fallback chain:
+ *   1. EXPO_PUBLIC_SUPABASE_URL (explicit override — cloud, ngrok, etc.)
+ *   2. Fastify proxy via Metro host at port 3000/supabase (local dev)
  */
 export function supabaseLocalUrl(): string {
   const override = process.env.EXPO_PUBLIC_SUPABASE_URL;
   if (override && override.length > 0) return override;
   const host = packagerHost();
-  if (host) return `http://${host}:54321`;
+  if (host) return `http://${host}:3000/supabase`;
   throw new Error(
     "Supabase URL unresolved: set EXPO_PUBLIC_SUPABASE_URL or run via Expo dev (Metro)",
   );

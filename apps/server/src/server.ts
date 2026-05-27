@@ -8,6 +8,7 @@ import { healthRoutes } from "./routes/health.js";
 import { mealsRoutes } from "./routes/meals.js";
 import { meRoutes } from "./routes/me.js";
 import { onboardingRoutes } from "./routes/onboarding.js";
+import { supabaseProxyRoute } from "./routes/supabase-proxy.js";
 
 initSentry();
 
@@ -45,6 +46,7 @@ await app.register(rateLimit, {
   keyGenerator: (req: FastifyRequest) => req.user?.id ?? req.ip,
 });
 
+await app.register(supabaseProxyRoute);
 await app.register(healthRoutes);
 await app.register(onboardingRoutes);
 await app.register(meRoutes);
