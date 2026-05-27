@@ -25,6 +25,21 @@ function renderPush(n: PendingNotification): { title: string; body: string } {
         title: "Nova conquista! 🏆",
         body: String(n.payload.title ?? "Você desbloqueou uma conquista."),
       };
+    case "streak_alert":
+      return {
+        title: "Sua ofensiva está em risco! 🔥",
+        body: "Registre uma refeição hoje pra não perder a sequência.",
+      };
+    case "goal_reminder":
+      return {
+        title: "Faltam macros pra meta de hoje",
+        body: "Você ainda não chegou perto da sua meta. Bora?",
+      };
+    case "friend_activity":
+      return {
+        title: "Seu contato entrou no Fitbrother 👋",
+        body: `${String(n.payload.full_name ?? "Um contato")} agora está no Fitbrother.`,
+      };
     default:
       return { title: "Fitbrother", body: String(n.payload.body ?? "") };
   }
