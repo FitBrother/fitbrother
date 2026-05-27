@@ -15,7 +15,7 @@ function greetingFor(date: Date): string {
 export function HomeHeader({ name }: { name: string }) {
   const router = useRouter();
   const firstName = name.split(" ")[0] ?? name;
-  const { data: streak } = useStreak();
+  const { data: streakView } = useStreak();
   return (
     <View className="flex-row items-center justify-between px-4 pt-2 pb-3">
       <View className="flex-1">
@@ -23,7 +23,9 @@ export function HomeHeader({ name }: { name: string }) {
         <Text className="text-2xl font-sans-extrabold text-neutral-800">{firstName}</Text>
       </View>
       <View className="flex-row items-center gap-2">
-        {streak ? <StreakCounter current={streak.current_streak} /> : null}
+        {streakView ? (
+          <StreakCounter current={streakView.streak.current_streak} atRisk={streakView.atRisk} />
+        ) : null}
         <Pressable
           onPress={() => router.push("/(app)/history")}
           accessibilityLabel="Histórico"
