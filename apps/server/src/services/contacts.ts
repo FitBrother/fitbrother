@@ -61,15 +61,23 @@ export async function syncContacts(
     .upsert(links, { onConflict: "owner_id,phone_hash", ignoreDuplicates: true });
   if (linkErr) throw new Error(linkErr.message);
 
-  // 2. Casa hashes contra usuários verificados.
-  const { data: matches, error: mErr } = await supabase
-    .from("profiles")
-    .select("user_id, full_name")
-    .in("phone_hash", hashes)
-    .not("phone_verified_at", "is", null)
-    .neq("user_id", ownerId);
-  if (mErr) throw new Error(mErr.message);
-  if (!matches || matches.length === 0) return [];
+  // 2. Casa hashes contra usuários verificados. O filtro `.in()` vira query
+  // string (GET), então uma agenda grande estoura o limite de URI do gateway —
+  // fatiamos em lotes. Cada hash tem 64 chars; 100/lote mantém a URL folgada.
+  const CHUNK = 100;
+  const matches: { user_id: string; full_name: string | null }[] = [];
+  for (let i = 0; i < hashes.length; i += CHUNK) {
+    const slice = hashes.slice(i, i + CHUNK);
+    const { data, error: mErr } = await supabase
+      .from("profiles")
+      .select("user_id, full_name")
+      .in("phone_hash", slice)
+      .not("phone_verified_at", "is", null)
+      .neq("user_id", ownerId);
+    if (mErr) throw new Error(mErr.message);
+    if (data) matches.push(...data);
+  }
+  if (matches.length === 0) return [];
 
   // 3. Cria follows (owner → casado). Trigger cuida da conquista first_friend.
   const follows = matches.map((m) => ({ follower_id: ownerId, followee_id: m.user_id }));
