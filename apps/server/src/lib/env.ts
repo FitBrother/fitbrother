@@ -20,6 +20,12 @@ export const env = cleanEnv(process.env, {
   SUPABASE_ANON_KEY: str({ default: "" }),
   SUPABASE_SERVICE_ROLE_KEY: str({ default: "" }),
 
+  // Direct Postgres connection for pg-boss (background jobs). Defaults to the
+  // local Supabase DB so dev works out of the box; prod must override.
+  DATABASE_URL: str({
+    default: "postgresql://postgres:postgres@127.0.0.1:54322/postgres",
+  }),
+
   WHATSAPP_APP_SECRET: str({ default: "" }),
   WHATSAPP_VERIFY_TOKEN: str({ default: "" }),
   WHATSAPP_PHONE_NUMBER_ID: str({ default: "" }),

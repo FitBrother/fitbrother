@@ -3,12 +3,14 @@ import rateLimit from "@fastify/rate-limit";
 import sensible from "@fastify/sensible";
 import Fastify, { type FastifyError, type FastifyRequest } from "fastify";
 import { env } from "./lib/env.js";
+import { startJobs, stopJobs } from "./lib/jobs.js";
 import { initSentry, Sentry } from "./lib/sentry.js";
 import { healthRoutes } from "./routes/health.js";
 import { mealsRoutes } from "./routes/meals.js";
 import { meRoutes } from "./routes/me.js";
 import { onboardingRoutes } from "./routes/onboarding.js";
 import { supabaseProxyRoute } from "./routes/supabase-proxy.js";
+import { registerStreakTick } from "./workers/streak-tick.js";
 
 initSentry();
 
@@ -65,4 +67,20 @@ try {
 } catch (err) {
   app.log.error({ err }, "boot_failed");
   process.exit(1);
+}
+
+// Background jobs start after the API is listening — they're additive and must
+// never block (or crash) the HTTP server.
+const boss = await startJobs(app.log);
+if (boss) {
+  await registerStreakTick(boss, app.log);
+}
+
+for (const signal of ["SIGTERM", "SIGINT"] as const) {
+  process.once(signal, async () => {
+    app.log.info({ signal }, "shutting_down");
+    await stopJobs();
+    await app.close();
+    process.exit(0);
+  });
 }

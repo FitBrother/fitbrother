@@ -1,6 +1,11 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { DailySummarySchema, type DailySummary } from "@fitbrother/shared";
+import {
+  DailySummarySchema,
+  StreakSchema,
+  type DailySummary,
+  type Streak,
+} from "@fitbrother/shared";
 import { authRequired, supabaseForRequest } from "../lib/auth.js";
 
 const dailySummaryQuerySchema = z.object({
@@ -106,6 +111,32 @@ export async function meRoutes(app: FastifyInstance) {
     } satisfies DailySummary;
 
     return reply.send({ summary });
+  });
+
+  app.get("/me/streak", { preHandler: [authRequired] }, async (req, reply) => {
+    const userId = req.user!.id;
+    const supabase = supabaseForRequest(req);
+
+    const { data, error } = await supabase.from("streaks").select("*").maybeSingle();
+    if (error) {
+      req.log.error({ err: error }, "streak_query_failed");
+      return reply.code(500).send({ error: error.message });
+    }
+
+    // No row yet (new user, never hit a goal) → zeroed default so the client
+    // can render the counter without special-casing.
+    const streak: Streak = data
+      ? StreakSchema.parse(data)
+      : {
+          user_id: userId,
+          current_streak: 0,
+          longest_streak: 0,
+          last_hit_day: null,
+          freezes_available: 0,
+          updated_at: new Date().toISOString(),
+        };
+
+    return reply.send({ streak });
   });
 
   app.get("/me/daily-summaries", { preHandler: [authRequired] }, async (req, reply) => {

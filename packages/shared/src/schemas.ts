@@ -124,6 +124,26 @@ export const DailySummariesResponseSchema = z.object({
 });
 export type DailySummariesResponse = z.infer<typeof DailySummariesResponseSchema>;
 
+/* ─── Streak (M5.1) ──────────────────────────────────────────────────────── */
+
+export const StreakSchema = z.object({
+  user_id: z.string().uuid(),
+  current_streak: z.number().int(),
+  longest_streak: z.number().int(),
+  last_hit_day: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .nullable(),
+  freezes_available: z.number().int(),
+  updated_at: z.string(),
+});
+export type Streak = z.infer<typeof StreakSchema>;
+
+export const StreakResponseSchema = z.object({
+  streak: StreakSchema,
+});
+export type StreakResponse = z.infer<typeof StreakResponseSchema>;
+
 export const PatchMealItemSchema = z.object({
   // Pass id to update existing; omit to insert new. Server enforces ownership.
   id: UuidSchema.optional(),

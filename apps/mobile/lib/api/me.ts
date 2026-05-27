@@ -1,7 +1,9 @@
 import {
   DailySummariesResponseSchema,
   DailySummaryResponseSchema,
+  StreakResponseSchema,
   type DailySummary,
+  type Streak,
 } from "@fitbrother/shared";
 import { authedFetch } from "@/lib/api";
 
@@ -27,4 +29,10 @@ export async function fetchDailySummaries(from: string, to: string): Promise<Dai
   );
   const body = await parseOrThrow(res);
   return DailySummariesResponseSchema.parse(body).summaries;
+}
+
+export async function fetchStreak(): Promise<Streak> {
+  const res = await authedFetch("/me/streak");
+  const body = await parseOrThrow(res);
+  return StreakResponseSchema.parse(body).streak;
 }
