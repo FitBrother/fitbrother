@@ -7,6 +7,8 @@ import {
   type Streak,
 } from "@fitbrother/shared";
 import { authRequired, supabaseForRequest } from "../lib/auth.js";
+import { supabaseService } from "../lib/supabase.js";
+import { hashE164, reverseMatchFollows } from "../services/contacts.js";
 
 const dailySummaryQuerySchema = z.object({
   day: z
@@ -117,16 +119,19 @@ export async function meRoutes(app: FastifyInstance) {
     const userId = req.user!.id;
     const supabase = supabaseForRequest(req);
 
-    const { data, error } = await supabase.from("streaks").select("*").maybeSingle();
-    if (error) {
-      req.log.error({ err: error }, "streak_query_failed");
-      return reply.code(500).send({ error: error.message });
+    const [streakQ, riskQ] = await Promise.all([
+      supabase.from("streaks").select("*").maybeSingle(),
+      supabase.rpc("fitbrother_streak_at_risk", { p_user_id: userId }),
+    ]);
+    if (streakQ.error) {
+      req.log.error({ err: streakQ.error }, "streak_query_failed");
+      return reply.code(500).send({ error: streakQ.error.message });
     }
 
     // No row yet (new user, never hit a goal) → zeroed default so the client
     // can render the counter without special-casing.
-    const streak: Streak = data
-      ? StreakSchema.parse(data)
+    const streak: Streak = streakQ.data
+      ? StreakSchema.parse(streakQ.data)
       : {
           user_id: userId,
           current_streak: 0,
@@ -136,7 +141,60 @@ export async function meRoutes(app: FastifyInstance) {
           updated_at: new Date().toISOString(),
         };
 
-    return reply.send({ streak });
+    return reply.send({ streak, at_risk: riskQ.data === true });
+  });
+
+  // Confirma a verificação de telefone feita via Supabase Auth (phone OTP).
+  // Não confia no cliente: lê auth.users.phone_confirmed_at via service-role e
+  // SÓ ENTÃO carimba profiles (verified + e164 + hash) e dispara reverse-match.
+  app.post("/me/verify-phone", { preHandler: [authRequired] }, async (req, reply) => {
+    const userId = req.user!.id;
+    const admin = supabaseService();
+
+    const { data: udata, error: uerr } = await admin.auth.admin.getUserById(userId);
+    if (uerr || !udata.user) {
+      req.log.error({ err: uerr }, "verify_phone_getuser_failed");
+      return reply.code(500).send({ error: "could_not_read_user" });
+    }
+    const phone = udata.user.phone;
+    const confirmed = udata.user.phone_confirmed_at;
+    if (!phone || !confirmed) {
+      return reply.code(409).send({ error: "phone_not_confirmed" });
+    }
+
+    // Supabase guarda phone sem '+'. Normaliza pra E.164 com '+'.
+    const e164 = phone.startsWith("+") ? phone : `+${phone}`;
+    const phoneHash = hashE164(e164);
+
+    const { data: prof, error: upErr } = await admin
+      .from("profiles")
+      .update({
+        phone_e164: e164,
+        phone_verified_at: new Date().toISOString(),
+        phone_hash: phoneHash,
+      })
+      .eq("user_id", userId)
+      .select("full_name")
+      .maybeSingle();
+    if (upErr) {
+      req.log.error({ err: upErr }, "verify_phone_update_failed");
+      return reply.code(500).send({ error: upErr.message });
+    }
+
+    try {
+      const followers = await reverseMatchFollows(
+        admin,
+        userId,
+        phoneHash,
+        prof?.full_name ?? null,
+      );
+      req.log.info({ userId, followers }, "verify_phone_reverse_match");
+    } catch (err) {
+      // reverse-match é aditivo: não derruba a verificação.
+      req.log.error({ err }, "verify_phone_reverse_match_failed");
+    }
+
+    return reply.code(204).send();
   });
 
   app.get("/me/daily-summaries", { preHandler: [authRequired] }, async (req, reply) => {

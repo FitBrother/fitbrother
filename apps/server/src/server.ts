@@ -6,13 +6,17 @@ import { env } from "./lib/env.js";
 import { startJobs, stopJobs } from "./lib/jobs.js";
 import { initSentry, Sentry } from "./lib/sentry.js";
 import { achievementsRoutes } from "./routes/achievements.js";
+import { contactsRoutes } from "./routes/contacts.js";
 import { healthRoutes } from "./routes/health.js";
 import { mealsRoutes } from "./routes/meals.js";
 import { meRoutes } from "./routes/me.js";
 import { onboardingRoutes } from "./routes/onboarding.js";
 import { pushTokensRoutes } from "./routes/push-tokens.js";
+import { socialRoutes } from "./routes/social.js";
 import { supabaseProxyRoute } from "./routes/supabase-proxy.js";
 import { registerDispatchNotification } from "./workers/dispatch-notification.js";
+import { registerGoalReminder } from "./workers/goal-reminder.js";
+import { registerStreakAlert } from "./workers/streak-alert.js";
 import { registerStreakTick } from "./workers/streak-tick.js";
 
 initSentry();
@@ -58,6 +62,8 @@ await app.register(meRoutes);
 await app.register(mealsRoutes);
 await app.register(achievementsRoutes);
 await app.register(pushTokensRoutes);
+await app.register(contactsRoutes);
+await app.register(socialRoutes);
 
 app.setErrorHandler((err: FastifyError, _req, reply) => {
   app.log.error({ err }, "request_failed");
@@ -80,6 +86,8 @@ const boss = await startJobs(app.log);
 if (boss) {
   await registerStreakTick(boss, app.log);
   await registerDispatchNotification(boss, app.log);
+  await registerStreakAlert(boss, app.log);
+  await registerGoalReminder(boss, app.log);
 }
 
 for (const signal of ["SIGTERM", "SIGINT"] as const) {

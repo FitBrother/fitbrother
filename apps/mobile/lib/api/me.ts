@@ -31,8 +31,11 @@ export async function fetchDailySummaries(from: string, to: string): Promise<Dai
   return DailySummariesResponseSchema.parse(body).summaries;
 }
 
-export async function fetchStreak(): Promise<Streak> {
+export type StreakView = { streak: Streak; atRisk: boolean };
+
+export async function fetchStreak(): Promise<StreakView> {
   const res = await authedFetch("/me/streak");
   const body = await parseOrThrow(res);
-  return StreakResponseSchema.parse(body).streak;
+  const parsed = StreakResponseSchema.parse(body);
+  return { streak: parsed.streak, atRisk: parsed.at_risk };
 }
