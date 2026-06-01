@@ -259,14 +259,14 @@ export async function mealsRoutes(app: FastifyInstance) {
 
     // We need meals where fitbrother_nutritional_day(user, consumed_at) = day.
     // PostgREST can't call the helper inline. Cheapest correct query: pull a
-    // ±2-day window (covers any timezone + day_start_hour combo) then have
+    // ±3-day window (covers any timezone + day_start_hour combo) then have
     // the DB classify each candidate via the boundary RPC. A dedicated
     // RPC `fitbrother_meals_for_day(user, day)` would beat the N+1 calls
     // here; deferred until the list grows past trivial sizes.
     const from = new Date(`${day}T00:00:00Z`);
-    from.setUTCDate(from.getUTCDate() - 2);
+    from.setUTCDate(from.getUTCDate() - 3);
     const to = new Date(`${day}T00:00:00Z`);
-    to.setUTCDate(to.getUTCDate() + 2);
+    to.setUTCDate(to.getUTCDate() + 3);
 
     const { data, error } = await supabase
       .from("meals")

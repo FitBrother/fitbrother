@@ -1,0 +1,110 @@
+# Development compose for the app services.
+#
+# Supabase is still managed by the project's Supabase CLI config:
+#   npm run db:start
+#
+# The containers below reach that host Supabase stack through
+# host.docker.internal on ports 54321/54322/54323.
+
+x-app-base: &app-base
+  image: node:22-bookworm-slim
+  working_dir: /workspace
+  volumes:
+    - .:/workspace
+    - root_node_modules:/workspace/node_modules
+  environment:
+    CHOKIDAR_USEPOLLING: "true"
+    WATCHPACK_POLLING: "true"
+  extra_hosts:
+    - "host.docker.internal:host-gateway"
+
+services:
+  deps:
+    <<: *app-base
+    command: npm ci --include=dev
+
+  server:
+    <<: *app-base
+    depends_on:
+      deps:
+        condition: service_completed_successfully
+    command: npx tsx watch apps/server/src/server.ts
+    env_file:
+      - path: ./apps/server/.env
+        required: false
+    environment:
+      CHOKIDAR_USEPOLLING: "true"
+      WATCHPACK_POLLING: "true"
+      NODE_ENV: development
+      PORT: "3000"
+      SUPABASE_URL: ${SUPABASE_URL:-http://host.docker.internal:54321}
+      DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:postgres@host.docker.internal:54322/postgres}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    ports:
+      - "3000:3000"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+
+  mobile:
+    <<: *app-base
+    working_dir: /workspace/apps/mobile
+    depends_on:
+      deps:
+        condition: service_completed_successfully
+      server:
+        condition: service_started
+    command: npx expo start --host lan
+    env_file:
+      - path: ./apps/mobile/.env
+        required: false
+    environment:
+      CHOKIDAR_USEPOLLING: "true"
+      WATCHPACK_POLLING: "true"
+      EXPO_DEVTOOLS_LISTEN_ADDRESS: 0.0.0.0
+      EXPO_PUBLIC_API_BASE_URL: ${EXPO_PUBLIC_API_BASE_URL:-http://localhost:3000}
+      EXPO_PUBLIC_SUPABASE_URL: ${EXPO_PUBLIC_SUPABASE_URL:-http://localhost:3000/supabase}
+      REACT_NATIVE_PACKAGER_HOSTNAME: ${REACT_NATIVE_PACKAGER_HOSTNAME:-localhost}
+    ports:
+      - "8081:8081"
+      - "19000:19000"
+      - "19001:19001"
+      - "19002:19002"
+    stdin_open: true
+    tty: true
+
+  landing-deps:
+    image: node:22-bookworm-slim
+    working_dir: /workspace/landing-page
+    command: npm ci --include=dev
+    volumes:
+      - ./landing-page:/workspace/landing-page
+      - landing_node_modules:/workspace/landing-page/node_modules
+
+  landing:
+    image: node:22-bookworm-slim
+    working_dir: /workspace/landing-page
+    depends_on:
+      landing-deps:
+        condition: service_completed_successfully
+    command: npm run dev -- --host 0.0.0.0
+    volumes:
+      - ./landing-page:/workspace/landing-page
+      - landing_node_modules:/workspace/landing-page/node_modules
+    environment:
+      CHOKIDAR_USEPOLLING: "true"
+      WATCHPACK_POLLING: "true"
+    ports:
+      - "5173:5173"
+
+volumes:
+  root_node_modules:
+  landing_node_modules:

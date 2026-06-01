@@ -4,6 +4,7 @@ import type { MealResponse } from "@fitbrother/shared";
 import { createMealText } from "@/lib/api/meals";
 import { mealsForDayKey, mealDetailKey } from "./useMealsForDay";
 import { dailySummariesHistoryKey } from "./useDailySummaries";
+import { dailySummaryKey } from "./useDailySummary";
 
 export type OptimisticMeal = MealResponse & { __status?: "processing" };
 
@@ -69,10 +70,8 @@ export function useCreateMealText() {
         return old.map((m) => (m.id === args.client_meal_id ? result.meal : m));
       });
       qc.setQueryData(mealDetailKey(result.meal.id), result.meal);
-      // Backfill: reflete a mudança no infinite scroll de /history.
-      if (args.consumed_at) {
-        qc.invalidateQueries({ queryKey: dailySummariesHistoryKey });
-      }
+      qc.invalidateQueries({ queryKey: dailySummaryKey(args.day) });
+      qc.invalidateQueries({ queryKey: dailySummariesHistoryKey });
     },
     onError: (_err, args, ctx) => {
       if (ctx?.previous !== undefined) {

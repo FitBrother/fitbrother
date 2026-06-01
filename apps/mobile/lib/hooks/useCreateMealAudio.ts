@@ -3,6 +3,7 @@ import type { MealResponse } from "@fitbrother/shared";
 import { createMealAudio } from "@/lib/api/meals";
 import { mealsForDayKey, mealDetailKey } from "./useMealsForDay";
 import { dailySummariesHistoryKey } from "./useDailySummaries";
+import { dailySummaryKey } from "./useDailySummary";
 import type { OptimisticMeal } from "./useCreateMealText";
 
 type Args = {
@@ -74,9 +75,8 @@ export function useCreateMealAudio() {
         return old.map((m) => (m.id === args.client_meal_id ? result.meal : m));
       });
       qc.setQueryData(mealDetailKey(result.meal.id), result.meal);
-      if (args.consumed_at) {
-        qc.invalidateQueries({ queryKey: dailySummariesHistoryKey });
-      }
+      qc.invalidateQueries({ queryKey: dailySummaryKey(args.day) });
+      qc.invalidateQueries({ queryKey: dailySummariesHistoryKey });
     },
     onError: (_err, args, ctx) => {
       if (ctx?.previous !== undefined) {
