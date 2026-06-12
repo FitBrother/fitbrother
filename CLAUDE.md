@@ -6,11 +6,12 @@ App de nutrição com IA. Usuário registra refeições em **linguagem natural**
 
 ## Antes de codar, leia
 
-- **`FEATURES.md`** — produto, schema do banco, fluxos, regras de negócio. Fonte de verdade do backend.
+- **`FEATURES.md`** — produto, schema do banco, fluxos, regras de negócio (Fase 1 / M0–M6). Fonte de verdade do backend.
 - **`DESIGN_SYSTEM.md`** — tokens visuais, componentes base e do domínio nutricional. Fonte de verdade da UI.
-- **`tailwind.config.ts`** — implementação dos tokens de cor/tipo/espaço. Tem que bater com o DESIGN_SYSTEM.
+- **`apps/mobile/tailwind.config.ts`** — implementação dos tokens de cor/tipo/espaço. Tem que bater com o DESIGN_SYSTEM.
+- **`docs/PLAN.md`** — roadmap único por milestone (M0–M9) com critério de "feito" e Status de cada entrega. Inclui a Fase 2 (M7–M9: rede social).
 
-Se este `CLAUDE.md` conflitar com um dos dois acima, **o doc específico vence** — abrir PR para alinhar.
+Se este `CLAUDE.md` conflitar com um dos docs acima, **o doc específico vence** — abrir PR para alinhar.
 
 ---
 
@@ -74,22 +75,27 @@ Falha após passo 5? `processed_at` fica NULL e retry job processa de novo — o
 
 ## Convenções
 
-### Estrutura de pastas (alvo)
+### Estrutura de pastas (monorepo npm workspaces)
 ```
-app/                  # Expo Router screens
-components/           # Componentes base (Button, Input, Card, ...)
-components/domain/    # Componentes do domínio nutricional (ProgressRing, MealCard, ...)
-lib/                  # Utils, clients, colors, motion
-lib/supabase.ts       # Client + types
-lib/colors.ts         # Mirror JS dos tokens Tailwind (para SVG/Reanimated)
-lib/motion.ts         # Constantes de duration/easing
-server/               # Backend Fastify (monorepo) — ou repo separado
-supabase/migrations/  # SQL versionado
+apps/mobile/                  # Expo Router app (React Native)
+  app/                        # rotas (auth, onboarding, (app) screens)
+  components/                 # Componentes base (Button, Input, Card, ...)
+  components/domain/          # Componentes do domínio (ProgressRing, MealCard, ...)
+  lib/                        # utils, clients, hooks
+  lib/supabase.ts             # client + helpers
+  lib/colors.ts               # mirror JS dos tokens Tailwind (SVG/Reanimated)
+  lib/motion.ts               # constantes de duration/easing
+  tailwind.config.ts          # tokens (espelha DESIGN_SYSTEM)
+apps/server/                  # Backend Fastify + pg-boss workers
+  src/{routes,services,workers,lib}/
+packages/shared/              # zod schemas, LLMProvider, prompt-version
+packages/db-types/            # tipos gerados do Postgres
+supabase/migrations/          # SQL versionado
 ```
 
 ### Imports
 - Alias `@/` aponta para a raiz do projeto Expo.
-- Tipos do Supabase gerados via `supabase gen types typescript --local > lib/database.types.ts`.
+- Tipos do Supabase gerados via `npm run db:types` → `packages/db-types/`.
 
 ### Naming
 - Tabelas: `snake_case`, plural (`meals`, `nutrition_goals`).
