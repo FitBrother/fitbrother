@@ -11,7 +11,7 @@ Decisões já fixadas:
 - **LLM:** Gemini 1.5 Flash default, atrás de interface `LLMProvider` plugável (`LLM_PROVIDER` env troca para OpenAI).
 - **Contas externas:** nenhuma criada — M0 inclui walkthrough.
 - **Ritmo:** solo full-time, ~1 semana por milestone.
-- **Formato:** M0→M6 incremental, cada um com critério de "feito".
+- **Formato:** incremental, cada milestone com critério de "feito". **Fase 1 = M0–M6** (app de nutrição); **Fase 2 = M7–M9** (transição para rede social — ver seção própria abaixo).
 
 ---
 
@@ -28,11 +28,22 @@ flowchart TB
     M5[M5 · Gamificação social<br/>streaks, achievements,<br/>friendships, push] --> M6
     M6[M6 · LGPD + Prod<br/>export/delete, Sentry,<br/>TestFlight + Play Internal]
 
+    %% ── Fase 2 · Transição para rede social ──
+    M5 --> M7
+    M7[M7 · Feed Social<br/>identidade+username, profiles_private,<br/>posts, foto, likes, comentários] --> M8
+    M7 --> M9
+    M8[M8 · Análise com IA<br/>insights refeição/dia/semana/mês<br/>via cron, ai_insights] --> M9
+    M9[M9 · Compartilhamento externo<br/>cards estilo Strava<br/>client-side view-shot]
+
     classDef bg fill:#F0FDFC,stroke:#2DD4BF,color:#0F172A
+    classDef fase2 fill:#FEF9F0,stroke:#FBBF24,color:#0F172A
     class M0,M1,M2,M3,M4,M5,M6 bg
+    class M7,M8,M9 fase2
 ```
 
 M3 e M4 são independentes depois de M2 (dashboard vs WhatsApp). Tudo o resto é linear.
+
+**Fase 1 = M0–M6** (app de nutrição). **Fase 2 = M7–M9** (transição para rede social), construída sobre o baseline social do M5. M7→M8→M9 é linear; M9 depende de M7 **e** M8 (precisa de "algo" — post ou insight — para compartilhar). O brainstorm e as decisões transversais da Fase 2 estão em [`docs/superpowers/specs/2026-06-12-m7-m9-rede-social-master-plan-design.md`](superpowers/specs/2026-06-12-m7-m9-rede-social-master-plan-design.md).
 
 ---
 
@@ -395,6 +406,110 @@ Falha após passo 8 → `processed_at IS NULL` → cron retry; caches em 6 e 8 e
 - **Runbook** (`docs/runbook.md`): webhook preso, cota Gemini/OpenAI estourada globalmente, Sentry alertando pipeline, RLS bug, recuperação de áudio deletado.
 
 **Feito quando:** usuário exporta JSON do próprio dado; deleta conta; após 30d simulado, hard delete via cron; build TestFlight + Play Internal instalado; smoke test e2e funciona; Sentry recebe erros com `user_id`; custo diário visível em `metrics_daily`; runbook commitado.
+
+---
+
+# ═══ Fase 2 — Transição para rede social (M7–M9) ═══
+
+> Expansão do app de nutrição para uma **rede social com foco em gamificação e engajamento**, sobre o core de IA já existente. Decisões transversais e rationale completo em [`docs/superpowers/specs/2026-06-12-m7-m9-rede-social-master-plan-design.md`](superpowers/specs/2026-06-12-m7-m9-rede-social-master-plan-design.md). Cada fase abaixo ganha seu próprio design datado em `specs/` antes de implementar, como os milestones anteriores.
+>
+> **Decisões já fixadas:** feed fechado a seguidores **com macros visíveis** (snapshot no post); foto opcional anexada no post (não mexe no core de registro); análises de IA **automáticas via cron**; `username` para descoberta + telefone movido para `profiles_private` (blindagem estrutural); geração de card **client-side** (`react-native-view-shot` + `expo-sharing`).
+
+---
+
+## M7 — Feed Social + Identidade & Descoberta
+
+**Meta:** usuário escolhe username, encontra/segue alguém por busca, publica refeições (foto+legenda+macros) e vê/curte/comenta posts de quem segue num feed. Telefone migrado para `profiles_private`; nenhuma projeção social expõe telefone.
+
+> **Numeração:** migrations existentes vão até `0036`, então M7 começa em `0037`.
+
+### Infra — Identidade & Descoberta (pré-requisito)
+
+- `0037_profiles_username.sql` — `profiles.username citext UNIQUE`, validação `^[a-z0-9_.]{3,20}$` + `profiles.avatar_url`.
+- `0038_profiles_private.sql` — tabela `profiles_private` (1:1, `phone_e164`/`phone_hash`/`phone_verified_at`), RLS owner + service-role only; **migration de movimentação** das colunas de `profiles` com backfill; atualizar `verify-phone` e o reverse-match de contatos para gravar/ler aqui.
+- `0039_public_profiles.sql` — view/RPC `public_profiles` expondo **somente** `{user_id, username, display_name, avatar_url}`. Toda UI social lê só por aqui; `profiles` permanece `owner_all`.
+- Bucket `post-images` privado (RLS por prefixo `{user_id}/`, MIME image/jpeg|png|webp) — também serve avatares.
+
+### Migrations (feed)
+
+- `0040_posts.sql` — `posts(id, user_id, meal_id FK nullable, caption, image_path, total_kcal/protein_g/carbs_g/fat_g snapshot, created_at, deleted_at)`. RLS: leitura quando autor é o caller **ou** o caller segue o autor (join em `follows`); escrita só do dono.
+- `0041_post_likes.sql` — PK composta `(post_id, user_id)`.
+- `0042_post_comments.sql` — `id, post_id, user_id, body, created_at, deleted_at`.
+- Realtime em `posts`/`post_likes`/`post_comments` para contagens ao vivo.
+
+### Backend
+
+- `GET /users/search?q=` (resolve via `public_profiles`).
+- `POST /posts` `{ meal_id?, caption, image_path? }` — copia snapshot de macros da meal na publicação.
+- `GET /feed` (posts de quem o caller segue, cronológico, paginado), `GET /posts/:id`, `DELETE /posts/:id` (soft).
+- `POST /posts/:id/like` / `DELETE /posts/:id/like`; `POST /posts/:id/comments`, `GET /posts/:id/comments`, `DELETE /comments/:id` (soft).
+- Notificações: novos `kind` `post_like`/`post_comment` reusando `notifications` + `dispatchPendingPush`.
+
+### Mobile
+
+- **Tab bar nova** (hoje é Stack): **Hoje · Feed · Amigos · Perfil**.
+- CTA "Compartilhar no feed" na tela de detalhe/home após a IA salvar a refeição → tela **Novo Post** (foto opcional via camera/galeria + legenda + preview do card de macros).
+- `FeedScreen` (lista de `PostCard`), `PostCard`/`PostHeader`/`LikeButton`/`CommentButton`/`CommentInput`.
+- Busca de usuários por username; escolha de username no onboarding/perfil; upload assinado de avatar.
+
+**Feito quando:** username escolhido; busca acha/segue usuário; post com foto+legenda+macros publicado; feed mostra posts de quem segue com like/comentário funcionando em realtime; telefone em `profiles_private` e `SELECT` em qualquer projeção social **não** retorna telefone (validar via SQL com JWT de terceiro).
+
+---
+
+## M8 — Análise com IA (insights)
+
+**Meta:** IA como conselheira sobre os dados já coletados, em 4 níveis (refeição/dia/semana/mês), com cache e quota respeitados.
+
+> **Numeração:** começa após o M7 (≈ `0043+`).
+
+### Camada de insights (infra §4.3 do master plan)
+
+- `LLMProvider.generateInsight(payload, periodType)` — segundo método além de `extractMeal`.
+- Cache próprio keyed por `hash(payload_agregado + INSIGHT_PROMPT_VERSION + period_type)`; **linha de quota dedicada** em `ai_usage`; `INSIGHT_PROMPT_VERSION` em `packages/shared`.
+- Saída estruturada (zod): `{ title, bullets[], score, tone }`.
+
+### Migrations
+
+- `ai_insights(id, user_id, period_type enum[meal|day|week|month], period_start, payload jsonb, created_at)`.
+- Enum `insight_period`.
+
+### Backend
+
+| Nível | Gatilho | Conteúdo |
+|-------|---------|----------|
+| Refeição | junto da extração (barato) | feedback curto ("Ótima fonte de proteínas!"). |
+| Dia | cron no fim do dia (por timezone/`day_start_hour`) | wrap-up: metas batidas + incentivo. |
+| Semana | cron semanal | tendências (açúcar, hidratação, consistência). |
+| Mês | cron mensal | tendências de longo prazo. |
+
+- Workers cron montam payload **agregado e compacto** (summaries por dia, nunca refeição crua); só geram para usuários com **dados suficientes** no período.
+- Entrega: push `kind=insight_ready` + card no app.
+
+### Mobile
+
+- Tela/aba de análises com cards de insight (refeição/dia/semana/mês); card disponível para compartilhar (M9).
+
+**Feito quando:** usuário recebe feedback de refeição, wrap-up diário e relatórios semanal/mensal gerados por cron; segunda geração idêntica do mesmo período é cache hit; quota dedicada respeitada.
+
+---
+
+## M9 — Compartilhamento externo (cards estilo Strava)
+
+**Meta:** motor de aquisição orgânica — usuário gera e compartilha externamente um card a partir de um post do feed **ou** de uma análise de IA.
+
+> Sem infra nova de servidor (abordagem client-side). Depende de M7 (post) e M8 (insight).
+
+### Mobile
+
+- `ShareCard` (variantes 9:16 Stories e quadrado WhatsApp) renderizado com o próprio design system: foto do usuário + dados/insight + marca d'água/logo.
+- Captura via `react-native-view-shot` → compartilhamento via `expo-sharing` (share sheet nativo).
+- Entradas de "Gerar card" no `PostCard` e no card de insight.
+
+### v2 (fora de escopo)
+
+- Render server-side (canvas/headless) + deep-link público compartilhável.
+
+**Feito quando:** usuário gera card (story e quadrado) a partir de um post e de uma análise de IA, com marca d'água do app, e dispara o share sheet nativo.
 
 ---
 

@@ -1,8 +1,10 @@
 # Plano Geral — Transição para Rede Social (M7 · M8 · M9)
 
 **Data:** 2026-06-12
-**Tipo:** Plano guarda-chuva (master plan). Cada fase abaixo terá sua própria spec detalhada → plano → revisão → implementação.
+**Tipo:** Brainstorm da Fase 2 — decisões transversais e rationale. Cada fase terá sua própria spec detalhada → plano → revisão → implementação.
 **Status:** Aprovado para detalhamento do M7.
+
+> **Roadmap e status canônicos vivem em [`docs/PLAN.md`](../../PLAN.md) (§Fase 2 — M7–M9).** Este documento guarda o *porquê* (decisões transversais, riscos, sequência); o `PLAN.md` guarda o breakdown por milestone e os Status de implementação. Em caso de conflito, o `PLAN.md` vence para escopo/sequência.
 
 ---
 
