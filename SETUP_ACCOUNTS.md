@@ -404,4 +404,35 @@ Para minimizar tempo morto:
 
 ---
 
-*Última revisão: 2026-05-11. Atualize esta lista quando provisionar prod (M6) ou trocar provider.*
+## Onde cada credencial vive (estrutura de arquivos)
+
+O walkthrough acima coleta tudo num scratch enquanto você cria as contas. No repo, porém, as credenciais ficam **distribuídas por app** (nenhum `.env*` é commitado — só os `*.example`):
+
+```
+fitbrother/
+├── .env                       ← Dev tooling (Trello MCP, Sentry CLI). Carregado por direnv (.envrc).
+├── apps/server/.env           ← Server Fastify: Supabase, WhatsApp, IA, caps, Sentry DSN.
+└── apps/mobile/.env.local      ← Mobile Expo: EXPO_PUBLIC_* (anon key, API base, Sentry DSN), EAS_PROJECT_ID.
+```
+
+| Arquivo | Carregado por | Contém |
+|---|---|---|
+| `/.env` | `direnv` (via `.envrc`) | `TRELLO_*`, `SENTRY_AUTH_TOKEN`, `SENTRY_ORG` — só tooling, nenhum segredo de runtime da app. |
+| `apps/server/.env` | Node `--env-file` + `envalid` (`src/lib/env.ts`) | `SUPABASE_*` (inclui `SERVICE_ROLE`), `WHATSAPP_*`, `OPENAI_API_KEY`, `GEMINI_API_KEY`, `LLM_*`, `AI_CAP_*`, `SENTRY_DSN`. |
+| `apps/mobile/.env.local` | Expo CLI (bundling) | `EXPO_PUBLIC_SUPABASE_ANON_KEY`, `EXPO_PUBLIC_API_BASE_URL`, `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SENTRY_DSN`, `EAS_PROJECT_ID`. |
+
+> ⚠️ **Tudo com prefixo `EXPO_PUBLIC_*` é embarcado no bundle** — público por definição. Nunca coloque `SERVICE_ROLE` ou app secrets ali; a proteção do cliente é via RLS no banco.
+
+**Novo dev:** clonar → `cp` cada `.env.example` para o arquivo real correspondente → preencher → `supabase start` → `npm run dev`.
+
+## Segurança: regras de ouro
+
+**✅ Faça:** commitar só os `*.example`; `.env*` no `.gitignore`; validar tudo com `envalid`; rotacionar chaves periodicamente; usar gerenciador de secrets (1Password/Bitwarden).
+
+**❌ Não faça:** commitar credenciais reais; logar API keys (Sentry/pino nunca devem conter secrets); expor `SUPABASE_SERVICE_ROLE_KEY` ao cliente; copiar credenciais em scripts (sempre via env var).
+
+**Chave expirou?** Gere uma nova no dashboard → atualize o `.env` correspondente → reinicie → delete a velha (evita reuso acidental).
+
+---
+
+*Última revisão: 2026-06-12. Atualize esta lista quando provisionar prod (M6) ou trocar provider. (Consolidado: o antigo `CREDENTIALS.md` foi mesclado aqui.)*

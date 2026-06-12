@@ -50,7 +50,7 @@ fitbrother/
 ├── supabase/
 │   ├── migrations/    # SQL versionado
 │   └── seed/          # foods (TACO), achievements
-└── docs/              # plano de desenvolvimento M0–M6
+└── docs/              # plano de desenvolvimento M0–M9 + specs/plans por milestone
 ```
 
 ---
@@ -60,24 +60,34 @@ fitbrother/
 Antes de codar:
 
 - **[CLAUDE.md](./CLAUDE.md)** — regras de ouro de UI e backend; o resumo executável para qualquer contribuição.
-- **[FEATURES.md](./FEATURES.md)** — produto, schema do banco, fluxos críticos, pipeline WhatsApp. Fonte de verdade do backend.
+- **[FEATURES.md](./FEATURES.md)** — produto, schema do banco, fluxos críticos, pipeline WhatsApp. Fonte de verdade do backend (Fase 1 / M0–M6).
 - **[DESIGN_SYSTEM.md](./DESIGN_SYSTEM.md)** — tokens visuais, componentes base, componentes do domínio nutricional. Fonte de verdade da UI.
-- **[SETUP_ACCOUNTS.md](./SETUP_ACCOUNTS.md)** — walkthrough acionável para criar Supabase, Gemini, OpenAI, Meta WhatsApp, Sentry, Expo/EAS.
-- **[docs/PLAN.md](./docs/PLAN.md)** — roadmap M0→M6 com critérios de "feito" por milestone.
+- **[SETUP_ACCOUNTS.md](./SETUP_ACCOUNTS.md)** — walkthrough acionável para criar contas externas (Supabase, Gemini, OpenAI, Meta WhatsApp, Sentry, Expo/EAS) + onde cada credencial vive.
+- **[docs/PLAN.md](./docs/PLAN.md)** — roadmap único M0→M9 (Fase 1 nutrição + Fase 2 rede social) com critérios de "feito" e Status por milestone.
 
 ---
 
 ## Status
 
+**Fase 1 — App de nutrição**
+
 | Milestone | Escopo | Estado |
 |---|---|---|
 | M0 | Monorepo, Expo bootstrap, Fastify, Supabase scaffold, CI | ✓ completo |
-| M1 | Auth + onboarding 8-step + `profiles`/`anthropometrics`/`nutrition_goals` | em planejamento |
-| M2 | Catálogo `foods` (TACO), registro de refeições via IA no app | — |
-| M3 | Dashboard realtime, edição, histórico | — |
-| M4 | WhatsApp Cloud API end-to-end + verificação de telefone | — |
-| M5 | Gamificação: streaks, conquistas, amigos, ranking semanal | — |
-| M6 | LGPD (export/delete), observabilidade, builds de produção | — |
+| M1 | Auth + onboarding 8-step + `profiles`/`anthropometrics`/`nutrition_goals` | ✓ completo |
+| M2 | Catálogo `foods` (TACO), registro de refeições via IA no app | ✓ completo |
+| M3 | Dashboard realtime, edição, histórico | ✓ completo |
+| M4 | WhatsApp Cloud API end-to-end + verificação de telefone | ⏸ pausado (Meta business verification recusada; sequência ajustada p/ M4-last) |
+| M5 | Gamificação: streaks, conquistas, follow por contatos, ranking semanal | ✓ completo |
+| M6 | LGPD (export/delete), observabilidade, builds de produção | em planejamento |
+
+**Fase 2 — Transição para rede social** (ver [docs/PLAN.md](./docs/PLAN.md))
+
+| Milestone | Escopo | Estado |
+|---|---|---|
+| M7 | Feed social (posts, foto, likes, comentários) + identidade (username, `profiles_private`) | planejado |
+| M8 | Análise com IA (insights refeição/dia/semana/mês via cron) | planejado |
+| M9 | Compartilhamento externo (cards estilo Strava) | planejado |
 
 ---
 

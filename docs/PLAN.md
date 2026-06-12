@@ -2,9 +2,9 @@
 
 ## Contexto
 
-Repo greenfield. Já existe: `CLAUDE.md`, `FEATURES.md`, `DESIGN_SYSTEM.md`, `tailwind.config.ts`, e 3 componentes base (`components/{Button,Card,Input}.tsx`) alinhados ao design system — `Input.EyeIcon` ainda é placeholder a substituir por `lucide-react-native`. Não existe `app/`, `package.json`, `supabase/`, `server/`, nem mocks de tela além de PNGs em `app_example/`.
+> **Nota histórica:** este plano nasceu com o repo greenfield. Hoje (jun/2026) a **Fase 1 está majoritariamente entregue** — M0–M3 e M5 completos, M4 pausado (Meta), M6 em planejamento. O monorepo (`apps/mobile`, `apps/server`, `packages/*`, `supabase/`) existe e roda. Os Status de cada milestone abaixo são o registro vivo. A **Fase 2 (M7–M9)** está descrita na seção própria mais abaixo.
 
-Objetivo: entregar **todas** as features de `FEATURES.md §4–7` funcionando ponta a ponta. Sucesso = um usuário novo consegue: (1) completar onboarding, (2) registrar refeição por texto/áudio no app **e** via WhatsApp, (3) ver dashboard realtime, (4) ganhar streak e conquistas, (5) competir com amigos no ranking semanal, (6) exportar/deletar conta (LGPD).
+Objetivo original: entregar **todas** as features de `FEATURES.md §4–7` funcionando ponta a ponta. Sucesso = um usuário novo consegue: (1) completar onboarding, (2) registrar refeição por texto/áudio no app **e** via WhatsApp, (3) ver dashboard realtime, (4) ganhar streak e conquistas, (5) competir com amigos no ranking semanal, (6) exportar/deletar conta (LGPD).
 
 Decisões já fixadas:
 - **Monorepo** com `npm workspaces` (`apps/mobile`, `apps/server`, `packages/shared`, `supabase/`).
@@ -25,7 +25,7 @@ flowchart TB
     M2 --> M4
     M3[M3 · Dashboard realtime<br/>ProgressRing, MacroBar,<br/>Realtime hooks] --> M5
     M4[M4 · WhatsApp e2e<br/>webhook, idempotência,<br/>handshake §4.5] --> M5
-    M5[M5 · Gamificação social<br/>streaks, achievements,<br/>friendships, push] --> M6
+    M5[M5 · Gamificação social<br/>streaks, achievements,<br/>follow por contatos, push] --> M6
     M6[M6 · LGPD + Prod<br/>export/delete, Sentry,<br/>TestFlight + Play Internal]
 
     %% ── Fase 2 · Transição para rede social ──

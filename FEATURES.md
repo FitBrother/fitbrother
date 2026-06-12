@@ -1,6 +1,8 @@
 # 🍏 FEATURES.md — Fitbrother (App de Nutrição com IA)
 
 > Fonte de verdade do produto e da arquitetura. Este documento é lido pelo Claude Code antes de gerar qualquer feature. Mudanças aqui devem refletir decisões já consolidadas.
+>
+> **Escopo:** este doc cobre a **Fase 1** (app de nutrição — M0–M6). A **Fase 2** (M7–M9: feed social, análise com IA, compartilhamento externo) está no roadmap em [`docs/PLAN.md`](docs/PLAN.md) e será documentada aqui conforme cada milestone for implementado. Em pontos onde a implementação pivotou do desenho original, este doc já foi realinhado (ver §3.3 `follows`, §4.5 verificação por OTP/SMS).
 
 ---
 
@@ -62,7 +64,8 @@ auth.users ──┬── profiles (1:1)
              ├── daily_summaries (1:N — uma linha por dia nutricional)
              ├── streaks (1:1)
              ├── user_achievements (N:M ↔ achievements)
-             ├── friendships (N:M — auto-relacionamento)
+             ├── follows (assimétrico — follower→followee)
+             ├── contact_links (descoberta por contatos, hasheada)
              ├── wa_conversations (1:1) ── wa_messages (1:N)
              ├── push_tokens (1:N)
              ├── notifications (1:N)
@@ -215,15 +218,16 @@ Para cada um, lê `daily_summaries` do dia anterior. Se `goal_hit=true`, increme
 
 Worker reavalia critérios após cada update em `daily_summaries` ou `streaks`.
 
-#### `friendships`
-| Coluna | Tipo | Notas |
-|---|---|---|
-| `requester_id` | uuid FK | |
-| `addressee_id` | uuid FK | |
-| `status` | enum (`pending`,`accepted`,`blocked`) | |
-| `created_at` / `responded_at` | timestamptz | |
+#### `follows` / `contact_links` (modelo social — M5.3)
 
-PK composta `(requester_id, addressee_id)` + CHECK `requester_id <> addressee_id`. View `friends_view` faz UNION dos dois lados quando `status='accepted'`.
+> **Pivot (mai/2026):** o modelo de amizade pedido→aceite foi substituído por **follow assimétrico estilo Duolingo**, descoberto por contatos do telefone (sem aceite). Migrations `0030`–`0034`.
+
+- `follows(follower_id, followee_id, created_at)` — PK composta `(follower_id, followee_id)` + CHECK anti-self. Seguir é unilateral, sem aceite.
+- `contact_links(owner_id, phone_hash, created_at)` — grafo de contatos hasheado (SHA-256); usado no reverse-match quando alguém da sua agenda entra no app. Nenhum número em claro trafega.
+- `profiles.phone_hash` — chave de match contra `contact_links.phone_hash`.
+- View `following_summaries_view` (security_invoker) expõe de quem você segue **apenas** `day`, `goal_hit`, `meals_count` — nunca macros. RPC `fitbrother_weekly_leaderboard` agrega a rede.
+
+> **Fase 2 (M7):** será adicionado `profiles.username` (descoberta por busca) e `profiles_private` (telefone movido para tabela isolada, RLS owner+service-role). Ver `docs/PLAN.md` §M7.
 
 #### `wa_conversations` / `wa_messages`
 - `wa_conversations(user_id PK, wa_phone_id, last_inbound_at, last_outbound_at)`
@@ -305,7 +309,7 @@ MVP: todos `plan='free'`. Estrutura pronta para integração futura.
 - `wa_messages (provider_message_id)` UNIQUE
 - `wa_messages (user_id, processed_at) WHERE processed_at IS NULL` — fila
 - `foods USING GIN (name_normalized gin_trgm_ops)` — fuzzy
-- `friendships (addressee_id, status)` — convites pendentes
+- `follows (followee_id)` — quem segue um usuário; `profiles (phone_hash) WHERE phone_hash IS NOT NULL` — reverse-match de contatos
 - `nutrition_goals (user_id) WHERE effective_to IS NULL` — UNIQUE parcial (meta vigente)
 - `ai_usage (user_id, day)` PK
 - `notifications (user_id, sent_at DESC)`
@@ -322,8 +326,9 @@ CREATE POLICY "owner_all" ON <t>
 
 Exceções:
 - `foods`: SELECT público; INSERT/UPDATE só com `service_role`.
-- `friendships`: SELECT permitido se `auth.uid() IN (requester_id, addressee_id)`.
-- `daily_summaries` de amigos: view `friends_summaries_view` que filtra por amizade aceita e expõe **apenas** `day`, `goal_hit`, `meals_count` (NUNCA macros absolutos — privacidade).
+- `follows`: SELECT permitido se `auth.uid()` é o `follower_id` ou o `followee_id`.
+- `contact_links`: SELECT só do `owner_id`.
+- `daily_summaries` da rede: view `following_summaries_view` (security_invoker) que filtra por quem o caller segue e expõe **apenas** `day`, `goal_hit`, `meals_count` (NUNCA macros absolutos — privacidade).
 
 ---
 
@@ -404,18 +409,16 @@ A Meta só permite envio **livre** nas 24h após a última mensagem inbound do u
 - Subscrição Realtime: canal `realtime:public:daily_summaries:user_id=eq.<id>`.
 - Componentes (ver `DESIGN_SYSTEM.md` §12): Progress Ring central (calorias), 3 rings menores (P/C/G) ou Macro Bars, lista de Meal Cards, FAB com Audio Recorder.
 
-### 4.5 Verificação de Telefone (sem OTP/SMS)
+### 4.5 Verificação de Telefone (OTP/SMS via Supabase Auth)
 
-Para evitar custo de SMS ou template aprovado de "código de verificação", o MVP usa **handshake via WhatsApp**:
+> **Pivot (M5.3):** o handshake original via WhatsApp foi substituído por **OTP/SMS via Supabase Auth**, porque o gate social precisava funcionar sem depender da aprovação da Meta (M4 pausado). O handshake via WA pode voltar como canal adicional quando o WhatsApp destravar.
 
-1. No onboarding, usuário cadastra telefone.
-2. App mostra deep link `wa.me/<bot_phone>?text=Vamos%20começar` + QR code.
-3. Usuário toca → abre WhatsApp → envia a mensagem.
-4. Backend recebe via webhook, identifica o `phone_e164`, marca `profiles.phone_verified_at = now()` e abre a janela de 24h.
-5. Bot responde com mensagem de boas-vindas.
+1. No onboarding/Amigos, usuário informa o telefone.
+2. Supabase Auth envia um código OTP por SMS (provider configurado em staging/prod).
+3. Usuário digita o código → Supabase confirma → `auth.users.phone_confirmed_at` é setado.
+4. `POST /me/verify-phone` (service-role) lê esse timestamp, carimba `profiles.phone_verified_at` + `phone_hash`, e dispara o reverse-match de contatos.
 
-**Vantagens:** custo zero, valida posse do número, abre o canal de WA de cara.
-**Limite:** features sociais (busca de amigos pelo telefone) só liberam após `phone_verified_at`.
+**Limite:** features sociais (descoberta por contatos; no M7, busca por username) só liberam após `phone_verified_at`.
 
 ---
 
@@ -424,8 +427,8 @@ Para evitar custo de SMS ou template aprovado de "código de verificação", o M
 | Mecânica | Como funciona | Tabelas |
 |---|---|---|
 | **Ofensivas (🔥)** | Dia com `daily_summaries.goal_hit = true` conta. Cron horário atualiza `streaks` no `day_start_hour` de cada usuário. | `daily_summaries`, `streaks` |
-| **Amigos** | Busca por telefone (após verificação) ou nome. Pedido → aceite. | `friendships` |
-| **Ranking Semanal** | Top da rede pelas 7 noites anteriores: contagem de `goal_hit`. | `friends_summaries_view` |
+| **Seguir** | Follow assimétrico (sem aceite), descoberto por contatos do telefone. No M7, também por busca de username. | `follows`, `contact_links` |
+| **Ranking Semanal** | Top da rede pelas 7 noites anteriores: contagem de `goal_hit`. | `following_summaries_view` |
 | **Conquistas** | `criteria_json` (ex.: `{"type":"streak","value":7}`). Worker avalia após cada update relevante. | `achievements`, `user_achievements` |
 
 ### 5.1 Roteamento de Notificações
