@@ -3,7 +3,7 @@ import { ChevronLeft, ImagePlus, X } from "lucide-react-native";
 import { randomUUID } from "expo-crypto";
 import * as ImagePicker from "expo-image-picker";
 import { useState } from "react";
-import { Alert, Image, Pressable, Text, TextInput, View } from "react-native";
+import { Alert, Image, Keyboard, Pressable, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/Button";
@@ -87,7 +87,11 @@ export default function NewPostScreen() {
         <Text className="ml-2 text-xl font-sans-bold text-neutral-800">Novo post</Text>
       </View>
 
-      <View className="flex-1 gap-4 px-4 pt-4">
+      <Pressable
+        onPress={() => Keyboard.dismiss()}
+        accessible={false}
+        className="flex-1 gap-4 px-4 pt-4"
+      >
         <TextInput
           value={caption}
           onChangeText={setCaption}
@@ -144,7 +148,7 @@ export default function NewPostScreen() {
             <Text className="mt-3 font-sans text-neutral-500">Carregando refeição...</Text>
           )}
         </View>
-      </View>
+      </Pressable>
 
       <View className="px-4 pb-4">
         <Button
