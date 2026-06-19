@@ -2,7 +2,7 @@ import { ActivityIndicator, Alert, Pressable, ScrollView, Text, View } from "rea
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronLeft, Pencil, Share2, Trash2 } from "lucide-react-native";
+import { ChevronLeft, Pencil, Share2, Sparkles, Trash2 } from "lucide-react-native";
 import type { MealResponse } from "@fitbrother/shared";
 import { getMeal } from "@/lib/api/meals";
 import { mealDetailKey } from "@/lib/hooks/useMealsForDay";
@@ -174,6 +174,15 @@ export default function MealDetailScreen() {
             {Math.round(meal.total_fat_g)}g G
           </Text>
         </View>
+
+        {meal.ai_feedback ? (
+          <View className="mx-4 mt-3 flex-row items-start gap-2 rounded-2xl bg-primary-50 p-4">
+            <Sparkles size={18} color={colors.primary[600]} />
+            <Text className="flex-1 text-sm font-sans-medium text-primary-700">
+              {meal.ai_feedback}
+            </Text>
+          </View>
+        ) : null}
 
         <Text className="ml-4 mt-5 text-xs font-sans-semibold uppercase text-neutral-500">
           Itens
