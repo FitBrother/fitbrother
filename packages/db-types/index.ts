@@ -413,6 +413,7 @@ export type Database = {
       };
       meals: {
         Row: {
+          ai_feedback: string | null;
           audio_path: string | null;
           confidence: number | null;
           consumed_at: string;
@@ -431,6 +432,7 @@ export type Database = {
           user_id: string;
         };
         Insert: {
+          ai_feedback?: string | null;
           audio_path?: string | null;
           confidence?: number | null;
           consumed_at?: string;
@@ -449,6 +451,7 @@ export type Database = {
           user_id: string;
         };
         Update: {
+          ai_feedback?: string | null;
           audio_path?: string | null;
           confidence?: number | null;
           consumed_at?: string;
