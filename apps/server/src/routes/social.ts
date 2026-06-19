@@ -22,15 +22,15 @@ export async function socialRoutes(app: FastifyInstance) {
     if (ids.length === 0) return reply.send({ following: [] });
 
     const { data: profs, error: pErr } = await admin
-      .from("profiles")
-      .select("user_id, full_name")
+      .from("public_profiles")
+      .select("user_id, display_name")
       .in("user_id", ids);
     if (pErr) {
       req.log.error({ err: pErr }, "following_profiles_failed");
       return reply.code(500).send({ error: pErr.message });
     }
     const following = (profs ?? []).map((p) =>
-      FollowedProfileSchema.parse({ user_id: p.user_id, full_name: p.full_name }),
+      FollowedProfileSchema.parse({ user_id: p.user_id, full_name: p.display_name }),
     );
     return reply.send({ following });
   });

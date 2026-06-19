@@ -1,6 +1,7 @@
 import { supabase } from "./supabase";
 
 const AUDIO_BUCKET = "meal-audios";
+const IMAGE_BUCKET = "post-images";
 
 /**
  * Upload an audio file recorded for a meal.
@@ -49,4 +50,25 @@ export async function getMealAudioSignedUrl(path: string): Promise<string> {
   const { data, error } = await supabase.storage.from(AUDIO_BUCKET).createSignedUrl(path, 60 * 60);
   if (error) throw error;
   return data.signedUrl;
+}
+
+export async function uploadMealPhoto(params: {
+  userId: string;
+  mealId: string;
+  fileUri: string;
+}): Promise<{ path: string }> {
+  const path = `${params.userId}/meal-photos/${params.mealId}.jpg`;
+  const formData = new FormData();
+  formData.append("file", {
+    uri: params.fileUri,
+    name: `${params.mealId}.jpg`,
+    type: "image/jpeg",
+  } as unknown as Blob);
+
+  const { error } = await supabase.storage
+    .from(IMAGE_BUCKET)
+    .upload(path, formData, { contentType: "image/jpeg", upsert: false });
+
+  if (error) throw error;
+  return { path };
 }

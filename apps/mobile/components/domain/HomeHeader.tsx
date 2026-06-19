@@ -1,5 +1,5 @@
 import { Pressable, Text, View } from "react-native";
-import { Calendar, User, Users } from "lucide-react-native";
+import { Calendar, Rss, Search, User, Users } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { colors } from "@/lib/colors";
 import { useStreak } from "@/lib/hooks/useStreak";
@@ -33,6 +33,22 @@ export function HomeHeader({ name }: { name: string }) {
           className="min-h-[44px] min-w-[44px] items-center justify-center rounded-full"
         >
           <Calendar size={22} color={colors.neutral[800]} />
+        </Pressable>
+        <Pressable
+          onPress={() => router.push("/(app)/feed" as never)}
+          accessibilityLabel="Feed"
+          accessibilityRole="button"
+          className="min-h-[44px] min-w-[44px] items-center justify-center rounded-full"
+        >
+          <Rss size={22} color={colors.neutral[800]} />
+        </Pressable>
+        <Pressable
+          onPress={() => router.push("/(app)/users/search" as never)}
+          accessibilityLabel="Buscar pessoas"
+          accessibilityRole="button"
+          className="min-h-[44px] min-w-[44px] items-center justify-center rounded-full"
+        >
+          <Search size={22} color={colors.neutral[800]} />
         </Pressable>
         <Pressable
           onPress={() => router.push("/(app)/friends")}

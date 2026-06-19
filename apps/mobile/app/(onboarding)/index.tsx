@@ -14,7 +14,7 @@ export default function Step1Name() {
       total={ONBOARDING_STEPS}
       title="Como podemos te chamar?"
       subtitle="Seu nome aparece nas conquistas e nas conversas com o bot."
-      onBack={() => router.back()}
+      onBack={() => router.replace("/(auth)/welcome")}
       onNext={() => router.push("/(onboarding)/step-2")}
       nextDisabled={full_name.trim().length < 2}
     >

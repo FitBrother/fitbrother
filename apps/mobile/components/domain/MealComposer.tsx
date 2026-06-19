@@ -12,7 +12,7 @@ import Animated, {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
-import { Loader2, Mic, Send, Square } from "lucide-react-native";
+import { Camera, Loader2, Mic, Send, Square } from "lucide-react-native";
 import { colors } from "@/lib/colors";
 import { shadows } from "@/lib/shadows";
 import {
@@ -27,6 +27,7 @@ import { RecorderLockHint } from "./RecorderLockHint";
 type Props = {
   onSend: (text: string) => void;
   onAudioReady: (params: { fileUri: string; durationMs: number; ext: "m4a" | "opus" }) => void;
+  onPhotoPress?: () => void;
   disabled?: boolean;
   processing?: boolean;
   // When false, omits the bottom-fading LinearGradient. Useful inside sheets
@@ -63,6 +64,7 @@ function recorderStateOf(mode: ComposerMode): RecorderState | null {
 export function MealComposer({
   onSend,
   onAudioReady,
+  onPhotoPress,
   disabled,
   processing,
   showBackdropFade = true,
@@ -380,6 +382,22 @@ export function MealComposer({
               />
             </View>
           )}
+
+          {!hasText && !isRecording && onPhotoPress ? (
+            <Pressable
+              onPress={onPhotoPress}
+              accessibilityLabel="Registrar por foto"
+              accessibilityRole="button"
+              disabled={disabled || processing}
+              style={shadows.floating}
+              className={[
+                "h-16 w-16 items-center justify-center rounded-full",
+                disabled || processing ? "bg-neutral-200" : "bg-white active:bg-neutral-100",
+              ].join(" ")}
+            >
+              <Camera size={22} color={colors.neutral[800]} />
+            </Pressable>
+          ) : null}
 
           {hasText && !isRecording ? (
             <Pressable

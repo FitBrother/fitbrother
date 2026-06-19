@@ -17,7 +17,7 @@ export default function Step4Weight() {
       total={ONBOARDING_STEPS}
       title="E seu peso atual?"
       subtitle="Em quilos. Você pode atualizar isso a qualquer momento."
-      onBack={() => router.back()}
+      onBack={() => router.replace("/(onboarding)/step-3")}
       onNext={() => router.push("/(onboarding)/step-5")}
       nextDisabled={weight_kg === undefined}
       scrollable={false}

@@ -3,7 +3,7 @@
 // backend reference (commit message should call out both).
 
 /** Total steps in the onboarding flow (FEATURES §4.1). */
-export const ONBOARDING_STEPS = 8;
+export const ONBOARDING_STEPS = 9;
 
 /** Version of the terms / privacy / AI-processing policy the user is consenting
     to. Logged into `consent_log.policy_version`. Bump on every legal change. */

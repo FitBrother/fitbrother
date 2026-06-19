@@ -11,9 +11,11 @@ import { healthRoutes } from "./routes/health.js";
 import { mealsRoutes } from "./routes/meals.js";
 import { meRoutes } from "./routes/me.js";
 import { onboardingRoutes } from "./routes/onboarding.js";
+import { postsRoutes } from "./routes/posts.js";
 import { pushTokensRoutes } from "./routes/push-tokens.js";
 import { socialRoutes } from "./routes/social.js";
 import { supabaseProxyRoute } from "./routes/supabase-proxy.js";
+import { usersRoutes } from "./routes/users.js";
 import { registerDispatchNotification } from "./workers/dispatch-notification.js";
 import { registerGoalReminder } from "./workers/goal-reminder.js";
 import { registerStreakAlert } from "./workers/streak-alert.js";
@@ -60,10 +62,12 @@ await app.register(healthRoutes);
 await app.register(onboardingRoutes);
 await app.register(meRoutes);
 await app.register(mealsRoutes);
+await app.register(postsRoutes);
 await app.register(achievementsRoutes);
 await app.register(pushTokensRoutes);
 await app.register(contactsRoutes);
 await app.register(socialRoutes);
+await app.register(usersRoutes);
 
 app.setErrorHandler((err: FastifyError, _req, reply) => {
   app.log.error({ err }, "request_failed");

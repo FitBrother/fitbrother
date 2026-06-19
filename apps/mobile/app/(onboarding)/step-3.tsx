@@ -17,7 +17,7 @@ export default function Step3Height() {
       total={ONBOARDING_STEPS}
       title="Qual sua altura?"
       subtitle="Em centímetros."
-      onBack={() => router.back()}
+      onBack={() => router.replace("/(onboarding)/step-2")}
       onNext={() => router.push("/(onboarding)/step-4")}
       nextDisabled={height_cm === undefined}
       scrollable={false}

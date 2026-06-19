@@ -105,56 +105,71 @@ function getClient(): GoogleGenerativeAI {
   return _client;
 }
 
+async function extractFromGeminiContent(
+  parts: Array<string | { inlineData: { data: string; mimeType: string } }>,
+) {
+  const client = getClient();
+  const model = client.getGenerativeModel({
+    model: "gemini-2.5-flash",
+    systemInstruction: SYSTEM_PROMPT,
+    tools: [{ functionDeclarations: [extractMealFunctionDeclaration] }],
+    toolConfig: {
+      functionCallingConfig: {
+        mode: FunctionCallingMode.ANY,
+        allowedFunctionNames: ["extract_meal"],
+      },
+    },
+  });
+
+  const result = await model.generateContent(parts);
+
+  const calls = result.response.functionCalls();
+  if (!calls || calls.length === 0) {
+    throw new Error("gemini_no_function_call");
+  }
+  const call = calls[0]!;
+  if (call.name !== "extract_meal") {
+    throw new Error(`gemini_unexpected_function: ${call.name}`);
+  }
+
+  const parsed = MealExtractionSchema.safeParse(call.args);
+  if (!parsed.success) {
+    throw new Error(
+      `gemini_schema_violation: ${parsed.error.issues
+        .map((i) => `${i.path.join(".")}: ${i.message}`)
+        .join(", ")}`,
+    );
+  }
+
+  const usageMetadata = result.response.usageMetadata;
+  const inputTokens = usageMetadata?.promptTokenCount ?? 0;
+  const outputTokens = usageMetadata?.candidatesTokenCount ?? 0;
+
+  return {
+    output: parsed.data,
+    usage: {
+      inputTokens,
+      outputTokens,
+      costCents: calculateCostCents(inputTokens, outputTokens),
+    },
+  };
+}
+
+export async function extractMealImageWithGemini(input: {
+  base64: string;
+  mimeType: string;
+  locale: string;
+}) {
+  return extractFromGeminiContent([
+    `Locale: ${input.locale}\n\nExtraia a refeição visível nesta foto. Se houver embalagens, pratos ou acompanhamentos, estime quantidades de forma conservadora.`,
+    { inlineData: { data: input.base64, mimeType: input.mimeType } },
+  ]);
+}
+
 export const geminiProvider: LLMProvider = {
   name: "gemini",
 
   async extractMeal({ text, locale }) {
-    const client = getClient();
-    const model = client.getGenerativeModel({
-      model: "gemini-2.5-flash",
-      systemInstruction: SYSTEM_PROMPT,
-      tools: [{ functionDeclarations: [extractMealFunctionDeclaration] }],
-      toolConfig: {
-        functionCallingConfig: {
-          mode: FunctionCallingMode.ANY,
-          allowedFunctionNames: ["extract_meal"],
-        },
-      },
-    });
-
-    const result = await model.generateContent(`Locale: ${locale}\n\nRefeição: ${text}`);
-
-    const calls = result.response.functionCalls();
-    if (!calls || calls.length === 0) {
-      throw new Error("gemini_no_function_call");
-    }
-    const call = calls[0]!;
-    if (call.name !== "extract_meal") {
-      throw new Error(`gemini_unexpected_function: ${call.name}`);
-    }
-
-    // Validate against zod — Gemini's schema enforcement is best-effort, not
-    // a contract. Throwing here surfaces drift fast.
-    const parsed = MealExtractionSchema.safeParse(call.args);
-    if (!parsed.success) {
-      throw new Error(
-        `gemini_schema_violation: ${parsed.error.issues
-          .map((i) => `${i.path.join(".")}: ${i.message}`)
-          .join(", ")}`,
-      );
-    }
-
-    const usageMetadata = result.response.usageMetadata;
-    const inputTokens = usageMetadata?.promptTokenCount ?? 0;
-    const outputTokens = usageMetadata?.candidatesTokenCount ?? 0;
-
-    return {
-      output: parsed.data,
-      usage: {
-        inputTokens,
-        outputTokens,
-        costCents: calculateCostCents(inputTokens, outputTokens),
-      },
-    };
+    return extractFromGeminiContent([`Locale: ${locale}\n\nRefeição: ${text}`]);
   },
 };

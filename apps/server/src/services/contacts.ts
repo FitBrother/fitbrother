@@ -68,14 +68,22 @@ export async function syncContacts(
   const matches: { user_id: string; full_name: string | null }[] = [];
   for (let i = 0; i < hashes.length; i += CHUNK) {
     const slice = hashes.slice(i, i + CHUNK);
-    const { data, error: mErr } = await supabase
-      .from("profiles")
-      .select("user_id, full_name")
+    const { data: privateRows, error: mErr } = await supabase
+      .from("profiles_private")
+      .select("user_id")
       .in("phone_hash", slice)
       .not("phone_verified_at", "is", null)
       .neq("user_id", ownerId);
     if (mErr) throw new Error(mErr.message);
-    if (data) matches.push(...data);
+    const ids = (privateRows ?? []).map((row) => row.user_id);
+    if (ids.length === 0) continue;
+
+    const { data: profileRows, error: pErr } = await supabase
+      .from("profiles")
+      .select("user_id, full_name")
+      .in("user_id", ids);
+    if (pErr) throw new Error(pErr.message);
+    if (profileRows) matches.push(...profileRows);
   }
   if (matches.length === 0) return [];
 

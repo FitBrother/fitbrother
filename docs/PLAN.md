@@ -425,16 +425,16 @@ Falha após passo 8 → `processed_at IS NULL` → cron retry; caches em 6 e 8 e
 
 ### Infra — Identidade & Descoberta (pré-requisito)
 
-- `0037_profiles_username.sql` — `profiles.username citext UNIQUE`, validação `^[a-z0-9_.]{3,20}$` + `profiles.avatar_url`.
+- `0037_profiles_identity.sql` — `profiles.username citext UNIQUE`, validação `^[a-z0-9_.]{3,20}$` + `profiles.avatar_url`.
 - `0038_profiles_private.sql` — tabela `profiles_private` (1:1, `phone_e164`/`phone_hash`/`phone_verified_at`), RLS owner + service-role only; **migration de movimentação** das colunas de `profiles` com backfill; atualizar `verify-phone` e o reverse-match de contatos para gravar/ler aqui.
 - `0039_public_profiles.sql` — view/RPC `public_profiles` expondo **somente** `{user_id, username, display_name, avatar_url}`. Toda UI social lê só por aqui; `profiles` permanece `owner_all`.
-- Bucket `post-images` privado (RLS por prefixo `{user_id}/`, MIME image/jpeg|png|webp) — também serve avatares.
+- `0040_post_images_bucket.sql` — bucket `post-images` privado (RLS por prefixo `{user_id}/`, MIME image/jpeg|png|webp) — também serve avatares.
 
 ### Migrations (feed)
 
-- `0040_posts.sql` — `posts(id, user_id, meal_id FK nullable, caption, image_path, total_kcal/protein_g/carbs_g/fat_g snapshot, created_at, deleted_at)`. RLS: leitura quando autor é o caller **ou** o caller segue o autor (join em `follows`); escrita só do dono.
-- `0041_post_likes.sql` — PK composta `(post_id, user_id)`.
-- `0042_post_comments.sql` — `id, post_id, user_id, body, created_at, deleted_at`.
+- `0041_posts.sql` — `posts(id, user_id, meal_id FK nullable, caption, image_path, total_kcal/protein_g/carbs_g/fat_g snapshot, created_at, deleted_at)`. RLS: leitura quando autor é o caller **ou** o caller segue o autor (join em `follows`); escrita só do dono.
+- `0042_post_likes.sql` — PK composta `(post_id, user_id)`.
+- `0043_post_comments.sql` — `id, post_id, user_id, body, created_at, deleted_at`.
 - Realtime em `posts`/`post_likes`/`post_comments` para contagens ao vivo.
 
 ### Backend
@@ -453,6 +453,10 @@ Falha após passo 8 → `processed_at IS NULL` → cron retry; caches em 6 e 8 e
 - Busca de usuários por username; escolha de username no onboarding/perfil; upload assinado de avatar.
 
 **Feito quando:** username escolhido; busca acha/segue usuário; post com foto+legenda+macros publicado; feed mostra posts de quem segue com like/comentário funcionando em realtime; telefone em `profiles_private` e `SELECT` em qualquer projeção social **não** retorna telefone (validar via SQL com JWT de terceiro).
+
+**Status M7.1 (Identidade & Descoberta):** ✅ implementado em 2026-06-12 na branch `feat/social-media`. Migrations `0037–0040` adicionam `username`/`avatar_url`, movem telefone para `profiles_private` com RLS owner-only, criam `public_profiles` sem telefone, refatoram o leaderboard para a projeção pública e criam o bucket privado `post-images`. Backend atualizado: `/me/verify-phone`, `/contacts/sync`, reverse-match, `/following`, novas rotas `GET /users/search`, `GET /users/username-available`, `POST /follows`, `DELETE /follows/:followeeId`. Mobile atualizado: step de username/avatar opcional antes dos termos, busca de usuários por username no header e seguir por username. Verificação: `npm run db:reset`, `./scripts/checks/m7-1-identity.sh`, `npm run typecheck` e `npm run lint` passam; e2e visual/device de avatar/onboarding/busca não rodado nesta sessão. M7.2 começa em `0041` (posts/feed core).
+
+**Status M7.2 (Feed core):** ✅ implementado em 2026-06-13 na branch `feat/social-media`. Migration `0041_posts.sql` cria `posts` com snapshot de macros, RLS de leitura para autor/seguidores, soft-delete e unicidade por `(user_id, meal_id)`; `0042_achievement_feed_posts.sql` permite posts de conquistas desbloqueadas no mesmo feed. Backend novo em `routes/posts.ts`: `POST /posts`, `POST /posts/achievement`, `GET /feed`, `GET /posts/:id`, `DELETE /posts/:id`; `GET /feed` retorna posts próprios + followees com `author` vindo de `public_profiles` e, quando aplicável, dados de `achievement`. Mobile: botão Feed no header, tela `Feed`, `PostCard` com variantes refeição/conquista, CTA "Compartilhar no feed" no detalhe da refeição, tela `Novo post` com legenda + preview de macros e botão de compartilhar conquistas desbloqueadas na tela Conquistas. Verificação: `npm run db:reset`, `npm run db:types`, `npm run typecheck`, `npm run lint` e smoke real `/feed` com JWT da Alice retornando 15 posts (10 refeições + 5 conquistas). Fora desta fatia: foto do post, likes, comentários, notificações sociais e realtime de contagens (M7.3).
 
 ---
 

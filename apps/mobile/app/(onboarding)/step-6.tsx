@@ -26,7 +26,7 @@ export default function Step6Goal() {
       total={ONBOARDING_STEPS}
       title="Qual seu objetivo?"
       subtitle="Define as metas iniciais de calorias e macros."
-      onBack={() => router.back()}
+      onBack={() => router.replace("/(onboarding)/step-5")}
       onNext={() => router.push("/(onboarding)/step-7")}
       nextDisabled={!goal}
     >

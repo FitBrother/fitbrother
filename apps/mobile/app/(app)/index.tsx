@@ -10,6 +10,7 @@ import Animated, {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import * as Localization from "expo-localization";
+import * as ImagePicker from "expo-image-picker";
 import { useProfile } from "@/lib/profile/profile-context";
 import { nutritionalToday } from "@/lib/time/nutritional-day";
 import { useMealsForDay } from "@/lib/hooks/useMealsForDay";
@@ -24,9 +25,10 @@ import {
 import { useDeleteMeal } from "@/lib/hooks/useDeleteMeal";
 import { useAuthSession } from "@/lib/hooks/useAuthSession";
 import { useCreateMealAudio } from "@/lib/hooks/useCreateMealAudio";
+import { useCreateMealPhoto } from "@/lib/hooks/useCreateMealPhoto";
 import { QuotaExceededError, getErrorStatus } from "@/lib/api/meals";
 import { colors } from "@/lib/colors";
-import { uploadMealAudio } from "@/lib/storage";
+import { uploadMealAudio, uploadMealPhoto } from "@/lib/storage";
 import { HomeHeader } from "@/components/domain/HomeHeader";
 import { MealCardSwipeable } from "@/components/domain/MealCardSwipeable";
 import { MealCardSkeleton } from "@/components/domain/MealCardSkeleton";
@@ -47,6 +49,7 @@ export default function HomeScreen() {
   const mealsQuery = useMealsForDay(day);
   const createMeal = useCreateMealText();
   const createMealAudio = useCreateMealAudio();
+  const createMealPhoto = useCreateMealPhoto();
   const session = useAuthSession();
   const userId = session.status === "signed_in" ? session.session.user.id : undefined;
   const summaryQuery = useDailySummary(day);
@@ -129,6 +132,50 @@ export default function HomeScreen() {
     },
     [createMealAudio, day, userId],
   );
+
+  const handlePhotoPress = useCallback(async () => {
+    if (!userId) return;
+    setBanner(null);
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ["images"],
+        allowsEditing: false,
+        quality: 0.75,
+      });
+      if (result.canceled || !result.assets[0]) return;
+      const client_meal_id = newClientMealId();
+      const { path } = await uploadMealPhoto({
+        userId,
+        mealId: client_meal_id,
+        fileUri: result.assets[0].uri,
+      });
+      createMealPhoto.mutate(
+        {
+          client_meal_id,
+          image_path: path,
+          locale: detectLocale(),
+          day,
+        },
+        {
+          onError: (err) => {
+            if (err instanceof QuotaExceededError) {
+              setBanner("quota_exceeded");
+            } else if (err.message === "request_timeout") {
+              setBanner("offline");
+            } else if ((getErrorStatus(err) ?? 0) >= 500) {
+              setBanner("server_error");
+            } else {
+              setBanner("network");
+            }
+          },
+        },
+      );
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.warn("[handlePhotoPress] photo error:", err);
+      setBanner("network");
+    }
+  }, [createMealPhoto, day, userId]);
 
   const handleDelete = useCallback(
     (id: string) => {
@@ -239,8 +286,11 @@ export default function HomeScreen() {
         <MealComposer
           onSend={handleSend}
           onAudioReady={handleAudioReady}
+          onPhotoPress={handlePhotoPress}
           disabled={banner === "quota_exceeded"}
-          processing={createMeal.isPending || createMealAudio.isPending}
+          processing={
+            createMeal.isPending || createMealAudio.isPending || createMealPhoto.isPending
+          }
         />
       </Animated.View>
     </SafeAreaView>

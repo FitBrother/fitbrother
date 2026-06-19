@@ -40,6 +40,11 @@ export type MealExtraction = z.infer<typeof MealExtractionSchema>;
 
 const UuidSchema = z.string().uuid();
 
+export const UsernameSchema = z
+  .string()
+  .regex(/^[a-z0-9_.]{3,20}$/, "username: 3-20 chars, a-z 0-9 _ .");
+export type Username = z.infer<typeof UsernameSchema>;
+
 export const CreateMealTextRequestSchema = z.object({
   // Client-generated UUID. Used as meals.id for optimistic UI + idempotent
   // retries (server INSERTs with ON CONFLICT DO NOTHING).
@@ -65,6 +70,14 @@ export const CreateMealAudioRequestSchema = z.object({
 });
 export type CreateMealAudioRequest = z.infer<typeof CreateMealAudioRequestSchema>;
 
+export const CreateMealPhotoRequestSchema = z.object({
+  client_meal_id: UuidSchema,
+  image_path: z.string().min(1),
+  consumed_at: z.string().datetime().optional(),
+  locale: z.string().default("pt-BR"),
+});
+export type CreateMealPhotoRequest = z.infer<typeof CreateMealPhotoRequestSchema>;
+
 export const MealItemResponseSchema = z.object({
   id: UuidSchema,
   food_id: UuidSchema.nullable(),
@@ -80,7 +93,7 @@ export const MealItemResponseSchema = z.object({
 
 export const MealResponseSchema = z.object({
   id: UuidSchema,
-  source: z.enum(["app_text", "app_audio", "wa_text", "wa_audio", "manual"]),
+  source: z.enum(["app_text", "app_audio", "app_photo", "wa_text", "wa_audio", "manual"]),
   raw_input: z.string().nullable(),
   audio_path: z.string().nullable(),
   meal_type: MealTypeSchema,
@@ -223,6 +236,8 @@ export type PatchMealRequest = z.infer<typeof PatchMealRequestSchema>;
 
 export const OnboardingPayloadSchema = z.object({
   full_name: z.string().min(1),
+  username: UsernameSchema.optional(),
+  avatar_url: z.string().optional(),
   // Phone is captured in step 7 but only verified later via WhatsApp handshake (§4.5).
   phone_e164: z
     .string()
@@ -283,3 +298,74 @@ export const LeaderboardResponseSchema = z.object({
   rows: z.array(LeaderboardRowSchema),
 });
 export type LeaderboardResponse = z.infer<typeof LeaderboardResponseSchema>;
+
+// ── M7.1 identity & discovery ─────────────────────────────────────────────
+export const PublicProfileSchema = z.object({
+  user_id: z.string().uuid(),
+  username: z.string().nullable(),
+  display_name: z.string().nullable(),
+  avatar_url: z.string().nullable(),
+});
+export type PublicProfile = z.infer<typeof PublicProfileSchema>;
+
+export const UserSearchResponseSchema = z.object({
+  users: z.array(PublicProfileSchema),
+});
+export type UserSearchResponse = z.infer<typeof UserSearchResponseSchema>;
+
+export const UsernameAvailableResponseSchema = z.object({
+  available: z.boolean(),
+});
+export type UsernameAvailableResponse = z.infer<typeof UsernameAvailableResponseSchema>;
+
+export const FollowRequestSchema = z.object({
+  followee_id: z.string().uuid(),
+});
+export type FollowRequest = z.infer<typeof FollowRequestSchema>;
+
+// ── M7.2 feed core ────────────────────────────────────────────────────────
+export const CreatePostRequestSchema = z.object({
+  id: z.string().uuid(),
+  meal_id: z.string().uuid(),
+  caption: z.string().trim().max(280).optional(),
+  image_path: z.string().trim().min(1).optional(),
+});
+export type CreatePostRequest = z.infer<typeof CreatePostRequestSchema>;
+
+export const CreateAchievementPostRequestSchema = z.object({
+  id: z.string().uuid(),
+  achievement_id: z.string().uuid(),
+  caption: z.string().trim().max(280).optional(),
+});
+export type CreateAchievementPostRequest = z.infer<typeof CreateAchievementPostRequestSchema>;
+
+export const PostSchema = z.object({
+  id: z.string().uuid(),
+  user_id: z.string().uuid(),
+  post_type: z.enum(["meal", "achievement"]),
+  meal_id: z.string().uuid().nullable(),
+  achievement_id: z.string().uuid().nullable(),
+  caption: z.string().nullable(),
+  image_path: z.string().nullable(),
+  total_kcal: z.number(),
+  total_protein_g: z.number(),
+  total_carbs_g: z.number(),
+  total_fat_g: z.number(),
+  like_count: z.number().int(),
+  comment_count: z.number().int(),
+  created_at: z.string(),
+  deleted_at: z.string().nullable(),
+  author: PublicProfileSchema,
+  achievement: AchievementSchema.nullable(),
+});
+export type Post = z.infer<typeof PostSchema>;
+
+export const FeedResponseSchema = z.object({
+  posts: z.array(PostSchema),
+});
+export type FeedResponse = z.infer<typeof FeedResponseSchema>;
+
+export const PostResponseSchema = z.object({
+  post: PostSchema,
+});
+export type PostResponse = z.infer<typeof PostResponseSchema>;

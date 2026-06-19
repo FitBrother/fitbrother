@@ -26,8 +26,9 @@ export async function meRoutes(app: FastifyInstance) {
   app.get("/me", { preHandler: [authRequired] }, async (req, reply) => {
     const supabase = supabaseForRequest(req);
 
-    const [profileQ, goalQ, anthroQ] = await Promise.all([
+    const [profileQ, privateQ, goalQ, anthroQ] = await Promise.all([
       supabase.from("profiles").select("*").maybeSingle(),
+      supabase.from("profiles_private").select("phone_verified_at").maybeSingle(),
       supabase.from("nutrition_goals").select("*").is("effective_to", null).maybeSingle(),
       supabase
         .from("anthropometrics")
@@ -37,7 +38,7 @@ export async function meRoutes(app: FastifyInstance) {
         .maybeSingle(),
     ]);
 
-    const firstError = profileQ.error ?? goalQ.error ?? anthroQ.error;
+    const firstError = profileQ.error ?? privateQ.error ?? goalQ.error ?? anthroQ.error;
     if (firstError) {
       req.log.error({ err: firstError }, "me_query_failed");
       return reply.code(500).send({ error: firstError.message });
@@ -48,7 +49,10 @@ export async function meRoutes(app: FastifyInstance) {
     }
 
     return reply.send({
-      profile: profileQ.data,
+      profile: {
+        ...profileQ.data,
+        phone_verified_at: privateQ.data?.phone_verified_at ?? null,
+      },
       nutrition_goal: goalQ.data,
       anthropometric: anthroQ.data,
     });
@@ -166,16 +170,25 @@ export async function meRoutes(app: FastifyInstance) {
     const e164 = phone.startsWith("+") ? phone : `+${phone}`;
     const phoneHash = hashE164(e164);
 
-    const { data: prof, error: upErr } = await admin
+    const { data: prof, error: pErr } = await admin
       .from("profiles")
-      .update({
-        phone_e164: e164,
-        phone_verified_at: new Date().toISOString(),
-        phone_hash: phoneHash,
-      })
-      .eq("user_id", userId)
       .select("full_name")
+      .eq("user_id", userId)
       .maybeSingle();
+    if (pErr) {
+      req.log.error({ err: pErr }, "verify_phone_profile_read_failed");
+      return reply.code(500).send({ error: pErr.message });
+    }
+
+    const { error: upErr } = await admin.from("profiles_private").upsert(
+      {
+        user_id: userId,
+        phone_e164: e164,
+        phone_hash: phoneHash,
+        phone_verified_at: new Date().toISOString(),
+      },
+      { onConflict: "user_id" },
+    );
     if (upErr) {
       req.log.error({ err: upErr }, "verify_phone_update_failed");
       return reply.code(500).send({ error: upErr.message });

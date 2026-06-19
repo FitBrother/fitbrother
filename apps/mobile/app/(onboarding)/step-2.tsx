@@ -31,7 +31,7 @@ export default function Step2SexBirthdate() {
       total={ONBOARDING_STEPS}
       title="Conta um pouco sobre você"
       subtitle="Sexo biológico e data de nascimento — calculamos o gasto calórico com eles."
-      onBack={() => router.back()}
+      onBack={() => router.replace("/(onboarding)")}
       onNext={() => router.push("/(onboarding)/step-3")}
       nextDisabled={!sex || !dateValid}
     >
