@@ -357,6 +357,7 @@ export const PostSchema = z.object({
   deleted_at: z.string().nullable(),
   author: PublicProfileSchema,
   achievement: AchievementSchema.nullable(),
+  liked_by_me: z.boolean().default(false),
 });
 export type Post = z.infer<typeof PostSchema>;
 
@@ -369,3 +370,31 @@ export const PostResponseSchema = z.object({
   post: PostSchema,
 });
 export type PostResponse = z.infer<typeof PostResponseSchema>;
+
+// ── M7.3 engajamento (likes + comentários) ─────────────────────────────────
+export const LikeResponseSchema = z.object({
+  liked: z.boolean(),
+  like_count: z.number().int(),
+});
+export type LikeResponse = z.infer<typeof LikeResponseSchema>;
+
+export const CommentSchema = z.object({
+  id: z.string().uuid(),
+  post_id: z.string().uuid(),
+  user_id: z.string().uuid(),
+  body: z.string(),
+  created_at: z.string(),
+  author: PublicProfileSchema,
+});
+export type Comment = z.infer<typeof CommentSchema>;
+
+export const CreateCommentRequestSchema = z.object({
+  id: z.string().uuid(),
+  body: z.string().trim().min(1).max(500),
+});
+export type CreateCommentRequest = z.infer<typeof CreateCommentRequestSchema>;
+
+export const CommentsResponseSchema = z.object({
+  comments: z.array(CommentSchema),
+});
+export type CommentsResponse = z.infer<typeof CommentsResponseSchema>;

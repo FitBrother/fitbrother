@@ -1,8 +1,13 @@
 import type { FastifyInstance } from "fastify";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   AchievementSchema,
+  CommentSchema,
+  CommentsResponseSchema,
   CreateAchievementPostRequestSchema,
+  CreateCommentRequestSchema,
   CreatePostRequestSchema,
+  LikeResponseSchema,
   PostSchema,
 } from "@fitbrother/shared";
 import { authRequired } from "../lib/auth.js";
@@ -158,7 +163,13 @@ export async function postsRoutes(app: FastifyInstance) {
       return reply.code(500).send({ error: error.message });
     }
 
-    const posts = await attachAuthors((data ?? []) as PostRow[]);
+    const rows = (data ?? []) as PostRow[];
+    const likedSet = await likedPostIds(
+      admin,
+      userId,
+      rows.map((r) => r.id),
+    );
+    const posts = await attachAuthors(rows, likedSet);
     return reply.send({ posts });
   });
 
@@ -181,7 +192,8 @@ export async function postsRoutes(app: FastifyInstance) {
         .maybeSingle();
       if (!follow) return reply.code(404).send({ error: "not_found" });
     }
-    return reply.send({ post: await attachAuthor(data as PostRow) });
+    const likedSet = await likedPostIds(admin, userId, [data.id]);
+    return reply.send({ post: (await attachAuthors([data as PostRow], likedSet))[0] });
   });
 
   app.delete<{ Params: { id: string } }>("/posts/:id", async (req, reply) => {
@@ -193,13 +205,199 @@ export async function postsRoutes(app: FastifyInstance) {
     if (error) return reply.code(500).send({ error: error.message });
     return reply.code(204).send();
   });
+
+  // ── Likes ─────────────────────────────────────────────────────────────────
+  app.post<{ Params: { id: string } }>("/posts/:id/like", async (req, reply) => {
+    const userId = req.user!.id;
+    const admin = supabaseService();
+    const post = await loadVisiblePost(admin, req.params.id, userId);
+    if (!post) return reply.code(404).send({ error: "not_found" });
+
+    const { error } = await admin.from("post_likes").insert({ post_id: post.id, user_id: userId });
+    if (error && error.code !== "23505") {
+      req.log.error({ err: error }, "like_failed");
+      return reply.code(500).send({ error: error.message });
+    }
+    // Notifica o autor só num like NOVO (não duplicado) e se não for o próprio.
+    if (!error && post.user_id !== userId) {
+      await admin.from("notifications").insert({
+        user_id: post.user_id,
+        channel: "push",
+        kind: "post_like",
+        template: "post_like",
+        payload: { post_id: post.id, actor_id: userId },
+      });
+    }
+    const { data: fresh } = await admin
+      .from("posts")
+      .select("like_count")
+      .eq("id", post.id)
+      .maybeSingle();
+    return reply.send(
+      LikeResponseSchema.parse({ liked: true, like_count: fresh?.like_count ?? 0 }),
+    );
+  });
+
+  app.delete<{ Params: { id: string } }>("/posts/:id/like", async (req, reply) => {
+    const userId = req.user!.id;
+    const admin = supabaseService();
+    const { error } = await admin
+      .from("post_likes")
+      .delete()
+      .eq("post_id", req.params.id)
+      .eq("user_id", userId);
+    if (error) {
+      req.log.error({ err: error }, "unlike_failed");
+      return reply.code(500).send({ error: error.message });
+    }
+    const { data: fresh } = await admin
+      .from("posts")
+      .select("like_count")
+      .eq("id", req.params.id)
+      .maybeSingle();
+    return reply.send(
+      LikeResponseSchema.parse({ liked: false, like_count: fresh?.like_count ?? 0 }),
+    );
+  });
+
+  // ── Comentários (lista plana) ───────────────────────────────────────────────
+  app.get<{ Params: { id: string } }>("/posts/:id/comments", async (req, reply) => {
+    const userId = req.user!.id;
+    const admin = supabaseService();
+    const post = await loadVisiblePost(admin, req.params.id, userId);
+    if (!post) return reply.code(404).send({ error: "not_found" });
+
+    const { data, error } = await admin
+      .from("post_comments")
+      .select("id, post_id, user_id, body, created_at")
+      .eq("post_id", post.id)
+      .is("deleted_at", null)
+      .order("created_at", { ascending: true })
+      .limit(100);
+    if (error) {
+      req.log.error({ err: error }, "comments_query_failed");
+      return reply.code(500).send({ error: error.message });
+    }
+    const comments = await attachCommentAuthors(admin, data ?? []);
+    return reply.send(CommentsResponseSchema.parse({ comments }));
+  });
+
+  app.post<{ Params: { id: string } }>("/posts/:id/comments", async (req, reply) => {
+    const userId = req.user!.id;
+    const parsed = CreateCommentRequestSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: "invalid_payload", issues: parsed.error.issues });
+    }
+    const admin = supabaseService();
+    const post = await loadVisiblePost(admin, req.params.id, userId);
+    if (!post) return reply.code(404).send({ error: "not_found" });
+
+    const { data, error } = await admin
+      .from("post_comments")
+      .insert({ id: parsed.data.id, post_id: post.id, user_id: userId, body: parsed.data.body })
+      .select("id, post_id, user_id, body, created_at")
+      .single();
+    if (error) {
+      const status = error.code === "23505" ? 409 : 500;
+      req.log.error({ err: error }, "comment_insert_failed");
+      return reply.code(status).send({ error: error.message });
+    }
+    if (post.user_id !== userId) {
+      await admin.from("notifications").insert({
+        user_id: post.user_id,
+        channel: "push",
+        kind: "post_comment",
+        template: "post_comment",
+        payload: { post_id: post.id, actor_id: userId, excerpt: parsed.data.body.slice(0, 80) },
+      });
+    }
+    const [comment] = await attachCommentAuthors(admin, [data]);
+    return reply.code(201).send({ comment });
+  });
+
+  app.delete<{ Params: { id: string } }>("/comments/:id", async (req, reply) => {
+    const { error } = await supabaseService()
+      .from("post_comments")
+      .update({ deleted_at: new Date().toISOString() })
+      .eq("id", req.params.id)
+      .eq("user_id", req.user!.id);
+    if (error) return reply.code(500).send({ error: error.message });
+    return reply.code(204).send();
+  });
+}
+
+// Post visível ao caller (autor ou segue o autor) e não-deletado.
+async function loadVisiblePost(
+  admin: SupabaseClient,
+  postId: string,
+  userId: string,
+): Promise<{ id: string; user_id: string } | null> {
+  const { data } = await admin
+    .from("posts")
+    .select("id, user_id, deleted_at")
+    .eq("id", postId)
+    .maybeSingle();
+  if (!data || data.deleted_at) return null;
+  if (data.user_id === userId) return { id: data.id, user_id: data.user_id };
+  const { data: follow } = await admin
+    .from("follows")
+    .select("follower_id")
+    .eq("follower_id", userId)
+    .eq("followee_id", data.user_id)
+    .maybeSingle();
+  return follow ? { id: data.id, user_id: data.user_id } : null;
+}
+
+// Quais desses posts o usuário curtiu (para liked_by_me).
+async function likedPostIds(
+  admin: SupabaseClient,
+  userId: string,
+  postIds: string[],
+): Promise<Set<string>> {
+  if (postIds.length === 0) return new Set();
+  const { data } = await admin
+    .from("post_likes")
+    .select("post_id")
+    .eq("user_id", userId)
+    .in("post_id", postIds);
+  return new Set((data ?? []).map((r) => r.post_id as string));
+}
+
+type CommentRow = {
+  id: string;
+  post_id: string;
+  user_id: string;
+  body: string;
+  created_at: string;
+};
+
+async function attachCommentAuthors(admin: SupabaseClient, rows: CommentRow[]) {
+  if (rows.length === 0) return [];
+  const ids = Array.from(new Set(rows.map((r) => r.user_id)));
+  const { data, error } = await admin
+    .from("public_profiles")
+    .select("user_id, username, display_name, avatar_url")
+    .in("user_id", ids);
+  if (error) throw new Error(error.message);
+  const authors = new Map((data ?? []).map((a) => [a.user_id, a]));
+  return rows.map((row) =>
+    CommentSchema.parse({
+      ...row,
+      author: authors.get(row.user_id) ?? {
+        user_id: row.user_id,
+        username: null,
+        display_name: null,
+        avatar_url: null,
+      },
+    }),
+  );
 }
 
 async function attachAuthor(row: PostRow) {
   return (await attachAuthors([row]))[0];
 }
 
-async function attachAuthors(rows: PostRow[]) {
+async function attachAuthors(rows: PostRow[], likedPostIds: Set<string> = new Set()) {
   if (rows.length === 0) return [];
   const admin = supabaseService();
   const ids = Array.from(new Set(rows.map((row) => row.user_id)));
@@ -233,6 +431,7 @@ async function attachAuthors(rows: PostRow[]) {
         display_name: null,
         avatar_url: null,
       },
+      liked_by_me: likedPostIds.has(row.id),
     }),
   );
 }
