@@ -543,6 +543,67 @@ export type Database = {
         };
         Relationships: [];
       };
+      post_comments: {
+        Row: {
+          body: string;
+          created_at: string;
+          deleted_at: string | null;
+          id: string;
+          post_id: string;
+          user_id: string;
+        };
+        Insert: {
+          body: string;
+          created_at?: string;
+          deleted_at?: string | null;
+          id: string;
+          post_id: string;
+          user_id: string;
+        };
+        Update: {
+          body?: string;
+          created_at?: string;
+          deleted_at?: string | null;
+          id?: string;
+          post_id?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "post_comments_post_id_fkey";
+            columns: ["post_id"];
+            isOneToOne: false;
+            referencedRelation: "posts";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      post_likes: {
+        Row: {
+          created_at: string;
+          post_id: string;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          post_id: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          post_id?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "post_likes_post_id_fkey";
+            columns: ["post_id"];
+            isOneToOne: false;
+            referencedRelation: "posts";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       posts: {
         Row: {
           achievement_id: string | null;
@@ -1004,7 +1065,9 @@ export type Database = {
         | "goal_reminder"
         | "friend_activity"
         | "meal_confirmation"
-        | "achievement";
+        | "achievement"
+        | "post_like"
+        | "post_comment";
       sex: "male" | "female" | "other";
       subscription_plan: "free" | "pro";
       subscription_status: "active" | "past_due" | "canceled" | "trialing";
@@ -1154,6 +1217,8 @@ export const Constants = {
         "friend_activity",
         "meal_confirmation",
         "achievement",
+        "post_like",
+        "post_comment",
       ],
       sex: ["male", "female", "other"],
       subscription_plan: ["free", "pro"],
