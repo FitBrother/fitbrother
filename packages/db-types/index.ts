@@ -126,6 +126,36 @@ export type Database = {
         };
         Relationships: [];
       };
+      ai_insights: {
+        Row: {
+          created_at: string;
+          id: string;
+          payload: Json;
+          period_start: string;
+          period_type: Database["public"]["Enums"]["insight_period"];
+          source_hash: string;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          id: string;
+          payload: Json;
+          period_start: string;
+          period_type: Database["public"]["Enums"]["insight_period"];
+          source_hash: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          payload?: Json;
+          period_start?: string;
+          period_type?: Database["public"]["Enums"]["insight_period"];
+          source_hash?: string;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
       ai_usage: {
         Row: {
           day: string;
@@ -1010,6 +1040,14 @@ export type Database = {
         }[];
       };
       fitbrother_goal_reminder: { Args: never; Returns: number };
+      fitbrother_insight_targets: {
+        Args: { p_period: string };
+        Returns: {
+          payload: Json;
+          period_start: string;
+          user_id: string;
+        }[];
+      };
       fitbrother_nutritional_day: {
         Args: { p_ts?: string; p_user_id: string };
         Returns: string;
@@ -1060,6 +1098,7 @@ export type Database = {
       food_source: "taco" | "usda" | "openfoodfacts" | "ai" | "user";
       friendship_status: "pending" | "accepted" | "blocked";
       goal: "lose" | "maintain" | "gain" | "recomp";
+      insight_period: "day" | "week" | "month";
       meal_source: "app_text" | "app_audio" | "wa_text" | "wa_audio" | "manual" | "app_photo";
       meal_type: "breakfast" | "lunch" | "snack" | "dinner" | "other";
       notification_channel: "push" | "wa";
@@ -1070,7 +1109,8 @@ export type Database = {
         | "meal_confirmation"
         | "achievement"
         | "post_like"
-        | "post_comment";
+        | "post_comment"
+        | "insight_ready";
       sex: "male" | "female" | "other";
       subscription_plan: "free" | "pro";
       subscription_status: "active" | "past_due" | "canceled" | "trialing";
@@ -1211,6 +1251,7 @@ export const Constants = {
       food_source: ["taco", "usda", "openfoodfacts", "ai", "user"],
       friendship_status: ["pending", "accepted", "blocked"],
       goal: ["lose", "maintain", "gain", "recomp"],
+      insight_period: ["day", "week", "month"],
       meal_source: ["app_text", "app_audio", "wa_text", "wa_audio", "manual", "app_photo"],
       meal_type: ["breakfast", "lunch", "snack", "dinner", "other"],
       notification_channel: ["push", "wa"],
@@ -1222,6 +1263,7 @@ export const Constants = {
         "achievement",
         "post_like",
         "post_comment",
+        "insight_ready",
       ],
       sex: ["male", "female", "other"],
       subscription_plan: ["free", "pro"],

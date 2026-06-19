@@ -20,6 +20,7 @@ import { registerDispatchNotification } from "./workers/dispatch-notification.js
 import { registerGoalReminder } from "./workers/goal-reminder.js";
 import { registerStreakAlert } from "./workers/streak-alert.js";
 import { registerStreakTick } from "./workers/streak-tick.js";
+import { registerInsightWorkers } from "./workers/insights.js";
 
 initSentry();
 
@@ -92,6 +93,7 @@ if (boss) {
   await registerDispatchNotification(boss, app.log);
   await registerStreakAlert(boss, app.log);
   await registerGoalReminder(boss, app.log);
+  await registerInsightWorkers(boss, app.log);
 }
 
 for (const signal of ["SIGTERM", "SIGINT"] as const) {
