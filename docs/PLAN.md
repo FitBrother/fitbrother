@@ -523,6 +523,10 @@ Falha após passo 8 → `processed_at IS NULL` → cron retry; caches em 6 e 8 e
 
 **Feito quando:** usuário gera card (story e quadrado) a partir de um post e de uma análise de IA, com marca d'água do app, e dispara o share sheet nativo.
 
+> Design detalhado: [`docs/superpowers/specs/2026-06-19-m9-share-cards-design.md`](superpowers/specs/2026-06-19-m9-share-cards-design.md). MVP: **só Stories 9:16** (quadrado fica pra v2).
+
+**Status M9 (Compartilhamento externo):** ✅ implementado em 2026-06-19 na branch `feat/m9-share-cards` (empilhada em `feat/m8-2-insights`). Client-side, sem backend: deps `react-native-view-shot` + `expo-sharing` + `expo-media-library`. `ShareCard` 9:16 (variantes refeição/post com foto+macros e insight com título/headline/bullets/score, marca d'água wordmark+folha). `lib/share-card.ts` (`captureCard`/`shareCard`/`saveCardToGallery` com pedido de permissão). Tela de preview `share/[type]/[id]` busca o dado (`getMeal`/`fetchPost`/`fetchInsight`) e oferece **Compartilhar** (share sheet) + **Salvar** (galeria). Pontos de entrada: `PostCard`, `InsightCard` e detalhe da refeição (distinto do "Compartilhar no feed"). Verificação: `typecheck`/`lint` passam. **Não rodado em device** — os módulos nativos exigem um **novo dev build** (o dev client atual não os tem); sem checks SQL (UI pura). **M9 e a Fase 2 (rede social) concluídos.**
+
 ---
 
 ## Verificação end-to-end (após M6)

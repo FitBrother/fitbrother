@@ -2,7 +2,7 @@ import { ActivityIndicator, Alert, Pressable, ScrollView, Text, View } from "rea
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronLeft, Pencil, Share2, Sparkles, Trash2 } from "lucide-react-native";
+import { ChevronLeft, Download, Pencil, Share2, Sparkles, Trash2 } from "lucide-react-native";
 import type { MealResponse } from "@fitbrother/shared";
 import { getMeal } from "@/lib/api/meals";
 import { mealDetailKey } from "@/lib/hooks/useMealsForDay";
@@ -139,6 +139,14 @@ export default function MealDetailScreen() {
           <ChevronLeft size={24} color={colors.neutral[800]} />
         </Pressable>
         <Text className="ml-2 flex-1 text-xl font-sans-bold text-neutral-800">Refeição</Text>
+        <Pressable
+          onPress={() => router.push(`/(app)/share/meal/${meal.id}` as never)}
+          accessibilityLabel="Exportar imagem"
+          accessibilityRole="button"
+          className="min-h-[44px] min-w-[44px] items-center justify-center"
+        >
+          <Download size={20} color={colors.neutral[800]} />
+        </Pressable>
         <Pressable
           onPress={() =>
             router.push({

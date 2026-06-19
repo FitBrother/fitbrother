@@ -1,7 +1,7 @@
 import type { Post } from "@fitbrother/shared";
 import { useEffect, useState } from "react";
 import { Image, Pressable, Text, View } from "react-native";
-import { MessageCircle } from "lucide-react-native";
+import { MessageCircle, Share2 } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { colors } from "@/lib/colors";
 import { shadows } from "@/lib/shadows";
@@ -101,6 +101,14 @@ export function PostCard({ post }: { post: Post }) {
           <Text style={NUM} className="font-sans-medium text-neutral-600">
             {post.comment_count}
           </Text>
+        </Pressable>
+        <Pressable
+          onPress={() => router.push(`/(app)/share/post/${post.id}` as never)}
+          accessibilityRole="button"
+          accessibilityLabel="Exportar imagem"
+          className="ml-auto min-h-[44px] min-w-[44px] items-center justify-center"
+        >
+          <Share2 size={20} color={colors.neutral[500]} />
         </Pressable>
       </View>
     </View>
