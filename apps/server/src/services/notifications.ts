@@ -40,6 +40,16 @@ function renderPush(n: PendingNotification): { title: string; body: string } {
         title: "Seu contato entrou no Fitbrother 👋",
         body: `${String(n.payload.full_name ?? "Um contato")} agora está no Fitbrother.`,
       };
+    case "post_like":
+      return {
+        title: "Curtiram seu post 👏",
+        body: "Alguém curtiu seu post no feed.",
+      };
+    case "post_comment":
+      return {
+        title: "Comentário novo 💬",
+        body: String(n.payload.excerpt ?? "Alguém comentou no seu post."),
+      };
     default:
       return { title: "Fitbrother", body: String(n.payload.body ?? "") };
   }

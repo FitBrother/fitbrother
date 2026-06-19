@@ -5,10 +5,15 @@ import { ChevronLeft } from "lucide-react-native";
 import { PostCard } from "@/components/domain/PostCard";
 import { colors } from "@/lib/colors";
 import { useFeed } from "@/lib/hooks/useFeed";
+import { usePostsRealtime } from "@/lib/hooks/usePostsRealtime";
+import { useAuthSession } from "@/lib/hooks/useAuthSession";
 
 export default function FeedScreen() {
   const router = useRouter();
   const feed = useFeed();
+  const session = useAuthSession();
+  const userId = session.status === "signed_in" ? session.session.user.id : undefined;
+  usePostsRealtime(userId);
 
   return (
     <SafeAreaView className="flex-1 bg-neutral-50">
