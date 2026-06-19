@@ -15,6 +15,8 @@ type Goal = z.infer<typeof GoalSchema>;
 
 interface OnboardingState {
   full_name: string;
+  username: string;
+  avatar_url: string | undefined;
   phone_e164: string;
   birth_date: string;
   sex: Sex | undefined;
@@ -52,6 +54,8 @@ function detectTimezone(): string {
 
 const INITIAL: Omit<OnboardingState, "setField" | "setConsent" | "reset" | "toPayload"> = {
   full_name: "",
+  username: "",
+  avatar_url: undefined,
   phone_e164: "",
   birth_date: "",
   sex: undefined,
@@ -95,6 +99,8 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
     }
     return {
       full_name,
+      username: s.username.trim() || undefined,
+      avatar_url: s.avatar_url || undefined,
       phone_e164: phone_e164 || undefined,
       birth_date: birth_date_iso,
       sex: s.sex,

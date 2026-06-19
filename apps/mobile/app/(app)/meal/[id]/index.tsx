@@ -2,7 +2,7 @@ import { ActivityIndicator, Alert, Pressable, ScrollView, Text, View } from "rea
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronLeft, Pencil, Trash2 } from "lucide-react-native";
+import { ChevronLeft, Pencil, Share2, Trash2 } from "lucide-react-native";
 import type { MealResponse } from "@fitbrother/shared";
 import { getMeal } from "@/lib/api/meals";
 import { mealDetailKey } from "@/lib/hooks/useMealsForDay";
@@ -198,6 +198,25 @@ export default function MealDetailScreen() {
           >
             <Text className="text-base font-sans-semibold text-white">
               {confirm.isPending ? "Confirmando…" : "Confirmar"}
+            </Text>
+          </Pressable>
+        )}
+
+        {!meal.review_required && (
+          <Pressable
+            onPress={() =>
+              router.push({
+                pathname: "/(app)/post/new" as never,
+                params: { meal_id: meal.id },
+              })
+            }
+            accessibilityRole="button"
+            accessibilityLabel="Compartilhar no feed"
+            className="mx-4 mt-6 min-h-[52px] flex-row items-center justify-center rounded-full bg-primary-400 px-6 py-3 active:bg-primary-500"
+          >
+            <Share2 size={18} color={colors.neutral[50]} />
+            <Text className="ml-2 text-base font-sans-semibold text-white">
+              Compartilhar no feed
             </Text>
           </Pressable>
         )}

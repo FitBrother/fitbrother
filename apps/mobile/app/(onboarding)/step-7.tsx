@@ -22,8 +22,8 @@ export default function Step7PhoneTimezone() {
       total={ONBOARDING_STEPS}
       title="Quase lá"
       subtitle="Telefone é opcional — usado depois pra ativar o registro via WhatsApp."
-      onBack={() => router.back()}
-      onNext={() => router.push("/(onboarding)/step-8")}
+      onBack={() => router.replace("/(onboarding)/step-6")}
+      onNext={() => router.push("/(onboarding)/step-9" as never)}
       nextDisabled={!phoneValid}
     >
       <View className="gap-3">

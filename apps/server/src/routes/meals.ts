@@ -1,5 +1,6 @@
 import {
   CreateMealAudioRequestSchema,
+  CreateMealPhotoRequestSchema,
   CreateMealTextRequestSchema,
   PatchMealRequestSchema,
 } from "@fitbrother/shared";
@@ -9,6 +10,7 @@ import { addDaysIso } from "../lib/dateMath.js";
 import { AiQuotaExceededError } from "../services/ai-usage.js";
 import { extractMeal } from "../services/extraction.js";
 import { applyCatalogToItems } from "../services/meals.js";
+import { extractMealFromPhoto } from "../services/photo-extraction.js";
 import { transcribeFromPath } from "../services/transcription.js";
 
 /**
@@ -245,6 +247,95 @@ export async function mealsRoutes(app: FastifyInstance) {
       meal,
       cache_hit_transcription: transcription.cacheHit,
       cache_hit_extraction: extraction.cacheHit,
+      already_existed: (rpcResult as { already_existed?: boolean })?.already_existed === true,
+    });
+  });
+
+  /* ── POST /meals/photo ─────────────────────────────────────────────── */
+  app.post("/meals/photo", async (req, reply) => {
+    const parsed = CreateMealPhotoRequestSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: "invalid_payload", issues: parsed.error.issues });
+    }
+    const { client_meal_id, image_path, consumed_at, locale } = parsed.data;
+    const userId = req.user!.id;
+    const supabase = supabaseForRequest(req);
+
+    if (!image_path.startsWith(`${userId}/`)) {
+      return reply.code(403).send({ error: "image_path_ownership_mismatch" });
+    }
+
+    if (consumed_at) {
+      const { data: backfillDayRaw, error: dayErr } = await supabase.rpc(
+        "fitbrother_nutritional_day",
+        { p_user_id: userId, p_ts: consumed_at },
+      );
+      if (dayErr || !backfillDayRaw) {
+        req.log.error({ err: dayErr, consumed_at }, "nutritional_day_failed");
+        return reply.code(500).send({ error: "nutritional_day_failed" });
+      }
+      const { data: todayRaw, error: todayErr } = await supabase.rpc("fitbrother_today", {
+        p_user_id: userId,
+      });
+      if (todayErr || !todayRaw) {
+        req.log.error({ err: todayErr, userId }, "today_lookup_failed");
+        return reply.code(500).send({ error: "today_lookup_failed" });
+      }
+      const backfillDay = backfillDayRaw as string;
+      const today = todayRaw as string;
+      const minDay = addDaysIso(today, -6);
+      if (backfillDay < minDay || backfillDay > today) {
+        return reply.code(400).send({
+          error: "backfill_window_exceeded",
+          window: { from: minDay, to: today },
+        });
+      }
+    }
+
+    let extraction;
+    try {
+      extraction = await extractMealFromPhoto({
+        userClient: supabase,
+        userId,
+        imagePath: image_path,
+        locale,
+      });
+    } catch (err) {
+      if (err instanceof AiQuotaExceededError) {
+        return reply.code(429).send({ error: err.code, kind: err.kind });
+      }
+      req.log.error({ err, image_path }, "photo_extraction_failed");
+      return reply.code(502).send({ error: "photo_extraction_failed" });
+    }
+
+    const { applied } = await applyCatalogToItems(supabase, extraction.output);
+
+    const { data: rpcResult, error: rpcError } = await supabase.rpc("create_meal_with_items", {
+      payload: {
+        id: client_meal_id,
+        source: "app_photo",
+        raw_input: `Foto: ${image_path}`,
+        audio_path: null,
+        meal_type: extraction.output.meal_type,
+        consumed_at: consumed_at ?? null,
+        confidence: extraction.output.confidence,
+        items: applied,
+      },
+    });
+
+    if (rpcError) {
+      req.log.error({ err: rpcError, client_meal_id }, "create_photo_meal_rpc_failed");
+      return reply.code(500).send({ error: rpcError.message });
+    }
+
+    const meal = await loadMeal(supabase, client_meal_id, req);
+    if (!meal) {
+      return reply.code(500).send({ error: "meal_disappeared_after_create" });
+    }
+
+    return reply.code(201).send({
+      meal,
+      cache_hit: extraction.cacheHit,
       already_existed: (rpcResult as { already_existed?: boolean })?.already_existed === true,
     });
   });

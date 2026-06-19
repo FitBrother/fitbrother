@@ -216,6 +216,24 @@ export type Database = {
         };
         Relationships: [];
       };
+      contact_links: {
+        Row: {
+          created_at: string;
+          owner_id: string;
+          phone_hash: string;
+        };
+        Insert: {
+          created_at?: string;
+          owner_id: string;
+          phone_hash: string;
+        };
+        Update: {
+          created_at?: string;
+          owner_id?: string;
+          phone_hash?: string;
+        };
+        Relationships: [];
+      };
       daily_summaries: {
         Row: {
           carbs_g: number;
@@ -261,6 +279,24 @@ export type Database = {
           protein_g?: number;
           updated_at?: string;
           user_id?: string;
+        };
+        Relationships: [];
+      };
+      follows: {
+        Row: {
+          created_at: string;
+          followee_id: string;
+          follower_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          followee_id: string;
+          follower_id: string;
+        };
+        Update: {
+          created_at?: string;
+          followee_id?: string;
+          follower_id?: string;
         };
         Relationships: [];
       };
@@ -507,9 +543,79 @@ export type Database = {
         };
         Relationships: [];
       };
+      posts: {
+        Row: {
+          achievement_id: string | null;
+          caption: string | null;
+          comment_count: number;
+          created_at: string;
+          deleted_at: string | null;
+          id: string;
+          image_path: string | null;
+          like_count: number;
+          meal_id: string | null;
+          post_type: string;
+          total_carbs_g: number;
+          total_fat_g: number;
+          total_kcal: number;
+          total_protein_g: number;
+          user_id: string;
+        };
+        Insert: {
+          achievement_id?: string | null;
+          caption?: string | null;
+          comment_count?: number;
+          created_at?: string;
+          deleted_at?: string | null;
+          id: string;
+          image_path?: string | null;
+          like_count?: number;
+          meal_id?: string | null;
+          post_type?: string;
+          total_carbs_g?: number;
+          total_fat_g?: number;
+          total_kcal?: number;
+          total_protein_g?: number;
+          user_id: string;
+        };
+        Update: {
+          achievement_id?: string | null;
+          caption?: string | null;
+          comment_count?: number;
+          created_at?: string;
+          deleted_at?: string | null;
+          id?: string;
+          image_path?: string | null;
+          like_count?: number;
+          meal_id?: string | null;
+          post_type?: string;
+          total_carbs_g?: number;
+          total_fat_g?: number;
+          total_kcal?: number;
+          total_protein_g?: number;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "posts_achievement_id_fkey";
+            columns: ["achievement_id"];
+            isOneToOne: false;
+            referencedRelation: "achievements";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "posts_meal_id_fkey";
+            columns: ["meal_id"];
+            isOneToOne: false;
+            referencedRelation: "meals";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       profiles: {
         Row: {
           activity_level: Database["public"]["Enums"]["activity_level"] | null;
+          avatar_url: string | null;
           birth_date: string | null;
           created_at: string;
           day_start_hour: number;
@@ -517,16 +623,16 @@ export type Database = {
           goal: Database["public"]["Enums"]["goal"] | null;
           lgpd_consent_at: string | null;
           locale: string;
-          phone_e164: string | null;
-          phone_verified_at: string | null;
           sex: Database["public"]["Enums"]["sex"] | null;
           timezone: string;
           updated_at: string;
           user_id: string;
+          username: string | null;
           wa_window_expires_at: string | null;
         };
         Insert: {
           activity_level?: Database["public"]["Enums"]["activity_level"] | null;
+          avatar_url?: string | null;
           birth_date?: string | null;
           created_at?: string;
           day_start_hour?: number;
@@ -534,16 +640,16 @@ export type Database = {
           goal?: Database["public"]["Enums"]["goal"] | null;
           lgpd_consent_at?: string | null;
           locale?: string;
-          phone_e164?: string | null;
-          phone_verified_at?: string | null;
           sex?: Database["public"]["Enums"]["sex"] | null;
           timezone: string;
           updated_at?: string;
           user_id: string;
+          username?: string | null;
           wa_window_expires_at?: string | null;
         };
         Update: {
           activity_level?: Database["public"]["Enums"]["activity_level"] | null;
+          avatar_url?: string | null;
           birth_date?: string | null;
           created_at?: string;
           day_start_hour?: number;
@@ -551,13 +657,36 @@ export type Database = {
           goal?: Database["public"]["Enums"]["goal"] | null;
           lgpd_consent_at?: string | null;
           locale?: string;
-          phone_e164?: string | null;
-          phone_verified_at?: string | null;
           sex?: Database["public"]["Enums"]["sex"] | null;
           timezone?: string;
           updated_at?: string;
           user_id?: string;
+          username?: string | null;
           wa_window_expires_at?: string | null;
+        };
+        Relationships: [];
+      };
+      profiles_private: {
+        Row: {
+          phone_e164: string | null;
+          phone_hash: string | null;
+          phone_verified_at: string | null;
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          phone_e164?: string | null;
+          phone_hash?: string | null;
+          phone_verified_at?: string | null;
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          phone_e164?: string | null;
+          phone_hash?: string | null;
+          phone_verified_at?: string | null;
+          updated_at?: string;
+          user_id?: string;
         };
         Relationships: [];
       };
@@ -709,6 +838,36 @@ export type Database = {
       };
     };
     Views: {
+      following_summaries_view: {
+        Row: {
+          day: string | null;
+          followee_id: string | null;
+          goal_hit: boolean | null;
+          meals_count: number | null;
+        };
+        Relationships: [];
+      };
+      public_profiles: {
+        Row: {
+          avatar_url: string | null;
+          display_name: string | null;
+          user_id: string | null;
+          username: string | null;
+        };
+        Insert: {
+          avatar_url?: string | null;
+          display_name?: string | null;
+          user_id?: string | null;
+          username?: string | null;
+        };
+        Update: {
+          avatar_url?: string | null;
+          display_name?: string | null;
+          user_id?: string | null;
+          username?: string | null;
+        };
+        Relationships: [];
+      };
       vw_today_summary: {
         Row: {
           carbs_g: number | null;
@@ -786,6 +945,7 @@ export type Database = {
           similarity: number;
         }[];
       };
+      fitbrother_goal_reminder: { Args: never; Returns: number };
       fitbrother_nutritional_day: {
         Args: { p_ts?: string; p_user_id: string };
         Returns: string;
@@ -809,8 +969,22 @@ export type Database = {
         };
         Returns: undefined;
       };
+      fitbrother_streak_alert: { Args: never; Returns: number };
+      fitbrother_streak_at_risk: {
+        Args: { p_user_id: string };
+        Returns: boolean;
+      };
       fitbrother_streak_tick: { Args: never; Returns: number };
       fitbrother_today: { Args: { p_user_id: string }; Returns: string };
+      fitbrother_weekly_leaderboard: {
+        Args: { p_user_id: string };
+        Returns: {
+          full_name: string;
+          user_id: string;
+          weekly_hits: number;
+          window_streak: number;
+        }[];
+      };
       show_limit: { Args: never; Returns: number };
       show_trgm: { Args: { "": string }; Returns: string[] };
       unaccent: { Args: { "": string }; Returns: string };
@@ -822,7 +996,7 @@ export type Database = {
       food_source: "taco" | "usda" | "openfoodfacts" | "ai" | "user";
       friendship_status: "pending" | "accepted" | "blocked";
       goal: "lose" | "maintain" | "gain" | "recomp";
-      meal_source: "app_text" | "app_audio" | "wa_text" | "wa_audio" | "manual";
+      meal_source: "app_text" | "app_audio" | "wa_text" | "wa_audio" | "manual" | "app_photo";
       meal_type: "breakfast" | "lunch" | "snack" | "dinner" | "other";
       notification_channel: "push" | "wa";
       notification_kind:
@@ -971,7 +1145,7 @@ export const Constants = {
       food_source: ["taco", "usda", "openfoodfacts", "ai", "user"],
       friendship_status: ["pending", "accepted", "blocked"],
       goal: ["lose", "maintain", "gain", "recomp"],
-      meal_source: ["app_text", "app_audio", "wa_text", "wa_audio", "manual"],
+      meal_source: ["app_text", "app_audio", "wa_text", "wa_audio", "manual", "app_photo"],
       meal_type: ["breakfast", "lunch", "snack", "dinner", "other"],
       notification_channel: ["push", "wa"],
       notification_kind: [

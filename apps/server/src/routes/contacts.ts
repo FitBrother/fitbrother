@@ -17,7 +17,7 @@ export async function contactsRoutes(app: FastifyInstance) {
     const admin = supabaseService();
 
     const { data: prof, error: pErr } = await admin
-      .from("profiles")
+      .from("profiles_private")
       .select("phone_verified_at")
       .eq("user_id", userId)
       .maybeSingle();

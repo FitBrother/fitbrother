@@ -56,11 +56,11 @@ export default function Step8Terms() {
 
   return (
     <OnboardingStepShell
-      step={8}
+      step={9}
       total={ONBOARDING_STEPS}
       title="Antes de continuar"
       subtitle="Precisamos do seu consentimento para guardar e processar seus dados."
-      onBack={() => router.back()}
+      onBack={() => router.replace("/(onboarding)/step-9" as never)}
     >
       <View className="flex-1 justify-between">
         <View className="gap-3">

@@ -43,7 +43,7 @@ export default function Step5Activity() {
       total={ONBOARDING_STEPS}
       title="Qual seu nível de atividade?"
       subtitle="Isso ajusta o gasto calórico diário (TDEE)."
-      onBack={() => router.back()}
+      onBack={() => router.replace("/(onboarding)/step-4")}
       onNext={() => router.push("/(onboarding)/step-6")}
       nextDisabled={!activity_level}
     >

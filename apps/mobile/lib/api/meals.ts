@@ -75,6 +75,23 @@ export async function createMealAudio(input: {
   };
 }
 
+export async function createMealPhoto(input: {
+  client_meal_id: string;
+  image_path: string;
+  consumed_at?: string;
+  locale: string;
+}): Promise<{ meal: MealResponse; cache_hit: boolean; already_existed: boolean }> {
+  const res = await authedFetch("/meals/photo", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+  return (await parseOrThrow(res)) as {
+    meal: MealResponse;
+    cache_hit: boolean;
+    already_existed: boolean;
+  };
+}
+
 export async function listMealsForDay(day: string): Promise<MealResponse[]> {
   const res = await authedFetch(`/meals?day=${encodeURIComponent(day)}`);
   const body = (await parseOrThrow(res)) as { meals: MealResponse[] };
