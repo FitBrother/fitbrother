@@ -6,8 +6,8 @@ import { feedKey } from "./useFeed";
 export function useCreatePost() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (input: { meal_id: string; caption?: string; image_path?: string }) =>
-      createPost({ id: randomUUID(), ...input }),
+    mutationFn: (input: { id?: string; meal_id: string; caption?: string; image_path?: string }) =>
+      createPost({ ...input, id: input.id ?? randomUUID() }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: feedKey });
     },

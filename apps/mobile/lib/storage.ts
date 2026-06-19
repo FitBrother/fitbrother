@@ -52,6 +52,33 @@ export async function getMealAudioSignedUrl(path: string): Promise<string> {
   return data.signedUrl;
 }
 
+export async function uploadPostImage(params: {
+  userId: string;
+  postId: string;
+  fileUri: string;
+}): Promise<{ path: string }> {
+  const path = `${params.userId}/post-${params.postId}.jpg`;
+  const formData = new FormData();
+  formData.append("file", {
+    uri: params.fileUri,
+    name: `post-${params.postId}.jpg`,
+    type: "image/jpeg",
+  } as unknown as Blob);
+
+  const { error } = await supabase.storage
+    .from(IMAGE_BUCKET)
+    .upload(path, formData, { contentType: "image/jpeg", upsert: true });
+
+  if (error) throw error;
+  return { path };
+}
+
+export async function getPostImageSignedUrl(path: string): Promise<string> {
+  const { data, error } = await supabase.storage.from(IMAGE_BUCKET).createSignedUrl(path, 60 * 60);
+  if (error) throw error;
+  return data.signedUrl;
+}
+
 export async function uploadMealPhoto(params: {
   userId: string;
   mealId: string;

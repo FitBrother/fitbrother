@@ -1,7 +1,9 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { ChevronLeft } from "lucide-react-native";
+import { ChevronLeft, ImagePlus, X } from "lucide-react-native";
+import { randomUUID } from "expo-crypto";
+import * as ImagePicker from "expo-image-picker";
 import { useState } from "react";
-import { Alert, Pressable, Text, TextInput, View } from "react-native";
+import { Alert, Image, Pressable, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/Button";
@@ -9,6 +11,8 @@ import { getMeal } from "@/lib/api/meals";
 import { colors } from "@/lib/colors";
 import { mealDetailKey } from "@/lib/hooks/useMealsForDay";
 import { useCreatePost } from "@/lib/hooks/useCreatePost";
+import { uploadPostImage } from "@/lib/storage";
+import { supabase } from "@/lib/supabase";
 
 const NUM: { fontVariant: ["tabular-nums"] } = { fontVariant: ["tabular-nums"] };
 
@@ -16,7 +20,19 @@ export default function NewPostScreen() {
   const router = useRouter();
   const { meal_id } = useLocalSearchParams<{ meal_id: string }>();
   const [caption, setCaption] = useState("");
+  const [photoUri, setPhotoUri] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
   const create = useCreatePost();
+
+  async function pickPhoto() {
+    const res = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 0.7,
+    });
+    if (!res.canceled && res.assets[0]) setPhotoUri(res.assets[0].uri);
+  }
   const mealQuery = useQuery({
     queryKey: mealDetailKey(meal_id ?? ""),
     queryFn: () => getMeal(meal_id!),
@@ -25,17 +41,36 @@ export default function NewPostScreen() {
 
   const meal = mealQuery.data;
 
-  function publish() {
+  async function publish() {
     if (!meal) return;
-    create.mutate(
-      { meal_id: meal.id, caption: caption.trim() || undefined },
-      {
-        onSuccess: () => router.replace("/(app)/feed" as never),
-        onError: (err) => {
-          Alert.alert("Não foi possível publicar", err.message);
+    try {
+      const postId = randomUUID();
+      let imagePath: string | undefined;
+      if (photoUri) {
+        setUploading(true);
+        const { data } = await supabase.auth.getUser();
+        const userId = data.user?.id;
+        if (!userId) throw new Error("not_authenticated");
+        const uploaded = await uploadPostImage({ userId, postId, fileUri: photoUri });
+        imagePath = uploaded.path;
+      }
+      create.mutate(
+        {
+          id: postId,
+          meal_id: meal.id,
+          caption: caption.trim() || undefined,
+          image_path: imagePath,
         },
-      },
-    );
+        {
+          onSuccess: () => router.replace("/(app)/feed" as never),
+          onError: (err) => Alert.alert("Não foi possível publicar", err.message),
+        },
+      );
+    } catch (err) {
+      Alert.alert("Não foi possível enviar a foto", err instanceof Error ? err.message : "Erro");
+    } finally {
+      setUploading(false);
+    }
   }
 
   return (
@@ -64,6 +99,35 @@ export default function NewPostScreen() {
           textAlignVertical="top"
         />
 
+        {photoUri ? (
+          <View className="relative">
+            <Image
+              source={{ uri: photoUri }}
+              accessibilityIgnoresInvertColors
+              className="h-56 w-full rounded-2xl"
+              resizeMode="cover"
+            />
+            <Pressable
+              onPress={() => setPhotoUri(null)}
+              accessibilityLabel="Remover foto"
+              accessibilityRole="button"
+              className="absolute right-2 top-2 h-11 w-11 items-center justify-center rounded-full bg-neutral-800/70"
+            >
+              <X size={20} color={colors.neutral[50]} />
+            </Pressable>
+          </View>
+        ) : (
+          <Pressable
+            onPress={pickPhoto}
+            accessibilityLabel="Adicionar foto"
+            accessibilityRole="button"
+            className="min-h-[44px] flex-row items-center justify-center gap-2 rounded-2xl border border-dashed border-neutral-300 bg-white p-4"
+          >
+            <ImagePlus size={20} color={colors.neutral[500]} />
+            <Text className="font-sans-medium text-neutral-600">Adicionar foto (opcional)</Text>
+          </Pressable>
+        )}
+
         <View className="rounded-2xl bg-white p-4">
           <Text className="font-sans-semibold text-neutral-800">Snapshot de macros</Text>
           {meal ? (
@@ -86,8 +150,8 @@ export default function NewPostScreen() {
         <Button
           label="Publicar no feed"
           variant="primary"
-          loading={create.isPending}
-          disabled={!meal || create.isPending}
+          loading={create.isPending || uploading}
+          disabled={!meal || create.isPending || uploading}
           onPress={publish}
         />
       </View>

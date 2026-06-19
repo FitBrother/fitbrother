@@ -1,4 +1,13 @@
-import { FeedResponseSchema, PostResponseSchema, type Post } from "@fitbrother/shared";
+import {
+  CommentSchema,
+  CommentsResponseSchema,
+  FeedResponseSchema,
+  LikeResponseSchema,
+  PostResponseSchema,
+  type Comment,
+  type LikeResponse,
+  type Post,
+} from "@fitbrother/shared";
 import { authedFetch } from "@/lib/api";
 
 type ApiError = Error & { status?: number };
@@ -42,4 +51,38 @@ export async function createAchievementPost(input: {
   });
   const body = await parseOrThrow(res);
   return PostResponseSchema.parse(body).post;
+}
+
+export async function fetchPost(postId: string): Promise<Post> {
+  const res = await authedFetch(`/posts/${postId}`);
+  const body = await parseOrThrow(res);
+  return PostResponseSchema.parse(body).post;
+}
+
+export async function setLike(postId: string, liked: boolean): Promise<LikeResponse> {
+  const res = await authedFetch(`/posts/${postId}/like`, { method: liked ? "POST" : "DELETE" });
+  const body = await parseOrThrow(res);
+  return LikeResponseSchema.parse(body);
+}
+
+export async function fetchComments(postId: string): Promise<Comment[]> {
+  const res = await authedFetch(`/posts/${postId}/comments`);
+  const body = await parseOrThrow(res);
+  return CommentsResponseSchema.parse(body).comments;
+}
+
+export async function addComment(
+  postId: string,
+  input: { id: string; body: string },
+): Promise<Comment> {
+  const res = await authedFetch(`/posts/${postId}/comments`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+  const body = (await parseOrThrow(res)) as { comment: unknown };
+  return CommentSchema.parse(body.comment);
+}
+
+export async function deleteComment(commentId: string): Promise<void> {
+  await parseOrThrow(await authedFetch(`/comments/${commentId}`, { method: "DELETE" }));
 }

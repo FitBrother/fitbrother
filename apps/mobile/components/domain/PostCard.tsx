@@ -1,6 +1,12 @@
 import type { Post } from "@fitbrother/shared";
-import { Text, View } from "react-native";
+import { useEffect, useState } from "react";
+import { Image, Pressable, Text, View } from "react-native";
+import { MessageCircle } from "lucide-react-native";
+import { useRouter } from "expo-router";
+import { colors } from "@/lib/colors";
 import { shadows } from "@/lib/shadows";
+import { getPostImageSignedUrl } from "@/lib/storage";
+import { LikeButton } from "./LikeButton";
 
 const NUM: { fontVariant: ["tabular-nums"] } = { fontVariant: ["tabular-nums"] };
 
@@ -14,9 +20,27 @@ function timeLabel(iso: string): string {
 }
 
 export function PostCard({ post }: { post: Post }) {
+  const router = useRouter();
   const name = post.author.display_name ?? "Fitbrother";
   const username = post.author.username ? `@${post.author.username}` : "";
   const achievement = post.post_type === "achievement" ? post.achievement : null;
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    if (post.image_path) {
+      getPostImageSignedUrl(post.image_path)
+        .then((url) => {
+          if (active) setImageUrl(url);
+        })
+        .catch(() => {
+          if (active) setImageUrl(null);
+        });
+    }
+    return () => {
+      active = false;
+    };
+  }, [post.image_path]);
 
   return (
     <View style={shadows.card} className="rounded-2xl bg-white p-4">
@@ -34,6 +58,15 @@ export function PostCard({ post }: { post: Post }) {
 
       {post.caption ? (
         <Text className="mt-3 text-base font-sans text-neutral-800">{post.caption}</Text>
+      ) : null}
+
+      {imageUrl ? (
+        <Image
+          source={{ uri: imageUrl }}
+          accessibilityIgnoresInvertColors
+          className="mt-3 h-64 w-full rounded-2xl"
+          resizeMode="cover"
+        />
       ) : null}
 
       {achievement ? (
@@ -55,6 +88,21 @@ export function PostCard({ post }: { post: Post }) {
           </Text>
         </View>
       )}
+
+      <View className="mt-3 flex-row items-center gap-4 border-t border-neutral-100 pt-2">
+        <LikeButton postId={post.id} liked={post.liked_by_me} count={post.like_count} />
+        <Pressable
+          onPress={() => router.push(`/(app)/post/${post.id}` as never)}
+          accessibilityRole="button"
+          accessibilityLabel="Ver comentários"
+          className="min-h-[44px] min-w-[44px] flex-row items-center gap-1.5"
+        >
+          <MessageCircle size={20} color={colors.neutral[500]} />
+          <Text style={NUM} className="font-sans-medium text-neutral-600">
+            {post.comment_count}
+          </Text>
+        </Pressable>
+      </View>
     </View>
   );
 }
