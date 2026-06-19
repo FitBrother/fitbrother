@@ -44,7 +44,9 @@ Estimar confidence (0.0-1.0):
 - 0.5-0.7: ambíguo mas plausível
 - <0.5: muito vago (será marcado pra revisão pelo usuário)
 
-Seja conservador em estimativas — prefira valores realistas (TACO/USDA) a chutes otimistas.`;
+Seja conservador em estimativas — prefira valores realistas (TACO/USDA) a chutes otimistas.
+
+Além da extração, gere "feedback": uma frase curta (<=200 caracteres), em português brasileiro, calorosa e específica, comentando a refeição a partir dos macros estimados. Seja parceiro, não professor. Nunca culpabilize comida.`;
 
 // Gemini's typings demand `format: "enum"` for enum strings; we keep things
 // explicit rather than casting around it.
@@ -82,8 +84,13 @@ const extractMealFunctionDeclaration: FunctionDeclaration = {
         },
       },
       confidence: { type: SchemaType.NUMBER },
+      feedback: {
+        type: SchemaType.STRING,
+        description:
+          "Frase curta (<=200 chars), calorosa e específica, em português brasileiro, comentando a refeição com base nos macros (ex: 'Ótima fonte de proteína 💪', 'Bem leve — que tal mais proteína?'). Sem julgamento moralista, sem culpabilizar comida.",
+      },
     },
-    required: ["meal_type", "items", "confidence"],
+    required: ["meal_type", "items", "confidence", "feedback"],
   },
 };
 

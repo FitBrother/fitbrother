@@ -497,6 +497,10 @@ Falha após passo 8 → `processed_at IS NULL` → cron retry; caches em 6 e 8 e
 
 **Feito quando:** usuário recebe feedback de refeição, wrap-up diário e relatórios semanal/mensal gerados por cron; segunda geração idêntica do mesmo período é cache hit; quota dedicada respeitada.
 
+> Design detalhado: [`docs/superpowers/specs/2026-06-19-m8-ai-analysis-design.md`](superpowers/specs/2026-06-19-m8-ai-analysis-design.md). Fatiado em M8.1 (feedback de refeição) e M8.2 (insights de período). Insights ancorados no dado existente (kcal/macros/goal_hit/refeições) — sem açúcar/hidratação (não rastreados).
+
+**Status M8.1 (Feedback da refeição — piggyback):** ✅ implementado em 2026-06-19 na branch `feat/m8-ai-analysis`. Migration `0049` adiciona `meals.ai_feedback` e atualiza a RPC `create_meal_with_items` para persistir `payload.ai_feedback`. `MealExtractionSchema` ganha `feedback` e a function-declaration/system-prompt do Gemini passam a retornar uma frase curta junto da extração (zero chamada extra); `LLM_PROMPT_VERSION` bumpado para `v2` (invalida cache antigo). Os 3 fluxos de criação (texto/áudio/foto) threadam `ai_feedback` pela RPC; `MEAL_DETAIL_SELECT` e `MealResponseSchema` expõem o campo. Mobile mostra o feedback (com ícone Sparkles) no detalhe da refeição. Verificação: `npm run db:reset` + `./scripts/checks/m8-1-feedback.sh` (coluna + RPC persiste) + `npm run typecheck`/`lint` passam. **Não rodado em device** (feedback real exige chamada Gemini). Próximo: M8.2 (insights de dia/semana/mês).
+
 ---
 
 ## M9 — Compartilhamento externo (cards estilo Strava)

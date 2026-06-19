@@ -31,6 +31,7 @@ export const MealExtractionSchema = z.object({
   meal_type: MealTypeSchema,
   items: z.array(MealItemExtractionSchema).min(1),
   confidence: z.number().min(0).max(1),
+  feedback: z.string().max(200).default(""),
 });
 
 export type MealItemExtraction = z.infer<typeof MealItemExtractionSchema>;
@@ -104,6 +105,7 @@ export const MealResponseSchema = z.object({
   total_fat_g: z.number(),
   confidence: z.number().nullable(),
   review_required: z.boolean(),
+  ai_feedback: z.string().nullable(),
   created_at: z.string(),
   deleted_at: z.string().nullable(),
   items: z.array(MealItemResponseSchema),

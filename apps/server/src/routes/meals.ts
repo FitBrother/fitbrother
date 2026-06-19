@@ -33,7 +33,7 @@ import { transcribeFromPath } from "../services/transcription.js";
 const MEAL_DETAIL_SELECT = `
   id, source, raw_input, audio_path, meal_type, consumed_at,
   total_kcal, total_protein_g, total_carbs_g, total_fat_g,
-  confidence, review_required, created_at, deleted_at,
+  confidence, review_required, ai_feedback, created_at, deleted_at,
   items:meal_items(
     id, food_id, description, quantity, unit,
     kcal, protein_g, carbs_g, fat_g, density_assumed
@@ -112,6 +112,7 @@ export async function mealsRoutes(app: FastifyInstance) {
         meal_type: extraction.output.meal_type,
         consumed_at: consumed_at ?? null,
         confidence: extraction.output.confidence,
+        ai_feedback: extraction.output.feedback || null,
         items: applied,
       },
     });
@@ -229,6 +230,7 @@ export async function mealsRoutes(app: FastifyInstance) {
         meal_type: extraction.output.meal_type,
         consumed_at: consumed_at ?? null,
         confidence: extraction.output.confidence,
+        ai_feedback: extraction.output.feedback || null,
         items: applied,
       },
     });
@@ -319,6 +321,7 @@ export async function mealsRoutes(app: FastifyInstance) {
         meal_type: extraction.output.meal_type,
         consumed_at: consumed_at ?? null,
         confidence: extraction.output.confidence,
+        ai_feedback: extraction.output.feedback || null,
         items: applied,
       },
     });
