@@ -4,7 +4,7 @@ import {
   SchemaType,
   type FunctionDeclaration,
 } from "@google/generative-ai";
-import { MealExtractionSchema, type LLMProvider } from "@fitbrother/shared";
+import { InsightContentSchema, MealExtractionSchema, type LLMProvider } from "@fitbrother/shared";
 import { env } from "../../lib/env.js";
 
 /**
@@ -173,10 +173,87 @@ export async function extractMealImageWithGemini(input: {
   ]);
 }
 
+const INSIGHT_SYSTEM_PROMPT = `Você é um coach nutricional do app Fitbrother. Recebe um resumo AGREGADO (por dia) do período de um usuário — calorias, macros, se bateu a meta, nº de refeições — e o streak. Gere uma análise curta, calorosa e ESPECÍFICA em português brasileiro, ancorada SOMENTE nesses dados. Nunca invente métricas (não fale de açúcar, hidratação, micronutrientes — não temos esse dado). Sem culpabilizar comida. Foque em: consistência de bater meta, tendência de calorias/proteína, regularidade de registro e streak.`;
+
+const insightFunctionDeclaration: FunctionDeclaration = {
+  name: "emit_insight",
+  description: "Emit a structured nutrition insight for a period",
+  parameters: {
+    type: SchemaType.OBJECT,
+    properties: {
+      title: { type: SchemaType.STRING, description: "Título curto (<=80 chars)" },
+      headline: { type: SchemaType.STRING, description: "Frase de destaque (<=160 chars)" },
+      bullets: {
+        type: SchemaType.ARRAY,
+        items: { type: SchemaType.STRING },
+        description: "1 a 5 observações curtas e específicas",
+      },
+      score: {
+        type: SchemaType.NUMBER,
+        description: "0-100, aderência geral do período (opcional)",
+      },
+      tone: {
+        type: SchemaType.STRING,
+        format: "enum",
+        enum: ["celebrate", "encourage", "nudge"],
+      },
+    },
+    required: ["title", "headline", "bullets", "tone"],
+  },
+};
+
+async function generateInsightWithGemini(input: {
+  periodType: string;
+  locale: string;
+  data: unknown;
+}) {
+  const client = getClient();
+  const model = client.getGenerativeModel({
+    model: "gemini-2.5-flash",
+    systemInstruction: INSIGHT_SYSTEM_PROMPT,
+    tools: [{ functionDeclarations: [insightFunctionDeclaration] }],
+    toolConfig: {
+      functionCallingConfig: {
+        mode: FunctionCallingMode.ANY,
+        allowedFunctionNames: ["emit_insight"],
+      },
+    },
+  });
+
+  const result = await model.generateContent([
+    `Locale: ${input.locale}\nPeríodo: ${input.periodType}\nDados (JSON): ${JSON.stringify(input.data)}`,
+  ]);
+
+  const calls = result.response.functionCalls();
+  if (!calls || calls.length === 0) throw new Error("gemini_no_function_call");
+  const parsed = InsightContentSchema.safeParse(calls[0]!.args);
+  if (!parsed.success) {
+    throw new Error(
+      `gemini_insight_schema_violation: ${parsed.error.issues.map((i) => i.message).join(", ")}`,
+    );
+  }
+
+  const um = result.response.usageMetadata;
+  const inputTokens = um?.promptTokenCount ?? 0;
+  const outputTokens = um?.candidatesTokenCount ?? 0;
+  return {
+    output: parsed.data,
+    usage: {
+      inputTokens,
+      outputTokens,
+      costCents: calculateCostCents(inputTokens, outputTokens),
+    },
+  };
+}
+
 export const geminiProvider: LLMProvider = {
   name: "gemini",
 
   async extractMeal({ text, locale }) {
     return extractFromGeminiContent([`Locale: ${locale}\n\nRefeição: ${text}`]);
+  },
+
+  async generateInsight(input) {
+    return generateInsightWithGemini(input);
   },
 };

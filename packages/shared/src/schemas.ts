@@ -400,3 +400,25 @@ export const CommentsResponseSchema = z.object({
   comments: z.array(CommentSchema),
 });
 export type CommentsResponse = z.infer<typeof CommentsResponseSchema>;
+
+// ── M8.2 insights ───────────────────────────────────────────────────────────
+export const InsightContentSchema = z.object({
+  title: z.string().max(80),
+  headline: z.string().max(160),
+  bullets: z.array(z.string().max(200)).min(1).max(5),
+  score: z.number().int().min(0).max(100).nullable().default(null),
+  tone: z.enum(["celebrate", "encourage", "nudge"]),
+});
+export type InsightContent = z.infer<typeof InsightContentSchema>;
+
+export const InsightSchema = z.object({
+  id: z.string().uuid(),
+  period_type: z.enum(["day", "week", "month"]),
+  period_start: z.string(),
+  payload: InsightContentSchema,
+  created_at: z.string(),
+});
+export type Insight = z.infer<typeof InsightSchema>;
+
+export const InsightsResponseSchema = z.object({ insights: z.array(InsightSchema) });
+export type InsightsResponse = z.infer<typeof InsightsResponseSchema>;

@@ -50,6 +50,11 @@ function renderPush(n: PendingNotification): { title: string; body: string } {
         title: "Comentário novo 💬",
         body: String(n.payload.excerpt ?? "Alguém comentou no seu post."),
       };
+    case "insight_ready":
+      return {
+        title: "Sua análise está pronta ✨",
+        body: "Veja o que a IA achou do seu período no Fitbrother.",
+      };
     default:
       return { title: "Fitbrother", body: String(n.payload.body ?? "") };
   }

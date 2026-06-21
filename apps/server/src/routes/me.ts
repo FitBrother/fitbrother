@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import {
   DailySummarySchema,
+  InsightSchema,
   StreakSchema,
   type DailySummary,
   type Streak,
@@ -237,4 +238,40 @@ export async function meRoutes(app: FastifyInstance) {
       summaries: (data ?? []).map((row) => DailySummarySchema.parse(row)),
     });
   });
+
+  // M8.2 — insights de período (RLS owner_read garante só os próprios).
+  app.get("/me/insights", { preHandler: [authRequired] }, async (req, reply) => {
+    const period = (req.query as { period?: string }).period;
+    const supabase = supabaseForRequest(req);
+    let q = supabase
+      .from("ai_insights")
+      .select("id, period_type, period_start, payload, created_at")
+      .order("created_at", { ascending: false })
+      .limit(30);
+    if (period === "day" || period === "week" || period === "month") {
+      q = q.eq("period_type", period);
+    }
+    const { data, error } = await q;
+    if (error) {
+      req.log.error({ err: error }, "insights_query_failed");
+      return reply.code(500).send({ error: error.message });
+    }
+    return reply.send({ insights: (data ?? []).map((r) => InsightSchema.parse(r)) });
+  });
+
+  app.get<{ Params: { id: string } }>(
+    "/me/insights/:id",
+    { preHandler: [authRequired] },
+    async (req, reply) => {
+      const supabase = supabaseForRequest(req);
+      const { data, error } = await supabase
+        .from("ai_insights")
+        .select("id, period_type, period_start, payload, created_at")
+        .eq("id", req.params.id)
+        .maybeSingle();
+      if (error) return reply.code(500).send({ error: error.message });
+      if (!data) return reply.code(404).send({ error: "not_found" });
+      return reply.send({ insight: InsightSchema.parse(data) });
+    },
+  );
 }
