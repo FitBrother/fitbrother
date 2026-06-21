@@ -831,12 +831,7 @@ h6 {
   top: 80px;
   bottom: 80px;
   width: 2px;
-  background: linear-gradient(
-    to bottom,
-    var(--color-primary-200),
-    var(--color-primary-400),
-    var(--color-primary-200)
-  );
+  background: linear-gradient(to bottom, transparent, var(--menta-600), transparent);
   transform: translateX(-50%);
 }
 
@@ -866,18 +861,18 @@ h6 {
   gap: 16px;
 }
 
-/* Número do passo — círculo com gradiente */
+/* Número do passo — círculo menta */
 .step__number {
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  background: var(--gradient-primary);
-  color: var(--text-on-primary);
+  background: var(--menta-500);
+  color: var(--ink-900);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: var(--font-heading);
-  font-weight: 800;
+  font-family: var(--font-display);
+  font-weight: 700;
   font-size: 1.1rem;
   flex-shrink: 0;
 }
@@ -886,27 +881,75 @@ h6 {
 .step__title {
   font-size: 1.5rem;
   font-weight: 700;
+  color: var(--paper);
 }
 
 /* Descrição do passo */
 .step__description {
   font-size: 1rem;
-  color: var(--text-muted);
+  color: var(--text-on-dark-muted);
   line-height: 1.7;
 }
 
-/* Imagem do passo */
+/* Visual do passo */
 .step__image {
   display: flex;
   justify-content: center;
   align-items: center;
 }
 
-.step__image img {
-  max-width: 320px;
+/* Slot de tela — recebe print real (Task 12) ou componente da marca */
+.screen-slot {
   width: 100%;
+  max-width: 340px;
   border-radius: var(--border-radius-xl);
+  background: var(--bg-card-dark);
+  border: 1px solid var(--border-dark);
   box-shadow: var(--shadow-lg);
+  padding: 22px;
+  overflow: hidden;
+}
+.screen-slot img {
+  width: 100%;
+  border-radius: var(--border-radius-lg);
+}
+
+/* Card interno dos passos (anel/macros/ranking) */
+.step-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+/* Mini chat de WhatsApp (fallback do passo 1) */
+.wa-chat {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.wa-bubble {
+  padding: 12px 14px;
+  border-radius: 14px;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  max-width: 85%;
+}
+.wa-bubble--out {
+  align-self: flex-end;
+  background: var(--menta-600);
+  color: var(--paper);
+  border-bottom-right-radius: 4px;
+}
+.wa-bubble--in {
+  align-self: flex-start;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-on-dark);
+  border: 1px solid var(--border-dark);
+  border-bottom-left-radius: 4px;
+}
+.wa-bubble strong {
+  color: var(--menta-400);
 }
 
 /* ========================================================================
