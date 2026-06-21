@@ -1925,3 +1925,28 @@ body {
   padding: 0 0 18px;
   margin: 0;
 }
+
+/* ===== Faixa de CTA final (menta sólida) ===== */
+.final-cta {
+  background: var(--menta-500);
+  padding: 96px 0;
+}
+.final-cta__inner {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+.final-cta__title {
+  color: var(--ink-900);
+  font-size: clamp(2rem, 4vw, 3rem);
+}
+.final-cta__sub {
+  color: rgba(4, 16, 12, 0.8);
+  font-size: 1.1rem;
+}
+.final-cta .store-badge {
+  background: var(--ink-900);
+  color: var(--paper);
+}
