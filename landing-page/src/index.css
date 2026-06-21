@@ -1598,3 +1598,114 @@ h6 {
 body {
   animation: pageLoad 0.5s ease-out;
 }
+
+/* ========================================================================
+   18. PRIMITIVAS DA MARCA
+   Componentes reutilizáveis: anel de calorias, chips de macro,
+   gráfico pontilhado e linha de ranking.
+   ======================================================================== */
+
+/* Anel de calorias — conic-gradient com número central */
+.cring {
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: conic-gradient(
+    var(--menta-500) 0% var(--pct),
+    rgba(255, 255, 255, 0.08) var(--pct) 100%
+  );
+  position: relative;
+}
+.cring__inner {
+  position: absolute;
+  inset: 12px;
+  border-radius: 50%;
+  background: var(--ink-800);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+.cring__inner strong {
+  font-family: var(--font-display);
+  font-size: 2rem;
+  color: var(--paper);
+  line-height: 1.1;
+}
+.cring__inner span {
+  font-size: 0.7rem;
+  color: var(--menta-500);
+  font-weight: 600;
+}
+
+/* Chips de macronutrientes */
+.macro-chips {
+  display: flex;
+  gap: 10px;
+}
+.macro-chip {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-dark);
+  border-radius: var(--border-radius-md);
+  padding: 10px;
+  text-align: center;
+}
+.macro-chip strong {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+}
+.macro-chip span {
+  font-size: 0.7rem;
+  color: var(--text-on-dark-muted);
+}
+
+/* Gráfico pontilhado — aderência da semana */
+.dotted-chart {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+}
+.dotted-chart i {
+  aspect-ratio: 1;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.15);
+}
+.dotted-chart i.on {
+  background: var(--menta-500);
+}
+
+/* Linha de ranking de amigos */
+.lb-row {
+  display: grid;
+  grid-template-columns: 28px 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 14px;
+  border-radius: var(--border-radius-md);
+}
+.lb-row--you {
+  background: rgba(6, 213, 159, 0.12);
+  border: 1px solid rgba(6, 213, 159, 0.3);
+}
+.lb-rank {
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--menta-500);
+}
+.lb-name {
+  color: var(--paper);
+  font-weight: 600;
+}
+.lb-name em {
+  color: var(--text-on-dark-muted);
+  font-style: normal;
+  font-weight: 400;
+}
+.lb-value {
+  color: var(--text-on-dark-muted);
+  font-size: 0.85rem;
+}
