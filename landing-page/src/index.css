@@ -1882,3 +1882,46 @@ body {
     grid-template-columns: 1fr;
   }
 }
+
+/* ===== FAQ (acordeão) ===== */
+.faq {
+  max-width: 760px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.faq__item {
+  background: var(--bg-card-dark);
+  border: 1px solid var(--border-dark);
+  border-radius: var(--border-radius-md);
+  padding: 4px 20px;
+}
+.faq__q {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  cursor: pointer;
+  list-style: none;
+  padding: 18px 0;
+  font-family: var(--font-display);
+  font-weight: 600;
+  color: var(--paper);
+}
+.faq__q::-webkit-details-marker {
+  display: none;
+}
+.faq__q svg {
+  color: var(--menta-500);
+  transition: transform var(--animation-duration-fast) var(--animation-easing);
+  flex-shrink: 0;
+}
+.faq__item[open] .faq__q svg {
+  transform: rotate(180deg);
+}
+.faq__a {
+  color: var(--text-on-dark-muted);
+  padding: 0 0 18px;
+  margin: 0;
+}
