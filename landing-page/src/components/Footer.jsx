@@ -27,9 +27,10 @@ const Footer = () => {
 
           {/* === Coluna 1: Marca + Descrição === */}
           <div className="footer__brand">
-            {/* Logo da marca */}
+            {/* Logo da marca — selo + nome */}
             <div className="footer__brand-logo">
-              <img src="/brand/horizontal_logo_no_bg.png" alt="FitBrother" height="26" />
+              <img src="/brand/app_icon.png" alt="" />
+              FitBrother
             </div>
 
             {/* Tagline do projeto */}

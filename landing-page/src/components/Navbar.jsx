@@ -44,9 +44,10 @@ const Navbar = () => {
   return (
     <nav className={`navbar ${scrolled ? 'scrolled' : ''}`}>
       <div className="navbar__inner">
-        {/* Logo do FitBrother — marca horizontal */}
+        {/* Logo do FitBrother — selo + nome (alto contraste no tema claro) */}
         <a href="#hero" className="navbar__logo" aria-label="FitBrother — início">
-          <img src="/brand/horizontal_logo_no_bg.png" alt="FitBrother" height="28" />
+          <img src="/brand/app_icon.png" alt="" />
+          FitBrother
         </a>
 
         {/* Links de navegação — desktop inline, overlay no mobile */}
