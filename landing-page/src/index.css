@@ -1084,8 +1084,9 @@ h6 {
 
 /* Container do footer — fundo escuro */
 .footer {
-  background-color: var(--bg-dark);
+  background-color: var(--ink-900);
   color: var(--text-on-dark);
+  border-top: 1px solid var(--border-dark);
   padding: 64px 0 32px;
 }
 
@@ -1115,12 +1116,12 @@ h6 {
 }
 
 .footer__brand-logo .navbar__logo-accent {
-  color: var(--color-primary-400);
+  color: var(--menta-500);
 }
 
 .footer__brand-description {
   font-size: 0.9rem;
-  color: var(--color-neutral-400);
+  color: var(--text-on-dark-muted);
   line-height: 1.7;
   max-width: 300px;
 }
@@ -1144,12 +1145,12 @@ h6 {
 
 .footer__link {
   font-size: 0.9rem;
-  color: var(--color-neutral-400);
+  color: var(--text-on-dark-muted);
   transition: color var(--animation-duration-fast) var(--animation-easing);
 }
 
 .footer__link:hover {
-  color: var(--color-primary-400);
+  color: var(--menta-400);
 }
 
 /* Divisor do footer */
@@ -1165,7 +1166,7 @@ h6 {
   align-items: center;
   justify-content: space-between;
   font-size: 0.8rem;
-  color: var(--color-neutral-500);
+  color: var(--text-on-dark-muted);
 }
 
 .footer__bottom-links {
@@ -1174,12 +1175,12 @@ h6 {
 }
 
 .footer__bottom-links a {
-  color: var(--color-neutral-500);
+  color: var(--text-on-dark-muted);
   transition: color var(--animation-duration-fast) var(--animation-easing);
 }
 
 .footer__bottom-links a:hover {
-  color: var(--color-primary-400);
+  color: var(--menta-400);
 }
 
 /* ========================================================================
