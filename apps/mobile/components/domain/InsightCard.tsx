@@ -1,10 +1,14 @@
 import type { Insight } from "@fitbrother/shared";
-import { Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
+import { useRouter } from "expo-router";
+import { Share2 } from "lucide-react-native";
+import { colors } from "@/lib/colors";
 import { shadows } from "@/lib/shadows";
 
 const NUM: { fontVariant: ["tabular-nums"] } = { fontVariant: ["tabular-nums"] };
 
 export function InsightCard({ insight }: { insight: Insight }) {
+  const router = useRouter();
   const p = insight.payload;
   return (
     <View style={shadows.card} className="rounded-2xl bg-white p-4">
@@ -24,6 +28,15 @@ export function InsightCard({ insight }: { insight: Insight }) {
           </Text>
         ))}
       </View>
+      <Pressable
+        onPress={() => router.push(`/(app)/share/insight/${insight.id}` as never)}
+        accessibilityRole="button"
+        accessibilityLabel="Exportar imagem"
+        className="mt-3 min-h-[44px] flex-row items-center gap-2 self-start rounded-full bg-neutral-100 px-4"
+      >
+        <Share2 size={18} color={colors.neutral[700]} />
+        <Text className="font-sans-medium text-neutral-700">Exportar imagem</Text>
+      </Pressable>
     </View>
   );
 }
