@@ -1827,3 +1827,58 @@ body {
   font-size: 0.85rem;
   margin-top: 2px;
 }
+
+/* ===== Seção clara (quebra de ritmo) ===== */
+.section--light {
+  background: var(--bg-section-light);
+}
+.section--light .section__title {
+  color: var(--text-on-light);
+}
+.section--light .section__subtitle {
+  color: var(--text-on-light-muted);
+}
+
+/* ===== Vitrine do Preview ===== */
+.preview__grid {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr 1fr;
+  gap: 20px;
+  align-items: stretch;
+}
+.preview__card {
+  background: var(--paper);
+  border-radius: var(--border-radius-xl);
+  padding: 24px;
+  box-shadow: var(--shadow-md);
+  min-height: 280px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.preview__card--dark {
+  background: var(--ink-800);
+  border: 1px solid var(--border-dark);
+}
+.preview__card-title {
+  color: var(--paper);
+  font-size: 1rem;
+}
+.preview__dash {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  margin-top: auto;
+  margin-bottom: auto;
+}
+.preview__card-note {
+  color: var(--text-on-dark-muted);
+  font-size: 0.85rem;
+  margin-top: auto;
+}
+@media (max-width: 768px) {
+  .preview__grid {
+    grid-template-columns: 1fr;
+  }
+}
