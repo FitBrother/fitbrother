@@ -210,7 +210,7 @@ h6 {
 
 /* Seção escura — fundo dark com texto claro */
 .section--dark {
-  background-color: var(--bg-dark);
+  background-color: var(--ink-900);
   color: var(--text-on-dark);
 }
 
@@ -223,7 +223,7 @@ h6 {
 }
 
 .section--dark p {
-  color: var(--color-neutral-300);
+  color: var(--text-on-dark-muted);
 }
 
 /* Seção alternada — superfície escura levemente distinta */
@@ -243,7 +243,7 @@ h6 {
 /* Título da seção */
 .section__title {
   font-size: clamp(2rem, 4vw, 3rem);
-  font-weight: 800;
+  font-weight: 700;
   margin-bottom: 16px;
   letter-spacing: -0.02em;
 }
@@ -323,7 +323,7 @@ h6 {
   gap: 8px;
   padding: 14px 32px;
   border-radius: var(--border-radius-full);
-  font-family: var(--font-heading);
+  font-family: var(--font-display);
   font-weight: 600;
   font-size: 0.95rem;
   line-height: 1;
@@ -446,10 +446,10 @@ h6 {
   display: flex;
   align-items: center;
   gap: 10px;
-  font-family: var(--font-heading);
-  font-weight: 800;
+  font-family: var(--font-display);
+  font-weight: 700;
   font-size: 1.4rem;
-  color: var(--text-heading);
+  color: var(--paper);
   letter-spacing: -0.02em;
 }
 
@@ -603,7 +603,7 @@ h6 {
 .hero__orb--accent {
   width: 300px;
   height: 300px;
-  background: var(--color-primary-400);
+  background: var(--menta-500);
   top: 50%;
   left: 40%;
   opacity: 0.08;
@@ -1024,7 +1024,7 @@ h6 {
 }
 
 .footer__brand-logo {
-  font-family: var(--font-heading);
+  font-family: var(--font-display);
   font-weight: 800;
   font-size: 1.4rem;
   color: var(--text-on-dark);
@@ -1046,7 +1046,7 @@ h6 {
 
 /* Colunas de links do footer */
 .footer__column-title {
-  font-family: var(--font-heading);
+  font-family: var(--font-display);
   font-weight: 700;
   font-size: 0.9rem;
   color: var(--text-on-dark);
@@ -1287,12 +1287,7 @@ h6 {
 
 /* Texto com gradiente — efeito visual marcante */
 .text-gradient {
-  background: linear-gradient(
-    135deg,
-    var(--color-primary-400),
-    var(--color-primary-300),
-    var(--color-primary-500)
-  );
+  background: linear-gradient(135deg, var(--menta-400), var(--menta-500), var(--menta-600));
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -1410,6 +1405,34 @@ h6 {
 /* Aplica animação de entrada suave ao body */
 body {
   animation: pageLoad 0.5s ease-out;
+}
+
+/* ========================================================================
+   ACESSIBILIDADE — respeita usuários que preferem menos movimento
+   ======================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+  /* Garante que elementos de scroll-reveal fiquem visíveis sem animar */
+  .reveal {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
+/* Foco visível para navegação por teclado */
+a:focus-visible,
+button:focus-visible,
+summary:focus-visible {
+  outline: 2px solid var(--menta-400);
+  outline-offset: 3px;
+  border-radius: var(--border-radius-sm);
 }
 
 /* ========================================================================
