@@ -10,93 +10,75 @@
    Nunca usar valores de cor "soltos" — sempre referenciar variáveis.
    ======================================================================== */
 :root {
-  /* === CORES PRIMÁRIAS (Teal — cor da marca) === */
-  --color-primary-50: #F0FDFC;
-  --color-primary-100: #CCFBF1;
-  --color-primary-200: #99F6E4;
-  --color-primary-300: #5EEAD4;
-  --color-primary-400: #2DD4BF; /* Principal */
-  --color-primary-500: #14B8A6;
-  --color-primary-600: #0D9488;
-  --color-primary-700: #0F766E;
-  --color-primary-800: #115E59;
-  --color-primary-900: #134E4A;
+  /* === MARCA — Menta === */
+  --menta-400: #3FE3B5;   /* hover / brilho */
+  --menta-500: #06D59F;   /* primária */
+  --menta-600: #04A87E;   /* pressionado / gradiente escuro */
 
-  /* === CORES NEUTRAS === */
-  --color-neutral-50: #F8FAFC;
-  --color-neutral-100: #F1F5F9;
-  --color-neutral-200: #E2E8F0;
-  --color-neutral-300: #CBD5E1;
-  --color-neutral-400: #94A3B8;
-  --color-neutral-500: #64748B;
-  --color-neutral-600: #475569;
-  --color-neutral-700: #334155;
-  --color-neutral-800: #1E293B;
-  --color-neutral-900: #0F172A;
+  /* === TONS ESCUROS (ink) === */
+  --ink-900: #010603;     /* fundo mais profundo */
+  --ink-800: #04100C;     /* superfícies / seções escuras */
+  --ink-700: #0A1F17;     /* cards elevados */
+  --ink-600: #12352A;     /* borda sutil sobre dark */
 
-  /* === CORES DE MACROS (Proteína, Carboidrato, Gordura, Calorias) === */
-  --color-protein: #F43F5E;
-  --color-carbs: #F59E0B;
-  --color-fat: #8B5CF6;
-  --color-calories: var(--color-primary-400);
+  /* === CLAROS === */
+  --paper: #FFFFFF;
+  --mist:  #ECEEEE;       /* seção clara (quebra de ritmo) */
+  --mist-200: #DDE1E1;
 
-  /* === CORES DE FEEDBACK (Sucesso, Erro, Alerta, Sequência) === */
+  /* === MACROS (semântico, do app) === */
+  --macro-protein: #FF6B81;
+  --macro-carbs:   #FFC24B;
+  --macro-fat:     #A78BFA;
+  --macro-calories: var(--menta-500);
+
+  /* === FEEDBACK === */
   --color-success: #22C55E;
-  --color-danger: #EF4444;
-  --color-warning: #FBBF24;
-  --color-streak: #FB923C;
+  --color-danger:  #EF4444;
+  --color-streak:  #FB923C;
 
   /* === GRADIENTES === */
-  --gradient-hero: linear-gradient(135deg, #0F172A 0%, #1a2a3a 50%, #0d3331 100%);
-  --gradient-primary: linear-gradient(135deg, var(--color-primary-400), var(--color-primary-600));
-  --gradient-card: linear-gradient(135deg, rgba(45, 212, 191, 0.05), rgba(139, 92, 246, 0.05));
-  --gradient-glow: radial-gradient(
-    600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
-    rgba(45, 212, 191, 0.15),
-    transparent 40%
-  );
+  --gradient-hero: radial-gradient(120% 90% at 80% 0%, #06351f 0%, var(--ink-800) 55%, var(--ink-900) 100%);
+  --gradient-menta: linear-gradient(135deg, var(--menta-400), var(--menta-600));
+  --gradient-glow: radial-gradient(600px circle at var(--mouse-x,50%) var(--mouse-y,50%), rgba(6,213,159,.15), transparent 40%);
 
-  /* === BACKGROUNDS (Fundos de cada contexto) === */
-  --bg-body: var(--color-neutral-50);
-  --bg-card: #FFFFFF;
-  --bg-card-hover: #FAFFFE;
-  --bg-section-alt: var(--color-neutral-100);
-  --bg-dark: var(--color-neutral-900);
-  --bg-dark-card: rgba(255, 255, 255, 0.05);
-  --bg-glass: rgba(255, 255, 255, 0.8);
-  --bg-glass-dark: rgba(15, 23, 42, 0.85);
+  /* === BACKGROUNDS === */
+  --bg-body: var(--ink-900);
+  --bg-section-dark: var(--ink-800);
+  --bg-section-light: var(--mist);
+  --bg-card-dark: var(--ink-700);
+  --bg-glass-dark: rgba(4,16,12,.7);
 
-  /* === TEXTO (Cores para cada contexto tipográfico) === */
-  --text-heading: var(--color-neutral-900);
-  --text-body: var(--color-neutral-700);
-  --text-muted: var(--color-neutral-500);
-  --text-on-dark: #FFFFFF;
-  --text-on-primary: #FFFFFF;
+  /* === TEXTO === */
+  --text-on-dark: var(--paper);
+  --text-on-dark-muted: rgba(236,238,238,.66);
+  --text-on-light: var(--ink-800);
+  --text-on-light-muted: rgba(4,16,12,.62);
+  --text-on-menta: var(--ink-800);
 
-  /* === BORDAS E SOMBRAS === */
-  --border-color: var(--color-neutral-200);
+  /* === BORDAS / SOMBRAS / RAIO === */
+  --border-dark: rgba(255,255,255,.08);
+  --border-light: rgba(4,16,12,.1);
   --border-radius-sm: 8px;
   --border-radius-md: 12px;
   --border-radius-lg: 16px;
   --border-radius-xl: 24px;
   --border-radius-full: 9999px;
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
-  --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.08);
-  --shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.12);
-  --shadow-xl: 0 20px 60px rgba(0, 0, 0, 0.15);
-  --shadow-glow: 0 0 40px rgba(45, 212, 191, 0.3);
+  --shadow-md: 0 4px 20px rgba(0,0,0,.25);
+  --shadow-lg: 0 8px 40px rgba(0,0,0,.4);
+  --shadow-glow: 0 0 50px rgba(6,213,159,.25);
 
-  /* === TIPOGRAFIA (Famílias de fonte) === */
-  --font-heading: 'Plus Jakarta Sans', sans-serif;
+  /* === TIPOGRAFIA === */
+  --font-display: 'Space Grotesk', sans-serif;
   --font-body: 'Inter', sans-serif;
 
-  /* === ESPAÇAMENTOS (Padrões de layout) === */
+  /* === LAYOUT === */
   --section-padding-y: 120px;
   --section-padding-x: 24px;
   --container-max: 1200px;
   --navbar-height: 72px;
 
-  /* === ANIMAÇÕES (Durações e curvas de easing) === */
+  /* === ANIMAÇÃO === */
   --animation-duration: 0.6s;
   --animation-duration-fast: 0.3s;
   --animation-duration-slow: 0.8s;
@@ -169,7 +151,7 @@ body {
   font-family: var(--font-body);
   font-size: 16px;
   line-height: 1.7;
-  color: var(--text-body);
+  color: var(--text-on-dark);
   background-color: var(--bg-body);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -178,26 +160,27 @@ body {
 
 /* Estilo de seleção de texto — usa cor primária da marca */
 ::selection {
-  background-color: var(--color-primary-200);
-  color: var(--color-primary-900);
+  background-color: var(--menta-500);
+  color: var(--ink-900);
 }
 
 ::-moz-selection {
-  background-color: var(--color-primary-200);
-  color: var(--color-primary-900);
+  background-color: var(--menta-500);
+  color: var(--ink-900);
 }
 
-/* Todos os títulos usam a fonte de heading (Plus Jakarta Sans) */
+/* Todos os títulos usam a fonte display (Space Grotesk) */
 h1,
 h2,
 h3,
 h4,
 h5,
 h6 {
-  font-family: var(--font-heading);
+  font-family: var(--font-display);
   font-weight: 700;
-  color: var(--text-heading);
-  line-height: 1.2;
+  color: var(--text-on-dark);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
 }
 
 /* ========================================================================
