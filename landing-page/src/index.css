@@ -226,9 +226,9 @@ h6 {
   color: var(--color-neutral-300);
 }
 
-/* Seção alternada — fundo levemente diferente para quebrar monotonia */
+/* Seção alternada — superfície escura levemente distinta */
 .section--alt {
-  background-color: var(--bg-section-alt);
+  background-color: var(--bg-section-dark);
 }
 
 /* Cabeçalho de seção — centralizado com largura máxima legível */
@@ -251,7 +251,7 @@ h6 {
 /* Subtítulo / descrição da seção */
 .section__subtitle {
   font-size: clamp(1rem, 2vw, 1.2rem);
-  color: var(--text-muted);
+  color: var(--text-on-dark-muted);
   line-height: 1.7;
 }
 
@@ -744,8 +744,8 @@ h6 {
 
 /* Card de funcionalidade — vidro com borda sutil */
 .feature-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
+  background: var(--bg-card-dark);
+  border: 1px solid var(--border-dark);
   border-radius: var(--border-radius-lg);
   padding: 36px 28px;
   display: flex;
@@ -756,38 +756,37 @@ h6 {
   overflow: hidden;
 }
 
-/* Efeito de gradiente sutil no fundo do card */
+/* Brilho menta sutil no fundo do card ao hover */
 .feature-card::before {
   content: '';
   position: absolute;
   inset: 0;
-  background: var(--gradient-card);
+  background: radial-gradient(120% 80% at 50% 0%, rgba(6, 213, 159, 0.08), transparent 60%);
   opacity: 0;
   transition: opacity var(--animation-duration-fast) var(--animation-easing);
 }
 
-/* Hover — card sobe, sombra aumenta, borda muda */
+/* Hover — card sobe, sombra aumenta, borda menta */
 .feature-card:hover {
   transform: translateY(-8px);
   box-shadow: var(--shadow-lg);
-  border-color: var(--color-primary-200);
+  border-color: rgba(6, 213, 159, 0.4);
 }
 
 .feature-card:hover::before {
   opacity: 1;
 }
 
-/* Ícone da funcionalidade — círculo com fundo primário */
+/* Ícone da funcionalidade — círculo menta translúcido */
 .feature-card__icon {
   width: 56px;
   height: 56px;
   border-radius: var(--border-radius-md);
-  background: var(--gradient-primary);
+  background: rgba(6, 213, 159, 0.12);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.5rem;
-  color: var(--text-on-primary);
+  color: var(--menta-500);
   position: relative;
   z-index: 1;
   flex-shrink: 0;
@@ -797,6 +796,7 @@ h6 {
 .feature-card__title {
   font-size: 1.15rem;
   font-weight: 700;
+  color: var(--paper);
   position: relative;
   z-index: 1;
 }
@@ -804,7 +804,7 @@ h6 {
 /* Descrição do card de funcionalidade */
 .feature-card__description {
   font-size: 0.9rem;
-  color: var(--text-muted);
+  color: var(--text-on-dark-muted);
   line-height: 1.7;
   position: relative;
   z-index: 1;
