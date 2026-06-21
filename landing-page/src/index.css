@@ -352,14 +352,14 @@ h6 {
   transform: translateX(100%);
 }
 
-/* Botão primário — gradiente teal com sombra brilhante */
+/* Botão primário — menta sólida */
 .btn--primary {
-  background: var(--gradient-primary);
-  color: var(--text-on-primary);
-  box-shadow: var(--shadow-sm);
+  background: var(--menta-500);
+  color: var(--text-on-menta);
 }
 
 .btn--primary:hover {
+  background: var(--menta-400);
   box-shadow: var(--shadow-glow);
   transform: translateY(-2px) scale(1.02);
 }
@@ -368,27 +368,27 @@ h6 {
   transform: translateY(0) scale(0.98);
 }
 
-/* Botão outline — borda teal, fundo transparente */
+/* Botão outline — borda menta, fundo transparente */
 .btn--outline {
   background: transparent;
-  color: var(--color-primary-500);
-  border: 2px solid var(--color-primary-400);
+  color: var(--menta-400);
+  border: 2px solid var(--menta-500);
 }
 
 .btn--outline:hover {
-  background: var(--color-primary-50);
-  border-color: var(--color-primary-500);
+  background: rgba(6, 213, 159, 0.1);
+  border-color: var(--menta-400);
   transform: translateY(-2px);
 }
 
-/* Botão dark — fundo escuro para contraste em seções claras */
+/* Botão dark — fundo escuro elevado */
 .btn--dark {
-  background-color: var(--color-neutral-900);
-  color: var(--text-on-dark);
+  background-color: var(--ink-700);
+  color: var(--paper);
 }
 
 .btn--dark:hover {
-  background-color: var(--color-neutral-800);
+  background-color: var(--ink-600);
   transform: translateY(-2px);
   box-shadow: var(--shadow-lg);
 }
@@ -412,18 +412,22 @@ h6 {
   right: 0;
   height: var(--navbar-height);
   z-index: 1000;
-  background: var(--bg-glass);
+  background: var(--bg-glass-dark);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-bottom: 1px solid transparent;
   transition: all var(--animation-duration-fast) var(--animation-easing);
 }
 
-/* Navbar ao rolar — mais opaca e com sombra */
+/* Navbar ao rolar — mais opaca e com borda */
 .navbar.scrolled {
-  background: rgba(255, 255, 255, 0.95);
-  border-bottom: 1px solid var(--border-color);
-  box-shadow: var(--shadow-sm);
+  background: rgba(4, 16, 12, 0.92);
+  border-bottom: 1px solid var(--border-dark);
+  box-shadow: var(--shadow-md);
+}
+
+.navbar__logo img {
+  display: block;
 }
 
 /* Container interno da navbar — flexbox para distribuir itens */
@@ -456,7 +460,7 @@ h6 {
 
 /* Destaque da cor primária no nome */
 .navbar__logo-accent {
-  color: var(--color-primary-500);
+  color: var(--menta-500);
 }
 
 /* Links de navegação — espaçados horizontalmente */
@@ -471,7 +475,7 @@ h6 {
   font-family: var(--font-body);
   font-size: 0.9rem;
   font-weight: 500;
-  color: var(--text-body);
+  color: var(--text-on-dark-muted);
   position: relative;
   padding: 4px 0;
   transition: color var(--animation-duration-fast) var(--animation-easing);
@@ -485,13 +489,13 @@ h6 {
   left: 0;
   width: 0;
   height: 2px;
-  background: var(--gradient-primary);
+  background: var(--menta-500);
   border-radius: var(--border-radius-full);
   transition: width var(--animation-duration-fast) var(--animation-easing);
 }
 
 .navbar__link:hover {
-  color: var(--color-primary-600);
+  color: var(--menta-400);
 }
 
 .navbar__link:hover::after {
@@ -529,7 +533,7 @@ h6 {
   display: block;
   width: 100%;
   height: 2.5px;
-  background-color: var(--text-heading);
+  background-color: var(--paper);
   border-radius: var(--border-radius-full);
   transition: all var(--animation-duration-fast) var(--animation-easing);
   transform-origin: center;
@@ -1329,11 +1333,11 @@ h6 {
     display: inline-flex;
   }
 
-  /* Menu mobile — tela cheia com fundo de vidro */
+  /* Menu mobile — tela cheia com fundo de vidro escuro */
   .navbar__links {
     position: fixed;
     inset: 0;
-    background: var(--bg-glass);
+    background: rgba(4, 16, 12, 0.96);
     backdrop-filter: blur(30px);
     -webkit-backdrop-filter: blur(30px);
     flex-direction: column;
