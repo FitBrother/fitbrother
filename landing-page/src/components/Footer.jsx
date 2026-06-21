@@ -27,35 +27,36 @@ const Footer = () => {
 
           {/* === Coluna 1: Marca + Descrição === */}
           <div className="footer__brand">
-            {/* Logo com emoji */}
+            {/* Logo da marca — selo + nome */}
             <div className="footer__brand-logo">
-              🍏 Fit<span className="navbar__logo-accent">Brother</span>
+              <img src="/brand/app_icon.png" alt="" />
+              FitBrother
             </div>
 
             {/* Tagline do projeto */}
             <p className="footer__brand-description">
-              Nutrição inteligente, sem esforço. Registre refeições com IA 
-              e acompanhe seus macros em tempo real.
+              App de nutrição com IA. Fale ou escreva o que comeu e acompanhe seus
+              macros em tempo real.
             </p>
           </div>
 
-          {/* === Coluna 2: Links do Projeto === */}
+          {/* === Coluna 2: Produto === */}
           <div>
-            <h4 className="footer__column-title">Projeto</h4>
+            <h4 className="footer__column-title">Produto</h4>
             <ul className="footer__links">
               <li>
-                <a
-                  href="https://github.com/FitBrother/fitbrother"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="footer__link"
-                >
-                  GitHub
+                <a href="#features" className="footer__link">
+                  Recursos
                 </a>
               </li>
               <li>
-                <a href="#features" className="footer__link">
-                  Features
+                <a href="#how-it-works" className="footer__link">
+                  Como funciona
+                </a>
+              </li>
+              <li>
+                <a href="#preview" className="footer__link">
+                  Preview
                 </a>
               </li>
             </ul>
@@ -66,13 +67,13 @@ const Footer = () => {
             <h4 className="footer__column-title">Navegação</h4>
             <ul className="footer__links">
               <li>
-                <a href="#how-it-works" className="footer__link">
-                  Como Funciona
+                <a href="#faq" className="footer__link">
+                  FAQ
                 </a>
               </li>
               <li>
-                <a href="#team" className="footer__link">
-                  Equipe
+                <a href="#download" className="footer__link">
+                  Baixar
                 </a>
               </li>
               <li>

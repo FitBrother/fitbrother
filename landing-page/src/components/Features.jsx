@@ -23,26 +23,28 @@
  * Para adicionar ou modificar uma funcionalidade,
  * basta editar este array. Os cards são gerados automaticamente.
  */
+import Icon from './Icon'
+
 const featuresData = [
   {
-    icon: '🎤',
-    title: 'Registro por Voz e Texto',
+    icon: 'mic',
+    title: 'Registro por voz e texto',
     description: 'Fale ou escreva o que comeu em linguagem natural. Sem formulários, sem busca manual.',
   },
   {
-    icon: '🤖',
-    title: 'IA que Calcula Macros',
-    description: 'Inteligência artificial identifica os alimentos e calcula calorias, proteínas, carboidratos e gorduras.',
+    icon: 'bot',
+    title: 'IA que calcula macros',
+    description: 'A IA identifica os alimentos e calcula calorias, proteínas, carboidratos e gorduras.',
   },
   {
-    icon: '💬',
-    title: 'WhatsApp Integrado',
-    description: 'Registre suas refeições direto pelo WhatsApp. Tudo sincroniza em tempo real com o app.',
+    icon: 'whatsapp',
+    title: 'WhatsApp integrado',
+    description: 'Registre direto pelo WhatsApp. Tudo sincroniza em tempo real com o app.',
   },
   {
-    icon: '🔥',
-    title: 'Gamificação Social',
-    description: 'Streaks diários, conquistas, ranking semanal com amigos. Estilo Duolingo para nutrição.',
+    icon: 'flame',
+    title: 'Gamificação social',
+    description: 'Streaks diários, conquistas e ranking semanal com amigos. Estilo Duolingo para nutrição.',
   },
 ]
 
@@ -76,11 +78,9 @@ const Features = () => {
               key={index}
               className={`feature-card reveal reveal-delay-${index + 1}`}
             >
-              {/* Ícone em círculo com gradiente primário */}
+              {/* Ícone SVG em círculo menta */}
               <div className="feature-card__icon">
-                <span role="img" aria-label={feature.title}>
-                  {feature.icon}
-                </span>
+                <Icon name={feature.icon} size={26} />
               </div>
 
               {/* Título da funcionalidade */}

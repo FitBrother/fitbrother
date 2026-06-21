@@ -57,3 +57,6 @@ coverage/
 *.tgz
 .env*
 *.deb
+
+# Brainstorm/visual-companion artifacts
+.superpowers/

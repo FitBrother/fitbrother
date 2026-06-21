@@ -1,93 +1,106 @@
 /**
  * HowItWorks.jsx — Seção "Como Funciona"
- * 
+ *
  * Mostra os 3 passos para usar o FitBrother:
- * 1. Fale ou Escreva — entrada por voz/texto
- * 2. A IA Faz o Trabalho — processamento automático
+ * 1. Fale ou Escreva — entrada por voz/texto/WhatsApp
+ * 2. A IA Faz o Trabalho — transcrição + cálculo de macros
  * 3. Acompanhe e Compita — dashboard + gamificação
- * 
- * Layout alternado: imagem alterna entre esquerda e direita a cada step.
- * Linha vertical conecta os passos (via CSS pseudo-element).
- * Animações de scroll-reveal com direções alternadas.
- * 
- * Todas as cores usam variáveis CSS do index.css.
- * Classes CSS estão definidas na seção 10 do index.css.
+ *
+ * Layout alternado: o visual alterna entre esquerda e direita a cada step.
+ * Cada passo tem um slot visual (`data-screenshot`) que recebe print real
+ * na Task 12; até lá, mostra um componente da marca como fallback de alta
+ * qualidade.
+ *
+ * Classes CSS na seção 10 do index.css.
  */
 
-/**
- * Dados dos passos do fluxo.
- * Cada step tem número, título, descrição e caminho da imagem.
- * Para adicionar novos passos, basta adicionar objetos a este array.
- */
+import CalorieRing from './brand/CalorieRing'
+import MacroChips from './brand/MacroChips'
+import LeaderboardRow from './brand/LeaderboardRow'
+import DottedChart from './brand/DottedChart'
+
 const stepsData = [
   {
     number: '01',
-    title: 'Fale ou Escreva',
-    description: 'Abra o app ou mande um WhatsApp. Diga naturalmente: "Comi 2 ovos e um café com leite". Sem formulários complicados.',
-    image: '/images/whatsapp.png',
-    imageAlt: 'Interface de chat do WhatsApp com o bot nutricional FitBrother',
+    shot: 'whatsapp',
+    title: 'Fale ou escreva',
+    description:
+      'Abra o app ou mande um WhatsApp. Diga naturalmente: "Comi 2 ovos e um café com leite". Sem formulários complicados.',
+    imageAlt: 'Conversa de WhatsApp registrando uma refeição',
   },
   {
     number: '02',
-    title: 'A IA Faz o Trabalho',
-    description: 'Nossa inteligência artificial transcreve áudios, identifica cada alimento e calcula os macronutrientes automaticamente.',
-    image: '/images/how-it-works.png',
-    imageAlt: 'Fluxo de processamento da IA — do áudio aos macronutrientes',
+    shot: 'ai-flow',
+    title: 'A IA faz o trabalho',
+    description:
+      'A inteligência artificial transcreve áudios, identifica cada alimento e calcula os macronutrientes automaticamente.',
+    imageAlt: 'Resultado da IA — calorias e macronutrientes',
   },
   {
     number: '03',
-    title: 'Acompanhe e Compita',
-    description: 'Dashboard em tempo real com seus macros. Mantenha seu streak, desbloqueie conquistas e suba no ranking dos amigos.',
-    image: '/images/gamification.png',
-    imageAlt: 'Tela de gamificação — streaks, conquistas e ranking',
+    shot: 'gamification',
+    title: 'Acompanhe e compita',
+    description:
+      'Dashboard em tempo real com seus macros. Mantenha seu streak, desbloqueie conquistas e suba no ranking dos amigos.',
+    imageAlt: 'Ranking semanal e aderência da semana',
   },
 ]
 
-/**
- * Componente HowItWorks
- * Renderiza a seção com os 3 passos do fluxo do app.
- */
+/** Conteúdo de fallback por passo — substituído por print real na Task 12. */
+const StepVisual = ({ shot }) => {
+  if (shot === 'whatsapp') {
+    return (
+      <div className="wa-chat">
+        <div className="wa-bubble wa-bubble--out">Comi 2 ovos e um café com leite ☕</div>
+        <div className="wa-bubble wa-bubble--in">
+          Anotado! <strong>210 kcal</strong> · 15g proteína · 8g carbo · 12g gordura
+        </div>
+      </div>
+    )
+  }
+  if (shot === 'ai-flow') {
+    return (
+      <div className="step-card">
+        <CalorieRing value={1247} total={2000} size={140} />
+        <MacroChips />
+      </div>
+    )
+  }
+  return (
+    <div className="step-card">
+      <LeaderboardRow rank={1} name="Emily R." value="18 dias 🔥" />
+      <LeaderboardRow rank={2} name="Você" value="14 dias 🔥" you />
+      <LeaderboardRow rank={3} name="Alex C." value="11 dias 🔥" />
+      <DottedChart />
+    </div>
+  )
+}
+
 const HowItWorks = () => {
   return (
-    /* Seção com id para navegação por âncora (#how-it-works) */
     <section id="how-it-works" className="section">
       <div className="container">
-
-        {/* Cabeçalho centralizado da seção */}
         <div className="section__header reveal">
-          <h2 className="section__title">Como Funciona</h2>
-          <p className="section__subtitle">
-            Três passos simples para controlar sua nutrição.
-          </p>
+          <h2 className="section__title">Como funciona</h2>
+          <p className="section__subtitle">Três passos simples para controlar sua nutrição.</p>
         </div>
 
-        {/* Container dos passos com linha vertical de conexão */}
         <div className="steps">
           {stepsData.map((step, index) => (
-            /**
-             * Cada step alterna automaticamente a direção
-             * via CSS (nth-child:even inverte o grid com direction: rtl).
-             * A classe reveal--left/right cria animação de direção oposta.
-             */
             <div
               key={step.number}
               className={`step reveal ${index % 2 === 0 ? 'reveal--left' : 'reveal--right'}`}
             >
-              {/* Conteúdo textual do passo */}
               <div className="step__content">
-                {/* Número do passo em círculo gradiente */}
                 <div className="step__number">{step.number}</div>
-
-                {/* Título do passo */}
                 <h3 className="step__title">{step.title}</h3>
-
-                {/* Descrição do passo */}
                 <p className="step__description">{step.description}</p>
               </div>
 
-              {/* Imagem ilustrativa do passo */}
               <div className="step__image">
-                <img src={step.image} alt={step.imageAlt} />
+                <div className="screen-slot" data-screenshot={step.shot} aria-label={step.imageAlt}>
+                  <StepVisual shot={step.shot} />
+                </div>
               </div>
             </div>
           ))}

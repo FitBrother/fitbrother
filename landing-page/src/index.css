@@ -1,115 +1,77 @@
 /* ========================================================================
-   FitBrother — Sistema de Design Completo
-   Arquivo principal de estilos da landing page.
-   Inspiração visual: Apple × Duolingo × Nubank
+   FitBrother — Landing Page · Tema Claro
+   Sistema de design: light, clean, moderno e arredondado.
+   Marca: menta #06D59F · quase-preto #04100C · branco/cinza claro.
+   Nunca usar cores "soltas" — sempre referenciar variáveis de :root.
    ======================================================================== */
 
 /* ========================================================================
-   1. VARIÁVEIS CSS (Design Tokens)
-   Todas as cores, espaçamentos, fontes e efeitos são definidos aqui.
-   Nunca usar valores de cor "soltos" — sempre referenciar variáveis.
+   1. TOKENS
    ======================================================================== */
 :root {
-  /* === CORES PRIMÁRIAS (Teal — cor da marca) === */
-  --color-primary-50: #F0FDFC;
-  --color-primary-100: #CCFBF1;
-  --color-primary-200: #99F6E4;
-  --color-primary-300: #5EEAD4;
-  --color-primary-400: #2DD4BF; /* Principal */
-  --color-primary-500: #14B8A6;
-  --color-primary-600: #0D9488;
-  --color-primary-700: #0F766E;
-  --color-primary-800: #115E59;
-  --color-primary-900: #134E4A;
+  /* Marca — menta */
+  --menta-400: #3fe3b5;
+  --menta-500: #06d59f;
+  --menta-600: #04a87e; /* menta mais escura p/ texto/realce sobre claro */
+  --menta-tint: rgba(6, 213, 159, 0.12);
+  --menta-tint-strong: rgba(6, 213, 159, 0.22);
 
-  /* === CORES NEUTRAS === */
-  --color-neutral-50: #F8FAFC;
-  --color-neutral-100: #F1F5F9;
-  --color-neutral-200: #E2E8F0;
-  --color-neutral-300: #CBD5E1;
-  --color-neutral-400: #94A3B8;
-  --color-neutral-500: #64748B;
-  --color-neutral-600: #475569;
-  --color-neutral-700: #334155;
-  --color-neutral-800: #1E293B;
-  --color-neutral-900: #0F172A;
+  /* Tinta (texto e detalhes escuros) */
+  --ink: #04100c;
+  --ink-soft: #0a1f17;
 
-  /* === CORES DE MACROS (Proteína, Carboidrato, Gordura, Calorias) === */
-  --color-protein: #F43F5E;
-  --color-carbs: #F59E0B;
-  --color-fat: #8B5CF6;
-  --color-calories: var(--color-primary-400);
+  /* Claros / superfícies */
+  --canvas: #f6f7f5; /* fundo da página */
+  --surface: #ffffff; /* cards */
+  --mist: #eceeee; /* seções/fills alternados */
+  --mist-2: #e4e7e5;
 
-  /* === CORES DE FEEDBACK (Sucesso, Erro, Alerta, Sequência) === */
-  --color-success: #22C55E;
-  --color-danger: #EF4444;
-  --color-warning: #FBBF24;
-  --color-streak: #FB923C;
+  /* Texto */
+  --text: var(--ink);
+  --text-muted: rgba(4, 16, 12, 0.6);
+  --text-faint: rgba(4, 16, 12, 0.42);
+  --text-on-menta: var(--ink);
+  --text-on-ink: #ffffff;
 
-  /* === GRADIENTES === */
-  --gradient-hero: linear-gradient(135deg, #0F172A 0%, #1a2a3a 50%, #0d3331 100%);
-  --gradient-primary: linear-gradient(135deg, var(--color-primary-400), var(--color-primary-600));
-  --gradient-card: linear-gradient(135deg, rgba(45, 212, 191, 0.05), rgba(139, 92, 246, 0.05));
-  --gradient-glow: radial-gradient(
-    600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
-    rgba(45, 212, 191, 0.15),
-    transparent 40%
-  );
+  /* Macros (semântico) — tons ajustados p/ contraste sobre claro */
+  --macro-protein: #e8506b;
+  --macro-carbs: #d98a1c;
+  --macro-fat: #7a5be0;
 
-  /* === BACKGROUNDS (Fundos de cada contexto) === */
-  --bg-body: var(--color-neutral-50);
-  --bg-card: #FFFFFF;
-  --bg-card-hover: #FAFFFE;
-  --bg-section-alt: var(--color-neutral-100);
-  --bg-dark: var(--color-neutral-900);
-  --bg-dark-card: rgba(255, 255, 255, 0.05);
-  --bg-glass: rgba(255, 255, 255, 0.8);
-  --bg-glass-dark: rgba(15, 23, 42, 0.85);
+  /* Bordas / sombras / raio */
+  --border: rgba(4, 16, 12, 0.1);
+  --border-strong: rgba(4, 16, 12, 0.16);
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+  --radius-full: 9999px;
+  --shadow-xs: 0 1px 2px rgba(4, 16, 12, 0.06);
+  --shadow-sm: 0 2px 10px rgba(4, 16, 12, 0.06);
+  --shadow-md: 0 10px 34px rgba(4, 16, 12, 0.09);
+  --shadow-lg: 0 26px 60px rgba(4, 16, 12, 0.14);
+  --shadow-menta: 0 20px 48px rgba(6, 213, 159, 0.28);
 
-  /* === TEXTO (Cores para cada contexto tipográfico) === */
-  --text-heading: var(--color-neutral-900);
-  --text-body: var(--color-neutral-700);
-  --text-muted: var(--color-neutral-500);
-  --text-on-dark: #FFFFFF;
-  --text-on-primary: #FFFFFF;
-
-  /* === BORDAS E SOMBRAS === */
-  --border-color: var(--color-neutral-200);
-  --border-radius-sm: 8px;
-  --border-radius-md: 12px;
-  --border-radius-lg: 16px;
-  --border-radius-xl: 24px;
-  --border-radius-full: 9999px;
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
-  --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.08);
-  --shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.12);
-  --shadow-xl: 0 20px 60px rgba(0, 0, 0, 0.15);
-  --shadow-glow: 0 0 40px rgba(45, 212, 191, 0.3);
-
-  /* === TIPOGRAFIA (Famílias de fonte) === */
-  --font-heading: 'Plus Jakarta Sans', sans-serif;
+  /* Tipografia */
+  --font-display: 'Space Grotesk', sans-serif;
   --font-body: 'Inter', sans-serif;
 
-  /* === ESPAÇAMENTOS (Padrões de layout) === */
-  --section-padding-y: 120px;
+  /* Layout */
+  --section-padding-y: 112px;
   --section-padding-x: 24px;
-  --container-max: 1200px;
+  --container-max: 1180px;
   --navbar-height: 72px;
 
-  /* === ANIMAÇÕES (Durações e curvas de easing) === */
-  --animation-duration: 0.6s;
-  --animation-duration-fast: 0.3s;
-  --animation-duration-slow: 0.8s;
-  --animation-easing: cubic-bezier(0.4, 0, 0.2, 1);
-  --animation-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+  /* Animação */
+  --dur: 0.6s;
+  --dur-fast: 0.28s;
+  --ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 /* ========================================================================
-   2. RESET E ESTILOS BASE
-   Reset moderno para garantir consistência entre navegadores.
+   2. RESET / BASE
    ======================================================================== */
-
-/* Reset universal — remove margens, paddings e garante box-sizing */
 *,
 *::before,
 *::after {
@@ -117,31 +79,22 @@
   padding: 0;
   box-sizing: border-box;
 }
-
-/* Remove estilos padrão de listas */
 ul,
 ol {
   list-style: none;
 }
-
-/* Reset de links — herdam cor e removem sublinhado */
 a {
   text-decoration: none;
   color: inherit;
 }
-
-/* Imagens responsivas — nunca ultrapassam o container */
 img,
 picture,
-video,
-canvas,
-svg {
+svg,
+canvas {
   display: block;
   max-width: 100%;
   height: auto;
 }
-
-/* Remove estilos padrão de inputs e botões */
 input,
 button,
 textarea,
@@ -152,298 +105,193 @@ select {
   outline: none;
   background: none;
 }
-
-/* Botões são clicáveis por padrão */
 button {
   cursor: pointer;
 }
-
-/* Rolagem suave em todo o documento */
 html {
   scroll-behavior: smooth;
   -webkit-text-size-adjust: 100%;
 }
-
-/* Corpo — fonte base, cor de fundo e cor de texto */
 body {
   font-family: var(--font-body);
   font-size: 16px;
-  line-height: 1.7;
-  color: var(--text-body);
-  background-color: var(--bg-body);
+  line-height: 1.65;
+  color: var(--text);
+  background-color: var(--canvas);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
 }
-
-/* Estilo de seleção de texto — usa cor primária da marca */
 ::selection {
-  background-color: var(--color-primary-200);
-  color: var(--color-primary-900);
+  background: var(--menta-500);
+  color: var(--ink);
 }
-
-::-moz-selection {
-  background-color: var(--color-primary-200);
-  color: var(--color-primary-900);
-}
-
-/* Todos os títulos usam a fonte de heading (Plus Jakarta Sans) */
 h1,
 h2,
 h3,
 h4,
 h5,
 h6 {
-  font-family: var(--font-heading);
+  font-family: var(--font-display);
   font-weight: 700;
-  color: var(--text-heading);
-  line-height: 1.2;
+  color: var(--text);
+  line-height: 1.12;
+  letter-spacing: -0.02em;
 }
 
 /* ========================================================================
-   3. CONTAINER
-   Container centralizado com largura máxima e padding lateral.
+   3. CONTAINER / SEÇÕES
    ======================================================================== */
 .container {
   width: 100%;
   max-width: var(--container-max);
-  margin-left: auto;
-  margin-right: auto;
-  padding-left: var(--section-padding-x);
-  padding-right: var(--section-padding-x);
+  margin: 0 auto;
+  padding: 0 var(--section-padding-x);
 }
-
-/* ========================================================================
-   4. SEÇÕES
-   Estilos gerais de seção — espaçamentos verticais e variantes.
-   ======================================================================== */
-
-/* Seção padrão — padding vertical generoso */
 .section {
-  padding-top: var(--section-padding-y);
-  padding-bottom: var(--section-padding-y);
+  padding: var(--section-padding-y) 0;
   position: relative;
 }
-
-/* Seção escura — fundo dark com texto claro */
-.section--dark {
-  background-color: var(--bg-dark);
-  color: var(--text-on-dark);
-}
-
-/* Títulos e textos dentro de seções escuras herdam cor clara */
-.section--dark h1,
-.section--dark h2,
-.section--dark h3,
-.section--dark h4 {
-  color: var(--text-on-dark);
-}
-
-.section--dark p {
-  color: var(--color-neutral-300);
-}
-
-/* Seção alternada — fundo levemente diferente para quebrar monotonia */
 .section--alt {
-  background-color: var(--bg-section-alt);
+  background: var(--mist);
 }
-
-/* Cabeçalho de seção — centralizado com largura máxima legível */
+.section--light {
+  background: var(--surface);
+}
 .section__header {
+  max-width: 660px;
+  margin: 0 auto 64px;
   text-align: center;
-  max-width: 680px;
-  margin-left: auto;
-  margin-right: auto;
-  margin-bottom: 64px;
 }
-
-/* Título da seção */
+.section__eyebrow {
+  display: inline-block;
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--menta-600);
+  margin-bottom: 14px;
+}
 .section__title {
   font-size: clamp(2rem, 4vw, 3rem);
-  font-weight: 800;
-  margin-bottom: 16px;
-  letter-spacing: -0.02em;
+  font-weight: 700;
+  margin-bottom: 14px;
+  letter-spacing: -0.025em;
 }
-
-/* Subtítulo / descrição da seção */
 .section__subtitle {
-  font-size: clamp(1rem, 2vw, 1.2rem);
+  font-size: clamp(1rem, 2vw, 1.18rem);
   color: var(--text-muted);
-  line-height: 1.7;
+  line-height: 1.6;
 }
 
 /* ========================================================================
-   5. ANIMAÇÕES DE SCROLL-REVEAL
-   Elementos aparecem com animação ao entrar na viewport.
-   Controlado via Intersection Observer no JavaScript.
+   4. SCROLL-REVEAL
    ======================================================================== */
-
-/* Estado inicial — invisível e deslocado para baixo */
 .reveal {
   opacity: 0;
-  transform: translateY(40px);
-  transition: opacity var(--animation-duration) var(--animation-easing),
-    transform var(--animation-duration) var(--animation-easing);
+  transform: translateY(34px);
+  transition:
+    opacity var(--dur) var(--ease),
+    transform var(--dur) var(--ease);
 }
-
-/* Variante — desliza da esquerda */
 .reveal--left {
-  transform: translateX(-60px);
+  transform: translateX(-48px);
 }
-
-/* Variante — desliza da direita */
 .reveal--right {
-  transform: translateX(60px);
+  transform: translateX(48px);
 }
-
-/* Variante — efeito de zoom */
 .reveal--zoom {
-  transform: scale(0.9);
+  transform: scale(0.94);
 }
-
-/* Estado revelado — visível e na posição final */
 .reveal.revealed {
   opacity: 1;
   transform: translate(0) scale(1);
 }
-
-/* Atrasos escalonados — cria efeito cascata nos cards */
 .reveal-delay-1 {
-  transition-delay: 0.1s;
+  transition-delay: 0.08s;
 }
 .reveal-delay-2 {
-  transition-delay: 0.2s;
+  transition-delay: 0.16s;
 }
 .reveal-delay-3 {
-  transition-delay: 0.3s;
+  transition-delay: 0.24s;
 }
 .reveal-delay-4 {
-  transition-delay: 0.4s;
+  transition-delay: 0.32s;
 }
 .reveal-delay-5 {
-  transition-delay: 0.5s;
+  transition-delay: 0.4s;
 }
 .reveal-delay-6 {
-  transition-delay: 0.6s;
+  transition-delay: 0.48s;
 }
 
 /* ========================================================================
-   6. BOTÕES
-   Sistema de botões com variantes (primário, outline, dark, tamanhos).
+   5. BOTÕES
    ======================================================================== */
-
-/* Botão base — todos os botões compartilham estes estilos */
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 14px 32px;
-  border-radius: var(--border-radius-full);
-  font-family: var(--font-heading);
+  padding: 13px 26px;
+  border-radius: var(--radius-full);
+  font-family: var(--font-display);
   font-weight: 600;
   font-size: 0.95rem;
   line-height: 1;
   white-space: nowrap;
-  transition: all var(--animation-duration-fast) var(--animation-easing);
-  position: relative;
-  overflow: hidden;
+  transition:
+    transform var(--dur-fast) var(--ease),
+    box-shadow var(--dur-fast) var(--ease),
+    background var(--dur-fast) var(--ease);
 }
-
-/* Efeito de brilho ao passar o mouse (pseudo-elemento) */
-.btn::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    120deg,
-    transparent 30%,
-    rgba(255, 255, 255, 0.2) 50%,
-    transparent 70%
-  );
-  transform: translateX(-100%);
-  transition: transform 0.5s ease;
-}
-
-.btn:hover::after {
-  transform: translateX(100%);
-}
-
-/* Botão primário — gradiente teal com sombra brilhante */
 .btn--primary {
-  background: var(--gradient-primary);
-  color: var(--text-on-primary);
-  box-shadow: var(--shadow-sm);
+  background: var(--menta-500);
+  color: var(--text-on-menta);
+  box-shadow: var(--shadow-xs);
 }
-
 .btn--primary:hover {
-  box-shadow: var(--shadow-glow);
-  transform: translateY(-2px) scale(1.02);
+  background: var(--menta-400);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-menta);
 }
-
 .btn--primary:active {
-  transform: translateY(0) scale(0.98);
+  transform: translateY(0);
 }
-
-/* Botão outline — borda teal, fundo transparente */
 .btn--outline {
   background: transparent;
-  color: var(--color-primary-500);
-  border: 2px solid var(--color-primary-400);
+  color: var(--ink);
+  border: 1.5px solid var(--border-strong);
 }
-
 .btn--outline:hover {
-  background: var(--color-primary-50);
-  border-color: var(--color-primary-500);
+  border-color: var(--ink);
   transform: translateY(-2px);
 }
-
-/* Botão dark — fundo escuro para contraste em seções claras */
-.btn--dark {
-  background-color: var(--color-neutral-900);
-  color: var(--text-on-dark);
-}
-
-.btn--dark:hover {
-  background-color: var(--color-neutral-800);
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-lg);
-}
-
-/* Botão grande — para CTAs de destaque */
 .btn--lg {
-  padding: 18px 40px;
-  font-size: 1.05rem;
+  padding: 16px 32px;
+  font-size: 1.02rem;
 }
 
 /* ========================================================================
-   7. NAVBAR (Barra de Navegação)
-   Fixa no topo, com efeito glassmorphism e menu mobile.
+   6. NAVBAR
    ======================================================================== */
-
-/* Container da navbar — fixa com fundo de vidro */
 .navbar {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
+  inset: 0 0 auto 0;
   height: var(--navbar-height);
   z-index: 1000;
-  background: var(--bg-glass);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: rgba(246, 247, 245, 0.72);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border-bottom: 1px solid transparent;
-  transition: all var(--animation-duration-fast) var(--animation-easing);
+  transition: all var(--dur-fast) var(--ease);
 }
-
-/* Navbar ao rolar — mais opaca e com sombra */
 .navbar.scrolled {
-  background: rgba(255, 255, 255, 0.95);
-  border-bottom: 1px solid var(--border-color);
-  box-shadow: var(--shadow-sm);
+  background: rgba(246, 247, 245, 0.92);
+  border-bottom: 1px solid var(--border);
 }
-
-/* Container interno da navbar — flexbox para distribuir itens */
 .navbar__inner {
   display: flex;
   align-items: center;
@@ -453,48 +301,33 @@ h6 {
   margin: 0 auto;
   padding: 0 var(--section-padding-x);
 }
-
-/* Logo — destaque visual com ícone e texto */
 .navbar__logo {
   display: flex;
   align-items: center;
   gap: 10px;
-  font-family: var(--font-heading);
-  font-weight: 800;
-  font-size: 1.4rem;
-  color: var(--text-heading);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.3rem;
+  color: var(--ink);
   letter-spacing: -0.02em;
 }
-
-/* Ícone do logo — emoji ou imagem */
-.navbar__logo-icon {
-  font-size: 1.6rem;
+.navbar__logo img {
+  width: 32px;
+  height: 32px;
 }
-
-/* Destaque da cor primária no nome */
-.navbar__logo-accent {
-  color: var(--color-primary-500);
-}
-
-/* Links de navegação — espaçados horizontalmente */
 .navbar__links {
   display: flex;
   align-items: center;
-  gap: 36px;
+  gap: 34px;
 }
-
-/* Cada link da navbar */
 .navbar__link {
-  font-family: var(--font-body);
-  font-size: 0.9rem;
+  font-size: 0.92rem;
   font-weight: 500;
-  color: var(--text-body);
+  color: var(--text-muted);
   position: relative;
   padding: 4px 0;
-  transition: color var(--animation-duration-fast) var(--animation-easing);
+  transition: color var(--dur-fast) var(--ease);
 }
-
-/* Linha animada abaixo do link ao hover */
 .navbar__link::after {
   content: '';
   position: absolute;
@@ -502,1029 +335,876 @@ h6 {
   left: 0;
   width: 0;
   height: 2px;
-  background: var(--gradient-primary);
-  border-radius: var(--border-radius-full);
-  transition: width var(--animation-duration-fast) var(--animation-easing);
+  background: var(--menta-500);
+  border-radius: var(--radius-full);
+  transition: width var(--dur-fast) var(--ease);
 }
-
 .navbar__link:hover {
-  color: var(--color-primary-600);
+  color: var(--ink);
 }
-
 .navbar__link:hover::after {
   width: 100%;
 }
-
-/* CTA da navbar — botão de ação principal no canto */
 .navbar__cta {
-  margin-left: 12px;
+  margin-left: 8px;
 }
-
-/* CTA desktop — visível em desktop, escondido no mobile */
 .navbar__cta--desktop {
   display: inline-flex;
 }
-
-/* CTA dentro do menu mobile — escondido em desktop */
 .navbar__links .navbar__cta {
   display: none;
 }
-
-/* Botão hambúrguer — visível apenas no mobile */
 .navbar__hamburger {
   display: none;
   flex-direction: column;
   gap: 5px;
-  width: 28px;
+  width: 26px;
   padding: 4px 0;
-  cursor: pointer;
   z-index: 1001;
 }
-
-/* Linhas do hambúrguer */
 .navbar__hamburger span {
   display: block;
   width: 100%;
   height: 2.5px;
-  background-color: var(--text-heading);
-  border-radius: var(--border-radius-full);
-  transition: all var(--animation-duration-fast) var(--animation-easing);
+  background: var(--ink);
+  border-radius: var(--radius-full);
+  transition: all var(--dur-fast) var(--ease);
   transform-origin: center;
 }
-
-/* Animação do hambúrguer quando o menu está aberto */
 .navbar__hamburger.active span:nth-child(1) {
   transform: translateY(7.5px) rotate(45deg);
 }
-
 .navbar__hamburger.active span:nth-child(2) {
   opacity: 0;
-  transform: scaleX(0);
 }
-
 .navbar__hamburger.active span:nth-child(3) {
   transform: translateY(-7.5px) rotate(-45deg);
 }
 
 /* ========================================================================
-   8. HERO (Seção Principal / Banner)
-   Altura total da tela com gradiente escuro e conteúdo em grid.
+   7. HERO
    ======================================================================== */
-
-/* Container do hero — ocupa toda a viewport */
 .hero {
   min-height: 100vh;
   min-height: 100dvh;
-  padding-top: var(--navbar-height);
+  padding-top: calc(var(--navbar-height) + 40px);
+  padding-bottom: 60px;
   display: flex;
   align-items: center;
-  background: var(--gradient-hero);
   position: relative;
   overflow: hidden;
 }
-
-/* Orbes brilhantes no fundo — decoração ambiental */
-.hero__orb {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(80px);
-  opacity: 0.4;
-  pointer-events: none;
-}
-
-/* Orbe primário — teal, grande, no canto superior direito */
-.hero__orb--primary {
-  width: 600px;
-  height: 600px;
-  background: var(--color-primary-600);
-  top: -200px;
-  right: -150px;
-  opacity: 0.15;
-}
-
-/* Orbe secundário — roxo, menor, no canto inferior esquerdo */
-.hero__orb--secondary {
-  width: 400px;
-  height: 400px;
-  background: var(--color-fat);
-  bottom: -100px;
-  left: -100px;
-  opacity: 0.1;
-}
-
-/* Orbe terciário — teal, centro, sutil */
-.hero__orb--accent {
-  width: 300px;
-  height: 300px;
-  background: var(--color-primary-400);
-  top: 50%;
-  left: 40%;
-  opacity: 0.08;
-  animation: pulse-glow 6s ease-in-out infinite;
-}
-
-/* Layout interno do hero — grid de 2 colunas */
 .hero__grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 60px;
+  grid-template-columns: 1.05fr 0.95fr;
+  gap: 64px;
   align-items: center;
   position: relative;
   z-index: 1;
 }
-
-/* Conteúdo textual do hero */
 .hero__content {
   display: flex;
   flex-direction: column;
-  gap: 28px;
+  align-items: flex-start;
+  gap: 24px;
 }
-
-/* Badge / etiqueta acima do título */
 .hero__badge {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 18px;
-  background: var(--bg-dark-card);
-  border: 1px solid rgba(45, 212, 191, 0.2);
-  border-radius: var(--border-radius-full);
-  font-size: 0.85rem;
-  color: var(--color-primary-300);
+  padding: 7px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  font-size: 0.84rem;
   font-weight: 500;
-  width: fit-content;
-  backdrop-filter: blur(10px);
+  color: var(--ink);
+  box-shadow: var(--shadow-xs);
 }
-
-/* Título principal do hero — grande e impactante */
 .hero__title {
-  font-size: clamp(2.5rem, 5.5vw, 4.2rem);
-  font-weight: 800;
-  color: var(--text-on-dark);
-  line-height: 1.1;
-  letter-spacing: -0.03em;
+  font-size: clamp(2.6rem, 5.4vw, 4.2rem);
+  font-weight: 700;
+  line-height: 1.02;
+  letter-spacing: -0.035em;
 }
-
-/* Parte do título com gradiente de cor */
-.hero__title .text-gradient {
-  background: linear-gradient(135deg, var(--color-primary-300), var(--color-primary-400), var(--color-primary-200));
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
+/* realce menta como "marca-texto" atrás da palavra */
+.text-menta {
+  position: relative;
+  white-space: nowrap;
 }
-
-/* Descrição do hero */
+.text-menta::after {
+  content: '';
+  position: absolute;
+  left: -0.04em;
+  right: -0.04em;
+  bottom: 0.08em;
+  height: 0.36em;
+  background: var(--menta-500);
+  z-index: -1;
+  border-radius: 3px;
+}
 .hero__description {
-  font-size: clamp(1rem, 1.8vw, 1.2rem);
-  color: var(--color-neutral-400);
-  line-height: 1.8;
-  max-width: 520px;
+  font-size: clamp(1.05rem, 1.8vw, 1.2rem);
+  color: var(--text-muted);
+  line-height: 1.65;
+  max-width: 30em;
 }
-
-/* Container dos botões de ação do hero */
-.hero__actions {
-  display: flex;
-  gap: 16px;
-  flex-wrap: wrap;
+.hero__badges {
+  margin-top: 4px;
 }
-
-/* Indicadores de métricas abaixo dos botões */
 .hero__metrics {
   display: flex;
-  gap: 40px;
-  margin-top: 12px;
+  gap: 36px;
+  margin-top: 14px;
 }
-
-/* Cada indicador de métrica */
 .hero__metric {
   display: flex;
   flex-direction: column;
+  gap: 2px;
 }
-
-/* Número da métrica — destaque */
 .hero__metric-value {
-  font-family: var(--font-heading);
-  font-size: 1.6rem;
-  font-weight: 800;
-  color: var(--text-on-dark);
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--ink);
 }
-
-/* Rótulo da métrica */
 .hero__metric-label {
   font-size: 0.8rem;
-  color: var(--color-neutral-500);
-  font-weight: 500;
+  color: var(--text-muted);
 }
 
-/* Área da imagem / mockup do hero */
+/* lado direito — painel + telefone */
 .hero__image {
   display: flex;
   justify-content: center;
   align-items: center;
   position: relative;
 }
-
-/* Brilho atrás da imagem do hero */
+/* painel arredondado suave atrás do telefone (sem "glow orb") */
 .hero__image-glow {
   position: absolute;
-  width: 80%;
-  height: 80%;
-  background: radial-gradient(circle, rgba(45, 212, 191, 0.25) 0%, transparent 70%);
-  border-radius: 50%;
-  filter: blur(40px);
+  inset: -6% -4%;
+  background: radial-gradient(80% 70% at 70% 30%, var(--menta-tint-strong), transparent 70%),
+    var(--mist);
+  border-radius: var(--radius-xl);
+  z-index: 0;
 }
-
-/* Imagem / mockup do app no hero */
-.hero__image img,
-.hero__mockup {
-  position: relative;
-  z-index: 1;
-  max-width: 360px;
-  width: 100%;
-  animation: float 6s ease-in-out infinite;
-  filter: drop-shadow(0 20px 60px rgba(0, 0, 0, 0.4));
-  border-radius: var(--border-radius-xl);
+.hero__orb {
+  display: none;
 }
 
 /* ========================================================================
-   9. FEATURES (Funcionalidades)
-   Grid de cards com efeito glassmorphism e hover 3D.
+   8. TELEFONE (preview do app — UI clara)
    ======================================================================== */
-
-/* Grid de funcionalidades — 4 colunas responsivas (3 na variante highlights) */
-.features__grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 24px;
-}
-
-/* Card de funcionalidade — vidro com borda sutil */
-.feature-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: var(--border-radius-lg);
-  padding: 36px 28px;
+.phone-frame {
+  position: relative;
+  z-index: 1;
+  width: 300px;
+  max-width: 78vw;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 34px;
+  padding: 22px 18px;
+  box-shadow: var(--shadow-lg);
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  transition: all var(--animation-duration-fast) var(--animation-easing);
-  position: relative;
-  overflow: hidden;
+  gap: 18px;
+  align-items: center;
+}
+.phone-frame__top {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+.phone-frame__top strong {
+  color: var(--ink);
+  font-family: var(--font-display);
+}
+.phone-frame__meal {
+  width: 100%;
+  background: var(--mist);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+}
+.phone-frame__meal-label {
+  color: var(--menta-600);
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+.phone-frame__meal-name {
+  color: var(--ink);
+  font-size: 0.85rem;
+  margin-top: 2px;
 }
 
-/* Efeito de gradiente sutil no fundo do card */
-.feature-card::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: var(--gradient-card);
-  opacity: 0;
-  transition: opacity var(--animation-duration-fast) var(--animation-easing);
-}
-
-/* Hover — card sobe, sombra aumenta, borda muda */
-.feature-card:hover {
-  transform: translateY(-8px);
-  box-shadow: var(--shadow-lg);
-  border-color: var(--color-primary-200);
-}
-
-.feature-card:hover::before {
-  opacity: 1;
-}
-
-/* Ícone da funcionalidade — círculo com fundo primário */
-.feature-card__icon {
-  width: 56px;
-  height: 56px;
-  border-radius: var(--border-radius-md);
-  background: var(--gradient-primary);
+/* ========================================================================
+   9. PRIMITIVAS DA MARCA (claras)
+   ======================================================================== */
+/* Anel de calorias */
+.cring {
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.5rem;
-  color: var(--text-on-primary);
   position: relative;
-  z-index: 1;
-  flex-shrink: 0;
+  background: conic-gradient(var(--menta-500) 0% var(--pct), var(--mist-2) var(--pct) 100%);
+}
+.cring__inner {
+  position: absolute;
+  inset: 12px;
+  border-radius: 50%;
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  box-shadow: inset 0 0 0 1px var(--border);
+}
+.cring__inner strong {
+  font-family: var(--font-display);
+  font-size: 2rem;
+  color: var(--ink);
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+}
+.cring__inner span {
+  font-size: 0.68rem;
+  color: var(--menta-600);
+  font-weight: 600;
 }
 
-/* Título do card de funcionalidade */
-.feature-card__title {
-  font-size: 1.15rem;
-  font-weight: 700;
-  position: relative;
-  z-index: 1;
+/* Chips de macro */
+.macro-chips {
+  display: flex;
+  gap: 8px;
+  width: 100%;
 }
-
-/* Descrição do card de funcionalidade */
-.feature-card__description {
-  font-size: 0.9rem;
+.macro-chip {
+  flex: 1;
+  background: var(--mist);
+  border-radius: var(--radius-sm);
+  padding: 10px 6px;
+  text-align: center;
+}
+.macro-chip strong {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-variant-numeric: tabular-nums;
+}
+.macro-chip span {
+  font-size: 0.66rem;
   color: var(--text-muted);
-  line-height: 1.7;
-  position: relative;
-  z-index: 1;
+}
+
+/* Gráfico pontilhado */
+.dotted-chart {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  width: 100%;
+}
+.dotted-chart i {
+  aspect-ratio: 1;
+  border-radius: 4px;
+  background: var(--mist-2);
+}
+.dotted-chart i.on {
+  background: var(--menta-500);
+}
+
+/* Linha de ranking */
+.lb-row {
+  display: grid;
+  grid-template-columns: 26px 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 11px 12px;
+  border-radius: var(--radius-sm);
+}
+.lb-row--you {
+  background: var(--menta-tint);
+  box-shadow: inset 0 0 0 1px var(--menta-tint-strong);
+}
+.lb-rank {
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--menta-600);
+}
+.lb-name {
+  color: var(--ink);
+  font-weight: 600;
+  font-size: 0.92rem;
+}
+.lb-name em {
+  color: var(--text-muted);
+  font-style: normal;
+  font-weight: 400;
+}
+.lb-value {
+  color: var(--text-muted);
+  font-size: 0.84rem;
+  font-variant-numeric: tabular-nums;
 }
 
 /* ========================================================================
-   10. HOW IT WORKS (Como Funciona)
-   Passos alternados com linha de conexão entre eles.
+   10. STORE BADGES
    ======================================================================== */
+.store-badges {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.store-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 18px;
+  background: var(--ink);
+  color: var(--text-on-ink);
+  border-radius: var(--radius-md);
+  transition:
+    transform var(--dur-fast) var(--ease),
+    box-shadow var(--dur-fast) var(--ease);
+}
+.store-badge:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+.store-badge span {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+.store-badge small {
+  font-size: 0.62rem;
+  opacity: 0.8;
+}
+.store-badge strong {
+  font-family: var(--font-display);
+  font-size: 0.98rem;
+}
 
-/* Container dos passos */
+/* ========================================================================
+   11. FEATURES
+   ======================================================================== */
+.features__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 20px;
+}
+.feature-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 32px 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  transition:
+    transform var(--dur-fast) var(--ease),
+    box-shadow var(--dur-fast) var(--ease),
+    border-color var(--dur-fast) var(--ease);
+}
+.feature-card:hover {
+  transform: translateY(-6px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--menta-tint-strong);
+}
+.feature-card__icon {
+  width: 52px;
+  height: 52px;
+  border-radius: var(--radius-md);
+  background: var(--menta-tint);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--menta-600);
+  flex-shrink: 0;
+}
+.feature-card__title {
+  font-size: 1.12rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+.feature-card__description {
+  font-size: 0.92rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+/* ========================================================================
+   12. COMO FUNCIONA
+   ======================================================================== */
 .steps {
   display: flex;
   flex-direction: column;
-  gap: 80px;
+  gap: 72px;
   position: relative;
 }
-
-/* Linha vertical de conexão entre passos */
 .steps::before {
   content: '';
   position: absolute;
   left: 50%;
-  top: 80px;
-  bottom: 80px;
+  top: 70px;
+  bottom: 70px;
   width: 2px;
-  background: linear-gradient(
-    to bottom,
-    var(--color-primary-200),
-    var(--color-primary-400),
-    var(--color-primary-200)
-  );
+  background: linear-gradient(to bottom, transparent, var(--border-strong), transparent);
   transform: translateX(-50%);
 }
-
-/* Cada passo — layout em grid alternado */
 .step {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 60px;
+  gap: 56px;
   align-items: center;
   position: relative;
 }
-
-/* Passos ímpares — imagem à direita (padrão) */
-/* Passos pares — imagem à esquerda (invertido) */
 .step:nth-child(even) {
   direction: rtl;
 }
-
 .step:nth-child(even) > * {
   direction: ltr;
 }
-
-/* Conteúdo textual do passo */
 .step__content {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
 }
-
-/* Número do passo — círculo com gradiente */
 .step__number {
-  width: 48px;
-  height: 48px;
+  width: 46px;
+  height: 46px;
   border-radius: 50%;
-  background: var(--gradient-primary);
-  color: var(--text-on-primary);
+  background: var(--menta-500);
+  color: var(--ink);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: var(--font-heading);
-  font-weight: 800;
-  font-size: 1.1rem;
-  flex-shrink: 0;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.05rem;
 }
-
-/* Título do passo */
 .step__title {
   font-size: 1.5rem;
   font-weight: 700;
+  color: var(--ink);
 }
-
-/* Descrição do passo */
 .step__description {
   font-size: 1rem;
   color: var(--text-muted);
-  line-height: 1.7;
+  line-height: 1.65;
 }
-
-/* Imagem do passo */
 .step__image {
   display: flex;
   justify-content: center;
   align-items: center;
 }
-
-.step__image img {
-  max-width: 320px;
+.screen-slot {
   width: 100%;
-  border-radius: var(--border-radius-xl);
-  box-shadow: var(--shadow-lg);
+  max-width: 340px;
+  border-radius: var(--radius-xl);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-md);
+  padding: 22px;
+  overflow: hidden;
 }
-
-/* ========================================================================
-   11. APP PREVIEW (Prévia do Aplicativo)
-   Imagem centralizada do app com efeito de brilho atrás.
-   ======================================================================== */
-
-/* Container do preview — centralizado */
-.app-preview {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 48px;
-  position: relative;
-}
-
-/* Brilho atrás da imagem do app */
-.app-preview__glow {
-  position: absolute;
-  width: 500px;
-  height: 500px;
-  background: radial-gradient(circle, rgba(45, 212, 191, 0.2) 0%, transparent 70%);
-  border-radius: 50%;
-  filter: blur(60px);
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  pointer-events: none;
-}
-
-/* Imagem do app com animação flutuante */
-.app-preview__image {
-  position: relative;
-  z-index: 1;
-  max-width: 300px;
+.screen-slot img {
   width: 100%;
-  animation: float 6s ease-in-out infinite;
-  filter: drop-shadow(0 30px 60px rgba(0, 0, 0, 0.2));
+  border-radius: var(--radius-lg);
 }
-
-.app-preview__image img {
-  width: 100%;
-  border-radius: var(--border-radius-xl);
-}
-
-/* ========================================================================
-   12. TEAM (Equipe)
-   Grid de cards da equipe com foto, nome, cargo e LinkedIn.
-   ======================================================================== */
-
-/* Grid da equipe — responsivo */
-.team__grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 32px;
-}
-
-/* Card de membro da equipe */
-.team-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: var(--border-radius-lg);
-  padding: 36px 28px;
-  text-align: center;
+.step-card {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 16px;
-  transition: all var(--animation-duration-fast) var(--animation-easing);
 }
 
-/* Hover do card — levanta e brilha */
-.team-card:hover {
-  transform: translateY(-8px);
-  box-shadow: var(--shadow-lg), 0 0 30px rgba(45, 212, 191, 0.1);
-  border-color: var(--color-primary-200);
+/* mini chat WhatsApp (claro) */
+.wa-chat {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
-
-/* Foto do membro — circular */
-.team-card__photo {
-  width: 100px;
-  height: 100px;
-  border-radius: 50%;
-  overflow: hidden;
-  border: 3px solid var(--color-primary-100);
-  flex-shrink: 0;
+.wa-bubble {
+  padding: 12px 14px;
+  border-radius: 16px;
+  font-size: 0.86rem;
+  line-height: 1.5;
+  max-width: 88%;
 }
-
-.team-card__photo img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+.wa-bubble--out {
+  align-self: flex-end;
+  background: var(--menta-500);
+  color: var(--ink);
+  border-bottom-right-radius: 5px;
 }
-
-/* Nome do membro */
-.team-card__name {
-  font-size: 1.15rem;
-  font-weight: 700;
+.wa-bubble--in {
+  align-self: flex-start;
+  background: var(--mist);
+  color: var(--ink);
+  border-bottom-left-radius: 5px;
 }
-
-/* Cargo / função do membro */
-.team-card__role {
-  font-size: 0.85rem;
-  color: var(--text-muted);
-  font-weight: 500;
-}
-
-/* Botão de LinkedIn */
-.team-card__linkedin {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--color-primary-600);
-  padding: 8px 20px;
-  border-radius: var(--border-radius-full);
-  border: 1px solid var(--color-primary-200);
-  transition: all var(--animation-duration-fast) var(--animation-easing);
-}
-
-.team-card__linkedin:hover {
-  background: var(--color-primary-50);
-  border-color: var(--color-primary-400);
-  transform: translateY(-2px);
+.wa-bubble strong {
+  color: var(--menta-600);
 }
 
 /* ========================================================================
-   13. FOOTER (Rodapé)
-   Fundo escuro com links, informações e copyright.
+   13. PREVIEW (bento)
    ======================================================================== */
-
-/* Container do footer — fundo escuro */
-.footer {
-  background-color: var(--bg-dark);
-  color: var(--text-on-dark);
-  padding: 64px 0 32px;
+.preview__grid {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr 1fr;
+  gap: 18px;
+  align-items: stretch;
+}
+.preview__card {
+  background: var(--canvas);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  padding: 24px;
+  min-height: 280px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  box-shadow: var(--shadow-xs);
+}
+.preview__card-title {
+  color: var(--ink);
+  font-size: 1rem;
+}
+.preview__dash {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  margin: auto 0;
+}
+.preview__card-note {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  margin-top: auto;
 }
 
-/* Conteúdo interno do footer — grid */
+/* ========================================================================
+   14. FAQ
+   ======================================================================== */
+.faq {
+  max-width: 740px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.faq__item {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 2px 22px;
+  transition: border-color var(--dur-fast) var(--ease);
+}
+.faq__item[open] {
+  border-color: var(--menta-tint-strong);
+}
+.faq__q {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  cursor: pointer;
+  list-style: none;
+  padding: 18px 0;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.02rem;
+  color: var(--ink);
+}
+.faq__q::-webkit-details-marker {
+  display: none;
+}
+.faq__q svg {
+  color: var(--menta-600);
+  transition: transform var(--dur-fast) var(--ease);
+  flex-shrink: 0;
+}
+.faq__item[open] .faq__q svg {
+  transform: rotate(180deg);
+}
+.faq__a {
+  color: var(--text-muted);
+  padding: 0 0 18px;
+  margin: 0;
+  line-height: 1.6;
+}
+
+/* ========================================================================
+   15. CTA FINAL (bloco menta)
+   ======================================================================== */
+.final-cta {
+  background: var(--menta-500);
+  padding: 88px 0;
+}
+.final-cta__inner {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+}
+.final-cta__title {
+  color: var(--ink);
+  font-size: clamp(2rem, 4vw, 2.9rem);
+}
+.final-cta__sub {
+  color: rgba(4, 16, 12, 0.78);
+  font-size: 1.1rem;
+}
+.final-cta__badges {
+  margin-top: 8px;
+}
+
+/* ========================================================================
+   16. FOOTER (claro)
+   ======================================================================== */
+.footer {
+  background: var(--canvas);
+  border-top: 1px solid var(--border);
+  padding: 64px 0 32px;
+}
 .footer__inner {
   display: grid;
   grid-template-columns: 2fr 1fr 1fr 1fr;
-  gap: 48px;
-  margin-bottom: 48px;
+  gap: 44px;
+  margin-bottom: 44px;
 }
-
-/* Coluna de info (logo + descrição) */
 .footer__brand {
   display: flex;
   flex-direction: column;
   gap: 16px;
 }
-
 .footer__brand-logo {
-  font-family: var(--font-heading);
-  font-weight: 800;
-  font-size: 1.4rem;
-  color: var(--text-on-dark);
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.25rem;
+  color: var(--ink);
 }
-
-.footer__brand-logo .navbar__logo-accent {
-  color: var(--color-primary-400);
+.footer__brand-logo img {
+  width: 30px;
+  height: 30px;
 }
-
 .footer__brand-description {
   font-size: 0.9rem;
-  color: var(--color-neutral-400);
-  line-height: 1.7;
+  color: var(--text-muted);
+  line-height: 1.65;
   max-width: 300px;
 }
-
-/* Colunas de links do footer */
 .footer__column-title {
-  font-family: var(--font-heading);
+  font-family: var(--font-display);
   font-weight: 700;
-  font-size: 0.9rem;
-  color: var(--text-on-dark);
-  margin-bottom: 20px;
+  font-size: 0.82rem;
+  color: var(--ink);
+  margin-bottom: 18px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
-
 .footer__links {
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
-
 .footer__link {
   font-size: 0.9rem;
-  color: var(--color-neutral-400);
-  transition: color var(--animation-duration-fast) var(--animation-easing);
+  color: var(--text-muted);
+  transition: color var(--dur-fast) var(--ease);
 }
-
 .footer__link:hover {
-  color: var(--color-primary-400);
+  color: var(--menta-600);
 }
-
-/* Divisor do footer */
 .footer__divider {
   height: 1px;
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--border);
   margin-bottom: 24px;
 }
-
-/* Barra inferior do footer — copyright */
 .footer__bottom {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 0.8rem;
-  color: var(--color-neutral-500);
+  font-size: 0.82rem;
+  color: var(--text-faint);
 }
-
 .footer__bottom-links {
   display: flex;
   gap: 24px;
 }
 
-.footer__bottom-links a {
-  color: var(--color-neutral-500);
-  transition: color var(--animation-duration-fast) var(--animation-easing);
-}
-
-.footer__bottom-links a:hover {
-  color: var(--color-primary-400);
-}
-
 /* ========================================================================
-   14. MODAL DE INSTALAÇÃO
-   Overlay escuro com card centralizado e opções de download.
+   17. RESPONSIVO
    ======================================================================== */
-
-/* Overlay do modal — cobre toda a tela */
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 2000;
-  opacity: 0;
-  visibility: hidden;
-  transition: all var(--animation-duration-fast) var(--animation-easing);
-}
-
-/* Modal visível */
-.modal-overlay.active {
-  opacity: 1;
-  visibility: visible;
-}
-
-/* Card do modal */
-.modal {
-  background: var(--bg-card);
-  border-radius: var(--border-radius-xl);
-  padding: 48px 40px;
-  max-width: 480px;
-  width: 90%;
-  text-align: center;
-  transform: scale(0.9) translateY(20px);
-  transition: transform var(--animation-duration-fast) var(--animation-bounce);
-  box-shadow: var(--shadow-xl);
-  position: relative;
-}
-
-/* Card do modal quando visível — escala normal */
-.modal-overlay.active .modal {
-  transform: scale(1) translateY(0);
-}
-
-/* Botão de fechar o modal */
-.modal__close {
-  position: absolute;
-  top: 16px;
-  right: 16px;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.2rem;
-  color: var(--text-muted);
-  transition: all var(--animation-duration-fast) var(--animation-easing);
-}
-
-.modal__close:hover {
-  background: var(--color-neutral-100);
-  color: var(--text-heading);
-}
-
-/* Ícone do modal */
-.modal__icon {
-  font-size: 3rem;
-  margin-bottom: 16px;
-}
-
-/* Título do modal */
-.modal__title {
-  font-size: 1.5rem;
-  font-weight: 800;
-  margin-bottom: 8px;
-}
-
-/* Descrição do modal */
-.modal__description {
-  font-size: 0.95rem;
-  color: var(--text-muted);
-  margin-bottom: 32px;
-}
-
-/* Container das opções de download */
-.modal__options {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-/* Cada opção de download (Apple / Android) */
-.modal__option {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 18px 24px;
-  border-radius: var(--border-radius-md);
-  border: 1px solid var(--border-color);
-  background: var(--bg-card);
-  cursor: pointer;
-  transition: all var(--animation-duration-fast) var(--animation-easing);
-  text-align: left;
-}
-
-.modal__option:hover {
-  border-color: var(--color-primary-400);
-  background: var(--color-primary-50);
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
-}
-
-/* Ícone da opção */
-.modal__option-icon {
-  font-size: 2rem;
-  flex-shrink: 0;
-}
-
-/* Textos da opção */
-.modal__option-text {
-  display: flex;
-  flex-direction: column;
-}
-
-.modal__option-label {
-  font-size: 0.75rem;
-  color: var(--text-muted);
-  font-weight: 500;
-}
-
-.modal__option-store {
-  font-family: var(--font-heading);
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: var(--text-heading);
-}
-
-/* ========================================================================
-   15. DESIGN RESPONSIVO
-   Breakpoints para mobile e tablet.
-   ======================================================================== */
-
-/* === TABLET (até 1024px) === */
 @media (max-width: 1024px) {
-  /* Grid de funcionalidades — 2 colunas em tablet */
   .features__grid {
     grid-template-columns: repeat(2, 1fr);
   }
-
-  /* Hero — reduz gap */
   .hero__grid {
     gap: 40px;
   }
-
-  /* Linha de conexão dos passos — escondida em tablet */
   .steps::before {
     display: none;
   }
-
-  /* Footer — 2 colunas */
   .footer__inner {
     grid-template-columns: 1fr 1fr;
   }
 }
 
-/* === MOBILE (até 768px) === */
 @media (max-width: 768px) {
   :root {
-    /* Reduz padding vertical das seções em mobile */
-    --section-padding-y: 80px;
+    --section-padding-y: 76px;
     --navbar-height: 64px;
   }
-
-  /* Navbar — mostra hambúrguer e esconde links, esconde botão desktop */
   .navbar__hamburger {
     display: flex;
   }
-
-  /* Esconde o CTA desktop no mobile */
   .navbar__cta--desktop {
     display: none;
   }
-
-  /* Mostra o CTA dentro do menu mobile */
   .navbar__links .navbar__cta {
     display: inline-flex;
+    margin: 16px 0 0;
   }
-
-  /* Menu mobile — tela cheia com fundo de vidro */
   .navbar__links {
     position: fixed;
     inset: 0;
-    background: var(--bg-glass);
-    backdrop-filter: blur(30px);
-    -webkit-backdrop-filter: blur(30px);
+    background: rgba(246, 247, 245, 0.97);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
     flex-direction: column;
     justify-content: center;
-    gap: 32px;
+    gap: 28px;
     opacity: 0;
     visibility: hidden;
-    transition: all var(--animation-duration-fast) var(--animation-easing);
+    transition: all var(--dur-fast) var(--ease);
   }
-
   .navbar__links.active {
     opacity: 1;
     visibility: visible;
   }
-
-  /* Links maiores no mobile */
   .navbar__links .navbar__link {
     font-size: 1.3rem;
     font-weight: 600;
+    color: var(--ink);
   }
-
-  .navbar__links .navbar__cta {
-    margin-left: 0;
-    margin-top: 16px;
+  .hero {
+    min-height: 0;
   }
-
-  /* Hero — coluna única */
   .hero__grid {
     grid-template-columns: 1fr;
     text-align: center;
     gap: 48px;
   }
-
-  /* Centraliza o conteúdo do hero no mobile */
   .hero__content {
     align-items: center;
   }
-
+  .hero__badges,
+  .hero__metrics {
+    justify-content: center;
+  }
   .hero__description {
     max-width: 100%;
   }
-
-  .hero__actions {
-    justify-content: center;
-  }
-
-  .hero__metrics {
-    justify-content: center;
-    gap: 32px;
-  }
-
-  /* Imagem do hero menor no mobile */
-  .hero__image img,
-  .hero__mockup {
-    max-width: 280px;
-  }
-
-  /* Features — coluna única no mobile */
   .features__grid {
     grid-template-columns: 1fr;
-    gap: 20px;
   }
-
-  /* Steps — coluna única */
   .step {
     grid-template-columns: 1fr;
-    gap: 32px;
+    gap: 28px;
   }
-
-  /* Remove direção invertida em mobile */
   .step:nth-child(even) {
     direction: ltr;
   }
-
-  /* Footer — coluna única */
+  .preview__grid {
+    grid-template-columns: 1fr;
+  }
   .footer__inner {
     grid-template-columns: 1fr;
-    gap: 32px;
+    gap: 28px;
   }
-
   .footer__bottom {
     flex-direction: column;
-    gap: 16px;
+    gap: 14px;
     text-align: center;
   }
-
-  /* Cabeçalho de seção — menos margin */
   .section__header {
     margin-bottom: 48px;
   }
 }
 
-/* === MOBILE PEQUENO (até 480px) === */
 @media (max-width: 480px) {
   :root {
-    /* Ainda mais redução em telas pequenas */
-    --section-padding-y: 60px;
-    --section-padding-x: 16px;
+    --section-padding-x: 18px;
   }
-
-  /* Título do hero — tamanho menor */
-  .hero__title {
-    font-size: 2rem;
+  .phone-frame {
+    width: 260px;
   }
-
-  /* Métricas empilhadas */
   .hero__metrics {
-    flex-direction: column;
-    gap: 16px;
-    align-items: center;
-  }
-
-  /* Botões — largura total */
-  .hero__actions {
-    flex-direction: column;
-    width: 100%;
-  }
-
-  .hero__actions .btn {
-    width: 100%;
-  }
-
-  /* Modal — padding reduzido */
-  .modal {
-    padding: 32px 24px;
-  }
-
-  /* Cards de equipe — padding reduzido */
-  .team-card {
-    padding: 28px 20px;
+    gap: 24px;
   }
 }
 
 /* ========================================================================
-   16. CLASSES UTILITÁRIAS
-   Classes de uso geral para reutilização em qualquer componente.
+   18. ACESSIBILIDADE
    ======================================================================== */
-
-/* Texto com gradiente — efeito visual marcante */
-.text-gradient {
-  background: linear-gradient(
-    135deg,
-    var(--color-primary-400),
-    var(--color-primary-300),
-    var(--color-primary-500)
-  );
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+  .reveal {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+a:focus-visible,
+button:focus-visible,
+summary:focus-visible {
+  outline: 2px solid var(--menta-600);
+  outline-offset: 3px;
+  border-radius: var(--radius-sm);
 }
 
-/* Efeito de brilho teal — aplicável a qualquer elemento */
-.glow {
-  box-shadow: var(--shadow-glow);
+/* ========================================================================
+   19. KEYFRAMES / UTILITÁRIOS
+   ======================================================================== */
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-16px);
+  }
 }
-
-/* Classe de animação flutuante — para mockups e imagens */
-.float-animation {
-  animation: float 6s ease-in-out infinite;
+@keyframes pageLoad {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
-
-/* Texto centralizado */
-.text-center {
-  text-align: center;
+body {
+  animation: pageLoad 0.5s ease-out;
 }
-
-/* Flex centralizado */
-.flex-center {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* Escondido visualmente mas acessível para leitores de tela */
 .sr-only {
   position: absolute;
   width: 1px;
@@ -1535,83 +1215,4 @@ h6 {
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border-width: 0;
-}
-
-/* ========================================================================
-   17. KEYFRAME ANIMATIONS
-   Animações reutilizáveis via CSS puro.
-   ======================================================================== */
-
-/* Flutuação suave — movimento para cima e para baixo */
-@keyframes float {
-  0%,
-  100% {
-    transform: translateY(0px);
-  }
-  50% {
-    transform: translateY(-20px);
-  }
-}
-
-/* Aparece de baixo para cima com fade */
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* Pulso brilhante — para orbes e destaques */
-@keyframes pulse-glow {
-  0%,
-  100% {
-    opacity: 0.08;
-    transform: translate(-50%, -50%) scale(1);
-  }
-  50% {
-    opacity: 0.15;
-    transform: translate(-50%, -50%) scale(1.1);
-  }
-}
-
-/* Deslocamento de gradiente — para fundos animados */
-@keyframes gradient-shift {
-  0% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-  100% {
-    background-position: 0% 50%;
-  }
-}
-
-/* Rotação contínua — para ícones de carregamento */
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-/* Animação de entrada da página (usada no primeiro carregamento) */
-@keyframes pageLoad {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-/* Aplica animação de entrada suave ao body */
-body {
-  animation: pageLoad 0.5s ease-out;
 }

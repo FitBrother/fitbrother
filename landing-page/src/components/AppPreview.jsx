@@ -1,97 +1,56 @@
 /**
- * AppPreview.jsx — Seção "Veja o App em Ação"
- * 
- * Mostra uma prévia visual do app com:
- * - Imagem grande centralizada do mockup do dashboard
- * - Efeito de brilho (glow) radial atrás da imagem
- * - Animação flutuante contínua
- * - 3 highlights de funcionalidades abaixo da imagem
- * 
- * A imagem usa animação reveal--zoom (zoom-in suave ao entrar na viewport).
- * 
- * Todas as cores usam variáveis CSS do index.css.
- * Classes CSS estão definidas na seção 11 do index.css.
+ * AppPreview.jsx — Seção "Tudo num lugar só"
+ *
+ * Seção clara (--mist) para quebrar o ritmo dark da página.
+ * Vitrine com 3 cards: dashboard (slot de print), ranking de amigos
+ * e aderência da semana — usando as primitivas da marca.
+ *
+ * O card de dashboard tem data-screenshot="dashboard" para receber
+ * print real na Task 12.
+ *
+ * Classes CSS na seção 11 do index.css.
  */
 
-/**
- * Dados dos highlights exibidos abaixo da imagem.
- * Cada highlight tem ícone, título e descrição curta.
- */
-const highlightsData = [
-  {
-    icon: '📊',
-    title: 'Dashboard Inteligente',
-    description: 'Visualize seus macros em tempo real',
-  },
-  {
-    icon: '🎯',
-    title: 'Metas Personalizadas',
-    description: 'Calorias e macros ajustados ao seu objetivo',
-  },
-  {
-    icon: '🏆',
-    title: 'Conquistas',
-    description: 'Desbloqueie badges e suba no ranking',
-  },
-]
+import LeaderboardRow from './brand/LeaderboardRow'
+import DottedChart from './brand/DottedChart'
+import CalorieRing from './brand/CalorieRing'
+import MacroChips from './brand/MacroChips'
 
-/**
- * Componente AppPreview
- * Renderiza a prévia visual do aplicativo com highlights.
- */
 const AppPreview = () => {
   return (
-    /* Seção com fundo alternado para contraste visual */
-    <section id="app-preview" className="section section--alt">
+    <section id="preview" className="section section--light app-preview">
       <div className="container">
-
-        {/* Cabeçalho centralizado da seção */}
         <div className="section__header reveal">
-          <h2 className="section__title">Veja o App em Ação</h2>
+          <h2 className="section__title">Tudo num lugar só</h2>
           <p className="section__subtitle">
-            Design moderno e intuitivo. Tudo que você precisa em um só lugar.
+            Dashboard em tempo real, ranking de amigos e sua semana num olhar.
           </p>
         </div>
 
-        {/* Container do preview — centralizado com glow */}
-        <div className="app-preview">
-          {/* Brilho radial atrás da imagem — efeito visual premium */}
-          <div className="app-preview__glow"></div>
-
-          {/* Imagem do mockup com animação de zoom ao scroll + float contínuo */}
-          <div className="app-preview__image reveal reveal--zoom">
-            <img
-              src="/images/hero-mockup.png"
-              alt="FitBrother App — Dashboard completo com macros, refeições e progresso"
-            />
-          </div>
-        </div>
-
-        {/* Grid de highlights — 3 cards informativos abaixo da imagem */}
-        <div className="features__grid" style={{ marginTop: '64px' }}>
-          {highlightsData.map((highlight, index) => (
-            /**
-             * Reutiliza a classe feature-card do grid de features
-             * para manter consistência visual.
-             */
-            <div
-              key={index}
-              className={`feature-card reveal reveal-delay-${index + 1}`}
-            >
-              {/* Ícone do highlight */}
-              <div className="feature-card__icon">
-                <span role="img" aria-label={highlight.title}>
-                  {highlight.icon}
-                </span>
-              </div>
-
-              {/* Título do highlight */}
-              <h3 className="feature-card__title">{highlight.title}</h3>
-
-              {/* Descrição do highlight */}
-              <p className="feature-card__description">{highlight.description}</p>
+        <div className="preview__grid">
+          {/* Dashboard — slot para print real (Task 12) */}
+          <div className="preview__card preview__card--dark" data-screenshot="dashboard">
+            <h3 className="preview__card-title">Seu dia</h3>
+            <div className="preview__dash">
+              <CalorieRing value={1247} total={2000} size={150} />
+              <MacroChips />
             </div>
-          ))}
+          </div>
+
+          {/* Ranking semanal */}
+          <div className="preview__card preview__card--dark">
+            <h3 className="preview__card-title">Ranking semanal</h3>
+            <LeaderboardRow rank={1} name="Emily R." value="18 dias" />
+            <LeaderboardRow rank={2} name="Você" value="14 dias" you />
+            <LeaderboardRow rank={3} name="Alex C." value="11 dias" />
+          </div>
+
+          {/* Aderência da semana */}
+          <div className="preview__card preview__card--dark">
+            <h3 className="preview__card-title">Sua semana</h3>
+            <DottedChart />
+            <p className="preview__card-note">5 de 7 dias no alvo. Bora fechar a semana! 🔥</p>
+          </div>
         </div>
       </div>
     </section>
