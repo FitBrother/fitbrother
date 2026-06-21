@@ -579,14 +579,14 @@ h6 {
   pointer-events: none;
 }
 
-/* Orbe primário — teal, grande, no canto superior direito */
+/* Orbe primário — menta, grande, no canto superior direito */
 .hero__orb--primary {
   width: 600px;
   height: 600px;
-  background: var(--color-primary-600);
+  background: var(--menta-600);
   top: -200px;
   right: -150px;
-  opacity: 0.15;
+  opacity: 0.18;
 }
 
 /* Orbe secundário — roxo, menor, no canto inferior esquerdo */
@@ -633,11 +633,11 @@ h6 {
   align-items: center;
   gap: 8px;
   padding: 8px 18px;
-  background: var(--bg-dark-card);
-  border: 1px solid rgba(45, 212, 191, 0.2);
+  background: rgba(6, 213, 159, 0.12);
+  border: 1px solid rgba(6, 213, 159, 0.3);
   border-radius: var(--border-radius-full);
   font-size: 0.85rem;
-  color: var(--color-primary-300);
+  color: var(--menta-400);
   font-weight: 500;
   width: fit-content;
   backdrop-filter: blur(10px);
@@ -646,24 +646,21 @@ h6 {
 /* Título principal do hero — grande e impactante */
 .hero__title {
   font-size: clamp(2.5rem, 5.5vw, 4.2rem);
-  font-weight: 800;
-  color: var(--text-on-dark);
-  line-height: 1.1;
+  font-weight: 700;
+  color: var(--paper);
+  line-height: 1.05;
   letter-spacing: -0.03em;
 }
 
-/* Parte do título com gradiente de cor */
-.hero__title .text-gradient {
-  background: linear-gradient(135deg, var(--color-primary-300), var(--color-primary-400), var(--color-primary-200));
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
+/* Destaque em menta no título */
+.text-menta {
+  color: var(--menta-500);
 }
 
 /* Descrição do hero */
 .hero__description {
   font-size: clamp(1rem, 1.8vw, 1.2rem);
-  color: var(--color-neutral-400);
+  color: var(--text-on-dark-muted);
   line-height: 1.8;
   max-width: 520px;
 }
@@ -690,16 +687,16 @@ h6 {
 
 /* Número da métrica — destaque */
 .hero__metric-value {
-  font-family: var(--font-heading);
-  font-size: 1.6rem;
-  font-weight: 800;
-  color: var(--text-on-dark);
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--paper);
 }
 
 /* Rótulo da métrica */
 .hero__metric-label {
   font-size: 0.8rem;
-  color: var(--color-neutral-500);
+  color: var(--text-on-dark-muted);
   font-weight: 500;
 }
 
@@ -716,7 +713,7 @@ h6 {
   position: absolute;
   width: 80%;
   height: 80%;
-  background: radial-gradient(circle, rgba(45, 212, 191, 0.25) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(6, 213, 159, 0.3) 0%, transparent 70%);
   border-radius: 50%;
   filter: blur(40px);
 }
@@ -1712,4 +1709,78 @@ body {
 .lb-value {
   color: var(--text-on-dark-muted);
   font-size: 0.85rem;
+}
+
+/* ===== Badges das lojas ===== */
+.store-badges {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.store-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 20px;
+  background: var(--paper);
+  color: var(--ink-900);
+  border-radius: var(--border-radius-md);
+  transition: transform var(--animation-duration-fast) var(--animation-easing),
+    box-shadow var(--animation-duration-fast) var(--animation-easing);
+}
+.store-badge:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-glow);
+}
+.store-badge span {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+.store-badge small {
+  font-size: 0.65rem;
+}
+.store-badge strong {
+  font-family: var(--font-display);
+  font-size: 1rem;
+}
+
+/* ===== Telefone construído em CSS ===== */
+.phone-frame {
+  width: 300px;
+  max-width: 80vw;
+  background: linear-gradient(165deg, var(--ink-700), var(--ink-900));
+  border: 6px solid #0c0f0e;
+  border-radius: 36px;
+  padding: 24px 20px;
+  box-shadow: var(--shadow-glow);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  align-items: center;
+}
+.phone-frame__top {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  color: var(--paper);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+.phone-frame__meal {
+  width: 100%;
+  background: rgba(6, 213, 159, 0.1);
+  border: 1px solid rgba(6, 213, 159, 0.25);
+  border-radius: var(--border-radius-md);
+  padding: 12px;
+}
+.phone-frame__meal-label {
+  color: var(--menta-500);
+  font-size: 0.65rem;
+  font-weight: 700;
+}
+.phone-frame__meal-name {
+  color: var(--paper);
+  font-size: 0.85rem;
+  margin-top: 2px;
 }
