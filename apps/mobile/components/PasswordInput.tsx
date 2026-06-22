@@ -2,6 +2,8 @@ import { Eye, EyeOff } from "lucide-react-native";
 import { forwardRef, useState } from "react";
 import { Pressable, Text, TextInput, type TextInputProps, View } from "react-native";
 
+import { colors } from "@/lib/colors";
+
 /** Cheap-but-decent password strength heuristic. Avoids zxcvbn (~400KB)
  *  in favor of a quick 0-4 score based on length + character diversity.
  *  Mirrors the rule of thumb used by Stripe / Linear sign-up. */
@@ -75,9 +77,9 @@ export const PasswordInput = forwardRef<TextInput, PasswordInputProps>(function 
           accessibilityLabel={visible ? "Esconder senha" : "Mostrar senha"}
         >
           {visible ? (
-            <EyeOff size={20} color={isFocused ? "#2DD4BF" : "#94A3B8"} />
+            <EyeOff size={20} color={isFocused ? colors.primary[400] : colors.neutral[400]} />
           ) : (
-            <Eye size={20} color={isFocused ? "#2DD4BF" : "#94A3B8"} />
+            <Eye size={20} color={isFocused ? colors.primary[400] : colors.neutral[400]} />
           )}
         </Pressable>
       </View>

@@ -54,7 +54,7 @@ export default function PostDetailScreen() {
         >
           <ChevronLeft size={24} color={colors.neutral[800]} />
         </Pressable>
-        <Text className="ml-2 text-xl font-sans-bold text-neutral-800">Post</Text>
+        <Text className="ml-2 text-xl font-display-bold text-neutral-800">Post</Text>
       </View>
 
       <FlatList

@@ -20,7 +20,7 @@ export function HomeHeader({ name }: { name: string }) {
     <View className="flex-row items-center justify-between px-4 pt-2 pb-3">
       <View className="flex-1">
         <Text className="text-sm font-sans text-neutral-500">{greetingFor(new Date())},</Text>
-        <Text className="text-2xl font-sans-extrabold text-neutral-800">{firstName}</Text>
+        <Text className="text-2xl font-display-bold text-neutral-800">{firstName}</Text>
       </View>
       <View className="flex-row items-center gap-2">
         {streakView ? (

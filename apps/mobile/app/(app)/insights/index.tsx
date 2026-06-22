@@ -30,7 +30,7 @@ export default function InsightsScreen() {
         >
           <ChevronLeft size={24} color={colors.neutral[800]} />
         </Pressable>
-        <Text className="ml-2 text-xl font-sans-bold text-neutral-800">Análises</Text>
+        <Text className="ml-2 text-xl font-display-bold text-neutral-800">Análises</Text>
       </View>
 
       <View className="mx-4 mb-2 flex-row rounded-full bg-neutral-100 p-1">

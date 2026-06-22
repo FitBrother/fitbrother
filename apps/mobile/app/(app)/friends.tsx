@@ -113,7 +113,7 @@ export default function FriendsScreen() {
         >
           <ChevronLeft size={24} color={colors.neutral[800]} />
         </Pressable>
-        <Text className="ml-2 text-xl font-sans-bold text-neutral-800">Amigos</Text>
+        <Text className="ml-2 text-xl font-display-bold text-neutral-800">Amigos</Text>
       </View>
 
       <ScrollView contentContainerClassName="px-5 pb-10 gap-5">

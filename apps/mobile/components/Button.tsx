@@ -1,6 +1,8 @@
 import React from "react";
 import { ActivityIndicator, Pressable, Text, View, type PressableProps } from "react-native";
 
+import { colors } from "@/lib/colors";
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type ButtonVariant = "primary" | "dark" | "outline" | "ghost";
@@ -80,7 +82,7 @@ export function Button({
       {loading ? (
         <ActivityIndicator
           size="small"
-          color={variant === "outline" || variant === "ghost" ? "#2DD4BF" : "#ffffff"}
+          color={variant === "outline" || variant === "ghost" ? colors.primary[400] : "#ffffff"}
         />
       ) : (
         <>

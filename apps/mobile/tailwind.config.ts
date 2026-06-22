@@ -13,19 +13,28 @@ const config: Config = {
     extend: {
       // ─── Colors ──────────────────────────────────────────────────────────────
       colors: {
-        // Brand — Teal (cor extraída do Splash, botões CTA, ícones)
+        // Brand — Menta (mint) — CTAs, ícones, anel de calorias, marca-texto.
+        // Mesmos nomes de token (primary-*); só os valores migraram de teal
+        // para menta (DESIGN_SYSTEM §2.1). primary-400 = #06D59F é a principal.
         primary: {
-          50: "#F0FDFC",
-          100: "#CCFBF1",
-          200: "#99F6E4",
-          300: "#5EEAD4",
-          400: "#2DD4BF", // ← COR PRINCIPAL
-          500: "#14B8A6", // pressed / hover
-          600: "#0D9488",
-          700: "#0F766E",
-          800: "#115E59",
-          900: "#134E4A",
+          50: "#E9FCF5",
+          100: "#C6F7E6",
+          200: "#8FEFCD",
+          300: "#4BE5AE",
+          400: "#06D59F", // ← COR PRINCIPAL (menta)
+          500: "#05B789", // pressed / hover
+          600: "#04A87E", // menta de texto/realce sobre claro (passa AA)
+          700: "#038266",
+          800: "#02624D",
+          900: "#014537",
         },
+
+        // Marca — Tinta (ink) & superfícies claras (3 camadas).
+        ink: "#04100C", // texto principal, réguas, botão dark, contraste máximo
+        "ink-soft": "#0A1F17", // variante levemente mais clara
+        canvas: "#F6F7F5", // fundo de tela (off-white)
+        surface: "#FFFFFF", // cards
+        mist: "#ECEEEE", // seções/fills alternados
 
         // Neutrals — usados em textos, fundos, bordas
         neutral: {
@@ -38,7 +47,7 @@ const config: Config = {
           600: "#475569",
           700: "#334155",
           800: "#1E293B", // headings principais
-          900: "#0F172A", // botão Google, texto máximo contraste
+          900: "#04100C", // tinta (ink) — botão dark, texto máximo contraste
         },
 
         // Feedback — Erro
@@ -86,23 +95,24 @@ const config: Config = {
         // ─── Domínio Nutricional ──────────────────────────────────────────────
         // Macros — anéis de progresso, badges e barras
         // Calorias usam primary-400 (cor da marca, anel central do dashboard).
+        // Macros — tons da landing, ajustados p/ contraste sobre claro (§0).
         protein: {
           50: "#FFF1F2",
           100: "#FFE4E6",
-          500: "#F43F5E",
-          600: "#E11D48",
+          500: "#E8506B",
+          600: "#D13355",
         },
         carbs: {
           50: "#FFFBEB",
           100: "#FEF3C7",
-          500: "#F59E0B",
-          600: "#D97706",
+          500: "#D98A1C",
+          600: "#B86F12",
         },
         fat: {
           50: "#F5F3FF",
           100: "#EDE9FE",
-          500: "#8B5CF6",
-          600: "#7C3AED",
+          500: "#7A5BE0",
+          600: "#6442C9",
         },
 
         // Streak (🔥) — gamificação
@@ -117,22 +127,26 @@ const config: Config = {
 
       // ─── Typography ──────────────────────────────────────────────────────────
       fontFamily: {
-        // Instalar: npx expo install @expo-google-fonts/plus-jakarta-sans expo-font
+        // Duas famílias da marca (DESIGN_SYSTEM §3):
+        //   • Inter         → corpo: parágrafos, labels, inputs, metadados.
+        //   • Space Grotesk → display: headings, títulos de card, números hero.
         //
         // ⚠️ ATENÇÃO React Native: usar SEMPRE estas famílias por peso.
         // Os utilitários nativos `font-medium`/`font-semibold`/`font-bold`
         // aplicam apenas `fontWeight` e NÃO trocam a fontFamily — o resultado é
-        // a Plus Jakarta Regular sintetizada artificialmente. Use:
-        //   font-sans            (400)
-        //   font-sans-medium     (500)
-        //   font-sans-semibold   (600)
-        //   font-sans-bold       (700)
-        //   font-sans-extrabold  (800)
-        sans: ["PlusJakartaSans_400Regular", "System"],
-        "sans-medium": ["PlusJakartaSans_500Medium", "System"],
-        "sans-semibold": ["PlusJakartaSans_600SemiBold", "System"],
-        "sans-bold": ["PlusJakartaSans_700Bold", "System"],
-        "sans-extrabold": ["PlusJakartaSans_800ExtraBold", "System"],
+        // a Regular sintetizada artificialmente. Use:
+        //   Corpo (Inter):    font-sans / -medium / -semibold / -bold / -extrabold
+        //   Display (Space Grotesk): font-display / -medium / -semibold / -bold
+        // Space Grotesk vai só até 700 — display "extrabold" usa font-display-bold.
+        sans: ["Inter_400Regular", "System"],
+        "sans-medium": ["Inter_500Medium", "System"],
+        "sans-semibold": ["Inter_600SemiBold", "System"],
+        "sans-bold": ["Inter_700Bold", "System"],
+        "sans-extrabold": ["Inter_800ExtraBold", "System"],
+        display: ["SpaceGrotesk_500Medium", "System"],
+        "display-medium": ["SpaceGrotesk_500Medium", "System"],
+        "display-semibold": ["SpaceGrotesk_600SemiBold", "System"],
+        "display-bold": ["SpaceGrotesk_700Bold", "System"],
       },
 
       fontSize: {

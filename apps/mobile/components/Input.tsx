@@ -2,6 +2,8 @@ import React, { forwardRef, useState } from "react";
 import { Pressable, Text, TextInput, type TextInputProps, View } from "react-native";
 import { Eye, EyeOff } from "lucide-react-native";
 
+import { colors } from "@/lib/colors";
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface InputProps extends Omit<TextInputProps, "style"> {
@@ -64,9 +66,9 @@ export const Input = forwardRef<TextInput, InputProps>(function Input(
             accessibilityLabel={isPasswordVisible ? "Esconder senha" : "Mostrar senha"}
           >
             {isPasswordVisible ? (
-              <EyeOff size={20} color={isFocused ? "#2DD4BF" : "#94A3B8"} />
+              <EyeOff size={20} color={isFocused ? colors.primary[400] : colors.neutral[400]} />
             ) : (
-              <Eye size={20} color={isFocused ? "#2DD4BF" : "#94A3B8"} />
+              <Eye size={20} color={isFocused ? colors.primary[400] : colors.neutral[400]} />
             )}
           </Pressable>
         )}

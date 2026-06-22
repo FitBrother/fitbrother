@@ -69,7 +69,7 @@ function NativeWheel({ min, max, step = 1, value, unit, onChange }: WheelPickerP
         }}
         onValueChanged={({ item }) => onChange(item.value)}
         itemTextStyle={{
-          fontFamily: "PlusJakartaSans_500Medium",
+          fontFamily: "Inter_500Medium",
           fontSize: 22,
           color: "#94a3b8",
           fontVariant: ["tabular-nums"],
@@ -106,7 +106,7 @@ function WebStepper({ min, max, step = 1, value, unit, onChange }: WheelPickerPr
       <StepButton onPress={dec} disabled={atMin} icon="minus" label="Diminuir" />
       <View className="min-w-[160px] items-center justify-center">
         <Text
-          className="text-4xl font-sans-extrabold text-neutral-900"
+          className="text-4xl font-display-bold text-neutral-900"
           style={{ fontVariant: ["tabular-nums"] }}
         >
           {format(value)}

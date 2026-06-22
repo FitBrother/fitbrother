@@ -55,9 +55,9 @@ export function ShareCard({ data }: { data: ShareCardData }) {
               <View style={{ height: "20%" }} />
             )}
             <View className="flex-1 justify-between p-7">
-              <Text className="text-3xl font-sans-extrabold text-white">{data.title}</Text>
+              <Text className="text-3xl font-display-bold text-white">{data.title}</Text>
               <View>
-                <Text style={NUM} className="text-6xl font-sans-extrabold text-white">
+                <Text style={NUM} className="text-6xl font-display-bold text-white">
                   {Math.round(data.kcal)}
                 </Text>
                 <Text className="text-lg font-sans-medium text-white/90">kcal</Text>
@@ -73,7 +73,7 @@ export function ShareCard({ data }: { data: ShareCardData }) {
           <View className="flex-1 justify-between p-7">
             <View>
               {data.score !== null ? (
-                <Text style={NUM} className="text-7xl font-sans-extrabold text-white">
+                <Text style={NUM} className="text-7xl font-display-bold text-white">
                   {data.score}
                 </Text>
               ) : null}

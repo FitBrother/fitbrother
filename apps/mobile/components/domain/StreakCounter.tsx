@@ -81,7 +81,7 @@ export function StreakCounter({ current, atRisk = false }: StreakCounterProps) {
         )}
       </Animated.View>
       <Text
-        className="font-sans-bold text-2xl"
+        className="font-display-bold text-2xl"
         style={{ color: textColor, fontVariant: ["tabular-nums"] }}
       >
         {current}

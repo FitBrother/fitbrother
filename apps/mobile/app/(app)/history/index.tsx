@@ -63,7 +63,7 @@ export default function HistoryScreen() {
         >
           <ChevronLeft size={24} color={colors.neutral[800]} />
         </Pressable>
-        <Text className="ml-2 flex-1 text-xl font-sans-bold text-neutral-800">Histórico</Text>
+        <Text className="ml-2 flex-1 text-xl font-display-bold text-neutral-800">Histórico</Text>
       </View>
       {query.isLoading ? (
         <View className="flex-1 items-center justify-center">

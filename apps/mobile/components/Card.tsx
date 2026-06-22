@@ -92,7 +92,7 @@ import { Heart, Mail } from "lucide-react-native";
 <Card variant="flat">
   <View className="flex-row items-center gap-3">
     <View className="w-10 h-10 rounded-full bg-primary-50 items-center justify-center">
-      <Mail size={20} color="#2DD4BF" />
+      <Mail size={20} color="#06D59F" />
     </View>
     <Text className="text-base font-sans-medium text-neutral-800">Send via Email</Text>
   </View>
