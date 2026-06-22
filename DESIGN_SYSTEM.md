@@ -2,12 +2,34 @@
 
 App de nutrição com IA. Stack: **React Native · Expo · TypeScript · NativeWind v4 · Tailwind v3**.
 
-Este documento é a fonte de verdade dos tokens visuais e componentes. Está **sincronizado com `tailwind.config.ts`** — qualquer divergência é bug.
+Este documento é a **fonte de verdade da marca e dos tokens visuais**. A partir da v2 ele reflete a **marca real do FitBrother** (menta `#06D59F` + tinta `#04100C`, display Space Grotesk) — consolidada na landing e nos assets em [`assets/brand`](assets/brand).
+
+> ⚠️ **O código do app ainda está em teal/Plus Jakarta** (`tailwind.config.ts`, `lib/colors.ts`). Este doc é o **alvo**; a migração do código está pendente — ver **§0**. Até a migração, doc e app divergem **por design**, não por bug.
+
+Referência visual viva: **[`landing-page/public/styleguide.html`](landing-page/public/styleguide.html)** (`npm run dev` → `/styleguide.html`).
+
+---
+
+## 0. Migração da Marca (pendente)
+
+A marca foi redefinida (menta + tinta, display Space Grotesk). O código do app ainda usa a paleta teal antiga e Plus Jakarta. Para sincronizar app ↔ marca:
+
+| Arquivo | De | Para |
+|---|---|---|
+| `apps/mobile/tailwind.config.ts` → `primary` | teal `#2DD4BF` (400) | menta `#06D59F` (400) — escala em §2.1 |
+| `apps/mobile/tailwind.config.ts` → neutro mais escuro | `neutral-900 #0F172A` (slate) | **tinta** `#04100C` (botões dark, contraste máximo) |
+| `apps/mobile/lib/colors.ts` | espelho dos teal | espelho dos novos tokens |
+| Fonte display | Plus Jakarta Sans | **Space Grotesk** (`@expo-google-fonts/space-grotesk`) p/ headings e números hero |
+| Fonte corpo | Plus Jakarta Sans | **Inter** (decisão de marca; ver §3) |
+| Macros | `#F43F5E / #F59E0B / #8B5CF6` | tons da landing `#E8506B / #D98A1C / #7A5BE0` (contraste sobre claro) |
+
+**Importante:** os _nomes_ de token (`primary-400`, `font-sans-*`) permanecem — só mudam **valores** e **arquivos de fonte**. Componentes que referenciam `primary-400` continuam corretos após o swap. Fazer a migração em PR próprio, com revisão visual do app (Expo) tela a tela.
 
 ---
 
 ## Índice
 
+0. [Migração da Marca (pendente)](#0-migração-da-marca-pendente)
 1. [Convenções e Regras de Ouro](#1-convenções-e-regras-de-ouro)
 2. [Paleta de Cores](#2-paleta-de-cores)
 3. [Tipografia](#3-tipografia)
@@ -28,7 +50,7 @@ Este documento é a fonte de verdade dos tokens visuais e componentes. Está **s
 
 ### 1.1 Tipografia — leia ANTES de codar
 
-⚠️ **Pegadinha do React Native:** os utilitários `font-medium` / `font-semibold` / `font-bold` aplicam **apenas `fontWeight`** — eles **não trocam a fontFamily**. Resultado: a Plus Jakarta Sans Medium nunca carrega e o RN renderiza Regular com peso sintetizado.
+⚠️ **Pegadinha do React Native:** os utilitários `font-medium` / `font-semibold` / `font-bold` aplicam **apenas `fontWeight`** — eles **não trocam a fontFamily**. Resultado: a família com o peso desejado (ex.: Inter Medium) nunca carrega e o RN renderiza Regular com peso sintetizado.
 
 **Regra:** sempre use a família correspondente ao peso desejado.
 
@@ -69,22 +91,38 @@ Base **4px** (grid Tailwind padrão). Não usar valores fora da escala (`p-[13px
 
 ## 2. Paleta de Cores
 
-### 2.1 Marca — Teal (primary)
+### 2.1 Marca — Menta (primary)
 
-A cor de marca é um teal vibrante: splash, CTAs, ícones, progresso de calorias.
+A cor de marca é uma **menta vibrante**: CTAs, ícones, anel de calorias, marca-texto, destaques. Sobre fundos claros é usada como **acento** (não como grandes áreas de texto — ver nota de contraste).
 
 | Escala | HEX | Uso |
 |---|---|---|
-| 50 | `#F0FDFC` | Fundos de tela suaves (onboarding, loading) |
-| 100 | `#CCFBF1` | Surface muito suave |
-| 200 | `#99F6E4` | Botão disabled, decorações |
-| 300 | `#5EEAD4` | Teal claro |
-| **400** | **`#2DD4BF`** | **PRIMÁRIA — botões, ícones, anel de calorias, bordas ativas** |
-| 500 | `#14B8A6` | Pressed/hover |
-| 600 | `#0D9488` | Variante escura |
-| 700 | `#0F766E` | Ênfase alta |
-| 800 | `#115E59` | Ênfase muito alta |
-| 900 | `#134E4A` | Quase preto teal |
+| 50 | `#E9FCF5` | Surface menta muito suave |
+| 100 | `#C6F7E6` | Background de badge/chip menta |
+| 200 | `#8FEFCD` | Decorações, disabled |
+| 300 | `#4BE5AE` | Menta clara |
+| **400** | **`#06D59F`** | **PRIMÁRIA — botões, ícones, anel de calorias, bordas ativas, marca-texto** |
+| 500 | `#05B789` | Pressed/hover |
+| 600 | `#04A87E` | **Menta de texto/realce sobre claro** (passa contraste melhor) |
+| 700 | `#038266` | Ênfase alta |
+| 800 | `#02624D` | Ênfase muito alta |
+| 900 | `#014537` | Quase preto menta |
+
+> **Contraste:** menta-400 (`#06D59F`) sobre branco **não** atinge AA para texto pequeno. Use menta como **preenchimento** (com texto tinta por cima) ou para áreas grandes; para _texto_ menta sobre claro, use menta-600 (`#04A87E`) em peso forte, ou prefira tinta. Texto tinta sobre menta-400 ✅.
+
+### 2.1.1 Marca — Tinta &amp; superfícies
+
+A âncora escura da marca não é slate, é **tinta** (verde-quase-preto). As superfícies claras formam três camadas.
+
+| Token | HEX | Uso |
+|---|---|---|
+| `ink` | `#04100C` | Texto principal, réguas, botão dark, contraste máximo |
+| `ink-soft` | `#0A1F17` | Variante levemente mais clara |
+| `canvas` | `#F6F7F5` | Fundo de tela (off-white) |
+| `surface` | `#FFFFFF` | Cards |
+| `mist` | `#ECEEEE` | Seções/fills alternados |
+
+> Na migração (§0), `ink #04100C` substitui `neutral-900 #0F172A` como tom escuro da marca. Os neutros intermediários (300–600 slate) seguem válidos para texto secundário até revisão.
 
 ### 2.2 Neutros
 
@@ -150,25 +188,36 @@ Estado "em risco" (faltam < 4h do reset): aplicar `opacity-50` no ícone + `neut
 
 ## 3. Tipografia
 
-### 3.1 Família
+### 3.1 Famílias
 
-**Plus Jakarta Sans** (Google Fonts). Razão: headings com peso forte e excelente legibilidade no corpo.
+Sistema de duas famílias (alinhado à marca/web):
+
+- **Space Grotesk** — **display**: headings, títulos de card, números hero (kcal/macros). Geométrica, conversa com o corte do símbolo "FB".
+- **Inter** — **corpo**: parágrafos, labels, inputs, metadados.
+
+> O app ainda carrega Plus Jakarta Sans (ver §0). Após a migração, instalar as famílias da marca:
 
 ```bash
-npx expo install expo-font @expo-google-fonts/plus-jakarta-sans
+npx expo install expo-font @expo-google-fonts/space-grotesk @expo-google-fonts/inter
 ```
 
 ```ts
-// app/_layout.tsx
+// app/_layout.tsx (alvo pós-migração)
+import { useFonts } from "expo-font";
 import {
-  useFonts,
-  PlusJakartaSans_400Regular,
-  PlusJakartaSans_500Medium,
-  PlusJakartaSans_600SemiBold,
-  PlusJakartaSans_700Bold,
-  PlusJakartaSans_800ExtraBold,
-} from "@expo-google-fonts/plus-jakarta-sans";
+  SpaceGrotesk_500Medium,
+  SpaceGrotesk_600SemiBold,
+  SpaceGrotesk_700Bold,
+} from "@expo-google-fonts/space-grotesk";
+import {
+  Inter_400Regular,
+  Inter_500Medium,
+  Inter_600SemiBold,
+  Inter_700Bold,
+} from "@expo-google-fonts/inter";
 ```
+
+**Mapa de papéis:** `font-display-*` (Space Grotesk) para títulos e números; `font-sans-*` (Inter) para corpo. A pegadinha de `fontWeight` da §1.1 vale para ambas.
 
 ### 3.2 Escala
 
@@ -672,4 +721,4 @@ import { Flame, Beef, Wheat, Droplet } from "lucide-react-native";
 
 ---
 
-*Sincronizado com `tailwind.config.ts` em 2026-05-10. Qualquer divergência entre este doc e o config é bug — abrir PR.*
+*v2 (2026-06-22) — doc realinhado à marca real (menta/tinta, Space Grotesk). O código do app ainda está em teal/Plus Jakarta: ver §0 Migração. Style guide visual: `landing-page/public/styleguide.html`.*
