@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>FitBrother — Design System</title>
+<link rel="icon" type="image/png" href="/brand/app_icon.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --menta-400:#3fe3b5; --menta-500:#06d59f; --menta-600:#04a87e;
+    --menta-tint:rgba(6,213,159,.12); --menta-tint-strong:rgba(6,213,159,.22);
+    --ink:#04100c; --ink-soft:#0a1f17;
+    --canvas:#f6f7f5; --surface:#fff; --mist:#eceeee; --mist-2:#e4e7e5;
+    --text:var(--ink); --text-muted:rgba(4,16,12,.6); --text-faint:rgba(4,16,12,.42);
+    --macro-protein:#e8506b; --macro-carbs:#d98a1c; --macro-fat:#7a5be0;
+    --border:rgba(4,16,12,.1); --border-strong:rgba(4,16,12,.16);
+    --radius-sm:10px; --radius-md:14px; --radius-lg:20px; --radius-xl:28px; --radius-full:9999px;
+    --shadow-xs:0 1px 2px rgba(4,16,12,.06); --shadow-sm:0 2px 10px rgba(4,16,12,.06);
+    --shadow-md:0 10px 34px rgba(4,16,12,.09); --shadow-lg:0 26px 60px rgba(4,16,12,.14);
+    --shadow-menta:0 20px 48px rgba(6,213,159,.28);
+    --display:'Space Grotesk',sans-serif; --body:'Inter',sans-serif; --mono:'JetBrains Mono',monospace;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:var(--body);background:var(--canvas);color:var(--text);line-height:1.6;-webkit-font-smoothing:antialiased}
+  h1,h2,h3,h4{font-family:var(--display);letter-spacing:-.02em;line-height:1.1}
+  code{font-family:var(--mono);font-size:.85em;background:var(--mist);padding:2px 6px;border-radius:6px;color:var(--ink-soft)}
+
+  /* layout */
+  .topbar{position:sticky;top:0;z-index:10;background:rgba(246,247,245,.85);backdrop-filter:blur(14px);border-bottom:1px solid var(--border)}
+  .topbar__in{max-width:1080px;margin:0 auto;padding:16px 32px;display:flex;align-items:center;gap:12px}
+  .topbar img{width:30px;height:30px}
+  .topbar b{font-family:var(--display);font-weight:700;font-size:18px}
+  .topbar .tag{margin-left:auto;font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--text-muted)}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 32px}
+
+  .hero{padding:72px 0 48px}
+  .hero .ey{font-family:var(--mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--menta-600);font-weight:700}
+  .hero h1{font-size:clamp(34px,6vw,58px);font-weight:700;margin:14px 0 16px;letter-spacing:-.03em}
+  .hero p{font-size:18px;color:var(--text-muted);max-width:60ch}
+
+  section{padding:40px 0;border-top:1px solid var(--border)}
+  .sec-head{display:flex;align-items:baseline;gap:14px;margin-bottom:26px}
+  .sec-head .n{font-family:var(--mono);font-size:13px;color:var(--menta-600);font-weight:700}
+  .sec-head h2{font-size:26px;font-weight:700}
+  .sec-head p{color:var(--text-muted);font-size:14px;margin-left:auto;max-width:46ch;text-align:right}
+  .grid{display:grid;gap:16px}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:22px}
+  .label{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--text-faint);margin-bottom:14px}
+
+  /* color swatches */
+  .swatches{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
+  .sw{border:1px solid var(--border);border-radius:var(--radius-md);overflow:hidden;background:var(--surface)}
+  .sw__chip{height:84px;display:flex;align-items:flex-end;padding:10px}
+  .sw__meta{padding:10px 12px}
+  .sw__name{font-weight:600;font-size:13px}
+  .sw__hex{font-family:var(--mono);font-size:12px;color:var(--text-muted)}
+  .sw__use{font-size:11px;color:var(--text-faint);margin-top:3px}
+
+  /* type */
+  .type-row{display:flex;align-items:baseline;gap:18px;padding:14px 0;border-bottom:1px solid var(--border)}
+  .type-row:last-child{border:0}
+  .type-row .meta{font-family:var(--mono);font-size:11px;color:var(--text-faint);width:120px;flex-shrink:0}
+  .type-sample{font-family:var(--display);font-weight:700;color:var(--ink)}
+
+  /* component demos */
+  .demos{grid-template-columns:repeat(auto-fill,minmax(260px,1fr));align-items:start}
+  .demo{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px;display:flex;flex-direction:column;gap:16px}
+  .demo__stage{display:flex;flex-direction:column;align-items:center;gap:14px;min-height:120px;justify-content:center}
+
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:13px 26px;border-radius:var(--radius-full);font-family:var(--display);font-weight:600;font-size:.95rem;border:none;cursor:pointer}
+  .btn--primary{background:var(--menta-500);color:var(--ink)}
+  .btn--outline{background:transparent;color:var(--ink);border:1.5px solid var(--border-strong)}
+  .store-badge{display:inline-flex;align-items:center;gap:10px;padding:11px 18px;background:var(--ink);color:#fff;border-radius:var(--radius-md);text-decoration:none}
+  .store-badge small{display:block;font-size:.62rem;opacity:.8}
+  .store-badge strong{font-family:var(--display);font-size:.98rem}
+
+  .cring{width:130px;height:130px;border-radius:50%;display:flex;align-items:center;justify-content:center;position:relative;background:conic-gradient(var(--menta-500) 0% 62%,var(--mist-2) 62% 100%)}
+  .cring__in{position:absolute;inset:11px;border-radius:50%;background:var(--surface);display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:inset 0 0 0 1px var(--border)}
+  .cring__in b{font-family:var(--display);font-size:1.7rem;font-variant-numeric:tabular-nums}
+  .cring__in span{font-size:.62rem;color:var(--menta-600);font-weight:600}
+
+  .macro-chips{display:flex;gap:8px;width:100%}
+  .macro-chip{flex:1;background:var(--mist);border-radius:var(--radius-sm);padding:10px 6px;text-align:center}
+  .macro-chip b{display:block;font-family:var(--display);font-size:1.05rem;font-variant-numeric:tabular-nums}
+  .macro-chip span{font-size:.62rem;color:var(--text-muted)}
+
+  .dotted{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;width:100%}
+  .dotted i{aspect-ratio:1;border-radius:4px;background:var(--mist-2)}
+  .dotted i.on{background:var(--menta-500)}
+
+  .lb{width:100%;display:flex;flex-direction:column;gap:8px}
+  .lb-row{display:grid;grid-template-columns:24px 1fr auto;gap:10px;align-items:center;padding:10px 12px;border-radius:var(--radius-sm)}
+  .lb-row.you{background:var(--menta-tint);box-shadow:inset 0 0 0 1px var(--menta-tint-strong)}
+  .lb-rank{font-family:var(--display);font-weight:700;color:var(--menta-600)}
+  .lb-name{font-weight:600;font-size:.9rem}
+  .lb-val{color:var(--text-muted);font-size:.82rem;font-variant-numeric:tabular-nums}
+
+  .wa{width:100%;display:flex;flex-direction:column;gap:8px}
+  .wa b{padding:11px 13px;border-radius:15px;font-size:.82rem;max-width:88%}
+  .wa .out{align-self:flex-end;background:var(--menta-500);color:var(--ink);border-bottom-right-radius:4px;font-weight:400}
+  .wa .in{align-self:flex-start;background:var(--mist);border-bottom-left-radius:4px;font-weight:400}
+
+  .ficon{width:50px;height:50px;border-radius:var(--radius-md);background:var(--menta-tint);display:flex;align-items:center;justify-content:center;color:var(--menta-600)}
+
+  /* logo lockups */
+  .lock{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px}
+  .lock__box{border:1px solid var(--border);border-radius:var(--radius-md);overflow:hidden}
+  .lock__art{height:120px;display:flex;align-items:center;justify-content:center;gap:10px;padding:16px}
+  .lock__art img{height:36px;width:auto}
+  .lock__art .name{font-family:var(--display);font-weight:700;font-size:22px}
+  .lock__cap{padding:10px 12px;font-size:12px;color:var(--text-muted);border-top:1px solid var(--border);font-family:var(--mono)}
+  .do{color:var(--menta-600);font-weight:700}.dont{color:var(--macro-protein);font-weight:700}
+
+  .token-table{width:100%;border-collapse:collapse;font-size:14px}
+  .token-table td,.token-table th{text-align:left;padding:9px 10px;border-bottom:1px solid var(--border)}
+  .token-table th{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-faint);font-weight:500}
+  .token-table code{background:var(--mist)}
+  .swatch-dot{display:inline-block;width:16px;height:16px;border-radius:4px;border:1px solid var(--border);vertical-align:-3px;margin-right:8px}
+
+  footer{padding:40px 0 80px;color:var(--text-faint);font-size:13px;border-top:1px solid var(--border)}
+  @media(max-width:600px){.sec-head{flex-direction:column;gap:6px}.sec-head p{text-align:left;margin:0}}
+</style>
+</head>
+<body>
+  <div class="topbar"><div class="topbar__in">
+    <img src="/brand/app_icon.png" alt="" /><b>FitBrother</b>
+    <span class="tag">Design System · v1</span>
+  </div></div>
+
+  <div class="wrap">
+    <header class="hero">
+      <div class="ey">Design System</div>
+      <h1>A linguagem visual do FitBrother.</h1>
+      <p>Tokens, tipografia, marca e componentes do app de nutrição com IA. Tema claro, moderno e arredondado — menta como acento sobre off-white, preto da marca no texto. Esta página é viva: reflete os componentes reais usados na landing.</p>
+    </header>
+
+    <!-- LOGO -->
+    <section>
+      <div class="sec-head"><span class="n">01</span><h2>Marca</h2><p>O selo FB + nome é o lockup padrão no claro. O wordmark menta só sobre fundos escuros ou neutros.</p></div>
+      <div class="lock">
+        <div class="lock__box"><div class="lock__art" style="background:var(--canvas)"><img src="/brand/app_icon.png" alt="" style="height:40px"><span class="name">FitBrother</span></div><div class="lock__cap"><span class="do">✓ uso primário</span> · selo + nome no claro</div></div>
+        <div class="lock__box"><div class="lock__art" style="background:var(--menta-500)"><img src="/brand/horizontal_logo.png" alt="FitBrother" style="height:30px"></div><div class="lock__cap"><span class="do">✓</span> wordmark sobre menta</div></div>
+        <div class="lock__box"><div class="lock__art" style="background:var(--ink)"><img src="/brand/horizontal_logo_no_bg.png" alt="FitBrother" style="height:30px"></div><div class="lock__cap"><span class="do">✓</span> wordmark menta no escuro</div></div>
+        <div class="lock__box"><div class="lock__art" style="background:#fff"><img src="/brand/horizontal_logo_no_bg.png" alt="" style="height:30px;opacity:.9"></div><div class="lock__cap"><span class="dont">✗ evitar</span> · menta puro sobre branco (baixo contraste)</div></div>
+      </div>
+    </section>
+
+    <!-- COLOR -->
+    <section>
+      <div class="sec-head"><span class="n">02</span><h2>Cores</h2><p>Menta é o único acento vivo. Texto e réguas em tinta (quase-preto). Superfícies claras em camadas.</p></div>
+      <div class="label">Marca &amp; superfícies</div>
+      <div class="grid swatches" style="margin-bottom:24px">
+        <div class="sw"><div class="sw__chip" style="background:#06d59f;color:#04100c">Aa</div><div class="sw__meta"><div class="sw__name">Menta 500</div><div class="sw__hex">#06D59F</div><div class="sw__use">Acento, botões, anel, marca-texto</div></div></div>
+        <div class="sw"><div class="sw__chip" style="background:#3fe3b5;color:#04100c">Aa</div><div class="sw__meta"><div class="sw__name">Menta 400</div><div class="sw__hex">#3FE3B5</div><div class="sw__use">Hover / brilho</div></div></div>
+        <div class="sw"><div class="sw__chip" style="background:#04a87e;color:#fff">Aa</div><div class="sw__meta"><div class="sw__name">Menta 600</div><div class="sw__hex">#04A87E</div><div class="sw__use">Texto/realce menta sobre claro</div></div></div>
+        <div class="sw"><div class="sw__chip" style="background:#04100c;color:#fff">Aa</div><div class="sw__meta"><div class="sw__name">Ink</div><div class="sw__hex">#04100C</div><div class="sw__use">Texto, réguas, badges</div></div></div>
+        <div class="sw"><div class="sw__chip" style="background:#f6f7f5;color:#04100c">Aa</div><div class="sw__meta"><div class="sw__name">Canvas</div><div class="sw__hex">#F6F7F5</div><div class="sw__use">Fundo da página</div></div></div>
+        <div class="sw"><div class="sw__chip" style="background:#fff;color:#04100c;box-shadow:inset 0 0 0 1px var(--border)">Aa</div><div class="sw__meta"><div class="sw__name">Surface</div><div class="sw__hex">#FFFFFF</div><div class="sw__use">Cards</div></div></div>
+        <div class="sw"><div class="sw__chip" style="background:#eceeee;color:#04100c">Aa</div><div class="sw__meta"><div class="sw__name">Mist</div><div class="sw__hex">#ECEEEE</div><div class="sw__use">Seções/fills alternados</div></div></div>
+      </div>
+      <div class="label">Macros &amp; feedback</div>
+      <div class="grid swatches">
+        <div class="sw"><div class="sw__chip" style="background:#e8506b;color:#fff">Aa</div><div class="sw__meta"><div class="sw__name">Proteína</div><div class="sw__hex">#E8506B</div></div></div>
+        <div class="sw"><div class="sw__chip" style="background:#d98a1c;color:#fff">Aa</div><div class="sw__meta"><div class="sw__name">Carboidrato</div><div class="sw__hex">#D98A1C</div></div></div>
+        <div class="sw"><div class="sw__chip" style="background:#7a5be0;color:#fff">Aa</div><div class="sw__meta"><div class="sw__name">Gordura</div><div class="sw__hex">#7A5BE0</div></div></div>
+        <div class="sw"><div class="sw__chip" style="background:#22c55e;color:#fff">Aa</div><div class="sw__meta"><div class="sw__name">Sucesso</div><div class="sw__hex">#22C55E</div></div></div>
+        <div class="sw"><div class="sw__chip" style="background:#fb923c;color:#04100c">Aa</div><div class="sw__meta"><div class="sw__name">Streak</div><div class="sw__hex">#FB923C</div></div></div>
+      </div>
+    </section>
+
+    <!-- TYPE -->
+    <section>
+      <div class="sec-head"><span class="n">03</span><h2>Tipografia</h2><p>Space Grotesk dá personalidade aos títulos; Inter sustenta o corpo; mono para dados e rótulos técnicos.</p></div>
+      <div class="card" style="margin-bottom:16px">
+        <div class="label">Space Grotesk — Display</div>
+        <div class="type-row"><span class="meta">700 · 58px</span><span class="type-sample" style="font-size:48px">Registre só falando</span></div>
+        <div class="type-row"><span class="meta">700 · 30px</span><span class="type-sample" style="font-size:30px">Como funciona</span></div>
+        <div class="type-row"><span class="meta">600 · 20px</span><span class="type-sample" style="font-size:20px;font-weight:600">Título de card</span></div>
+      </div>
+      <div class="grid" style="grid-template-columns:1fr 1fr">
+        <div class="card">
+          <div class="label">Inter — Corpo</div>
+          <p style="font-size:18px;margin-bottom:8px">Fale ou escreva o que comeu e a IA calcula tudo.</p>
+          <p style="font-size:14px;color:var(--text-muted)">Texto secundário, descrições e metadados em 14–16px.</p>
+        </div>
+        <div class="card">
+          <div class="label">JetBrains Mono — Dados</div>
+          <p style="font-family:var(--mono);font-size:22px;font-weight:700;font-variant-numeric:tabular-nums">1.247 kcal · 68 g</p>
+          <p style="font-family:var(--mono);font-size:12px;color:var(--text-muted);margin-top:6px">tabular-nums em todo número de macro/streak/kcal</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- COMPONENTS -->
+    <section>
+      <div class="sec-head"><span class="n">04</span><h2>Componentes</h2><p>Os blocos reais usados na landing e no produto.</p></div>
+      <div class="grid demos">
+        <div class="demo"><div class="label">Botões</div><div class="demo__stage" style="gap:12px"><button class="btn btn--primary">Baixar app</button><button class="btn btn--outline">Ver como funciona</button></div></div>
+        <div class="demo"><div class="label">Store badges</div><div class="demo__stage" style="gap:10px"><a class="store-badge"><span><small>Baixar na</small><strong>App Store</strong></span></a><a class="store-badge"><span><small>Disponível no</small><strong>Google Play</strong></span></a></div></div>
+        <div class="demo"><div class="label">Anel de calorias</div><div class="demo__stage"><div class="cring"><div class="cring__in"><b>1.247</b><span>KCAL · 753 RESTAM</span></div></div></div></div>
+        <div class="demo"><div class="label">Chips de macro</div><div class="demo__stage"><div class="macro-chips"><div class="macro-chip"><b style="color:var(--macro-protein)">68g</b><span>Proteína</span></div><div class="macro-chip"><b style="color:var(--macro-carbs)">145g</b><span>Carbo</span></div><div class="macro-chip"><b style="color:var(--macro-fat)">42g</b><span>Gordura</span></div></div></div></div>
+        <div class="demo"><div class="label">Aderência da semana</div><div class="demo__stage"><div class="dotted"><i class="on"></i><i class="on"></i><i></i><i class="on"></i><i class="on"></i><i></i><i class="on"></i></div></div></div>
+        <div class="demo"><div class="label">Ranking de amigos</div><div class="demo__stage"><div class="lb"><div class="lb-row"><span class="lb-rank">1</span><span class="lb-name">Emily R.</span><span class="lb-val">18 dias</span></div><div class="lb-row you"><span class="lb-rank">2</span><span class="lb-name">Você</span><span class="lb-val">14 dias</span></div><div class="lb-row"><span class="lb-rank">3</span><span class="lb-name">Alex C.</span><span class="lb-val">11 dias</span></div></div></div></div>
+        <div class="demo"><div class="label">Chat (WhatsApp)</div><div class="demo__stage"><div class="wa"><b class="out">2 ovos e um café com leite</b><b class="in">Anotado! <strong style="color:var(--menta-600)">210 kcal</strong> · 15g P</b></div></div></div>
+        <div class="demo"><div class="label">Ícone de feature</div><div class="demo__stage"><div class="ficon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v5"/></svg></div></div></div>
+      </div>
+    </section>
+
+    <!-- TOKENS -->
+    <section>
+      <div class="sec-head"><span class="n">05</span><h2>Forma, sombra &amp; motion</h2></div>
+      <div class="grid" style="grid-template-columns:1fr 1fr">
+        <div class="card">
+          <div class="label">Raio de borda</div>
+          <table class="token-table">
+            <tr><th>Token</th><th>Valor</th><th>Uso</th></tr>
+            <tr><td><code>--radius-sm</code></td><td>10px</td><td>chips, fills internos</td></tr>
+            <tr><td><code>--radius-md</code></td><td>14px</td><td>botões/badges, inputs</td></tr>
+            <tr><td><code>--radius-lg</code></td><td>20px</td><td>cards</td></tr>
+            <tr><td><code>--radius-xl</code></td><td>28px</td><td>painéis, telefone, bento</td></tr>
+            <tr><td><code>--radius-full</code></td><td>9999px</td><td>pills, avatares</td></tr>
+          </table>
+        </div>
+        <div class="card">
+          <div class="label">Sombra &amp; motion</div>
+          <table class="token-table">
+            <tr><th>Token</th><th>Uso</th></tr>
+            <tr><td><code>--shadow-sm</code></td><td>cards em repouso</td></tr>
+            <tr><td><code>--shadow-md</code></td><td>hover de card</td></tr>
+            <tr><td><code>--shadow-lg</code></td><td>telefone / destaque</td></tr>
+            <tr><td><code>--shadow-menta</code></td><td>hover do CTA primário</td></tr>
+            <tr><td>easing</td><td><code>cubic-bezier(.4,0,.2,1)</code></td></tr>
+            <tr><td>duração</td><td>0.28s (fast) · 0.6s (reveal)</td></tr>
+          </table>
+          <p style="font-size:12px;color:var(--text-muted);margin-top:12px">Respeita <code>prefers-reduced-motion</code>: reveals aparecem sem transição.</p>
+        </div>
+      </div>
+    </section>
+
+    <footer class="wrap" style="padding-left:0;padding-right:0">
+      FitBrother Design System · tema claro v1 · gerado a partir dos componentes reais da landing (<code>landing-page/src</code>).
+      Cores e tipografia derivadas dos assets em <code>assets/brand</code>.
+    </footer>
+  </div>
+</body>
+</html>
