@@ -30,6 +30,7 @@ function makeOptimistic(args: Args): OptimisticMeal {
     total_fat_g: 0,
     confidence: null,
     review_required: false,
+    ai_feedback: null,
     created_at: now,
     deleted_at: null,
     items: [],
