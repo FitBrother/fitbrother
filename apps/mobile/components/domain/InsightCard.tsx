@@ -13,7 +13,7 @@ export function InsightCard({ insight }: { insight: Insight }) {
   return (
     <View style={shadows.card} className="rounded-2xl bg-white p-4">
       <View className="flex-row items-center justify-between">
-        <Text className="flex-1 text-lg font-sans-extrabold text-neutral-800">{p.title}</Text>
+        <Text className="flex-1 text-lg font-display-bold text-neutral-800">{p.title}</Text>
         {p.score !== null ? (
           <Text style={NUM} className="ml-3 font-sans-bold text-primary-600">
             {p.score}

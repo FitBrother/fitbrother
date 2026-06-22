@@ -72,14 +72,14 @@ export function PostCard({ post }: { post: Post }) {
       {achievement ? (
         <View className="mt-4 rounded-2xl border border-warning-400 bg-warning-50 p-4">
           <Text className="text-xs font-sans-semibold uppercase text-warning-500">Conquista</Text>
-          <Text className="mt-2 text-xl font-sans-extrabold text-neutral-800">
+          <Text className="mt-2 text-xl font-display-bold text-neutral-800">
             {achievement.title}
           </Text>
           <Text className="mt-1 text-sm font-sans text-neutral-600">{achievement.description}</Text>
         </View>
       ) : (
         <View className="mt-4 rounded-2xl bg-neutral-50 p-4">
-          <Text style={NUM} className="text-2xl font-sans-extrabold text-neutral-800">
+          <Text style={NUM} className="text-2xl font-display-bold text-neutral-800">
             {Math.round(post.total_kcal)} kcal
           </Text>
           <Text style={NUM} className="mt-1 text-sm font-sans text-neutral-500">

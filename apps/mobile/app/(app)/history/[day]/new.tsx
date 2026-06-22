@@ -147,7 +147,7 @@ export default function BackfillScreen() {
         >
           <X size={24} color={colors.neutral[800]} />
         </Pressable>
-        <Text className="ml-2 flex-1 text-lg font-sans-bold text-neutral-800">
+        <Text className="ml-2 flex-1 text-lg font-display-bold text-neutral-800">
           {formatDayHeader(day)}
         </Text>
       </View>

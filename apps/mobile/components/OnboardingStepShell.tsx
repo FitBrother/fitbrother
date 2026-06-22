@@ -39,7 +39,7 @@ export function OnboardingStepShell({
       </View>
 
       <View className="mb-6">
-        <Text className="mb-2 text-3xl font-sans-extrabold text-neutral-800">{title}</Text>
+        <Text className="mb-2 text-3xl font-display-bold text-neutral-800">{title}</Text>
         {subtitle && <Text className="text-base font-sans text-neutral-600">{subtitle}</Text>}
       </View>
     </>

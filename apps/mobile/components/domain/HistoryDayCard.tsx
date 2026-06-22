@@ -56,7 +56,7 @@ export function HistoryDayCard({ summary }: Props) {
         className="rounded-2xl bg-white p-4 active:opacity-80"
       >
         <View className="flex-row items-center justify-between">
-          <Text style={NUM} className="text-xl font-sans-bold text-neutral-800">
+          <Text style={NUM} className="text-xl font-display-bold text-neutral-800">
             {heroLabel}
           </Text>
           <View className="flex-row items-center gap-1.5">

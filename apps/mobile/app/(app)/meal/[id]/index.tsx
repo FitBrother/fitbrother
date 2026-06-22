@@ -138,7 +138,7 @@ export default function MealDetailScreen() {
         >
           <ChevronLeft size={24} color={colors.neutral[800]} />
         </Pressable>
-        <Text className="ml-2 flex-1 text-xl font-sans-bold text-neutral-800">Refeição</Text>
+        <Text className="ml-2 flex-1 text-xl font-display-bold text-neutral-800">Refeição</Text>
         <Pressable
           onPress={() => router.push(`/(app)/share/meal/${meal.id}` as never)}
           accessibilityLabel="Exportar imagem"
@@ -174,7 +174,7 @@ export default function MealDetailScreen() {
 
       <ScrollView contentContainerStyle={{ paddingBottom: 32 }}>
         <View style={shadows.card} className="mx-4 mt-2 rounded-2xl bg-white p-4">
-          <Text style={NUM} className="text-3xl font-sans-extrabold text-neutral-800">
+          <Text style={NUM} className="text-3xl font-display-bold text-neutral-800">
             {Math.round(meal.total_kcal)} kcal
           </Text>
           <Text style={NUM} className="mt-2 text-sm font-sans text-neutral-500">

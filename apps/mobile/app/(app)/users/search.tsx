@@ -112,7 +112,7 @@ export default function UserSearch() {
         >
           <ChevronLeft size={24} color={colors.neutral[800]} />
         </Pressable>
-        <Text className="ml-2 text-xl font-sans-bold text-neutral-800">Buscar pessoas</Text>
+        <Text className="ml-2 text-xl font-display-bold text-neutral-800">Buscar pessoas</Text>
       </View>
 
       <View className="px-4 pt-2">

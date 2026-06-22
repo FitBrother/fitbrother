@@ -50,7 +50,7 @@ export default function HistoryDayScreen() {
         >
           <ChevronLeft size={24} color={colors.neutral[800]} />
         </Pressable>
-        <Text className="ml-2 flex-1 text-xl font-sans-bold text-neutral-800">
+        <Text className="ml-2 flex-1 text-xl font-display-bold text-neutral-800">
           {formatDayHeader(day)}
         </Text>
         {canBackfill && (

@@ -97,8 +97,8 @@ export function ProgressRing({
           <Text
             className={
               size >= 120
-                ? "font-sans-bold text-neutral-900 text-3xl"
-                : "font-sans-bold text-neutral-900 text-lg"
+                ? "font-display-bold text-neutral-900 text-3xl"
+                : "font-display-bold text-neutral-900 text-lg"
             }
             style={{ fontVariant: ["tabular-nums"] }}
           >

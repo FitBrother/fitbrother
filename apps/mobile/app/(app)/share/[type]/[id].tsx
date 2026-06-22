@@ -98,7 +98,7 @@ export default function ShareScreen() {
         >
           <ChevronLeft size={24} color={colors.neutral[50]} />
         </Pressable>
-        <Text className="ml-2 text-xl font-sans-bold text-white">Compartilhar</Text>
+        <Text className="ml-2 text-xl font-display-bold text-white">Compartilhar</Text>
       </View>
 
       <View className="flex-1 items-center justify-center px-4">

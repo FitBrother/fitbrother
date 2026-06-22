@@ -44,7 +44,7 @@ export default function SignIn() {
         className="flex-1"
       >
         <View className="flex-1 p-5 pt-12">
-          <Text className="mb-2 text-3xl font-sans-extrabold text-neutral-800">
+          <Text className="mb-2 text-3xl font-display-bold text-neutral-800">
             Bem-vindo de volta
           </Text>
           <Text className="mb-8 text-base font-sans text-neutral-600">

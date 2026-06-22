@@ -9,7 +9,7 @@ export default function Welcome() {
     <SafeAreaView className="flex-1 bg-neutral-50">
       <View className="flex-1 justify-between p-12">
         <View className="flex-1 items-center justify-center">
-          <Text className="mb-4 text-5xl font-sans-extrabold text-primary-400">Fitbrother</Text>
+          <Text className="mb-4 text-5xl font-display-bold text-primary-400">Fitbrother</Text>
           <Text className="text-center text-base font-sans text-neutral-600">
             Nutrição com IA. Registre suas refeições em linguagem natural — texto ou áudio.
           </Text>

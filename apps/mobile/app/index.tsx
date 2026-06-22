@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { getMe } from "@/lib/api";
+import { colors } from "@/lib/colors";
 import { useAuthSession } from "@/lib/hooks/useAuthSession";
 
 type ProfileState =
@@ -45,7 +46,7 @@ export default function Index() {
   if (auth.status === "loading" || (auth.status === "signed_in" && profile.kind === "checking")) {
     return (
       <SafeAreaView className="flex-1 items-center justify-center bg-neutral-50">
-        <ActivityIndicator size="large" color="#2DD4BF" />
+        <ActivityIndicator size="large" color={colors.primary[400]} />
       </SafeAreaView>
     );
   }

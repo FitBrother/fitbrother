@@ -18,7 +18,7 @@ export default function ProfileScreen() {
         >
           <ChevronLeft size={24} color={colors.neutral[800]} />
         </Pressable>
-        <Text className="ml-2 text-xl font-sans-bold text-neutral-800">Perfil</Text>
+        <Text className="ml-2 text-xl font-display-bold text-neutral-800">Perfil</Text>
       </View>
       <View className="gap-3 px-5 pt-4">
         <Pressable

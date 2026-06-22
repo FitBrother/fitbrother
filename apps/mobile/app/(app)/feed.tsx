@@ -26,7 +26,7 @@ export default function FeedScreen() {
         >
           <ChevronLeft size={24} color={colors.neutral[800]} />
         </Pressable>
-        <Text className="ml-2 text-xl font-sans-bold text-neutral-800">Feed</Text>
+        <Text className="ml-2 text-xl font-display-bold text-neutral-800">Feed</Text>
       </View>
 
       {feed.isLoading ? (

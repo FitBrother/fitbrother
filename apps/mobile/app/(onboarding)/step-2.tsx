@@ -48,14 +48,14 @@ export default function Step2SexBirthdate() {
             tintColor="#ffffff"
             backgroundColor="#f1f5f9"
             fontStyle={{
-              fontFamily: "PlusJakartaSans_500Medium",
+              fontFamily: "Inter_500Medium",
               fontSize: 14,
               color: "#64748b",
             }}
             activeFontStyle={{
-              fontFamily: "PlusJakartaSans_600SemiBold",
+              fontFamily: "Inter_600SemiBold",
               fontSize: 14,
-              color: "#0f172a",
+              color: "#04100c",
             }}
             style={{ height: 40 }}
           />

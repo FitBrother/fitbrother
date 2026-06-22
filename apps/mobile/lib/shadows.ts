@@ -8,7 +8,7 @@ export const shadows = {
   // Subtle elevation for resting cards. Large radius, low opacity → soft.
   card: Platform.select({
     ios: {
-      shadowColor: "#0F172A",
+      shadowColor: "#04100C",
       shadowOffset: { width: 0, height: 4 },
       shadowOpacity: 0.06,
       shadowRadius: 16,
@@ -20,7 +20,7 @@ export const shadows = {
   // the content layer.
   floating: Platform.select({
     ios: {
-      shadowColor: "#0F172A",
+      shadowColor: "#04100C",
       shadowOffset: { width: 0, height: 6 },
       shadowOpacity: 0.1,
       shadowRadius: 20,

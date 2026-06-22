@@ -84,7 +84,7 @@ export default function NewPostScreen() {
         >
           <ChevronLeft size={24} color={colors.neutral[800]} />
         </Pressable>
-        <Text className="ml-2 text-xl font-sans-bold text-neutral-800">Novo post</Text>
+        <Text className="ml-2 text-xl font-display-bold text-neutral-800">Novo post</Text>
       </View>
 
       <Pressable
@@ -136,7 +136,7 @@ export default function NewPostScreen() {
           <Text className="font-sans-semibold text-neutral-800">Snapshot de macros</Text>
           {meal ? (
             <>
-              <Text style={NUM} className="mt-3 text-3xl font-sans-extrabold text-neutral-800">
+              <Text style={NUM} className="mt-3 text-3xl font-display-bold text-neutral-800">
                 {Math.round(meal.total_kcal)} kcal
               </Text>
               <Text style={NUM} className="mt-2 text-sm font-sans text-neutral-500">
