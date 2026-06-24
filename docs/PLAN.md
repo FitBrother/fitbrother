@@ -11,7 +11,7 @@ Decisões já fixadas:
 - **LLM:** Gemini 1.5 Flash default, atrás de interface `LLMProvider` plugável (`LLM_PROVIDER` env troca para OpenAI).
 - **Contas externas:** nenhuma criada — M0 inclui walkthrough.
 - **Ritmo:** solo full-time, ~1 semana por milestone.
-- **Formato:** incremental, cada milestone com critério de "feito". **Fase 1 = M0–M6** (app de nutrição); **Fase 2 = M7–M9** (transição para rede social — ver seção própria abaixo).
+- **Formato:** incremental, cada milestone com critério de "feito". **Fase 1 = M0–M6** (app de nutrição); **Fase 2 = M7–M9** (transição para rede social); **Fase 3 = M10–M13** (polish & expansão: perfil/menus/LGPD na UI, código de barras, UI/UX) — seções próprias abaixo.
 
 ---
 
@@ -43,7 +43,7 @@ flowchart TB
 
 M3 e M4 são independentes depois de M2 (dashboard vs WhatsApp). Tudo o resto é linear.
 
-**Fase 1 = M0–M6** (app de nutrição). **Fase 2 = M7–M9** (transição para rede social), construída sobre o baseline social do M5. M7→M8→M9 é linear; M9 depende de M7 **e** M8 (precisa de "algo" — post ou insight — para compartilhar). O brainstorm e as decisões transversais da Fase 2 estão em [`docs/superpowers/specs/2026-06-12-m7-m9-rede-social-master-plan-design.md`](superpowers/specs/2026-06-12-m7-m9-rede-social-master-plan-design.md).
+**Fase 1 = M0–M6** (app de nutrição). **Fase 2 = M7–M9** (transição para rede social), construída sobre o baseline social do M5. **Fase 3 = M10–M13** (polish & expansão — ver seção própria mais abaixo). M7→M8→M9 é linear; M9 depende de M7 **e** M8 (precisa de "algo" — post ou insight — para compartilhar). O brainstorm e as decisões transversais da Fase 2 estão em [`docs/superpowers/specs/2026-06-12-m7-m9-rede-social-master-plan-design.md`](superpowers/specs/2026-06-12-m7-m9-rede-social-master-plan-design.md).
 
 ---
 
@@ -392,8 +392,7 @@ Falha após passo 8 → `processed_at IS NULL` → cron retry; caches em 6 e 8 e
 
 ### Mobile
 
-- `app/(tabs)/profile.tsx` — settings: exportar dados, deletar conta, gerenciar consentimento granular, alterar timezone, alterar `day_start_hour`.
-- Tela "Sobre" com versão (`Constants.expoConfig.version`) + links Termos/Privacidade.
+> **Movido para M10 (Fase 3) em 2026-06-23.** A UI de menus/perfil — settings (export/delete LGPD, consentimento granular, timezone, `day_start_hour`) e tela Sobre — saiu do M6 e virou o milestone **M10 — Perfil completo + menus internos**. O M6 fica backend LGPD + observabilidade + deploy/ops puro. A UI do M10 consome os endpoints LGPD definidos aqui.
 
 ### Ops
 
@@ -526,6 +525,73 @@ Falha após passo 8 → `processed_at IS NULL` → cron retry; caches em 6 e 8 e
 > Design detalhado: [`docs/superpowers/specs/2026-06-19-m9-share-cards-design.md`](superpowers/specs/2026-06-19-m9-share-cards-design.md). MVP: **só Stories 9:16** (quadrado fica pra v2).
 
 **Status M9 (Compartilhamento externo):** ✅ implementado em 2026-06-19 na branch `feat/m9-share-cards` (empilhada em `feat/m8-2-insights`). Client-side, sem backend: deps `react-native-view-shot` + `expo-sharing` + `expo-media-library`. `ShareCard` 9:16 (variantes refeição/post com foto+macros e insight com título/headline/bullets/score, marca d'água wordmark+folha). `lib/share-card.ts` (`captureCard`/`shareCard`/`saveCardToGallery` com pedido de permissão). Tela de preview `share/[type]/[id]` busca o dado (`getMeal`/`fetchPost`/`fetchInsight`) e oferece **Compartilhar** (share sheet) + **Salvar** (galeria). Pontos de entrada: `PostCard`, `InsightCard` e detalhe da refeição (distinto do "Compartilhar no feed"). Verificação: `typecheck`/`lint` passam. **Não rodado em device** — os módulos nativos exigem um **novo dev build** (o dev client atual não os tem); sem checks SQL (UI pura). **M9 e a Fase 2 (rede social) concluídos.**
+
+---
+
+# ═══ Fase 3 — Polish & Expansão (M10–M13) ═══
+
+> Pós Fase 2, com o app já funcional. Foco: deixar pronto para usuário real (perfil/menus/LGPD na UI) e expandir captura (código de barras), além de polish de UI/UX. Master plan e rationale em [`docs/superpowers/specs/2026-06-23-fase-3-polish-expansao-design.md`](superpowers/specs/2026-06-23-fase-3-polish-expansao-design.md). Cada milestone ganha seu próprio spec datado antes de implementar.
+>
+> **Prioridade sugerida:** M10 → M13 → M11 → M12 (todos em Backlog; dono prioriza). Numeração de migrations continua do ponto mais alto vigente quando cada milestone começar.
+
+---
+
+## M10 — Perfil completo + menus internos
+
+**Meta:** `profile.tsx` real (hoje placeholder) e todos os menus internos prontos, incluindo a UI de LGPD ligada ao backend do M6.
+
+- `app/(app)/profile.tsx` completo (dados do usuário, avatar, atalhos para menus internos).
+- Settings: alterar `timezone`, `day_start_hour`, consentimento granular (`POST /account/consent`).
+- UI de exportar dados (`GET /account/export`) e deletar conta (`DELETE /account`).
+- Tela Sobre (versão via `Constants.expoConfig.version` + links Termos/Privacidade).
+- Organização da navegação dos menus existentes (achievements, friends, insights, history) a partir do perfil.
+
+**Dependência:** backend LGPD do M6 (export/delete/consent). Absorve os 2 itens mobile que saíram do M6.
+
+**Feito quando:** usuário abre Perfil real, edita timezone/day_start_hour, gerencia consentimento, dispara export e delete pela UI, e acessa Sobre.
+
+---
+
+## M11 — Aprimorar onboarding
+
+**Meta:** aumentar conclusão e refinar a percepção dos 9 steps, sem reestruturar o fluxo.
+
+- **Reduzir fricção:** defaults inteligentes, tornar opcional o não-essencial (ex.: username/avatar adiáveis pro Perfil), completar depois, menos taps.
+- **Polish visual + copy:** textos/microcopy, ilustrações/ícones, micro-animações e transições entre steps.
+
+**Feito quando:** onboarding completável com menos campos obrigatórios, copy revisada, sem regressão de dados coletados (profiles/anthropometrics/goals/consents intactos).
+
+---
+
+## M12 — Registro por código de barras
+
+**Meta:** registrar alimento escaneando o código de barras da embalagem.
+
+- Scanner via `expo-camera` (barcode) como entrada no `MealComposer` (junto de texto/áudio/foto).
+- Lookup em **OpenFoodFacts** (API pública, grátis, sem key) por EAN/UPC → nome + macros.
+- Mapear para item de refeição (reusar caminho de `meal_items`/macros); ajustar quantidade antes de salvar.
+- Fallback manual quando o produto não é encontrado.
+
+**Parte humana (Híbrido):** novo dev build EAS (módulo nativo de câmera) + teste em device.
+
+**Feito quando:** escanear produto conhecido → item com macros pré-preenchido e editável → salva; desconhecido → fallback manual claro.
+
+**Risco:** cobertura do OpenFoodFacts varia por região; tratar ausência de macros graciosamente.
+
+---
+
+## M13 — Aprimorar UI/UX (Híbrido)
+
+**Meta:** elevar consistência e navegação do app inteiro.
+
+- **Nova tab bar** Hoje·Feed·Amigos·Perfil (substitui Stack puro + ícones no header); preservar composer fixo da Home.
+- **Finalizar migração de marca:** menta/tinta + Space Grotesk/Inter em todas as telas; caçar resíduos de teal/Plus Jakarta.
+- **Polish geral:** estados vazios/loading/erro, espaçamento, hierarquia tipográfica, animações, acessibilidade (hit targets, labels).
+- **Auditoria** própria de UI/UX gera a lista priorizada de ajustes no spec do milestone.
+
+**Parte humana (Híbrido):** validação visual em device + decisões de direção/gosto.
+
+**Feito quando:** navegação por tab bar funcionando; nenhuma tela com marca antiga; checklist de polish auditado e aplicado.
 
 ---
 
