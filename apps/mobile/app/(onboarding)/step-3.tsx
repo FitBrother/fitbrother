@@ -1,4 +1,5 @@
 import { router } from "expo-router";
+import { useEffect } from "react";
 import { View } from "react-native";
 import { OnboardingStepShell } from "@/components/OnboardingStepShell";
 import { WheelPicker } from "@/components/WheelPicker";
@@ -10,6 +11,20 @@ const DEFAULT_HEIGHT = 170;
 export default function Step3Height() {
   const height_cm = useOnboardingStore((s) => s.height_cm);
   const setField = useOnboardingStore((s) => s.setField);
+  const selectedHeight = height_cm ?? DEFAULT_HEIGHT;
+
+  useEffect(() => {
+    if (height_cm === undefined) {
+      setField("height_cm", DEFAULT_HEIGHT);
+    }
+  }, [height_cm, setField]);
+
+  const handleNext = () => {
+    if (height_cm === undefined) {
+      setField("height_cm", DEFAULT_HEIGHT);
+    }
+    router.push("/(onboarding)/step-4");
+  };
 
   return (
     <OnboardingStepShell
@@ -18,8 +33,7 @@ export default function Step3Height() {
       title="Qual sua altura?"
       subtitle="Em centímetros."
       onBack={() => router.replace("/(onboarding)/step-2")}
-      onNext={() => router.push("/(onboarding)/step-4")}
-      nextDisabled={height_cm === undefined}
+      onNext={handleNext}
       scrollable={false}
     >
       <View className="flex-1 items-center justify-center">
@@ -27,7 +41,7 @@ export default function Step3Height() {
           min={120}
           max={220}
           step={1}
-          value={height_cm ?? DEFAULT_HEIGHT}
+          value={selectedHeight}
           unit="cm"
           onChange={(v) => setField("height_cm", v)}
         />

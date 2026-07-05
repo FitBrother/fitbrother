@@ -2,6 +2,7 @@ import {
   CreateMealAudioRequestSchema,
   CreateMealPhotoRequestSchema,
   CreateMealTextRequestSchema,
+  CreateMealBarcodeRequestSchema,
   PatchMealRequestSchema,
 } from "@fitbrother/shared";
 import type { FastifyInstance, FastifyRequest } from "fastify";
@@ -12,6 +13,7 @@ import { extractMeal } from "../services/extraction.js";
 import { applyCatalogToItems } from "../services/meals.js";
 import { extractMealFromPhoto } from "../services/photo-extraction.js";
 import { transcribeFromPath } from "../services/transcription.js";
+import { lookupByBarcode } from "../services/openfoodfacts.js";
 
 /**
  * Meal endpoints — the M2 capture pipeline.
@@ -339,6 +341,102 @@ export async function mealsRoutes(app: FastifyInstance) {
     return reply.code(201).send({
       meal,
       cache_hit: extraction.cacheHit,
+      already_existed: (rpcResult as { already_existed?: boolean })?.already_existed === true,
+    });
+  });
+
+  /* ── GET /meals/barcode/:code ─────────────────────────────────────────── */
+  app.get<{ Params: { code: string } }>("/meals/barcode/:code", async (req, reply) => {
+    const product = await lookupByBarcode(req.params.code);
+    if (!product) return reply.code(404).send({ error: "product_not_found" });
+    return reply.send({ product });
+  });
+
+  /* ── POST /meals/barcode ─────────────────────────────────────────────── */
+  app.post("/meals/barcode", async (req, reply) => {
+    const parsed = CreateMealBarcodeRequestSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: "invalid_payload", issues: parsed.error.issues });
+    }
+    const { client_meal_id, barcode, quantity, unit, meal_type, consumed_at } = parsed.data;
+    const userId = req.user!.id;
+    const supabase = supabaseForRequest(req);
+
+    if (consumed_at) {
+      const { data: backfillDayRaw, error: dayErr } = await supabase.rpc(
+        "fitbrother_nutritional_day",
+        { p_user_id: userId, p_ts: consumed_at },
+      );
+      if (dayErr || !backfillDayRaw) {
+        req.log.error({ err: dayErr, consumed_at }, "nutritional_day_failed");
+        return reply.code(500).send({ error: "nutritional_day_failed" });
+      }
+      const { data: todayRaw, error: todayErr } = await supabase.rpc("fitbrother_today", {
+        p_user_id: userId,
+      });
+      if (todayErr || !todayRaw) {
+        req.log.error({ err: todayErr, userId }, "today_lookup_failed");
+        return reply.code(500).send({ error: "today_lookup_failed" });
+      }
+      const backfillDay = backfillDayRaw as string;
+      const today = todayRaw as string;
+      const minDay = addDaysIso(today, -6);
+      if (backfillDay < minDay || backfillDay > today) {
+        return reply.code(400).send({
+          error: "backfill_window_exceeded",
+          window: { from: minDay, to: today },
+        });
+      }
+    }
+
+    const product = await lookupByBarcode(barcode);
+    if (!product) {
+      return reply.code(404).send({ error: "product_not_found", barcode });
+    }
+
+    let grams: number | null = null;
+    if (unit === "g" || unit === "ml") grams = quantity;
+    else if (unit === "unit" && product.serving_g) grams = quantity * product.serving_g;
+
+    const factor = grams ? grams / 100 : 1;
+
+    const item = {
+      description: `${product.brand ? product.brand + " " : ""}${product.name}`.trim(),
+      quantity,
+      unit,
+      kcal: Math.round((product.kcal_per_100g || 0) * factor * 100) / 100,
+      protein_g: Math.round((product.protein_per_100g || 0) * factor * 100) / 100,
+      carbs_g: Math.round((product.carbs_per_100g || 0) * factor * 100) / 100,
+      fat_g: Math.round((product.fat_per_100g || 0) * factor * 100) / 100,
+    };
+
+    const { data: rpcResult, error: rpcError } = await supabase.rpc("create_meal_with_items", {
+      payload: {
+        id: client_meal_id,
+        source: "app_barcode",
+        raw_input: `Código de barras: ${barcode}`,
+        audio_path: null,
+        meal_type: meal_type ?? "other",
+        consumed_at: consumed_at ?? null,
+        confidence: product.macros_complete ? 1.0 : 0.5,
+        ai_feedback: null,
+        review_required: !product.macros_complete,
+        items: [item],
+      },
+    });
+
+    if (rpcError) {
+      req.log.error({ err: rpcError, client_meal_id }, "create_barcode_meal_rpc_failed");
+      return reply.code(500).send({ error: rpcError.message });
+    }
+
+    const meal = await loadMeal(supabase, client_meal_id, req);
+    if (!meal) {
+      return reply.code(500).send({ error: "meal_disappeared_after_create" });
+    }
+
+    return reply.code(201).send({
+      meal,
       already_existed: (rpcResult as { already_existed?: boolean })?.already_existed === true,
     });
   });

@@ -287,6 +287,7 @@ export default function HomeScreen() {
           onSend={handleSend}
           onAudioReady={handleAudioReady}
           onPhotoPress={handlePhotoPress}
+          onScanPress={() => router.push("/(app)/scan" as never)}
           disabled={banner === "quota_exceeded"}
           processing={
             createMeal.isPending || createMealAudio.isPending || createMealPhoto.isPending

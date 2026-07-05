@@ -1,6 +1,8 @@
 import { Pressable, Text, View } from "react-native";
+import { ScanBarcode } from "lucide-react-native";
 import type { MealResponse } from "@fitbrother/shared";
 import { shadows } from "@/lib/shadows";
+import { colors } from "@/lib/colors";
 
 const MEAL_TYPE_LABEL: Record<MealResponse["meal_type"], string> = {
   breakfast: "🍳 Café da manhã",
@@ -74,6 +76,7 @@ export function MealCard({ meal, onPress }: Props) {
               <Text className="text-xs font-sans-semibold text-warning-500">Revisar</Text>
             </View>
           )}
+          {meal.source === "app_barcode" && <ScanBarcode size={14} color={colors.neutral[400]} />}
           <Text style={NUM} className="text-sm font-sans text-neutral-500">
             {formatTime(meal.consumed_at)}
           </Text>

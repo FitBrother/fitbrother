@@ -79,6 +79,30 @@ export const CreateMealPhotoRequestSchema = z.object({
 });
 export type CreateMealPhotoRequest = z.infer<typeof CreateMealPhotoRequestSchema>;
 
+export const CreateMealBarcodeRequestSchema = z.object({
+  client_meal_id: UuidSchema,
+  barcode: z.string().min(1),
+  quantity: z.number().positive(),
+  unit: UnitSchema,
+  meal_type: MealTypeSchema.optional(),
+  consumed_at: z.string().datetime().optional(),
+});
+export type CreateMealBarcodeRequest = z.infer<typeof CreateMealBarcodeRequestSchema>;
+
+export const BarcodeProductSchema = z.object({
+  name: z.string(),
+  brand: z.string().nullable(),
+  image_url: z.string().nullable(),
+  barcode: z.string(),
+  kcal_per_100g: z.number().nullable(),
+  protein_per_100g: z.number().nullable(),
+  carbs_per_100g: z.number().nullable(),
+  fat_per_100g: z.number().nullable(),
+  serving_g: z.number().nullable(),
+  macros_complete: z.boolean(),
+});
+export type BarcodeProduct = z.infer<typeof BarcodeProductSchema>;
+
 export const MealItemResponseSchema = z.object({
   id: UuidSchema,
   food_id: UuidSchema.nullable(),
@@ -94,7 +118,15 @@ export const MealItemResponseSchema = z.object({
 
 export const MealResponseSchema = z.object({
   id: UuidSchema,
-  source: z.enum(["app_text", "app_audio", "app_photo", "wa_text", "wa_audio", "manual"]),
+  source: z.enum([
+    "app_text",
+    "app_audio",
+    "app_photo",
+    "app_barcode",
+    "wa_text",
+    "wa_audio",
+    "manual",
+  ]),
   raw_input: z.string().nullable(),
   audio_path: z.string().nullable(),
   meal_type: MealTypeSchema,

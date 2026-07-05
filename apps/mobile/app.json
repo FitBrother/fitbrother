@@ -11,7 +11,8 @@
       "supportsTablet": false,
       "bundleIdentifier": "com.fitbrother.app",
       "infoPlist": {
-        "NSMicrophoneUsageDescription": "O Fitbrother usa o microfone para gravar a descrição da sua refeição."
+        "NSMicrophoneUsageDescription": "O Fitbrother usa o microfone para gravar a descrição da sua refeição.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -28,13 +29,12 @@
       "typedRoutes": true
     },
     "extra": {
-      "eas": {
-        "projectId": "e84a197d-563b-46e1-a40b-1bec6afc244a"
-      },
       "router": {
         "origin": false
+      },
+      "eas": {
+        "projectId": "fda12d37-23d7-4599-a65f-ed1c2995d60a"
       }
-    },
-    "owner": "fitbrother"
+    }
   }
 }

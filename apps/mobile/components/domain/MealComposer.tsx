@@ -12,7 +12,7 @@ import Animated, {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
-import { Camera, Loader2, Mic, Send, Square } from "lucide-react-native";
+import { Camera, Loader2, Mic, Send, Square, ScanLine } from "lucide-react-native";
 import { colors } from "@/lib/colors";
 import { shadows } from "@/lib/shadows";
 import {
@@ -28,6 +28,7 @@ type Props = {
   onSend: (text: string) => void;
   onAudioReady: (params: { fileUri: string; durationMs: number; ext: "m4a" | "opus" }) => void;
   onPhotoPress?: () => void;
+  onScanPress?: () => void;
   disabled?: boolean;
   processing?: boolean;
   // When false, omits the bottom-fading LinearGradient. Useful inside sheets
@@ -65,6 +66,7 @@ export function MealComposer({
   onSend,
   onAudioReady,
   onPhotoPress,
+  onScanPress,
   disabled,
   processing,
   showBackdropFade = true,
@@ -384,19 +386,36 @@ export function MealComposer({
           )}
 
           {!hasText && !isRecording && onPhotoPress ? (
-            <Pressable
-              onPress={onPhotoPress}
-              accessibilityLabel="Registrar por foto"
-              accessibilityRole="button"
-              disabled={disabled || processing}
-              style={shadows.floating}
-              className={[
-                "h-16 w-16 items-center justify-center rounded-full",
-                disabled || processing ? "bg-neutral-200" : "bg-white active:bg-neutral-100",
-              ].join(" ")}
-            >
-              <Camera size={22} color={colors.neutral[800]} />
-            </Pressable>
+            <View className="flex-row items-center gap-2">
+              {onScanPress && (
+                <Pressable
+                  onPress={onScanPress}
+                  accessibilityLabel="Registrar por código de barras"
+                  accessibilityRole="button"
+                  disabled={disabled || processing}
+                  style={shadows.floating}
+                  className={[
+                    "h-16 w-16 items-center justify-center rounded-full",
+                    disabled || processing ? "bg-neutral-200" : "bg-white active:bg-neutral-100",
+                  ].join(" ")}
+                >
+                  <ScanLine size={22} color={colors.neutral[800]} />
+                </Pressable>
+              )}
+              <Pressable
+                onPress={onPhotoPress}
+                accessibilityLabel="Registrar por foto"
+                accessibilityRole="button"
+                disabled={disabled || processing}
+                style={shadows.floating}
+                className={[
+                  "h-16 w-16 items-center justify-center rounded-full",
+                  disabled || processing ? "bg-neutral-200" : "bg-white active:bg-neutral-100",
+                ].join(" ")}
+              >
+                <Camera size={22} color={colors.neutral[800]} />
+              </Pressable>
+            </View>
           ) : null}
 
           {hasText && !isRecording ? (
