@@ -13,6 +13,14 @@ export const ActivityLevelSchema = z.enum([
   "very_active",
 ]);
 export const GoalSchema = z.enum(["lose", "maintain", "gain", "recomp"]);
+export const ConsentScopeSchema = z.enum([
+  "terms",
+  "privacy",
+  "marketing",
+  "ai_processing",
+  "data_export",
+]);
+export type ConsentScope = z.infer<typeof ConsentScopeSchema>;
 
 /* ─── Meal extraction (LLM output, FEATURES §4.2) ────────────────────────── */
 
@@ -263,6 +271,82 @@ export const OnboardingPayloadSchema = z.object({
 });
 
 export type OnboardingPayload = z.infer<typeof OnboardingPayloadSchema>;
+
+// ── M6 account/LGPD contracts ─────────────────────────────────────────────
+export const AccountConsentStateSchema = z.object({
+  scope: ConsentScopeSchema,
+  granted: z.boolean(),
+  granted_at: z.string().nullable(),
+  revoked_at: z.string().nullable(),
+  policy_version: z.string().nullable(),
+});
+export type AccountConsentState = z.infer<typeof AccountConsentStateSchema>;
+
+export const AccountProfileResponseSchema = z.object({
+  user: z.object({
+    id: z.string().uuid(),
+    email: z.string().email().nullable(),
+  }),
+  profile: z.object({
+    full_name: z.string().nullable(),
+    username: z.string().nullable(),
+    avatar_url: z.string().nullable(),
+    timezone: z.string(),
+    day_start_hour: z.number().int().min(0).max(23),
+    locale: z.string(),
+    created_at: z.string(),
+    updated_at: z.string(),
+  }),
+  private: z.object({
+    phone_verified_at: z.string().nullable(),
+  }),
+  consents: z.record(ConsentScopeSchema, AccountConsentStateSchema),
+  account: z.object({
+    delete_requested_at: z.string().nullable(),
+    scheduled_purge_at: z.string().nullable(),
+  }),
+});
+export type AccountProfileResponse = z.infer<typeof AccountProfileResponseSchema>;
+
+export const PatchAccountSettingsRequestSchema = z.object({
+  timezone: z.string().min(1).optional(),
+  day_start_hour: z.number().int().min(0).max(23).optional(),
+});
+export type PatchAccountSettingsRequest = z.infer<typeof PatchAccountSettingsRequestSchema>;
+
+export const AccountSettingsResponseSchema = z.object({
+  settings: z.object({
+    timezone: z.string(),
+    day_start_hour: z.number().int().min(0).max(23),
+    updated_at: z.string(),
+  }),
+});
+export type AccountSettingsResponse = z.infer<typeof AccountSettingsResponseSchema>;
+
+export const PostAccountConsentRequestSchema = z.object({
+  scope: ConsentScopeSchema,
+  granted: z.boolean(),
+  policy_version: z.string().default("v1.0"),
+});
+export type PostAccountConsentRequest = z.infer<typeof PostAccountConsentRequestSchema>;
+
+export const AccountConsentResponseSchema = z.object({
+  consent: AccountConsentStateSchema,
+});
+export type AccountConsentResponse = z.infer<typeof AccountConsentResponseSchema>;
+
+export const DeleteAccountRequestSchema = z.object({
+  confirm: z.literal(true),
+  reason: z.string().trim().max(500).optional(),
+});
+export type DeleteAccountRequest = z.infer<typeof DeleteAccountRequestSchema>;
+
+export const DeleteAccountResponseSchema = z.object({
+  deleted: z.literal(true),
+  requested_at: z.string(),
+  scheduled_purge_at: z.string(),
+});
+export type DeleteAccountResponse = z.infer<typeof DeleteAccountResponseSchema>;
 
 // ── M5.3 social ────────────────────────────────────────────────────────────
 export const ContactsSyncRequestSchema = z.object({

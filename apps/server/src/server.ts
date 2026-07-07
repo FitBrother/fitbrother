@@ -5,6 +5,7 @@ import Fastify, { type FastifyError, type FastifyRequest } from "fastify";
 import { env } from "./lib/env.js";
 import { startJobs, stopJobs } from "./lib/jobs.js";
 import { initSentry, Sentry } from "./lib/sentry.js";
+import { accountRoutes } from "./routes/account.js";
 import { achievementsRoutes } from "./routes/achievements.js";
 import { contactsRoutes } from "./routes/contacts.js";
 import { healthRoutes } from "./routes/health.js";
@@ -21,6 +22,8 @@ import { registerGoalReminder } from "./workers/goal-reminder.js";
 import { registerStreakAlert } from "./workers/streak-alert.js";
 import { registerStreakTick } from "./workers/streak-tick.js";
 import { registerInsightWorkers } from "./workers/insights.js";
+import { registerPurgeAccounts } from "./workers/purge-accounts.js";
+import { registerPurgeAudios } from "./workers/purge-audios.js";
 
 initSentry();
 
@@ -60,6 +63,7 @@ await app.register(rateLimit, {
 
 await app.register(supabaseProxyRoute);
 await app.register(healthRoutes);
+await app.register(accountRoutes);
 await app.register(onboardingRoutes);
 await app.register(meRoutes);
 await app.register(mealsRoutes);
@@ -94,6 +98,8 @@ if (boss) {
   await registerStreakAlert(boss, app.log);
   await registerGoalReminder(boss, app.log);
   await registerInsightWorkers(boss, app.log);
+  await registerPurgeAccounts(boss, app.log);
+  await registerPurgeAudios(boss, app.log);
 }
 
 for (const signal of ["SIGTERM", "SIGINT"] as const) {
