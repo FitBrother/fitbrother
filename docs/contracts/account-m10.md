@@ -48,7 +48,7 @@ Errors:
 
 - `401 missing bearer token`
 - `401 invalid token`
-- `401 account_deleted`
+- `401 account_deletion_pending`
 - `404 profile_not_found`
 
 ## PATCH /account/settings
@@ -106,10 +106,10 @@ Scopes:
 
 Rules:
 
-- `terms` and `privacy` cannot be revoked through this endpoint. The user must
-  delete the account if they no longer accept them.
-- Revoking `ai_processing` is allowed and should make M10 disable AI-backed
-  actions while keeping manual flows available.
+- `terms`, `privacy` and `ai_processing` cannot be revoked through this
+  endpoint. AI processing is part of the product core and is not represented
+  as a toggle in M10. The user must delete the account if they no longer accept
+  any mandatory consent.
 - Exporting account data does not require a separate `data_export` consent.
 
 Response:
@@ -187,13 +187,16 @@ Request:
 
 Immediate effects:
 
-- `profiles.full_name`, `profiles.username`, `profiles.avatar_url` are cleared.
-- `profiles_private.phone_e164`, `phone_hash`, `phone_verified_at` are cleared.
-- Meals, posts and comments made by the user are soft-deleted.
+- The account disappears from public profiles, search, feed, ranking and
+  contact discovery.
+- Identity and private fields are retained, inaccessible, for reactivation
+  during the 30-day window.
+- Meals, posts and comments made by the user are soft-deleted by the deletion
+  cycle.
 - Push tokens are revoked.
-- Likes made by the user are deleted.
-- Follows and contact links are deleted.
-- Future authenticated requests return `401 account_deleted`.
+- Likes, follows and contact links are retained but hidden.
+- Future normal requests return `401 account_deletion_pending`.
+- Export, deletion status and reactivation remain available.
 
 Response:
 
@@ -204,3 +207,35 @@ Response:
   "scheduled_purge_at": "2026-08-06T12:00:00.000Z"
 }
 ```
+
+## GET /account/deletion
+
+Available after login even while deletion is pending.
+
+```json
+{
+  "pending": true,
+  "requested_at": "2026-07-07T12:00:00.000Z",
+  "scheduled_purge_at": "2026-08-06T12:00:00.000Z",
+  "can_reactivate": true
+}
+```
+
+## POST /account/deletion/cancel
+
+Reactivates a pending account before the D+30 deadline. No request body.
+
+```json
+{
+  "reactivated": true,
+  "cancelled_at": "2026-07-10T12:00:00.000Z"
+}
+```
+
+M10 flow:
+
+1. User signs in again with email/password or OAuth.
+2. A normal account request returns `account_deletion_pending`.
+3. M10 asks whether the user wants to reactivate.
+4. Confirmation calls this endpoint.
+5. The app reloads the profile and registers its push token again.

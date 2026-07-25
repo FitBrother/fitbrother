@@ -380,7 +380,9 @@ Falha após passo 8 → `processed_at IS NULL` → cron retry; caches em 6 e 8 e
 ### Backend
 
 - **LGPD:**
-  - `GET /account/export` → ZIP com JSON de `profiles, anthropometrics, nutrition_goals, meals, meal_items, consent_log, notifications, user_achievements` + `wa_messages` com `payload` redacted.
+  - `GET /account/export` → ZIP com JSON dos dados próprios, incluindo perfil,
+    nutrição, refeições, consentimentos, social, notificações e IA; binários
+    aparecem apenas no manifesto.
   - `DELETE /account` → marca `auth.users.deleted_at` + soft delete em cascata.
   - Cron diário `purge-accounts`: hard delete de usuários com `deleted_at < now() - 30 days`.
   - `POST /account/consent` `{ scope, granted: boolean }` → atualiza `consent_log.revoked_at`.
@@ -388,7 +390,8 @@ Falha após passo 8 → `processed_at IS NULL` → cron retry; caches em 6 e 8 e
 - **Sentry:** contexto `user_id`, breadcrumbs do pipeline §6 com `request_id`.
 - **Logs pino** estruturados com `user_id`, `wa_message_id`, `meal_id`, `request_id` em cada etapa.
 - **Métricas** (cron diário em `metrics_daily`): taxa de sucesso de extração (`confidence >= 0.6`), p50/p95 latência por etapa, custo agregado por modelo.
-- **Alerta** `wa_messages WHERE processed_at IS NULL AND created_at < now() - 5min` → Sentry capture + webhook Discord/Slack.
+- **Alerta WA:** removido do M6 em 2026-07-24; volta ao M4 quando o pipeline
+  WhatsApp e `wa_messages` forem retomados.
 
 ### Mobile
 
@@ -405,6 +408,12 @@ Falha após passo 8 → `processed_at IS NULL` → cron retry; caches em 6 e 8 e
 - **Runbook** (`docs/runbook.md`): webhook preso, cota Gemini/OpenAI estourada globalmente, Sentry alertando pipeline, RLS bug, recuperação de áudio deletado.
 
 **Feito quando:** usuário exporta JSON do próprio dado; deleta conta; após 30d simulado, hard delete via cron; build TestFlight + Play Internal instalado; smoke test e2e funciona; Sentry recebe erros com `user_id`; custo diário visível em `metrics_daily`; runbook commitado.
+
+**Status técnico sem deploy (2026-07-24):** backend LGPD endurecido com exclusão
+reversível, reativação após novo login, consentimento de IA obrigatório e
+imutável, purges D+30, métricas UTC, contexto estruturado e runbook. O gate de
+produção (Supabase/Fly/Sentry externo/lojas/Meta/políticas/PITR) permanece
+deliberadamente deferido e não bloqueia o início do M10.
 
 ---
 

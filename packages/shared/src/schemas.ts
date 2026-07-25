@@ -380,6 +380,20 @@ export const DeleteAccountResponseSchema = z.object({
 });
 export type DeleteAccountResponse = z.infer<typeof DeleteAccountResponseSchema>;
 
+export const AccountDeletionStateResponseSchema = z.object({
+  pending: z.boolean(),
+  requested_at: z.string().nullable(),
+  scheduled_purge_at: z.string().nullable(),
+  can_reactivate: z.boolean(),
+});
+export type AccountDeletionStateResponse = z.infer<typeof AccountDeletionStateResponseSchema>;
+
+export const ReactivateAccountResponseSchema = z.object({
+  reactivated: z.boolean(),
+  cancelled_at: z.string().nullable(),
+});
+export type ReactivateAccountResponse = z.infer<typeof ReactivateAccountResponseSchema>;
+
 // ── M5.3 social ────────────────────────────────────────────────────────────
 export const ContactsSyncRequestSchema = z.object({
   // hashes SHA-256 hex (lowercase) de números E.164, gerados no device.

@@ -24,12 +24,29 @@ import { registerStreakTick } from "./workers/streak-tick.js";
 import { registerInsightWorkers } from "./workers/insights.js";
 import { registerPurgeAccounts } from "./workers/purge-accounts.js";
 import { registerPurgeAudios } from "./workers/purge-audios.js";
+import { registerMetricsDaily } from "./workers/metrics-daily.js";
 
 initSentry();
 
 const app = Fastify({
   logger: {
     level: env.LOG_LEVEL,
+    redact: {
+      paths: [
+        "req.headers.authorization",
+        "req.headers.cookie",
+        "headers.authorization",
+        "authorization",
+        "access_token",
+        "refresh_token",
+        "phone_e164",
+        "email",
+        "text",
+        "raw_input",
+        "payload.text",
+      ],
+      censor: "[Redacted]",
+    },
     transport:
       env.NODE_ENV === "development"
         ? { target: "pino-pretty", options: { colorize: true } }
@@ -61,6 +78,12 @@ await app.register(rateLimit, {
   keyGenerator: (req: FastifyRequest) => req.user?.id ?? req.ip,
 });
 
+app.addHook("onRequest", async (req) => {
+  const scope = Sentry.getIsolationScope();
+  scope.setTag("request_id", req.id);
+  scope.setTag("route", req.url.split("?")[0] ?? "unknown");
+});
+
 await app.register(supabaseProxyRoute);
 await app.register(healthRoutes);
 await app.register(accountRoutes);
@@ -74,9 +97,14 @@ await app.register(contactsRoutes);
 await app.register(socialRoutes);
 await app.register(usersRoutes);
 
-app.setErrorHandler((err: FastifyError, _req, reply) => {
-  app.log.error({ err }, "request_failed");
-  if (env.SENTRY_DSN) Sentry.captureException(err);
+app.setErrorHandler((err: FastifyError, req, reply) => {
+  req.log.error({ err, request_id: req.id, user_id: req.user?.id }, "request_failed");
+  if (env.SENTRY_DSN) {
+    Sentry.captureException(err, {
+      tags: { request_id: req.id },
+      extra: { user_id: req.user?.id },
+    });
+  }
   reply.status(err.statusCode ?? 500).send({ error: err.message });
 });
 
@@ -100,6 +128,7 @@ if (boss) {
   await registerInsightWorkers(boss, app.log);
   await registerPurgeAccounts(boss, app.log);
   await registerPurgeAudios(boss, app.log);
+  await registerMetricsDaily(boss, app.log);
 }
 
 for (const signal of ["SIGTERM", "SIGINT"] as const) {
