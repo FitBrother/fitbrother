@@ -66,7 +66,16 @@ export async function usersRoutes(app: FastifyInstance) {
       return reply.code(400).send({ error: "cannot_follow_self" });
     }
 
-    const { error } = await supabaseService()
+    const admin = supabaseService();
+    const { data: target, error: targetError } = await admin
+      .from("public_profiles")
+      .select("user_id")
+      .eq("user_id", parsed.data.followee_id)
+      .maybeSingle();
+    if (targetError) return reply.code(500).send({ error: targetError.message });
+    if (!target) return reply.code(404).send({ error: "user_not_found" });
+
+    const { error } = await admin
       .from("follows")
       .upsert(
         { follower_id: userId, followee_id: parsed.data.followee_id },

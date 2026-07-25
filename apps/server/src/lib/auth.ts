@@ -16,7 +16,7 @@ declare module "fastify" {
 
 const BEARER = /^Bearer\s+(.+)$/i;
 
-export async function authRequired(req: FastifyRequest, reply: FastifyReply): Promise<void> {
+export async function authTokenRequired(req: FastifyRequest, reply: FastifyReply): Promise<void> {
   const header = req.headers.authorization;
   const match = header?.match(BEARER);
   if (!match) {
@@ -37,13 +37,24 @@ export async function authRequired(req: FastifyRequest, reply: FastifyReply): Pr
     accessToken,
   };
 
-  Sentry.setUser({ id: req.user.id, email: req.user.email ?? undefined });
-  Sentry.setTag("request_id", req.id);
+  const isolationScope = Sentry.getIsolationScope();
+  isolationScope.setUser({ id: req.user.id });
+  isolationScope.setTag("request_id", req.id);
+}
+
+export async function activeAccountRequired(
+  req: FastifyRequest,
+  reply: FastifyReply,
+): Promise<void> {
+  if (!req.user) {
+    return reply.code(401).send({ error: "authentication required" });
+  }
 
   const { data: deletion, error: deletionError } = await supabaseService()
     .from("account_deletions")
-    .select("scheduled_purge_at")
+    .select("requested_at, scheduled_purge_at")
     .eq("user_id", req.user.id)
+    .is("cancelled_at", null)
     .is("purged_at", null)
     .maybeSingle();
 
@@ -53,12 +64,20 @@ export async function authRequired(req: FastifyRequest, reply: FastifyReply): Pr
   }
 
   if (deletion) {
-    req.log.info({ user_id: req.user.id }, "account_deleted_token_rejected");
+    req.log.info({ user_id: req.user.id }, "account_deletion_pending");
     return reply.code(401).send({
-      error: "account_deleted",
+      error: "account_deletion_pending",
+      requested_at: deletion.requested_at,
       scheduled_purge_at: deletion.scheduled_purge_at,
+      can_reactivate: new Date(deletion.scheduled_purge_at) > new Date(),
     });
   }
+}
+
+export async function authRequired(req: FastifyRequest, reply: FastifyReply): Promise<void> {
+  await authTokenRequired(req, reply);
+  if (reply.sent) return;
+  await activeAccountRequired(req, reply);
 }
 
 export function supabaseForRequest(req: FastifyRequest) {

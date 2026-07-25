@@ -7,10 +7,17 @@ import {
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import { authRequired, supabaseForRequest } from "../lib/auth.js";
 import { addDaysIso } from "../lib/dateMath.js";
+import { env } from "../lib/env.js";
 import { AiQuotaExceededError } from "../services/ai-usage.js";
 import { extractMeal } from "../services/extraction.js";
 import { applyCatalogToItems } from "../services/meals.js";
 import { extractMealFromPhoto } from "../services/photo-extraction.js";
+import {
+  recordPipelineEvent,
+  recordPipelineStageResult,
+  runPipelineStage,
+  startTimer,
+} from "../services/pipeline-events.js";
 import { transcribeFromPath } from "../services/transcription.js";
 
 /**
@@ -45,6 +52,7 @@ export async function mealsRoutes(app: FastifyInstance) {
 
   /* ── POST /meals/text ──────────────────────────────────────────────── */
   app.post("/meals/text", async (req, reply) => {
+    const pipelineStartedAt = Date.now();
     const parsed = CreateMealTextRequestSchema.safeParse(req.body);
     if (!parsed.success) {
       return reply.code(400).send({ error: "invalid_payload", issues: parsed.error.issues });
@@ -82,12 +90,17 @@ export async function mealsRoutes(app: FastifyInstance) {
 
     let extraction;
     try {
-      extraction = await extractMeal({
-        userClient: supabase,
-        userId,
-        text,
-        locale,
-      });
+      extraction = await runPipelineStage(
+        req,
+        {
+          mealId: client_meal_id,
+          source: "text",
+          stage: "extraction",
+          provider: env.LLM_PROVIDER,
+          model: env.LLM_PROVIDER === "gemini" ? "gemini-2.5-flash" : "gpt-4o-mini",
+        },
+        () => extractMeal({ userClient: supabase, userId, text, locale }),
+      );
     } catch (err) {
       if (err instanceof AiQuotaExceededError) {
         return reply.code(429).send({ error: err.code, kind: err.kind });
@@ -101,8 +114,13 @@ export async function mealsRoutes(app: FastifyInstance) {
       return reply.code(502).send({ error: "ai_extraction_failed" });
     }
 
-    const { applied } = await applyCatalogToItems(supabase, extraction.output);
+    const { applied } = await runPipelineStage(
+      req,
+      { mealId: client_meal_id, source: "text", stage: "catalog" },
+      () => applyCatalogToItems(supabase, extraction.output),
+    );
 
+    const persistenceStartedAt = startTimer();
     const { data: rpcResult, error: rpcError } = await supabase.rpc("create_meal_with_items", {
       payload: {
         id: client_meal_id,
@@ -116,6 +134,12 @@ export async function mealsRoutes(app: FastifyInstance) {
         items: applied,
       },
     });
+    await recordPipelineStageResult(
+      req,
+      { mealId: client_meal_id, source: "text", stage: "persistence" },
+      persistenceStartedAt,
+      rpcError,
+    );
 
     if (rpcError) {
       req.log.error({ err: rpcError, client_meal_id }, "create_meal_rpc_failed");
@@ -127,6 +151,21 @@ export async function mealsRoutes(app: FastifyInstance) {
       return reply.code(500).send({ error: "meal_disappeared_after_create" });
     }
 
+    await recordPipelineEvent(
+      {
+        requestId: req.id,
+        mealId: client_meal_id,
+        source: "text",
+        stage: "total",
+        provider: env.LLM_PROVIDER,
+        model: env.LLM_PROVIDER === "gemini" ? "gemini-2.5-flash" : "gpt-4o-mini",
+        durationMs: Date.now() - pipelineStartedAt,
+        success: true,
+        cacheHit: extraction.cacheHit,
+        confidence: extraction.output.confidence,
+      },
+      req.log,
+    );
     return reply.code(201).send({
       meal,
       cache_hit: extraction.cacheHit,
@@ -136,6 +175,7 @@ export async function mealsRoutes(app: FastifyInstance) {
 
   /* ── POST /meals/audio ─────────────────────────────────────────────── */
   app.post("/meals/audio", async (req, reply) => {
+    const pipelineStartedAt = Date.now();
     const parsed = CreateMealAudioRequestSchema.safeParse(req.body);
     if (!parsed.success) {
       return reply.code(400).send({ error: "invalid_payload", issues: parsed.error.issues });
@@ -181,13 +221,24 @@ export async function mealsRoutes(app: FastifyInstance) {
     // 1. Transcribe (with cap + cache).
     let transcription;
     try {
-      transcription = await transcribeFromPath({
-        userClient: supabase,
-        userId,
-        audioPath: audio_path,
-        durationS: duration_s,
-        locale,
-      });
+      transcription = await runPipelineStage(
+        req,
+        {
+          mealId: client_meal_id,
+          source: "audio",
+          stage: "transcription",
+          provider: "openai",
+          model: "whisper-1",
+        },
+        () =>
+          transcribeFromPath({
+            userClient: supabase,
+            userId,
+            audioPath: audio_path,
+            durationS: duration_s,
+            locale,
+          }),
+      );
     } catch (err) {
       if (err instanceof AiQuotaExceededError) {
         return reply.code(429).send({ error: err.code, kind: err.kind });
@@ -204,12 +255,23 @@ export async function mealsRoutes(app: FastifyInstance) {
     // 2. Extract meal from transcribed text (reuses M2.3 service).
     let extraction;
     try {
-      extraction = await extractMeal({
-        userClient: supabase,
-        userId,
-        text: transcription.text,
-        locale,
-      });
+      extraction = await runPipelineStage(
+        req,
+        {
+          mealId: client_meal_id,
+          source: "audio",
+          stage: "extraction",
+          provider: env.LLM_PROVIDER,
+          model: env.LLM_PROVIDER === "gemini" ? "gemini-2.5-flash" : "gpt-4o-mini",
+        },
+        () =>
+          extractMeal({
+            userClient: supabase,
+            userId,
+            text: transcription.text,
+            locale,
+          }),
+      );
     } catch (err) {
       if (err instanceof AiQuotaExceededError) {
         return reply.code(429).send({ error: err.code, kind: err.kind });
@@ -218,9 +280,14 @@ export async function mealsRoutes(app: FastifyInstance) {
       return reply.code(502).send({ error: "ai_extraction_failed" });
     }
 
-    const { applied } = await applyCatalogToItems(supabase, extraction.output);
+    const { applied } = await runPipelineStage(
+      req,
+      { mealId: client_meal_id, source: "audio", stage: "catalog" },
+      () => applyCatalogToItems(supabase, extraction.output),
+    );
 
     // 3. Persist meal via RPC. source="app_audio" + audio_path set.
+    const persistenceStartedAt = startTimer();
     const { data: rpcResult, error: rpcError } = await supabase.rpc("create_meal_with_items", {
       payload: {
         id: client_meal_id,
@@ -234,6 +301,12 @@ export async function mealsRoutes(app: FastifyInstance) {
         items: applied,
       },
     });
+    await recordPipelineStageResult(
+      req,
+      { mealId: client_meal_id, source: "audio", stage: "persistence" },
+      persistenceStartedAt,
+      rpcError,
+    );
 
     if (rpcError) {
       req.log.error({ err: rpcError, client_meal_id }, "create_meal_rpc_failed");
@@ -245,6 +318,21 @@ export async function mealsRoutes(app: FastifyInstance) {
       return reply.code(500).send({ error: "meal_disappeared_after_create" });
     }
 
+    await recordPipelineEvent(
+      {
+        requestId: req.id,
+        mealId: client_meal_id,
+        source: "audio",
+        stage: "total",
+        provider: env.LLM_PROVIDER,
+        model: env.LLM_PROVIDER === "gemini" ? "gemini-2.5-flash" : "gpt-4o-mini",
+        durationMs: Date.now() - pipelineStartedAt,
+        success: true,
+        cacheHit: extraction.cacheHit && transcription.cacheHit,
+        confidence: extraction.output.confidence,
+      },
+      req.log,
+    );
     return reply.code(201).send({
       meal,
       cache_hit_transcription: transcription.cacheHit,
@@ -255,6 +343,7 @@ export async function mealsRoutes(app: FastifyInstance) {
 
   /* ── POST /meals/photo ─────────────────────────────────────────────── */
   app.post("/meals/photo", async (req, reply) => {
+    const pipelineStartedAt = Date.now();
     const parsed = CreateMealPhotoRequestSchema.safeParse(req.body);
     if (!parsed.success) {
       return reply.code(400).send({ error: "invalid_payload", issues: parsed.error.issues });
@@ -296,12 +385,23 @@ export async function mealsRoutes(app: FastifyInstance) {
 
     let extraction;
     try {
-      extraction = await extractMealFromPhoto({
-        userClient: supabase,
-        userId,
-        imagePath: image_path,
-        locale,
-      });
+      extraction = await runPipelineStage(
+        req,
+        {
+          mealId: client_meal_id,
+          source: "photo",
+          stage: "extraction",
+          provider: "gemini",
+          model: "gemini-2.5-flash",
+        },
+        () =>
+          extractMealFromPhoto({
+            userClient: supabase,
+            userId,
+            imagePath: image_path,
+            locale,
+          }),
+      );
     } catch (err) {
       if (err instanceof AiQuotaExceededError) {
         return reply.code(429).send({ error: err.code, kind: err.kind });
@@ -310,8 +410,13 @@ export async function mealsRoutes(app: FastifyInstance) {
       return reply.code(502).send({ error: "photo_extraction_failed" });
     }
 
-    const { applied } = await applyCatalogToItems(supabase, extraction.output);
+    const { applied } = await runPipelineStage(
+      req,
+      { mealId: client_meal_id, source: "photo", stage: "catalog" },
+      () => applyCatalogToItems(supabase, extraction.output),
+    );
 
+    const persistenceStartedAt = startTimer();
     const { data: rpcResult, error: rpcError } = await supabase.rpc("create_meal_with_items", {
       payload: {
         id: client_meal_id,
@@ -325,6 +430,12 @@ export async function mealsRoutes(app: FastifyInstance) {
         items: applied,
       },
     });
+    await recordPipelineStageResult(
+      req,
+      { mealId: client_meal_id, source: "photo", stage: "persistence" },
+      persistenceStartedAt,
+      rpcError,
+    );
 
     if (rpcError) {
       req.log.error({ err: rpcError, client_meal_id }, "create_photo_meal_rpc_failed");
@@ -336,6 +447,21 @@ export async function mealsRoutes(app: FastifyInstance) {
       return reply.code(500).send({ error: "meal_disappeared_after_create" });
     }
 
+    await recordPipelineEvent(
+      {
+        requestId: req.id,
+        mealId: client_meal_id,
+        source: "photo",
+        stage: "total",
+        provider: "gemini",
+        model: "gemini-2.5-flash",
+        durationMs: Date.now() - pipelineStartedAt,
+        success: true,
+        cacheHit: extraction.cacheHit,
+        confidence: extraction.output.confidence,
+      },
+      req.log,
+    );
     return reply.code(201).send({
       meal,
       cache_hit: extraction.cacheHit,

@@ -25,13 +25,26 @@ export async function reverseMatchFollows(
   if (error) throw new Error(error.message);
   if (!owners || owners.length === 0) return 0;
 
-  const rows = owners.map((o) => ({ follower_id: o.owner_id, followee_id: newUserId }));
+  const ownerIds = owners.map((o) => o.owner_id);
+  const { data: activeOwners, error: activeError } = await supabase
+    .from("public_profiles")
+    .select("user_id")
+    .in("user_id", ownerIds);
+  if (activeError) throw new Error(activeError.message);
+  const activeOwnerIds = new Set((activeOwners ?? []).map((row) => row.user_id));
+  const eligibleOwners = owners.filter((owner) => activeOwnerIds.has(owner.owner_id));
+  if (eligibleOwners.length === 0) return 0;
+
+  const rows = eligibleOwners.map((o) => ({
+    follower_id: o.owner_id,
+    followee_id: newUserId,
+  }));
   const { error: insErr } = await supabase
     .from("follows")
     .upsert(rows, { onConflict: "follower_id,followee_id", ignoreDuplicates: true });
   if (insErr) throw new Error(insErr.message);
 
-  const notifs = owners.map((o) => ({
+  const notifs = eligibleOwners.map((o) => ({
     user_id: o.owner_id,
     channel: "push" as const,
     kind: "friend_activity" as const,
@@ -40,7 +53,7 @@ export async function reverseMatchFollows(
   }));
   await supabase.from("notifications").insert(notifs);
 
-  return owners.length;
+  return eligibleOwners.length;
 }
 
 /**
@@ -79,11 +92,18 @@ export async function syncContacts(
     if (ids.length === 0) continue;
 
     const { data: profileRows, error: pErr } = await supabase
-      .from("profiles")
-      .select("user_id, full_name")
+      .from("public_profiles")
+      .select("user_id, display_name")
       .in("user_id", ids);
     if (pErr) throw new Error(pErr.message);
-    if (profileRows) matches.push(...profileRows);
+    if (profileRows) {
+      matches.push(
+        ...profileRows.map((row) => ({
+          user_id: row.user_id,
+          full_name: row.display_name,
+        })),
+      );
+    }
   }
   if (matches.length === 0) return [];
 

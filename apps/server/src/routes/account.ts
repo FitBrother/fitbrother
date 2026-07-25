@@ -7,9 +7,9 @@ import {
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import JSZip from "jszip";
 import { z } from "zod";
-import { authRequired } from "../lib/auth.js";
+import { activeAccountRequired, authTokenRequired } from "../lib/auth.js";
 import { Sentry } from "../lib/sentry.js";
-import { supabaseService } from "../lib/supabase.js";
+import { supabaseFromJwt, supabaseService } from "../lib/supabase.js";
 
 const CONSENT_SCOPES = [
   "terms",
@@ -19,7 +19,7 @@ const CONSENT_SCOPES = [
   "data_export",
 ] as const satisfies readonly ConsentScope[];
 
-const NON_REVOKABLE_SCOPES = new Set<ConsentScope>(["terms", "privacy"]);
+const NON_REVOKABLE_SCOPES = new Set<ConsentScope>(["terms", "privacy", "ai_processing"]);
 
 type ConsentLogRow = {
   scope: ConsentScope;
@@ -41,9 +41,10 @@ const ExportTableSchema = z.object({
 });
 
 export async function accountRoutes(app: FastifyInstance) {
-  app.addHook("preHandler", authRequired);
+  const activeAccount = { preHandler: [authTokenRequired, activeAccountRequired] };
+  const tokenOnly = { preHandler: [authTokenRequired] };
 
-  app.get("/account/profile", async (req, reply) => {
+  app.get("/account/profile", activeAccount, async (req, reply) => {
     const userId = req.user!.id;
     const admin = supabaseService();
 
@@ -70,6 +71,8 @@ export async function accountRoutes(app: FastifyInstance) {
         .from("account_deletions")
         .select("requested_at, scheduled_purge_at")
         .eq("user_id", userId)
+        .is("cancelled_at", null)
+        .is("purged_at", null)
         .maybeSingle(),
     ]);
 
@@ -92,7 +95,7 @@ export async function accountRoutes(app: FastifyInstance) {
     });
   });
 
-  app.patch("/account/settings", async (req, reply) => {
+  app.patch("/account/settings", activeAccount, async (req, reply) => {
     const parsed = PatchAccountSettingsRequestSchema.safeParse(req.body);
     if (!parsed.success) {
       return reply.code(400).send({ error: "invalid_payload", issues: parsed.error.issues });
@@ -135,7 +138,7 @@ export async function accountRoutes(app: FastifyInstance) {
     return reply.send({ settings: data });
   });
 
-  app.post("/account/consent", async (req, reply) => {
+  app.post("/account/consent", activeAccount, async (req, reply) => {
     const parsed = PostAccountConsentRequestSchema.safeParse(req.body);
     if (!parsed.success) {
       return reply.code(400).send({ error: "invalid_payload", issues: parsed.error.issues });
@@ -143,7 +146,7 @@ export async function accountRoutes(app: FastifyInstance) {
 
     const { scope, granted, policy_version } = parsed.data;
     if (!granted && NON_REVOKABLE_SCOPES.has(scope)) {
-      return reply.code(409).send({ error: "consent_scope_not_revokable" });
+      return reply.code(409).send({ error: "consent_required_for_service", scope });
     }
 
     const userId = req.user!.id;
@@ -188,7 +191,7 @@ export async function accountRoutes(app: FastifyInstance) {
     return reply.send({ consent });
   });
 
-  app.get("/account/export", async (req, reply) => {
+  app.get("/account/export", tokenOnly, async (req, reply) => {
     const userId = req.user!.id;
     req.log.info(
       { user_id: userId, request_id: req.id, action: "account_export" },
@@ -203,7 +206,8 @@ export async function accountRoutes(app: FastifyInstance) {
       const date = new Date().toISOString().slice(0, 10);
       reply
         .header("Content-Type", "application/zip")
-        .header("Content-Disposition", `attachment; filename="fitbrother-export-${date}.zip"`);
+        .header("Content-Disposition", `attachment; filename="fitbrother-export-${date}.zip"`)
+        .header("Cache-Control", "no-store");
       return reply.send(zipBuffer.buffer);
     } catch (err) {
       await auditAccountAction(req, "account_export", "failed", {
@@ -215,62 +219,69 @@ export async function accountRoutes(app: FastifyInstance) {
     }
   });
 
-  app.delete("/account", async (req, reply) => {
+  app.get("/account/deletion", tokenOnly, async (req, reply) => {
+    const { data, error } = await supabaseService()
+      .from("account_deletions")
+      .select("requested_at, scheduled_purge_at")
+      .eq("user_id", req.user!.id)
+      .is("cancelled_at", null)
+      .is("purged_at", null)
+      .maybeSingle();
+    if (error) return reply.code(500).send({ error: error.message });
+    return reply.send({
+      pending: Boolean(data),
+      requested_at: data?.requested_at ?? null,
+      scheduled_purge_at: data?.scheduled_purge_at ?? null,
+      can_reactivate: Boolean(data) && new Date(data!.scheduled_purge_at) > new Date(),
+    });
+  });
+
+  app.post("/account/deletion/cancel", tokenOnly, async (req, reply) => {
+    const client = supabaseForToken(req);
+    const { data, error } = await client.rpc("fitbrother_cancel_account_deletion", {
+      p_request_id: req.id,
+    });
+    if (error) {
+      const expired = error.message.includes("purge window expired");
+      return reply.code(expired ? 409 : 500).send({
+        error: expired ? "account_reactivation_expired" : "account_reactivation_failed",
+      });
+    }
+    const row = Array.isArray(data) ? data[0] : data;
+    return reply.send({
+      reactivated: row?.reactivated ?? false,
+      cancelled_at: row?.cancelled_at ?? null,
+    });
+  });
+
+  app.delete("/account", tokenOnly, async (req, reply) => {
     const parsed = DeleteAccountRequestSchema.safeParse(req.body);
     if (!parsed.success) {
       return reply.code(400).send({ error: "invalid_payload", issues: parsed.error.issues });
     }
 
     const userId = req.user!.id;
-    const admin = supabaseService();
-    const now = new Date();
-    const requestedAt = now.toISOString();
-    const scheduledPurgeAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString();
-
     req.log.info(
       { user_id: userId, request_id: req.id, action: "account_delete" },
       "account_action",
     );
     Sentry.addBreadcrumb({ category: "account", message: "delete_requested" });
 
-    const { data, error } = await admin
-      .from("account_deletions")
-      .upsert(
-        {
-          user_id: userId,
-          requested_at: requestedAt,
-          scheduled_purge_at: scheduledPurgeAt,
-          reason: parsed.data.reason ?? null,
-        },
-        { onConflict: "user_id" },
-      )
-      .select("requested_at, scheduled_purge_at")
-      .single();
+    const { data, error } = await supabaseForToken(req).rpc("fitbrother_request_account_deletion", {
+      p_reason: parsed.data.reason ?? null,
+      p_request_id: req.id,
+    });
 
     if (error) {
-      await auditAccountAction(req, "account_delete", "failed", { error: error.message });
       req.log.error({ err: error, user_id: userId }, "account_delete_mark_failed");
-      return reply.code(500).send({ error: error.message });
-    }
-
-    try {
-      await anonymizeAccount(userId, requestedAt);
-      await auditAccountAction(req, "account_delete", "success", {
-        scheduled_purge_at: data.scheduled_purge_at,
-      });
-    } catch (err) {
-      await auditAccountAction(req, "account_delete", "failed", {
-        error: err instanceof Error ? err.message : "unknown_error",
-      });
-      req.log.error({ err, user_id: userId }, "account_delete_anonymize_failed");
-      Sentry.captureException(err);
       return reply.code(500).send({ error: "account_delete_failed" });
     }
 
+    const row = Array.isArray(data) ? data[0] : data;
     return reply.send({
       deleted: true,
-      requested_at: data.requested_at,
-      scheduled_purge_at: data.scheduled_purge_at,
+      requested_at: row.requested_at,
+      scheduled_purge_at: row.scheduled_purge_at,
     });
   });
 }
@@ -351,9 +362,20 @@ async function queryExportTable(
   userId: string,
   select = "*",
 ): Promise<unknown[]> {
-  const { data, error } = await supabaseService().from(table).select(select).eq(column, userId);
-  if (error) throw new Error(`${table}: ${error.message}`);
-  return ExportTableSchema.parse({ data: data ?? [] }).data;
+  const rows: unknown[] = [];
+  const pageSize = 500;
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await supabaseService()
+      .from(table)
+      .select(select)
+      .eq(column, userId)
+      .range(from, from + pageSize - 1);
+    if (error) throw new Error(`${table}: ${error.message}`);
+    const page = ExportTableSchema.parse({ data: data ?? [] }).data;
+    rows.push(...page);
+    if (page.length < pageSize) break;
+  }
+  return rows;
 }
 
 async function buildAccountExport(
@@ -369,7 +391,8 @@ async function buildAccountExport(
     zip.file(path, `${JSON.stringify(value, null, 2)}\n`);
   }
 
-  const { data: authUser } = await admin.auth.admin.getUserById(userId);
+  const { data: authUser, error: authError } = await admin.auth.admin.getUserById(userId);
+  if (authError) throw new Error(`auth_user: ${authError.message}`);
   addJson("account.json", {
     exported_at: new Date().toISOString(),
     user: {
@@ -388,6 +411,7 @@ async function buildAccountExport(
     ["subscriptions.json", "subscriptions", "user_id"],
     ["consents.json", "consent_log", "user_id"],
     ["daily_summaries.json", "daily_summaries", "user_id"],
+    ["streaks.json", "streaks", "user_id"],
     ["ai_usage.json", "ai_usage", "user_id"],
     ["ai_extraction_hits.json", "ai_extraction_hits", "user_id"],
     ["ai_insights.json", "ai_insights", "user_id"],
@@ -461,67 +485,34 @@ async function buildStorageManifest(userId: string): Promise<Record<string, unkn
 }
 
 async function listStorageObjects(bucket: string, userId: string): Promise<unknown[]> {
-  const { data, error } = await supabaseService()
-    .storage.from(bucket)
-    .list(userId, {
-      limit: 1000,
-      sortBy: { column: "name", order: "asc" },
-    });
-  if (error) throw new Error(`${bucket}: ${error.message}`);
-  return (data ?? []).map((obj) => ({
-    path: `${userId}/${obj.name}`,
-    id: obj.id,
-    name: obj.name,
-    size: obj.metadata?.size ?? null,
-    mimetype: obj.metadata?.mimetype ?? null,
-    created_at: obj.created_at ?? null,
-    updated_at: obj.updated_at ?? null,
-  }));
+  const result: unknown[] = [];
+  const pageSize = 1000;
+  for (let offset = 0; ; offset += pageSize) {
+    const { data, error } = await supabaseService()
+      .storage.from(bucket)
+      .list(userId, {
+        limit: pageSize,
+        offset,
+        sortBy: { column: "name", order: "asc" },
+      });
+    if (error) throw new Error(`${bucket}: ${error.message}`);
+    for (const obj of data ?? []) {
+      result.push({
+        path: `${userId}/${obj.name}`,
+        id: obj.id,
+        name: obj.name,
+        size: obj.metadata?.size ?? null,
+        mimetype: obj.metadata?.mimetype ?? null,
+        created_at: obj.created_at ?? null,
+        updated_at: obj.updated_at ?? null,
+      });
+    }
+    if ((data ?? []).length < pageSize) break;
+  }
+  return result;
 }
 
-async function anonymizeAccount(userId: string, timestamp: string): Promise<void> {
-  const admin = supabaseService();
-  const operations = [
-    admin
-      .from("profiles")
-      .update({
-        full_name: null,
-        username: null,
-        avatar_url: null,
-        lgpd_consent_at: null,
-      })
-      .eq("user_id", userId),
-    admin
-      .from("profiles_private")
-      .update({ phone_e164: null, phone_hash: null, phone_verified_at: null })
-      .eq("user_id", userId),
-    admin
-      .from("meals")
-      .update({ deleted_at: timestamp })
-      .eq("user_id", userId)
-      .is("deleted_at", null),
-    admin
-      .from("posts")
-      .update({ deleted_at: timestamp })
-      .eq("user_id", userId)
-      .is("deleted_at", null),
-    admin
-      .from("post_comments")
-      .update({ deleted_at: timestamp })
-      .eq("user_id", userId)
-      .is("deleted_at", null),
-    admin
-      .from("push_tokens")
-      .update({ revoked_at: timestamp })
-      .eq("user_id", userId)
-      .is("revoked_at", null),
-    admin.from("post_likes").delete().eq("user_id", userId),
-    admin.from("follows").delete().or(`follower_id.eq.${userId},followee_id.eq.${userId}`),
-    admin.from("contact_links").delete().eq("owner_id", userId),
-  ];
-
-  for (const op of operations) {
-    const { error } = await op;
-    if (error) throw new Error(error.message);
-  }
+function supabaseForToken(req: FastifyRequest) {
+  if (!req.user) throw new Error("authenticated request required");
+  return supabaseFromJwt(req.user.accessToken);
 }

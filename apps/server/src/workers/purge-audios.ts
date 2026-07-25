@@ -1,5 +1,6 @@
 import type { FastifyBaseLogger } from "fastify";
 import type PgBoss from "pg-boss";
+import { Sentry } from "../lib/sentry.js";
 import { supabaseService } from "../lib/supabase.js";
 
 export const PURGE_AUDIOS_QUEUE = "purge-audios";
@@ -40,6 +41,9 @@ export async function registerPurgeAudios(boss: PgBoss, log: FastifyBaseLogger):
     const { error: removeError } = await admin.storage.from("meal-audios").remove(paths);
     if (removeError) {
       log.error({ err: removeError, count: paths.length }, "purge_audios_storage_failed");
+      Sentry.captureException(new Error(`purge_audios_storage_failed: ${removeError.message}`), {
+        tags: { worker: PURGE_AUDIOS_QUEUE },
+      });
       throw new Error(removeError.message);
     }
 
@@ -53,6 +57,9 @@ export async function registerPurgeAudios(boss: PgBoss, log: FastifyBaseLogger):
       );
     if (updateError) {
       log.error({ err: updateError }, "purge_audios_mark_failed");
+      Sentry.captureException(new Error(`purge_audios_mark_failed: ${updateError.message}`), {
+        tags: { worker: PURGE_AUDIOS_QUEUE },
+      });
       throw new Error(updateError.message);
     }
 

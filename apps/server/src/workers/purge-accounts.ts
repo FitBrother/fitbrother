@@ -1,5 +1,6 @@
 import type { FastifyBaseLogger } from "fastify";
 import type PgBoss from "pg-boss";
+import { Sentry } from "../lib/sentry.js";
 import { supabaseService } from "../lib/supabase.js";
 
 export const PURGE_ACCOUNTS_QUEUE = "purge-accounts";
@@ -18,6 +19,7 @@ export async function registerPurgeAccounts(boss: PgBoss, log: FastifyBaseLogger
       .from("account_deletions")
       .select("user_id, scheduled_purge_at")
       .lte("scheduled_purge_at", new Date().toISOString())
+      .is("cancelled_at", null)
       .is("purged_at", null)
       .limit(100);
 
@@ -28,8 +30,20 @@ export async function registerPurgeAccounts(boss: PgBoss, log: FastifyBaseLogger
 
     let purged = 0;
     for (const row of (data ?? []) as AccountDeletionRow[]) {
-      await purgeAccount(row, log);
-      purged++;
+      try {
+        await purgeAccount(row, log);
+        purged++;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "unknown_error";
+        await admin
+          .from("account_deletions")
+          .update({ last_purge_error: message.slice(0, 500) })
+          .eq("user_id", row.user_id);
+        Sentry.captureException(error, {
+          tags: { worker: PURGE_ACCOUNTS_QUEUE },
+          extra: { user_id: row.user_id },
+        });
+      }
     }
 
     log.info({ purged }, "purge_accounts_done");
@@ -42,6 +56,18 @@ export async function registerPurgeAccounts(boss: PgBoss, log: FastifyBaseLogger
 async function purgeAccount(row: AccountDeletionRow, log: FastifyBaseLogger): Promise<void> {
   const admin = supabaseService();
   const userId = row.user_id;
+
+  await admin
+    .from("account_deletions")
+    .update({
+      last_purge_attempt_at: new Date().toISOString(),
+      last_purge_error: null,
+    })
+    .eq("user_id", userId);
+  const { error: attemptsError } = await admin.rpc("fitbrother_increment_purge_attempt", {
+    p_user_id: userId,
+  });
+  if (attemptsError) throw new Error(attemptsError.message);
 
   log.info(
     { user_id: userId, scheduled_purge_at: row.scheduled_purge_at },
@@ -74,10 +100,16 @@ async function purgeAccount(row: AccountDeletionRow, log: FastifyBaseLogger): Pr
 
 async function removeUserStorage(bucket: string, userId: string): Promise<void> {
   const storage = supabaseService().storage.from(bucket);
-  const { data, error } = await storage.list(userId, { limit: 1000 });
-  if (error) throw new Error(`${bucket}: ${error.message}`);
-  const paths = (data ?? []).map((object) => `${userId}/${object.name}`);
-  if (paths.length === 0) return;
-  const { error: removeError } = await storage.remove(paths);
-  if (removeError) throw new Error(`${bucket}: ${removeError.message}`);
+  let hasObjects = true;
+  while (hasObjects) {
+    const { data, error } = await storage.list(userId, { limit: 1000, offset: 0 });
+    if (error) throw new Error(`${bucket}: ${error.message}`);
+    const paths = (data ?? []).map((object) => `${userId}/${object.name}`);
+    if (paths.length === 0) {
+      hasObjects = false;
+      continue;
+    }
+    const { error: removeError } = await storage.remove(paths);
+    if (removeError) throw new Error(`${bucket}: ${removeError.message}`);
+  }
 }

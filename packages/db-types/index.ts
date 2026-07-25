@@ -28,6 +28,75 @@ export type Database = {
   };
   public: {
     Tables: {
+      account_audit_log: {
+        Row: {
+          action: string;
+          created_at: string;
+          id: string;
+          metadata: Json;
+          request_id: string | null;
+          status: string;
+          user_id: string | null;
+        };
+        Insert: {
+          action: string;
+          created_at?: string;
+          id?: string;
+          metadata?: Json;
+          request_id?: string | null;
+          status: string;
+          user_id?: string | null;
+        };
+        Update: {
+          action?: string;
+          created_at?: string;
+          id?: string;
+          metadata?: Json;
+          request_id?: string | null;
+          status?: string;
+          user_id?: string | null;
+        };
+        Relationships: [];
+      };
+      account_deletions: {
+        Row: {
+          cancelled_at: string | null;
+          cancelled_request_id: string | null;
+          last_purge_attempt_at: string | null;
+          last_purge_error: string | null;
+          purge_attempts: number;
+          purged_at: string | null;
+          reason: string | null;
+          requested_at: string;
+          scheduled_purge_at: string;
+          user_id: string;
+        };
+        Insert: {
+          cancelled_at?: string | null;
+          cancelled_request_id?: string | null;
+          last_purge_attempt_at?: string | null;
+          last_purge_error?: string | null;
+          purge_attempts?: number;
+          purged_at?: string | null;
+          reason?: string | null;
+          requested_at?: string;
+          scheduled_purge_at?: string;
+          user_id: string;
+        };
+        Update: {
+          cancelled_at?: string | null;
+          cancelled_request_id?: string | null;
+          last_purge_attempt_at?: string | null;
+          last_purge_error?: string | null;
+          purge_attempts?: number;
+          purged_at?: string | null;
+          reason?: string | null;
+          requested_at?: string;
+          scheduled_purge_at?: string;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
       achievements: {
         Row: {
           code: string;
@@ -443,7 +512,9 @@ export type Database = {
       };
       meals: {
         Row: {
+          account_deleted_at: string | null;
           ai_feedback: string | null;
+          audio_deleted_at: string | null;
           audio_path: string | null;
           confidence: number | null;
           consumed_at: string;
@@ -462,7 +533,9 @@ export type Database = {
           user_id: string;
         };
         Insert: {
+          account_deleted_at?: string | null;
           ai_feedback?: string | null;
+          audio_deleted_at?: string | null;
           audio_path?: string | null;
           confidence?: number | null;
           consumed_at?: string;
@@ -481,7 +554,9 @@ export type Database = {
           user_id: string;
         };
         Update: {
+          account_deleted_at?: string | null;
           ai_feedback?: string | null;
+          audio_deleted_at?: string | null;
           audio_path?: string | null;
           confidence?: number | null;
           consumed_at?: string;
@@ -498,6 +573,42 @@ export type Database = {
           total_protein_g?: number;
           updated_at?: string;
           user_id?: string;
+        };
+        Relationships: [];
+      };
+      metrics_daily: {
+        Row: {
+          computed_at: string;
+          day: string;
+          metric: string;
+          model: string;
+          provider: string;
+          sample_count: number;
+          source: string;
+          stage: string;
+          value: number;
+        };
+        Insert: {
+          computed_at?: string;
+          day: string;
+          metric: string;
+          model?: string;
+          provider?: string;
+          sample_count?: number;
+          source?: string;
+          stage?: string;
+          value: number;
+        };
+        Update: {
+          computed_at?: string;
+          day?: string;
+          metric?: string;
+          model?: string;
+          provider?: string;
+          sample_count?: number;
+          source?: string;
+          stage?: string;
+          value?: number;
         };
         Relationships: [];
       };
@@ -576,8 +687,57 @@ export type Database = {
         };
         Relationships: [];
       };
+      pipeline_events: {
+        Row: {
+          cache_hit: boolean | null;
+          confidence: number | null;
+          duration_ms: number;
+          error_code: string | null;
+          id: number;
+          meal_id: string | null;
+          model: string;
+          occurred_at: string;
+          provider: string;
+          request_id: string;
+          source: string;
+          stage: string;
+          success: boolean;
+        };
+        Insert: {
+          cache_hit?: boolean | null;
+          confidence?: number | null;
+          duration_ms: number;
+          error_code?: string | null;
+          id?: never;
+          meal_id?: string | null;
+          model?: string;
+          occurred_at?: string;
+          provider?: string;
+          request_id: string;
+          source: string;
+          stage: string;
+          success: boolean;
+        };
+        Update: {
+          cache_hit?: boolean | null;
+          confidence?: number | null;
+          duration_ms?: number;
+          error_code?: string | null;
+          id?: never;
+          meal_id?: string | null;
+          model?: string;
+          occurred_at?: string;
+          provider?: string;
+          request_id?: string;
+          source?: string;
+          stage?: string;
+          success?: boolean;
+        };
+        Relationships: [];
+      };
       post_comments: {
         Row: {
+          account_deleted_at: string | null;
           body: string;
           created_at: string;
           deleted_at: string | null;
@@ -586,6 +746,7 @@ export type Database = {
           user_id: string;
         };
         Insert: {
+          account_deleted_at?: string | null;
           body: string;
           created_at?: string;
           deleted_at?: string | null;
@@ -594,6 +755,7 @@ export type Database = {
           user_id: string;
         };
         Update: {
+          account_deleted_at?: string | null;
           body?: string;
           created_at?: string;
           deleted_at?: string | null;
@@ -613,16 +775,19 @@ export type Database = {
       };
       post_likes: {
         Row: {
+          account_deleted_at: string | null;
           created_at: string;
           post_id: string;
           user_id: string;
         };
         Insert: {
+          account_deleted_at?: string | null;
           created_at?: string;
           post_id: string;
           user_id: string;
         };
         Update: {
+          account_deleted_at?: string | null;
           created_at?: string;
           post_id?: string;
           user_id?: string;
@@ -639,6 +804,7 @@ export type Database = {
       };
       posts: {
         Row: {
+          account_deleted_at: string | null;
           achievement_id: string | null;
           caption: string | null;
           comment_count: number;
@@ -656,6 +822,7 @@ export type Database = {
           user_id: string;
         };
         Insert: {
+          account_deleted_at?: string | null;
           achievement_id?: string | null;
           caption?: string | null;
           comment_count?: number;
@@ -673,6 +840,7 @@ export type Database = {
           user_id: string;
         };
         Update: {
+          account_deleted_at?: string | null;
           achievement_id?: string | null;
           caption?: string | null;
           comment_count?: number;
@@ -1013,7 +1181,12 @@ export type Database = {
     };
     Functions: {
       complete_onboarding: { Args: { payload: Json }; Returns: Json };
+      complete_onboarding_impl: { Args: { payload: Json }; Returns: Json };
       create_meal_with_items: { Args: { payload: Json }; Returns: Json };
+      fitbrother_account_is_active: {
+        Args: { p_user_id: string };
+        Returns: boolean;
+      };
       fitbrother_apply_streak: {
         Args: { p_day: string; p_user_id: string };
         Returns: undefined;
@@ -1021,6 +1194,21 @@ export type Database = {
       fitbrother_assert_ai_cap: {
         Args: { p_cap: number; p_kind: string; p_user_id: string };
         Returns: undefined;
+      };
+      fitbrother_assert_required_consents: {
+        Args: { payload: Json };
+        Returns: undefined;
+      };
+      fitbrother_cancel_account_deletion: {
+        Args: { p_request_id?: string };
+        Returns: {
+          cancelled_at: string;
+          reactivated: boolean;
+        }[];
+      };
+      fitbrother_compute_metrics_daily: {
+        Args: { p_day: string };
+        Returns: number;
       };
       fitbrother_evaluate_achievements: {
         Args: { p_user_id: string };
@@ -1040,6 +1228,10 @@ export type Database = {
         }[];
       };
       fitbrother_goal_reminder: { Args: never; Returns: number };
+      fitbrother_increment_purge_attempt: {
+        Args: { p_user_id: string };
+        Returns: undefined;
+      };
       fitbrother_insight_targets: {
         Args: { p_period: string };
         Returns: {
@@ -1070,6 +1262,13 @@ export type Database = {
           p_user_id: string;
         };
         Returns: undefined;
+      };
+      fitbrother_request_account_deletion: {
+        Args: { p_reason?: string; p_request_id?: string };
+        Returns: {
+          requested_at: string;
+          scheduled_purge_at: string;
+        }[];
       };
       fitbrother_streak_alert: { Args: never; Returns: number };
       fitbrother_streak_at_risk: {

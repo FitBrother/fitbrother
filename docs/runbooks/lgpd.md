@@ -29,7 +29,7 @@ Expected behavior:
 Symptoms:
 
 - `DELETE /account` returns `deleted: true`.
-- Later authenticated requests return `401 account_deleted`.
+- Later normal requests return `401 account_deletion_pending`.
 
 Checks:
 
@@ -41,11 +41,31 @@ select user_id, phone_e164, phone_hash, phone_verified_at from public.profiles_p
 
 Expected immediate effects:
 
-- Public identity fields are cleared.
-- Phone fields are cleared.
+- The account is hidden from every public/social surface.
+- Identity and phone fields are retained only for possible reactivation.
 - Meals/posts/comments are soft-deleted.
 - Push tokens are revoked.
-- Follows/contact links are removed.
+- Likes/follows/contact links remain stored but invisible.
+
+## Reactivation
+
+Endpoint: `POST /account/deletion/cancel`.
+
+The user signs in again with password or OAuth. A valid login is expected:
+normal routes return `account_deletion_pending`, while deletion state, export
+and cancellation remain available.
+
+Checks:
+
+```sql
+select requested_at, scheduled_purge_at, cancelled_at
+from public.account_deletions
+where user_id = '<user_id>';
+```
+
+Cancellation must restore only rows carrying the current
+`account_deleted_at`. Rows deleted before the account request must remain
+deleted. The app registers its push token again after reactivation.
 
 ## Purge D+30
 
@@ -101,9 +121,9 @@ Endpoint: `POST /account/consent`.
 
 Rules:
 
-- `terms` and `privacy` return `409 consent_scope_not_revokable` when revoked.
-- `ai_processing` can be revoked; mobile should disable AI flows and keep manual
-  registration available.
+- `terms`, `privacy` and `ai_processing` return
+  `409 consent_required_for_service` when revoked.
+- AI processing is core functionality and has no disable toggle.
 - `marketing` can be granted/revoked.
 - `data_export` is tracked but export does not require it.
 
