@@ -1,15 +1,16 @@
 import { createHash } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { MealExtraction } from "@fitbrother/shared";
+import type { CoachContext, MealExtraction } from "@fitbrother/shared";
 import { env } from "../lib/env.js";
 import { supabaseService } from "../lib/supabase.js";
 import { getLlmProvider } from "./llm/index.js";
 import { assertWithinCap, recordUsage } from "./ai-usage.js";
+import { loadCoachContext } from "./coach-context.js";
 
 /**
  * Extract structured meal data from natural language text. Caches by
- * sha256(text + prompt_version + locale) so identical input from any user
- * is a free DB lookup.
+ * sha256(text + prompt_version + locale + contextHash) so identical input
+ * from any user with the same CoachContext is a free DB lookup.
  *
  * Bumping LLM_PROMPT_VERSION invalidates the entire cache without TRUNCATE —
  * new requests miss because the hash differs.
@@ -30,9 +31,16 @@ export type ExtractionResult = {
   inputHash: string;
 };
 
-function hashInput(text: string, locale: string): string {
+/** M18: chave de cache passa a incluir o CoachContext do usuário — texto
+ * idêntico com contextos diferentes (barreira, soft_mode, etc.) precisa de
+ * feedback diferente, então não pode compartilhar a mesma entrada de cache. */
+export function hashContext(ctx: CoachContext): string {
+  return createHash("sha256").update(JSON.stringify(ctx)).digest("hex");
+}
+
+function hashInput(text: string, locale: string, contextHash: string): string {
   return createHash("sha256")
-    .update(`${text}\x00${env.LLM_PROMPT_VERSION}\x00${locale}`)
+    .update(`${text}\x00${env.LLM_PROMPT_VERSION}\x00${locale}\x00${contextHash}`)
     .digest("hex");
 }
 
@@ -43,9 +51,11 @@ export async function extractMeal(params: {
   locale: string;
 }): Promise<ExtractionResult> {
   const { userClient, userId, text, locale } = params;
-  const inputHash = hashInput(text, locale);
+  const context = await loadCoachContext(userClient, userId);
+  const contextHash = hashContext(context);
+  const inputHash = hashInput(text, locale, contextHash);
 
-  // 1. Cache lookup — global (any user can hit any cached extraction).
+  // 1. Cache lookup — global (any user with the same text+context can hit it).
   const { data: cached, error: lookupErr } = await userClient
     .from("ai_extractions")
     .select("result_json")
@@ -67,7 +77,7 @@ export async function extractMeal(params: {
   await assertWithinCap(userClient, userId, "llm_tokens");
 
   const provider = getLlmProvider();
-  const { output, usage } = await provider.extractMeal({ text, locale });
+  const { output, usage } = await provider.extractMeal({ text, locale, context });
 
   // 3. Persist cache + hits + usage. Use service_role for writes because
   // these tables don't grant INSERT to authenticated users.
