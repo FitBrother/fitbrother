@@ -1065,15 +1065,29 @@ ALTER TABLE public.profiles
   ADD COLUMN soft_mode boolean NOT NULL DEFAULT false;
 ```
 
-- [ ] **Step 5: Migration — reescreve `complete_onboarding`**
+- [ ] **Step 5: Migration — reescreve `complete_onboarding_impl`**
+
+> **Nota de correção:** a função real não se chama mais `complete_onboarding`
+> desde a migration `0054` (M6) — foi renomeada pra `complete_onboarding_impl`
+> e envolvida por um wrapper `SECURITY DEFINER` (`complete_onboarding`) que
+> valida consentimento obrigatório antes de delegar. Reescrever
+> `complete_onboarding` diretamente teria apagado esse wrapper de
+> conformidade do M6 sem erro nenhum no `db reset` — só um smoke test SQL
+> real (chamando a função pelo nome público, com um usuário sintético) expôs
+> isso. A migration abaixo já reflete o alvo correto.
 
 Crie `supabase/migrations/0060_complete_onboarding_v2.sql`:
 
 ```sql
--- M15: complete_onboarding deixa de calcular BMR/TDEE/macros — recebe tudo
--- pronto em payload.targets (computado por computeTargets no backend) e só
--- persiste. Mesma assinatura, mesma atomicidade/RLS (SECURITY INVOKER).
-CREATE OR REPLACE FUNCTION public.complete_onboarding(payload jsonb)
+-- M15: complete_onboarding_impl deixa de calcular BMR/TDEE/macros — recebe
+-- tudo pronto em payload.targets (computado por computeTargets no backend) e
+-- só persiste. Mesma assinatura/nome (a função foi renomeada de
+-- complete_onboarding pra complete_onboarding_impl na migration 0054, que
+-- envolve um wrapper SECURITY DEFINER de checagem de consentimento — não
+-- tocado aqui). Preserva integralmente o que 0038 (username/avatar_url +
+-- phone_e164 em profiles_private) e 0024 (effective_from pelo dia
+-- nutricional do usuário) já corrigiam.
+CREATE OR REPLACE FUNCTION public.complete_onboarding_impl(payload jsonb)
 RETURNS jsonb
 LANGUAGE plpgsql
 AS $$
@@ -1086,9 +1100,11 @@ DECLARE
   v_weight_kg       numeric := (payload->>'weight_kg')::numeric;
   v_height_cm       numeric := (payload->>'height_cm')::numeric;
   v_policy_version  text  := COALESCE(payload->'consents'->>'policy_version', 'v1.0');
+  v_phone_e164      text := NULLIF(payload->>'phone_e164', '');
   v_targets         jsonb := payload->'targets';
   v_anthro_id       uuid;
   v_goal_id         uuid;
+  v_effective_from  date;
 BEGIN
   IF uid IS NULL THEN
     RAISE EXCEPTION 'complete_onboarding requires authenticated user';
@@ -1100,14 +1116,14 @@ BEGIN
 
   -- 1. profiles ------------------------------------------------------------
   INSERT INTO public.profiles (
-    user_id, full_name, phone_e164, birth_date, sex,
-    activity_level, goal, timezone, day_start_hour, locale,
-    lgpd_consent_at
+    user_id, full_name, username, avatar_url, birth_date, sex,
+    activity_level, goal, timezone, day_start_hour, locale, lgpd_consent_at
   )
   VALUES (
     uid,
     payload->>'full_name',
-    NULLIF(payload->>'phone_e164', ''),
+    NULLIF(payload->>'username', '')::citext,
+    NULLIF(payload->>'avatar_url', ''),
     v_birth_date,
     v_sex,
     v_activity_level,
@@ -1117,6 +1133,11 @@ BEGIN
     COALESCE(payload->>'locale', 'pt-BR'),
     now()
   );
+
+  IF v_phone_e164 IS NOT NULL THEN
+    INSERT INTO public.profiles_private (user_id, phone_e164)
+    VALUES (uid, v_phone_e164);
+  END IF;
 
   -- 2. anthropometrics (bmr/tdee chegam prontos de computeTargets;
   --    target_weight_kg/rate_kg_per_week vêm do payload — NULL até o M16) ---
@@ -1135,13 +1156,17 @@ BEGIN
   )
   RETURNING id INTO v_anthro_id;
 
-  -- 3. nutrition_goals (kcal/macros já computados) --------------------------
+  -- 3. nutrition_goals (kcal/macros já computados; effective_from pelo dia
+  --    nutricional do usuário, não CURRENT_DATE do servidor — 0024) --------
+  v_effective_from := public.fitbrother_nutritional_day(uid, now());
+
   INSERT INTO public.nutrition_goals (
-    user_id, kcal, protein_g, carbs_g, fat_g, fiber_g,
+    user_id, effective_from, kcal, protein_g, carbs_g, fat_g, fiber_g,
     tdee_source, warnings, blocked
   )
   VALUES (
     uid,
+    v_effective_from,
     (v_targets->>'kcal')::numeric,
     (v_targets->>'protein_g')::numeric,
     (v_targets->>'carbs_g')::numeric,
