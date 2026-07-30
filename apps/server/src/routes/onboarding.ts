@@ -1,7 +1,13 @@
 import { OnboardingPayloadSchema } from "@fitbrother/shared";
 import type { FastifyInstance } from "fastify";
+import { z } from "zod";
 import { authRequired, supabaseForRequest } from "../lib/auth.js";
-import { buildTargetsInput, computeTargets } from "../services/targets.js";
+import { buildTargetsInput, computeTargets, evaluateSafetyGates } from "../services/targets.js";
+
+const PatchOnboardingProgressRequestSchema = z.object({
+  current_block: z.string().min(1).max(50),
+  answers: z.record(z.string(), z.unknown()),
+});
 
 export async function onboardingRoutes(app: FastifyInstance) {
   app.post("/onboarding/complete", { preHandler: [authRequired] }, async (req, reply) => {
@@ -13,11 +19,14 @@ export async function onboardingRoutes(app: FastifyInstance) {
       });
     }
 
-    const targets = computeTargets(buildTargetsInput(parsed.data));
+    const targetsInput = buildTargetsInput(parsed.data);
+    const targets = computeTargets(targetsInput);
+    const gates = evaluateSafetyGates(targetsInput);
+    const soft_mode = gates.some((g) => g.severity === "SOFT_MODE");
 
     const supabase = supabaseForRequest(req);
     const { data, error } = await supabase.rpc("complete_onboarding", {
-      payload: { ...parsed.data, targets },
+      payload: { ...parsed.data, targets, soft_mode },
     });
 
     if (error) {
@@ -26,5 +35,49 @@ export async function onboardingRoutes(app: FastifyInstance) {
     }
 
     return reply.code(201).send(data);
+  });
+
+  app.get("/onboarding/progress", { preHandler: [authRequired] }, async (req, reply) => {
+    const supabase = supabaseForRequest(req);
+    const { data, error } = await supabase
+      .from("onboarding_progress")
+      .select("current_block, answers, updated_at")
+      .maybeSingle();
+
+    if (error) {
+      req.log.error({ err: error }, "onboarding_progress_get_failed");
+      return reply.code(500).send({ error: error.message });
+    }
+
+    return reply.send({ progress: data ?? null });
+  });
+
+  app.patch("/onboarding/progress", { preHandler: [authRequired] }, async (req, reply) => {
+    const parsed = PatchOnboardingProgressRequestSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.code(400).send({
+        error: "invalid_payload",
+        issues: parsed.error.issues,
+      });
+    }
+
+    const userId = req.user!.id;
+    const supabase = supabaseForRequest(req);
+    const { error } = await supabase.from("onboarding_progress").upsert(
+      {
+        user_id: userId,
+        current_block: parsed.data.current_block,
+        answers: parsed.data.answers,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "user_id" },
+    );
+
+    if (error) {
+      req.log.error({ err: error }, "onboarding_progress_patch_failed");
+      return reply.code(500).send({ error: error.message });
+    }
+
+    return reply.code(204).send();
   });
 }
