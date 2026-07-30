@@ -300,6 +300,15 @@ export const OnboardingPayloadSchema = z.object({
     ai_processing: z.literal(true),
     policy_version: z.string().default("v1.0"),
   }),
+  target_weight_kg: z.number().positive().max(500).optional(),
+  rate_kg_per_week: z.number().positive().max(2).optional(),
+  strength_training: z.boolean().optional(),
+  is_pregnant_or_lactating: z.boolean().optional(),
+  has_kidney_disease: z.boolean().optional(),
+  has_type1_diabetes: z.boolean().optional(),
+  uses_glp1: z.boolean().optional(),
+  tca_screening_positive: z.boolean().optional(),
+  onboarding_context: z.record(z.string(), z.unknown()).default({}),
 });
 
 export type OnboardingPayload = z.infer<typeof OnboardingPayloadSchema>;
