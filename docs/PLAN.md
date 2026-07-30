@@ -734,6 +734,49 @@ arquivos `step-N.tsx` fixos.
 retoma no bloco exato; gates do M15 ramificam o fluxo; `soft_mode=true` esconde
 kcal em todas as telas mapeadas.
 
+**Status M16 (Máquina de estados do onboarding + paywall placeholder):** ✅
+implementado em 2026-07-30 na branch `worktree-m16-onboarding-state-machine`.
+
+- `packages/shared`: `OnboardingPayloadSchema` ganha `target_weight_kg`,
+  `rate_kg_per_week`, `strength_training`, `is_pregnant_or_lactating`,
+  `has_kidney_disease`, `has_type1_diabetes`, `uses_glp1`,
+  `tca_screening_positive`, `onboarding_context` — todos os campos que o M15
+  já aceitava em `TargetsInput` mas ainda não tinham UI.
+- `apps/server`: `buildTargetsInput` mapeia os 7 campos de cálculo;
+  `POST /onboarding/complete` passa a chamar `evaluateSafetyGates`
+  separadamente pra derivar `soft_mode` (primeira gravação real dessa flag no
+  sistema) e devolve `soft_mode`/`block_reason` na resposta; `GET`/`PATCH
+  /onboarding/progress` novos.
+- Migrations `0061`–`0064`: tabela `onboarding_progress` (RLS `owner_all`);
+  6 flags de saúde em `anthropometrics`; `profiles.onboarding_context` jsonb;
+  `complete_onboarding_impl` v3 (persiste tudo + apaga `onboarding_progress`
+  ao concluir).
+- `apps/mobile`: os 9 arquivos `step-N.tsx` viraram 19 componentes de bloco em
+  `components/onboarding/blocks/` dirigidos por um engine declarativo
+  (`lib/onboarding/blocks.ts`) através de uma rota única
+  `app/(onboarding)/[block].tsx`; `app/(onboarding)/index.tsx` virou o gate de
+  resume (`GET /onboarding/progress` na entrada). Blocos novos: `training`,
+  `habits`, `barriers`, `diet`, `health` (com triagem de TCA, marcada
+  `// PENDENTE DE REVISÃO PROFISSIONAL`), `permissions`, `calculating`,
+  `reveal` (ramifica por `blocked`/`soft_mode`, usa `<GoalsDisclaimer />` do
+  M14), `paywall` (placeholder, CTA único) e `first_meal` (reaproveita
+  `MealComposer`). `soft_mode` ligado em `TodaySummaryHeader`,
+  `HistoryDayCard` e `HomeHeader`/`StreakCounter`.
+- Verificado: `npm run typecheck`/`npm run lint` no monorepo inteiro passam;
+  smoke test SQL (transação com `ROLLBACK`) confirma persistência dos campos
+  novos e o `DELETE` de `onboarding_progress`; smoke test HTTP real
+  (Supabase Auth real + JWT) confirma `PATCH`→`GET`→`POST complete`→`GET`
+  (progresso salvo, retomado e depois apagado) e `soft_mode=true` retornado
+  quando a triagem de TCA é positiva.
+- **Não verificado nesta fatia:** walkthrough manual via Expo/browser — o
+  bundler web (Metro) do monorepo já falha antes deste milestone ao resolver
+  `@fitbrother/shared` (a condição `react-native` do `package.json` do pacote
+  aponta pro `src/` cru, que usa imports com sufixo `.js` que só existem como
+  `.ts` — Metro não resolve isso sem um build prévio). Gap pré-existente,
+  não introduzido aqui; sinalizado à parte para correção futura.
+
+**M16 concluído.** Próximo: M17 (migração de usuários existentes).
+
 ## M17 — Migração de usuários existentes
 
 **Meta:** deliberadamente leve — sem usuários reais hoje. Migrations de
