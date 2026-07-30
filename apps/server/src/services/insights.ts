@@ -4,6 +4,7 @@ import type { FastifyBaseLogger } from "fastify";
 import { supabaseService } from "../lib/supabase.js";
 import { getLlmProvider } from "./llm/index.js";
 import { recordUsage } from "./ai-usage.js";
+import { loadCoachContext } from "./coach-context.js";
 
 type PeriodType = "day" | "week" | "month";
 type Target = { user_id: string; period_start: string; payload: unknown };
@@ -53,7 +54,13 @@ export async function generateInsightsForPeriod(
 
     let result;
     try {
-      result = await getLlmProvider().generateInsight({ periodType, locale, data: t.payload });
+      const context = await loadCoachContext(svc, t.user_id);
+      result = await getLlmProvider().generateInsight({
+        periodType,
+        locale,
+        data: t.payload,
+        context,
+      });
     } catch (err) {
       log.error({ err, userId: t.user_id, periodType }, "insight_generate_failed");
       continue; // não grava row parcial; tenta no próximo tick

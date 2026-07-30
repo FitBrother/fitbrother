@@ -7,4 +7,5 @@
 export const LLM_PROMPT_VERSION = "v2";
 
 // M8.2: entra no source_hash dos insights. Bumpar força regeneração.
-export const INSIGHT_PROMPT_VERSION = "v1";
+// v2 (M18): prompt de insight passa a incluir CoachContext.
+export const INSIGHT_PROMPT_VERSION = "v2";
