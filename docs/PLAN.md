@@ -648,6 +648,25 @@ blocklist de termos reservados a nutricionista/médico no Brasil, verificada em 
 **Feito quando:** fonte única de copy de metas existe; CI falha com termo
 proibido fora do arquivo de constantes; `<GoalsDisclaimer />` renderiza.
 
+**Status M14 (Copy e conformidade legal):** ✅ implementado em 2026-07-14 na
+branch `worktree-m14-legal-copy`. `packages/shared/src/copy/goals.ts` exporta
+`LEGAL_BLOCKLIST` (4 termos), `ALLOWED_GOAL_TERMS` (guia de redação) e
+`GOALS_DISCLAIMER_TEXT`, reexportados pelo índice do pacote. Scanner puro
+(`scripts/legal-copy/scan.ts`, `findBlocklistViolations`) com 5 testes via
+`node:test`/`tsx --test` (sem dependência nova — Vitest fica pro M15).
+CLI (`scripts/check-legal-copy.ts`) varre `apps/mobile` e falha com exit 1 se
+achar termo da blocklist; encadeado no `lint` da raiz (`test:legal-copy` +
+`lint:legal-copy`), sem editar `.github/workflows/ci.yml`. O scanner achou e
+corrigimos uma violação real pré-existente em
+`apps/mobile/app/(auth)/sign-up.tsx` ("sua dieta" → "suas metas"). Componente
+`apps/mobile/components/domain/GoalsDisclaimer.tsx` criado, sem consumidor
+ainda (entra no M16). Verificação: `npm run typecheck` e `npm run lint`
+(incluindo os 5 testes do scanner + o scan real) passam no monorepo inteiro;
+detecção comprovada manualmente injetando e removendo um termo proibido.
+**Sem harness de teste de componente React Native no projeto** — verificação
+do `GoalsDisclaimer` é estática (typecheck/lint), não renderizada em device.
+**M14 concluído.** Próximo: M15 (motor de cálculo + gates de segurança).
+
 ## M15 — Motor de cálculo + gates de segurança
 
 **Meta:** `computeTargets`/`evaluateSafetyGates` (TS puro, `packages/shared`)
