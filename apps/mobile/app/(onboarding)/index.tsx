@@ -1,34 +1,26 @@
 import { router } from "expo-router";
-import { Input } from "@/components/Input";
-import { OnboardingStepShell } from "@/components/OnboardingStepShell";
-import { ONBOARDING_STEPS } from "@/lib/constants";
+import { useEffect } from "react";
+import { ActivityIndicator, View } from "react-native";
+import { getOnboardingProgress } from "@/lib/api";
+import { ONBOARDING_BLOCKS } from "@/lib/onboarding/blocks";
 import { useOnboardingStore } from "@/lib/stores/onboardingStore";
 
-export default function Step1Name() {
-  const full_name = useOnboardingStore((s) => s.full_name);
-  const setField = useOnboardingStore((s) => s.setField);
+export default function OnboardingGate() {
+  useEffect(() => {
+    (async () => {
+      const progress = await getOnboardingProgress().catch(() => null);
+      if (progress) {
+        useOnboardingStore.getState().hydrate(progress.answers);
+        router.replace(`/(onboarding)/${progress.current_block}` as never);
+      } else {
+        router.replace(`/(onboarding)/${ONBOARDING_BLOCKS[0]!.id}` as never);
+      }
+    })();
+  }, []);
 
   return (
-    <OnboardingStepShell
-      step={1}
-      total={ONBOARDING_STEPS}
-      title="Como podemos te chamar?"
-      subtitle="Seu nome aparece nas conquistas e nas conversas com o bot."
-      onBack={() => router.replace("/(auth)/welcome")}
-      onNext={() => router.push("/(onboarding)/step-2")}
-      nextDisabled={full_name.trim().length < 2}
-    >
-      <Input
-        label="Nome"
-        value={full_name}
-        onChangeText={(v) => setField("full_name", v)}
-        placeholder="Seu nome"
-        autoCapitalize="words"
-        autoCorrect={false}
-        textContentType="givenName"
-        returnKeyType="done"
-        maxLength={80}
-      />
-    </OnboardingStepShell>
+    <View className="flex-1 items-center justify-center bg-neutral-50">
+      <ActivityIndicator size="large" />
+    </View>
   );
 }
