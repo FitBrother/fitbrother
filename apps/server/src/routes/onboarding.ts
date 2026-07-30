@@ -1,6 +1,7 @@
 import { OnboardingPayloadSchema } from "@fitbrother/shared";
 import type { FastifyInstance } from "fastify";
 import { authRequired, supabaseForRequest } from "../lib/auth.js";
+import { buildTargetsInput, computeTargets } from "../services/targets.js";
 
 export async function onboardingRoutes(app: FastifyInstance) {
   app.post("/onboarding/complete", { preHandler: [authRequired] }, async (req, reply) => {
@@ -12,9 +13,11 @@ export async function onboardingRoutes(app: FastifyInstance) {
       });
     }
 
+    const targets = computeTargets(buildTargetsInput(parsed.data));
+
     const supabase = supabaseForRequest(req);
     const { data, error } = await supabase.rpc("complete_onboarding", {
-      payload: parsed.data,
+      payload: { ...parsed.data, targets },
     });
 
     if (error) {
