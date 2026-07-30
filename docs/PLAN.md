@@ -805,6 +805,40 @@ feedback de refeição (M8.1) e nos insights de período (M8.2).
 **Feito quando:** feedback de refeição muda de tom conforme a barreira principal
 do usuário; `soft_mode=true` comprovadamente não manda kcal/macros pro prompt.
 
+**Status M18 (Contexto para IA):** ✅ implementado em 2026-07-30 na branch
+`worktree-m18-coach-context`.
+
+- `packages/shared/src/coach/`: `buildCoachContext` puro (omite `metas`/
+  `consumido_hoje` quando `soft_mode=true`, filtra `"Nenhuma"` das
+  restrições, tabela de tom por barreira incluindo a 6ª opção do M16
+  — "Comer fora com frequência" — que não tinha regra no spec original) +
+  `coachContextToneInstruction`.
+- `apps/server/src/services/coach-context.ts`: `loadCoachContext` monta o
+  contexto a partir de `profiles`/`anthropometrics`/`nutrition_goals`/
+  `daily_summaries`, funcionando tanto com client autenticado (rotas HTTP)
+  quanto com o client de service-role (job de insights) — sem depender de
+  `vw_today_summary`, que assume `auth.uid()`.
+- **Conflito de cache resolvido:** `extraction.ts`/`photo-extraction.ts`
+  passam a incluir um hash do `CoachContext` na chave de cache
+  (`ai_extractions.input_hash`) — sem isso, o cache global de extração
+  vazaria o feedback de um usuário pro prompt cacheado de outro.
+- `LLMProvider.extractMeal`/`generateInsight` ganham `context: CoachContext`;
+  `gemini.ts` injeta o contexto + instrução de tom nos 3 caminhos
+  (texto, áudio, foto) e nos insights de período. `INSIGHT_PROMPT_VERSION`
+  subiu pra `"v2"` pra forçar regeneração de todo `ai_insights` existente.
+- Nova coluna `anthropometrics.training_days_per_week` (migrations
+  0065/0066) — coletada no onboarding desde o M16 mas nunca persistida até
+  agora; `onboardingStore.toPayload()` passa a enviá-la.
+- Verificado: `buildCoachContext` com 15 casos de teste (Vitest); hash de
+  contexto comprovadamente produz valores diferentes pra contextos
+  diferentes; `supabase db reset` aplica as 66 migrations sem erro;
+  typecheck + lint do monorepo inteiro passam.
+- **Não verificável nesta fatia sem custo real de API:** se o Gemini de
+  fato muda o tom perceptivelmente — validação manual posterior, fora do
+  escopo de CI.
+
+**M18 concluído — Fase 4 (M14–M18) completa.**
+
 ---
 
 ## Verificação end-to-end (após M6)
