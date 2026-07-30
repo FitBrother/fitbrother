@@ -4,6 +4,8 @@ import type { MealExtraction } from "@fitbrother/shared";
 import { env } from "../lib/env.js";
 import { supabaseService } from "../lib/supabase.js";
 import { assertWithinCap, recordUsage } from "./ai-usage.js";
+import { loadCoachContext } from "./coach-context.js";
+import { hashContext } from "./extraction.js";
 import { extractMealImageWithGemini } from "./llm/gemini.js";
 
 const IMAGE_BUCKET = "post-images";
@@ -27,6 +29,7 @@ export async function extractMealFromPhoto(params: {
   locale: string;
 }): Promise<PhotoExtractionResult> {
   const { userClient, userId, imagePath, locale } = params;
+  const context = await loadCoachContext(userClient, userId);
   const { data: blob, error: downloadError } = await userClient.storage
     .from(IMAGE_BUCKET)
     .download(imagePath);
@@ -37,7 +40,7 @@ export async function extractMealFromPhoto(params: {
   const bytes = new Uint8Array(await blob.arrayBuffer());
   const inputHash = createHash("sha256")
     .update(bytes)
-    .update(`\x00photo\x00${env.LLM_PROMPT_VERSION}\x00${locale}`)
+    .update(`\x00photo\x00${env.LLM_PROMPT_VERSION}\x00${locale}\x00${hashContext(context)}`)
     .digest("hex");
 
   const { data: cached, error: lookupError } = await userClient
@@ -60,6 +63,7 @@ export async function extractMealFromPhoto(params: {
     base64: Buffer.from(bytes).toString("base64"),
     mimeType: mimeFromPath(imagePath),
     locale,
+    context,
   });
 
   const svc = supabaseService();
