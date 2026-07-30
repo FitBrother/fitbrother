@@ -541,7 +541,7 @@ deliberadamente deferido e não bloqueia o início do M10.
 
 > Pós Fase 2, com o app já funcional. Foco: deixar pronto para usuário real (perfil/menus/LGPD na UI) e expandir captura (código de barras), além de polish de UI/UX. Master plan e rationale em [`docs/superpowers/specs/2026-06-23-fase-3-polish-expansao-design.md`](superpowers/specs/2026-06-23-fase-3-polish-expansao-design.md). Cada milestone ganha seu próprio spec datado antes de implementar.
 >
-> **Prioridade sugerida:** M10 → M13 → M11 → M12 (todos em Backlog; dono prioriza). Numeração de migrations continua do ponto mais alto vigente quando cada milestone começar.
+> **Prioridade sugerida:** M10 → M13 → M11 → M12 (todos em Backlog; dono prioriza). Numeração de migrations continua do ponto mais alto vigente quando cada milestone começar. **M12 já foi implementado fora dessa ordem** (ver Status abaixo) — restam M10, M11 e M13.
 
 ---
 
@@ -586,6 +586,8 @@ deliberadamente deferido e não bloqueia o início do M10.
 **Feito quando:** escanear produto conhecido → item com macros pré-preenchido e editável → salva; desconhecido → fallback manual claro.
 
 **Risco:** cobertura do OpenFoodFacts varia por região; tratar ausência de macros graciosamente.
+
+**Status M12 (Registro por código de barras):** ✅ implementado em 2026-07-04 no commit `155d958` (branch `main`). Migration `0052_barcode_source.sql` adiciona o valor `app_barcode` ao enum `meal_source`. Backend: `services/openfoodfacts.ts` (lookup por EAN/UPC na API pública OpenFoodFacts v2, sem key, timeout 5s, `null` gracioso em not-found/timeout/macros incompletos) + rotas `GET /meals/barcode/:code` (lookup) e `POST /meals/barcode` (cria meal com `source=app_barcode`, retorna 404 `product_not_found` quando o OFF não conhece o produto). Mobile: `BarcodeScanner.tsx` (`expo-camera`) como entrada nova no `MealComposer` (junto de texto/áudio/foto); telas `scan.tsx` (câmera) → `scan-confirm.tsx` (preview do produto, quantidade/unidade e tipo de refeição editáveis, fallback explícito para registro manual por texto quando `product_not_found`); hooks `useBarcodeProduct`/`useCreateMealBarcode` (optimistic UI no mesmo padrão de `useCreateMealText`). Novo `eas.json` + `metro.config.js` no mobile para o dev build nativo do módulo de câmera. O mesmo commit inclui um fix nas etapas de peso/altura do onboarding (`step-3.tsx`/`step-4.tsx`), fora do escopo deste milestone. Verificação: `npm install` (pegou `expo-camera`, que ainda não estava instalado) + `npm run typecheck` e `npm run lint` passam. **Sem check script dedicado** em `scripts/checks/` e **não rodado em device** — o scanner exige o novo dev build EAS (parte humana/híbrida já prevista acima). **M12 concluído** — restam M10, M11 e M13 na Fase 3.
 
 ---
 
