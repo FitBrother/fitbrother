@@ -62,6 +62,30 @@ export async function postOnboarding(payload: OnboardingPayload) {
   return res.json();
 }
 
+export async function getOnboardingProgress(): Promise<{
+  current_block: string;
+  answers: Record<string, unknown>;
+} | null> {
+  const res = await authedFetch("/onboarding/progress");
+  if (!res.ok) throw new Error(`onboarding_progress_get_failed_${res.status}`);
+  const body = (await res.json()) as {
+    progress: { current_block: string; answers: Record<string, unknown> } | null;
+  };
+  return body.progress;
+}
+
+export async function patchOnboardingProgress(body: {
+  current_block: string;
+  answers: Record<string, unknown>;
+}): Promise<void> {
+  const res = await authedFetch("/onboarding/progress", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error(`onboarding_progress_patch_failed_${res.status}`);
+}
+
 export async function getMe() {
   const res = await authedFetch("/me");
   if (!res.ok) {
