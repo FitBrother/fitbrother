@@ -786,6 +786,17 @@ antes do primeiro público real.
 
 **Feito quando:** `supabase db reset` aplica as migrations de M15/M16/M17 sem erro.
 
+**Status M17 (Migração de usuários existentes):** ✅ implementado em
+2026-07-30, direto em `main` (docs-only, sem código). Confirmado no
+brainstorm que segue deliberadamente leve — sem usuários reais hoje.
+Entregável: `docs/runbooks/pre-launch-user-migration.md`, o checklist
+obrigatório (rodar `evaluateSafetyGates` retroativo, nunca sobrescrever
+`nutrition_goals` sem confirmação, coleta incremental de campos faltantes)
+a executar antes do primeiro público real — linkado em `docs/runbook.md`.
+Verificado: `supabase db reset` aplica as migrations 0056–0064 sem erro.
+
+**M17 concluído.** Próximo: M18 (contexto para IA).
+
 ## M18 — Contexto para IA
 
 **Meta:** `buildCoachContext` injeta restrições/barreiras/`soft_mode` no

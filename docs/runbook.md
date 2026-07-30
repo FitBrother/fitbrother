@@ -8,6 +8,13 @@ external Sentry setup, alert webhooks, stores, Meta and PITR are deferred.
 See [`runbooks/lgpd.md`](runbooks/lgpd.md) for export, reversible deletion,
 reactivation, D+30 purge, audio retention and consent.
 
+## Pre-launch user migration
+
+See [`runbooks/pre-launch-user-migration.md`](runbooks/pre-launch-user-migration.md)
+for the mandatory safety checklist (retroactive `evaluateSafetyGates`,
+goal-recalculation confirmation flow, incremental field collection) to run
+once before the first real public user signs up.
+
 ## AI quota exhausted
 
 Symptoms:
