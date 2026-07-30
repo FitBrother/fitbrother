@@ -32,9 +32,27 @@ interface OnboardingState {
     privacy: boolean;
     ai_processing: boolean;
   };
+  target_weight_kg: number | undefined;
+  rate_kg_per_week: number | undefined;
+  strength_training: boolean;
+  main_barriers: string[];
+  dietary_restrictions: string[];
+  disliked_foods: string;
+  budget: string | undefined;
+  meal_times: string;
+  cooks_own_food: string | undefined;
+  eats_out_frequency: string | undefined;
+  is_pregnant_or_lactating: boolean;
+  has_kidney_disease: boolean;
+  has_type1_diabetes: boolean;
+  uses_glp1: boolean;
+  tca_screening_positive: boolean;
 
   setField: <
-    K extends keyof Omit<OnboardingState, "setField" | "setConsent" | "reset" | "toPayload">,
+    K extends keyof Omit<
+      OnboardingState,
+      "setField" | "setConsent" | "reset" | "toPayload" | "toAnswers" | "hydrate"
+    >,
   >(
     key: K,
     value: OnboardingState[K],
@@ -42,6 +60,8 @@ interface OnboardingState {
   setConsent: (scope: keyof OnboardingState["consents"], granted: boolean) => void;
   reset: () => void;
   toPayload: () => OnboardingPayload | null;
+  toAnswers: () => Record<string, unknown>;
+  hydrate: (answers: Record<string, unknown>) => void;
 }
 
 function detectTimezone(): string {
@@ -52,7 +72,10 @@ function detectTimezone(): string {
   }
 }
 
-const INITIAL: Omit<OnboardingState, "setField" | "setConsent" | "reset" | "toPayload"> = {
+const INITIAL: Omit<
+  OnboardingState,
+  "setField" | "setConsent" | "reset" | "toPayload" | "toAnswers" | "hydrate"
+> = {
   full_name: "",
   username: "",
   avatar_url: undefined,
@@ -67,6 +90,21 @@ const INITIAL: Omit<OnboardingState, "setField" | "setConsent" | "reset" | "toPa
   day_start_hour: 0,
   locale: "pt-BR",
   consents: { terms: false, privacy: false, ai_processing: false },
+  target_weight_kg: undefined,
+  rate_kg_per_week: undefined,
+  strength_training: false,
+  main_barriers: [],
+  dietary_restrictions: [],
+  disliked_foods: "",
+  budget: undefined,
+  meal_times: "",
+  cooks_own_food: undefined,
+  eats_out_frequency: undefined,
+  is_pregnant_or_lactating: false,
+  has_kidney_disease: false,
+  has_type1_diabetes: false,
+  uses_glp1: false,
+  tca_screening_positive: false,
 };
 
 export const useOnboardingStore = create<OnboardingState>((set, get) => ({
@@ -77,6 +115,43 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
   setConsent: (scope, granted) => set((s) => ({ consents: { ...s.consents, [scope]: granted } })),
 
   reset: () => set({ ...INITIAL, timezone: detectTimezone() }),
+
+  toAnswers: () => {
+    const s = get();
+    return {
+      full_name: s.full_name,
+      username: s.username,
+      avatar_url: s.avatar_url,
+      phone_e164: s.phone_e164,
+      birth_date: s.birth_date,
+      sex: s.sex,
+      weight_kg: s.weight_kg,
+      height_cm: s.height_cm,
+      activity_level: s.activity_level,
+      goal: s.goal,
+      timezone: s.timezone,
+      day_start_hour: s.day_start_hour,
+      locale: s.locale,
+      consents: s.consents,
+      target_weight_kg: s.target_weight_kg,
+      rate_kg_per_week: s.rate_kg_per_week,
+      strength_training: s.strength_training,
+      main_barriers: s.main_barriers,
+      dietary_restrictions: s.dietary_restrictions,
+      disliked_foods: s.disliked_foods,
+      budget: s.budget,
+      meal_times: s.meal_times,
+      cooks_own_food: s.cooks_own_food,
+      eats_out_frequency: s.eats_out_frequency,
+      is_pregnant_or_lactating: s.is_pregnant_or_lactating,
+      has_kidney_disease: s.has_kidney_disease,
+      has_type1_diabetes: s.has_type1_diabetes,
+      uses_glp1: s.uses_glp1,
+      tca_screening_positive: s.tca_screening_positive,
+    };
+  },
+
+  hydrate: (answers) => set(answers as Partial<OnboardingState>),
 
   toPayload: () => {
     const s = get();
@@ -116,6 +191,23 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
         privacy: true,
         ai_processing: true,
         policy_version: POLICY_VERSION,
+      },
+      target_weight_kg: s.target_weight_kg,
+      rate_kg_per_week: s.rate_kg_per_week,
+      strength_training: s.strength_training,
+      is_pregnant_or_lactating: s.is_pregnant_or_lactating,
+      has_kidney_disease: s.has_kidney_disease,
+      has_type1_diabetes: s.has_type1_diabetes,
+      uses_glp1: s.uses_glp1,
+      tca_screening_positive: s.tca_screening_positive,
+      onboarding_context: {
+        main_barriers: s.main_barriers,
+        dietary_restrictions: s.dietary_restrictions,
+        disliked_foods: s.disliked_foods,
+        budget: s.budget,
+        meal_times: s.meal_times,
+        cooks_own_food: s.cooks_own_food,
+        eats_out_frequency: s.eats_out_frequency,
       },
     };
   },
