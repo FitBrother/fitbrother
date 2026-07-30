@@ -4,7 +4,13 @@ import {
   SchemaType,
   type FunctionDeclaration,
 } from "@google/generative-ai";
-import { InsightContentSchema, MealExtractionSchema, type LLMProvider } from "@fitbrother/shared";
+import {
+  coachContextToneInstruction,
+  InsightContentSchema,
+  MealExtractionSchema,
+  type CoachContext,
+  type LLMProvider,
+} from "@fitbrother/shared";
 import { env } from "../../lib/env.js";
 
 /**
@@ -46,7 +52,9 @@ Estimar confidence (0.0-1.0):
 
 Seja conservador em estimativas — prefira valores realistas (TACO/USDA) a chutes otimistas.
 
-Além da extração, gere "feedback": uma frase curta (<=200 caracteres), em português brasileiro, calorosa e específica, comentando a refeição a partir dos macros estimados. Seja parceiro, não professor. Nunca culpabilize comida.`;
+Além da extração, gere "feedback": uma frase curta (<=200 caracteres), em português brasileiro, calorosa e específica, comentando a refeição a partir dos macros estimados. Seja parceiro, não professor. Nunca culpabilize comida.
+
+Ajuste o tom do campo "feedback" ao contexto do usuário fornecido no início da mensagem, seguindo a instrução de tom quando houver uma. Nunca mencione números de calorias/macros que não estejam explicitamente em "metas" ou "consumido_hoje" no contexto — se essas chaves não vierem, o usuário está em modo suave e não deve ver nenhum número.`;
 
 // Gemini's typings demand `format: "enum"` for enum strings; we keep things
 // explicit rather than casting around it.
@@ -166,14 +174,18 @@ export async function extractMealImageWithGemini(input: {
   base64: string;
   mimeType: string;
   locale: string;
+  context: CoachContext;
 }) {
+  const contextBlock = `Contexto do usuário (JSON): ${JSON.stringify(input.context)}\n${coachContextToneInstruction(input.context)}`;
   return extractFromGeminiContent([
-    `Locale: ${input.locale}\n\nExtraia a refeição visível nesta foto. Se houver embalagens, pratos ou acompanhamentos, estime quantidades de forma conservadora.`,
+    `${contextBlock}\n\nLocale: ${input.locale}\n\nExtraia a refeição visível nesta foto. Se houver embalagens, pratos ou acompanhamentos, estime quantidades de forma conservadora.`,
     { inlineData: { data: input.base64, mimeType: input.mimeType } },
   ]);
 }
 
-const INSIGHT_SYSTEM_PROMPT = `Você é um coach nutricional do app Fitbrother. Recebe um resumo AGREGADO (por dia) do período de um usuário — calorias, macros, se bateu a meta, nº de refeições — e o streak. Gere uma análise curta, calorosa e ESPECÍFICA em português brasileiro, ancorada SOMENTE nesses dados. Nunca invente métricas (não fale de açúcar, hidratação, micronutrientes — não temos esse dado). Sem culpabilizar comida. Foque em: consistência de bater meta, tendência de calorias/proteína, regularidade de registro e streak.`;
+const INSIGHT_SYSTEM_PROMPT = `Você é um coach nutricional do app Fitbrother. Recebe um resumo AGREGADO (por dia) do período de um usuário — calorias, macros, se bateu a meta, nº de refeições — e o streak. Gere uma análise curta, calorosa e ESPECÍFICA em português brasileiro, ancorada SOMENTE nesses dados. Nunca invente métricas (não fale de açúcar, hidratação, micronutrientes — não temos esse dado). Sem culpabilizar comida. Foque em: consistência de bater meta, tendência de calorias/proteína, regularidade de registro e streak.
+
+Ajuste o tom ao contexto do usuário fornecido (objetivo, barreira principal, modo suave). Se o contexto não trouxer "metas"/"consumido_hoje" (modo suave ativo), não mencione nenhum número de calorias/macros — foque em regularidade e presença de registro.`;
 
 const insightFunctionDeclaration: FunctionDeclaration = {
   name: "emit_insight",
@@ -206,6 +218,7 @@ async function generateInsightWithGemini(input: {
   periodType: string;
   locale: string;
   data: unknown;
+  context: CoachContext;
 }) {
   const client = getClient();
   const model = client.getGenerativeModel({
@@ -221,7 +234,7 @@ async function generateInsightWithGemini(input: {
   });
 
   const result = await model.generateContent([
-    `Locale: ${input.locale}\nPeríodo: ${input.periodType}\nDados (JSON): ${JSON.stringify(input.data)}`,
+    `Contexto do usuário (JSON): ${JSON.stringify(input.context)}\n${coachContextToneInstruction(input.context)}\n\nLocale: ${input.locale}\nPeríodo: ${input.periodType}\nDados (JSON): ${JSON.stringify(input.data)}`,
   ]);
 
   const calls = result.response.functionCalls();
@@ -249,8 +262,9 @@ async function generateInsightWithGemini(input: {
 export const geminiProvider: LLMProvider = {
   name: "gemini",
 
-  async extractMeal({ text, locale }) {
-    return extractFromGeminiContent([`Locale: ${locale}\n\nRefeição: ${text}`]);
+  async extractMeal({ text, locale, context }) {
+    const contextBlock = `Contexto do usuário (JSON): ${JSON.stringify(context)}\n${coachContextToneInstruction(context)}`;
+    return extractFromGeminiContent([`${contextBlock}\n\nLocale: ${locale}\n\nRefeição: ${text}`]);
   },
 
   async generateInsight(input) {

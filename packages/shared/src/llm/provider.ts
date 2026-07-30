@@ -1,4 +1,5 @@
 import type { MealExtraction, InsightContent } from "../schemas.js";
+import type { CoachContext } from "../coach/types.js";
 
 /**
  * Single interface for any LLM (Gemini, OpenAI, ...). Implementations live in
@@ -8,7 +9,7 @@ import type { MealExtraction, InsightContent } from "../schemas.js";
  */
 export interface LLMProvider {
   readonly name: "gemini" | "openai";
-  extractMeal(input: { text: string; locale: string }): Promise<{
+  extractMeal(input: { text: string; locale: string; context: CoachContext }): Promise<{
     output: MealExtraction;
     usage: { inputTokens: number; outputTokens: number; costCents: number };
   }>;
@@ -16,6 +17,7 @@ export interface LLMProvider {
     periodType: "day" | "week" | "month";
     locale: string;
     data: unknown;
+    context: CoachContext;
   }): Promise<{
     output: InsightContent;
     usage: { inputTokens: number; outputTokens: number; costCents: number };
