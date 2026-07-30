@@ -8,6 +8,7 @@ import { MacroBar } from "./MacroBar";
 
 type Props = {
   summary: DailySummary;
+  softMode?: boolean;
 };
 
 const NUM: { fontVariant: ["tabular-nums"] } = { fontVariant: ["tabular-nums"] };
@@ -33,7 +34,7 @@ function streakColor(): string {
   return maybeStreak?.[500] ?? "#F97316";
 }
 
-export function HistoryDayCard({ summary }: Props) {
+export function HistoryDayCard({ summary, softMode = false }: Props) {
   const router = useRouter();
   const heroLabel = summary.goal_kcal
     ? `${fmtInt(summary.kcal)} / ${fmtInt(summary.goal_kcal)} kcal`
@@ -47,7 +48,7 @@ export function HistoryDayCard({ summary }: Props) {
       </Text>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={`Detalhes de ${formatDayHeader(summary.day)}, ${heroLabel}, ${mealsLabel}`}
+        accessibilityLabel={`Detalhes de ${formatDayHeader(summary.day)}, ${softMode ? mealsLabel : heroLabel}, ${mealsLabel}`}
         onPress={() =>
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           router.push({ pathname: "/(app)/history/[day]" as any, params: { day: summary.day } })
@@ -56,26 +57,41 @@ export function HistoryDayCard({ summary }: Props) {
         className="rounded-2xl bg-white p-4 active:opacity-80"
       >
         <View className="flex-row items-center justify-between">
-          <Text style={NUM} className="text-xl font-display-bold text-neutral-800">
-            {heroLabel}
-          </Text>
-          <View className="flex-row items-center gap-1.5">
-            {summary.goal_hit ? <Flame size={14} color={streakColor()} /> : null}
-            <Text className="text-xs font-sans-medium text-neutral-500" style={NUM}>
+          {softMode ? (
+            <Text style={NUM} className="text-xl font-display-bold text-neutral-800">
               {mealsLabel}
             </Text>
+          ) : (
+            <Text style={NUM} className="text-xl font-display-bold text-neutral-800">
+              {heroLabel}
+            </Text>
+          )}
+          <View className="flex-row items-center gap-1.5">
+            {summary.goal_hit ? <Flame size={14} color={streakColor()} /> : null}
+            {!softMode && (
+              <Text className="text-xs font-sans-medium text-neutral-500" style={NUM}>
+                {mealsLabel}
+              </Text>
+            )}
           </View>
         </View>
-        <View className="mt-3 gap-1.5">
-          <MacroBar
-            value={summary.protein_g}
-            max={summary.goal_protein_g}
-            color="protein"
-            label="Prot"
-          />
-          <MacroBar value={summary.carbs_g} max={summary.goal_carbs_g} color="carbs" label="Carb" />
-          <MacroBar value={summary.fat_g} max={summary.goal_fat_g} color="fat" label="Gord" />
-        </View>
+        {!softMode && (
+          <View className="mt-3 gap-1.5">
+            <MacroBar
+              value={summary.protein_g}
+              max={summary.goal_protein_g}
+              color="protein"
+              label="Prot"
+            />
+            <MacroBar
+              value={summary.carbs_g}
+              max={summary.goal_carbs_g}
+              color="carbs"
+              label="Carb"
+            />
+            <MacroBar value={summary.fat_g} max={summary.goal_fat_g} color="fat" label="Gord" />
+          </View>
+        )}
       </Pressable>
     </View>
   );

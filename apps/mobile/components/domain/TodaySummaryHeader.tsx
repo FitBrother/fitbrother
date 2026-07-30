@@ -4,6 +4,7 @@ import { ProgressRing } from "./ProgressRing";
 
 type Props = {
   summary: DailySummary | undefined;
+  softMode?: boolean;
 };
 
 function fmtInt(n: number): string {
@@ -44,7 +45,7 @@ function MacroRing({ value, max, color, label }: MacroRingProps) {
   );
 }
 
-export function TodaySummaryHeader({ summary }: Props) {
+export function TodaySummaryHeader({ summary, softMode = false }: Props) {
   // Loading state: rings em 0 + meta nula. Sem animação até dados chegarem.
   const kcal = summary?.kcal ?? 0;
   const protein = summary?.protein_g ?? 0;
@@ -54,6 +55,23 @@ export function TodaySummaryHeader({ summary }: Props) {
   const goalProtein = summary?.goal_protein_g ?? null;
   const goalCarbs = summary?.goal_carbs_g ?? null;
   const goalFat = summary?.goal_fat_g ?? null;
+  const mealsCount = summary?.meals_count ?? 0;
+
+  if (softMode) {
+    return (
+      <View className="items-center gap-2 px-6 pb-6 pt-4">
+        <Text
+          className="text-4xl font-display-bold text-neutral-800"
+          style={{ fontVariant: ["tabular-nums"] }}
+        >
+          {mealsCount}
+        </Text>
+        <Text className="font-sans text-neutral-500">
+          {mealsCount === 1 ? "refeição registrada hoje" : "refeições registradas hoje"}
+        </Text>
+      </View>
+    );
+  }
 
   return (
     <View className="px-6 pt-4 pb-6 items-center gap-6">

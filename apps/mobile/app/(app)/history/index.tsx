@@ -75,7 +75,7 @@ export default function HistoryScreen() {
           keyExtractor={(e) => e.day}
           renderItem={({ item }) =>
             item.type === "filled" ? (
-              <HistoryDayCard summary={item.summary} />
+              <HistoryDayCard summary={item.summary} softMode={profile.soft_mode} />
             ) : (
               <HistoryEmptyDayCard day={item.day} />
             )

@@ -77,7 +77,9 @@ export default function HistoryDayScreen() {
         </View>
       ) : (
         <FlatList<MealResponse>
-          ListHeaderComponent={<TodaySummaryHeader summary={summaryQuery.data} />}
+          ListHeaderComponent={
+            <TodaySummaryHeader summary={summaryQuery.data} softMode={profile.soft_mode} />
+          }
           data={mealsQuery.data ?? []}
           keyExtractor={(m) => m.id}
           renderItem={({ item }) => (

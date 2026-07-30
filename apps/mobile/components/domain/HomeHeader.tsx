@@ -12,7 +12,7 @@ function greetingFor(date: Date): string {
   return "Boa noite";
 }
 
-export function HomeHeader({ name }: { name: string }) {
+export function HomeHeader({ name, softMode = false }: { name: string; softMode?: boolean }) {
   const router = useRouter();
   const firstName = name.split(" ")[0] ?? name;
   const { data: streakView } = useStreak();
@@ -23,7 +23,7 @@ export function HomeHeader({ name }: { name: string }) {
         <Text className="text-2xl font-display-bold text-neutral-800">{firstName}</Text>
       </View>
       <View className="flex-row items-center gap-2">
-        {streakView ? (
+        {!softMode && streakView ? (
           <StreakCounter current={streakView.streak.current_streak} atRisk={streakView.atRisk} />
         ) : null}
         <Pressable

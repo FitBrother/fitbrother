@@ -246,13 +246,13 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-neutral-50" edges={["top", "left", "right"]}>
-      <HomeHeader name={profile.full_name} />
+      <HomeHeader name={profile.full_name} softMode={profile.soft_mode} />
       {banner && <ErrorBanner variant={banner} onDismiss={() => setBanner(null)} />}
       {mealsQuery.isLoading ? (
         <Pressable className="flex-1" onPress={Keyboard.dismiss} />
       ) : items.length === 0 ? (
         <Pressable className="flex-1" onPress={Keyboard.dismiss}>
-          <TodaySummaryHeader summary={summaryQuery.data} />
+          <TodaySummaryHeader summary={summaryQuery.data} softMode={profile.soft_mode} />
           <EmptyMealsState />
         </Pressable>
       ) : (
@@ -260,7 +260,9 @@ export default function HomeScreen() {
           data={items}
           keyExtractor={(m) => (m as OptimisticMeal).id}
           renderItem={renderItem as never}
-          ListHeaderComponent={<TodaySummaryHeader summary={summaryQuery.data} />}
+          ListHeaderComponent={
+            <TodaySummaryHeader summary={summaryQuery.data} softMode={profile.soft_mode} />
+          }
           contentContainerStyle={{ paddingBottom: 140 }}
           keyboardDismissMode="on-drag"
           keyboardShouldPersistTaps="handled"
