@@ -35,6 +35,7 @@ interface OnboardingState {
   target_weight_kg: number | undefined;
   rate_kg_per_week: number | undefined;
   strength_training: boolean;
+  training_days_per_week: number | undefined;
   main_barriers: string[];
   dietary_restrictions: string[];
   disliked_foods: string;
@@ -93,6 +94,7 @@ const INITIAL: Omit<
   target_weight_kg: undefined,
   rate_kg_per_week: undefined,
   strength_training: false,
+  training_days_per_week: undefined,
   main_barriers: [],
   dietary_restrictions: [],
   disliked_foods: "",
@@ -136,6 +138,7 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
       target_weight_kg: s.target_weight_kg,
       rate_kg_per_week: s.rate_kg_per_week,
       strength_training: s.strength_training,
+      training_days_per_week: s.training_days_per_week,
       main_barriers: s.main_barriers,
       dietary_restrictions: s.dietary_restrictions,
       disliked_foods: s.disliked_foods,
