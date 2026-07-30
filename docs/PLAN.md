@@ -541,7 +541,7 @@ deliberadamente deferido e não bloqueia o início do M10.
 
 > Pós Fase 2, com o app já funcional. Foco: deixar pronto para usuário real (perfil/menus/LGPD na UI) e expandir captura (código de barras), além de polish de UI/UX. Master plan e rationale em [`docs/superpowers/specs/2026-06-23-fase-3-polish-expansao-design.md`](superpowers/specs/2026-06-23-fase-3-polish-expansao-design.md). Cada milestone ganha seu próprio spec datado antes de implementar.
 >
-> **Prioridade sugerida:** M10 → M13 → M11 → M12 (todos em Backlog; dono prioriza). Numeração de migrations continua do ponto mais alto vigente quando cada milestone começar. **M12 já foi implementado fora dessa ordem** (ver Status abaixo) — restam M10, M11 e M13.
+> **Prioridade sugerida:** M10 → M13 → M11 → M12 (todos em Backlog; dono prioriza). Numeração de migrations continua do ponto mais alto vigente quando cada milestone começar. **M12 já foi implementado fora dessa ordem** (ver Status abaixo); **M11 foi superado pela Fase 4** (ver seção própria) — restam M10 e M13 nesta Fase.
 
 ---
 
@@ -561,9 +561,18 @@ deliberadamente deferido e não bloqueia o início do M10.
 
 ---
 
-## M11 — Aprimorar onboarding
+## M11 — Aprimorar onboarding (SUPERADO — ver Fase 4)
 
-**Meta:** aumentar conclusão e refinar a percepção dos 9 steps, sem reestruturar o fluxo.
+> **Status (2026-07-14): superado pela Fase 4 — Motor de Metas & Onboarding
+> Renovado.** O dono do produto trouxe um spec próprio de reformulação do
+> onboarding + motor de metas que exige reestruturação (máquina de estados,
+> resume no servidor, gates de segurança) — incompatível com a meta original
+> abaixo ("sem reestruturar o fluxo"). Ver
+> [`docs/superpowers/specs/2026-07-14-fase-4-onboarding-master-plan-design.md`](superpowers/specs/2026-07-14-fase-4-onboarding-master-plan-design.md)
+> e a seção **Fase 4** mais abaixo (M14–M18). Este M11 fica só como registro
+> histórico do escopo original, não será implementado como está descrito.
+
+**Meta original:** aumentar conclusão e refinar a percepção dos 9 steps, sem reestruturar o fluxo.
 
 - **Reduzir fricção:** defaults inteligentes, tornar opcional o não-essencial (ex.: username/avatar adiáveis pro Perfil), completar depois, menos taps.
 - **Polish visual + copy:** textos/microcopy, ilustrações/ícones, micro-animações e transições entre steps.
@@ -587,7 +596,7 @@ deliberadamente deferido e não bloqueia o início do M10.
 
 **Risco:** cobertura do OpenFoodFacts varia por região; tratar ausência de macros graciosamente.
 
-**Status M12 (Registro por código de barras):** ✅ implementado em 2026-07-04 no commit `155d958` (branch `main`). Migration `0052_barcode_source.sql` adiciona o valor `app_barcode` ao enum `meal_source`. Backend: `services/openfoodfacts.ts` (lookup por EAN/UPC na API pública OpenFoodFacts v2, sem key, timeout 5s, `null` gracioso em not-found/timeout/macros incompletos) + rotas `GET /meals/barcode/:code` (lookup) e `POST /meals/barcode` (cria meal com `source=app_barcode`, retorna 404 `product_not_found` quando o OFF não conhece o produto). Mobile: `BarcodeScanner.tsx` (`expo-camera`) como entrada nova no `MealComposer` (junto de texto/áudio/foto); telas `scan.tsx` (câmera) → `scan-confirm.tsx` (preview do produto, quantidade/unidade e tipo de refeição editáveis, fallback explícito para registro manual por texto quando `product_not_found`); hooks `useBarcodeProduct`/`useCreateMealBarcode` (optimistic UI no mesmo padrão de `useCreateMealText`). Novo `eas.json` + `metro.config.js` no mobile para o dev build nativo do módulo de câmera. O mesmo commit inclui um fix nas etapas de peso/altura do onboarding (`step-3.tsx`/`step-4.tsx`), fora do escopo deste milestone. Verificação: `npm install` (pegou `expo-camera`, que ainda não estava instalado) + `npm run typecheck` e `npm run lint` passam. **Sem check script dedicado** em `scripts/checks/` e **não rodado em device** — o scanner exige o novo dev build EAS (parte humana/híbrida já prevista acima). **M12 concluído** — restam M10, M11 e M13 na Fase 3.
+**Status M12 (Registro por código de barras):** ✅ implementado em 2026-07-04 no commit `155d958` (branch `main`). Migration `0052_barcode_source.sql` adiciona o valor `app_barcode` ao enum `meal_source`. Backend: `services/openfoodfacts.ts` (lookup por EAN/UPC na API pública OpenFoodFacts v2, sem key, timeout 5s, `null` gracioso em not-found/timeout/macros incompletos) + rotas `GET /meals/barcode/:code` (lookup) e `POST /meals/barcode` (cria meal com `source=app_barcode`, retorna 404 `product_not_found` quando o OFF não conhece o produto). Mobile: `BarcodeScanner.tsx` (`expo-camera`) como entrada nova no `MealComposer` (junto de texto/áudio/foto); telas `scan.tsx` (câmera) → `scan-confirm.tsx` (preview do produto, quantidade/unidade e tipo de refeição editáveis, fallback explícito para registro manual por texto quando `product_not_found`); hooks `useBarcodeProduct`/`useCreateMealBarcode` (optimistic UI no mesmo padrão de `useCreateMealText`). Novo `eas.json` + `metro.config.js` no mobile para o dev build nativo do módulo de câmera. O mesmo commit inclui um fix nas etapas de peso/altura do onboarding (`step-3.tsx`/`step-4.tsx`), fora do escopo deste milestone. Verificação: `npm install` (pegou `expo-camera`, que ainda não estava instalado) + `npm run typecheck` e `npm run lint` passam. **Sem check script dedicado** em `scripts/checks/` e **não rodado em device** — o scanner exige o novo dev build EAS (parte humana/híbrida já prevista acima). **M12 concluído** — restam M10 e M13 na Fase 3 (M11 superado, ver Fase 4).
 
 ---
 
@@ -603,6 +612,93 @@ deliberadamente deferido e não bloqueia o início do M10.
 **Parte humana (Híbrido):** validação visual em device + decisões de direção/gosto.
 
 **Feito quando:** navegação por tab bar funcionando; nenhuma tela com marca antiga; checklist de polish auditado e aplicado.
+
+---
+
+# ═══ Fase 4 — Motor de Metas & Onboarding Renovado (M14–M18) ═══
+
+> Substitui integralmente o **M11** (Fase 3), que fica marcado como superado —
+> ver nota na seção M11 acima. Nasce de um spec externo do dono do produto
+> ([`docs/superpowers/specs/2026-07-14-onboarding-spec-original.md`](superpowers/specs/2026-07-14-onboarding-spec-original.md)),
+> reconciliado com o código existente e as decisões do brainstorm em
+> [`docs/superpowers/specs/2026-07-14-fase-4-onboarding-master-plan-design.md`](superpowers/specs/2026-07-14-fase-4-onboarding-master-plan-design.md).
+> Cada milestone abaixo ganha seu próprio spec datado antes de implementar.
+>
+> **Decisões já fechadas:** motor de cálculo em TS puro (não SQL, diverge
+> deliberadamente do padrão SQL-first do projeto); máquina de estados do
+> onboarding com resume real no servidor; sem usuários reais hoje → migração
+> (M17) fica leve; **fora de escopo nesta Fase:** feature flag/A-B, HealthKit/Health
+> Connect, telemetria de funil, paywall com cobrança real (só placeholder de UI);
+> conteúdo clínico/triagem de TCA escrito conforme o spec mas **pendente de
+> revisão profissional** antes de qualquer lançamento real; test runner novo:
+> Vitest.
+>
+> **Ordem:** M14 → M15 → M16 → M17 → M18 (M18 pode rodar em paralelo a M17).
+
+## M14 — Copy e conformidade legal
+
+**Meta:** toda string relacionada a metas/calorias vem de um único lugar, com
+blocklist de termos reservados a nutricionista/médico no Brasil, verificada em CI.
+
+- `packages/shared/src/copy/goals.ts`: strings + `LEGAL_BLOCKLIST` exportada.
+- Regra de lint em CI que falha se termos da blocklist aparecerem fora do arquivo.
+- Componente `<GoalsDisclaimer />`, pronto pra M16 (revelação de metas) e
+  futuramente M10 (tela de metas do Perfil).
+
+**Feito quando:** fonte única de copy de metas existe; CI falha com termo
+proibido fora do arquivo de constantes; `<GoalsDisclaimer />` renderiza.
+
+## M15 — Motor de cálculo + gates de segurança
+
+**Meta:** `computeTargets`/`evaluateSafetyGates` (TS puro, `packages/shared`)
+substituem a fórmula fixa da RPC `complete_onboarding`, com clamps, gates
+clínicos (idade, gravidez, IMC, triagem de TCA, condições de saúde) e os 5 casos
+de teste exatos do spec original passando em Vitest.
+
+- Migrations aditivas: `nutrition_goals` ganha `fiber_g`, `tdee_source`,
+  `warnings jsonb`, `blocked`; `anthropometrics` ganha `target_weight_kg`,
+  `rate_kg_per_week`; `profiles` ganha `soft_mode`.
+- Conteúdo de triagem/gates marcado `// PENDENTE DE REVISÃO PROFISSIONAL`.
+
+**Feito quando:** os 5 casos de teste do spec original passam; `complete_onboarding`
+só persiste, não calcula mais macro em SQL; perfil com gate `BLOCK` não recebe
+`Targets` de déficit.
+
+## M16 — Máquina de estados do onboarding + paywall placeholder
+
+**Meta:** onboarding roda como máquina de estados com resume no servidor
+(`onboarding_progress`), cobrindo os blocos do spec original (dados, objetivo,
+rotina, barreiras, alimentação, saúde, permissões, cálculo, revelação, paywall
+placeholder, primeira refeição guiada), reaproveitando os componentes de input
+já existentes (`WheelPicker`, `DateInput`, `SegmentedControl`) — substitui os 9
+arquivos `step-N.tsx` fixos.
+
+- Engine declarativo (`lib/onboarding/blocks.ts`) dirigindo uma rota única
+  `app/(onboarding)/[block].tsx`. `PATCH`/`GET /onboarding/progress`.
+- `soft_mode` (nascido no M15) esconde kcal/déficit/streak em
+  `ProgressRing`/`MacroBar`/`StreakCounter`/insights — mapeado aqui.
+- Paywall só como UI (sem IAP/cobrança real).
+
+**Feito quando:** onboarding completo ponta a ponta; fechar o app e reabrir
+retoma no bloco exato; gates do M15 ramificam o fluxo; `soft_mode=true` esconde
+kcal em todas as telas mapeadas.
+
+## M17 — Migração de usuários existentes
+
+**Meta:** deliberadamente leve — sem usuários reais hoje. Migrations de
+M15/M16 já nascem aditivas/nullable; sem backfill nem fluxo de confirmação de
+recálculo nesta fatia. Documentar no runbook que isso precisa ser revisitado
+antes do primeiro público real.
+
+**Feito quando:** `supabase db reset` aplica as migrations de M15/M16/M17 sem erro.
+
+## M18 — Contexto para IA
+
+**Meta:** `buildCoachContext` injeta restrições/barreiras/`soft_mode` no
+feedback de refeição (M8.1) e nos insights de período (M8.2).
+
+**Feito quando:** feedback de refeição muda de tom conforme a barreira principal
+do usuário; `soft_mode=true` comprovadamente não manda kcal/macros pro prompt.
 
 ---
 
