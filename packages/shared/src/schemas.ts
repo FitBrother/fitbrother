@@ -303,6 +303,7 @@ export const OnboardingPayloadSchema = z.object({
   target_weight_kg: z.number().positive().max(500).optional(),
   rate_kg_per_week: z.number().positive().max(2).optional(),
   strength_training: z.boolean().optional(),
+  training_days_per_week: z.number().int().min(0).max(7).optional(),
   is_pregnant_or_lactating: z.boolean().optional(),
   has_kidney_disease: z.boolean().optional(),
   has_type1_diabetes: z.boolean().optional(),
