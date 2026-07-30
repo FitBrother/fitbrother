@@ -49,7 +49,7 @@ export default function SignUp() {
         <View className="flex-1 p-5 pt-12">
           <Text className="mb-2 text-3xl font-display-bold text-neutral-800">Criar conta</Text>
           <Text className="mb-8 text-base font-sans text-neutral-600">
-            Comece com e-mail e senha. Configuramos sua dieta nos próximos passos.
+            Comece com e-mail e senha. Configuramos suas metas nos próximos passos.
           </Text>
 
           <View className="gap-3">
