@@ -3,7 +3,6 @@ import { Text, View } from "react-native";
 import { Button } from "@/components/Button";
 import { GoalsDisclaimer } from "@/components/domain/GoalsDisclaimer";
 import { useOnboardingResultStore } from "@/lib/stores/onboardingResultStore";
-import { useOnboardingStore } from "@/lib/stores/onboardingStore";
 import type { OnboardingBlockProps } from "@/lib/onboarding/types";
 
 function fmtInt(n: number): string {
@@ -12,7 +11,6 @@ function fmtInt(n: number): string {
 
 export function RevealBlock({ onNext }: OnboardingBlockProps) {
   const result = useOnboardingResultStore((s) => s.result);
-  const reset = useOnboardingStore((s) => s.reset);
 
   if (!result) {
     router.replace("/(app)" as never);
@@ -34,14 +32,7 @@ export function RevealBlock({ onNext }: OnboardingBlockProps) {
         </View>
         <View className="gap-4">
           <GoalsDisclaimer />
-          <Button
-            label="Continuar"
-            variant="primary"
-            onPress={() => {
-              reset();
-              onNext();
-            }}
-          />
+          <Button label="Continuar" variant="primary" onPress={onNext} />
         </View>
       </View>
     );
@@ -60,14 +51,7 @@ export function RevealBlock({ onNext }: OnboardingBlockProps) {
         </View>
         <View className="gap-4">
           <GoalsDisclaimer />
-          <Button
-            label="Continuar"
-            variant="primary"
-            onPress={() => {
-              reset();
-              onNext();
-            }}
-          />
+          <Button label="Continuar" variant="primary" onPress={onNext} />
         </View>
       </View>
     );
@@ -99,14 +83,7 @@ export function RevealBlock({ onNext }: OnboardingBlockProps) {
       </View>
       <View className="gap-4">
         <GoalsDisclaimer />
-        <Button
-          label="Continuar"
-          variant="primary"
-          onPress={() => {
-            reset();
-            onNext();
-          }}
-        />
+        <Button label="Continuar" variant="primary" onPress={onNext} />
       </View>
     </View>
   );
