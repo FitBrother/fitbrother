@@ -198,6 +198,7 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
       target_weight_kg: s.target_weight_kg,
       rate_kg_per_week: s.rate_kg_per_week,
       strength_training: s.strength_training,
+      training_days_per_week: s.training_days_per_week,
       is_pregnant_or_lactating: s.is_pregnant_or_lactating,
       has_kidney_disease: s.has_kidney_disease,
       has_type1_diabetes: s.has_type1_diabetes,
