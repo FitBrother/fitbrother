@@ -15,8 +15,9 @@ function ageYearsFromBirthDate(birth_date: string): number {
   return age;
 }
 
-/** Deriva o input do motor de cálculo a partir do payload de onboarding hoje —
- * campos ainda sem UI (peso-alvo, ritmo, condições de saúde) ficam undefined. */
+/** Deriva o input do motor de cálculo a partir do payload de onboarding —
+ * os campos opcionais (peso-alvo, ritmo, condições de saúde) vêm dos blocos
+ * novos do M16; ficam undefined só se o usuário pulou o bloco. */
 export function buildTargetsInput(payload: OnboardingPayload): TargetsInput {
   return {
     sex: payload.sex,
@@ -25,5 +26,13 @@ export function buildTargetsInput(payload: OnboardingPayload): TargetsInput {
     height_cm: payload.height_cm,
     activity_level: payload.activity_level,
     goal: payload.goal,
+    target_weight_kg: payload.target_weight_kg,
+    rate_kg_per_week: payload.rate_kg_per_week,
+    strength_training: payload.strength_training,
+    is_pregnant_or_lactating: payload.is_pregnant_or_lactating,
+    has_kidney_disease: payload.has_kidney_disease,
+    has_type1_diabetes: payload.has_type1_diabetes,
+    uses_glp1: payload.uses_glp1,
+    tca_screening_positive: payload.tca_screening_positive,
   };
 }
