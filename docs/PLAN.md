@@ -683,6 +683,38 @@ de teste exatos do spec original passando em Vitest.
 só persiste, não calcula mais macro em SQL; perfil com gate `BLOCK` não recebe
 `Targets` de déficit.
 
+**Status M15 (Motor de cálculo + gates de segurança):** ✅ implementado em
+2026-07-14. `packages/shared/src/targets/` (`types.ts`, `formulas.ts`,
+`gates.ts`, `compute-targets.ts`) — TS puro, testado com Vitest (novo, só
+nesse workspace, `packages/shared/package.json`). 84 testes passam,
+incluindo os 5 casos exatos do spec original, cada gate/clamp isoladamente,
+`recomp`, sexo `other`, direção ganho, `protein_on_current_weight_imc_over_30`
+e `very_low_carb`. Durante a implementação, corrigido um erro de limiar de
+IMC identificado na própria spec (comparação precisa ser contra o IMC
+arredondado pra 1 casa decimal — `60kg/1.80m² = 18.5185` só bloqueia com
+esse ajuste). Migrations `0056`–`0060`: remove o trigger `calculate_bmr_tdee`
+(único inserter de `anthropometrics` era o onboarding — sem risco hoje),
+adiciona colunas em `nutrition_goals`/`anthropometrics`/`profiles`. Um smoke
+test SQL real (transação com rollback, chamando a função pelo nome público)
+revelou que a função de fato calculada não é mais `complete_onboarding` desde
+o M6 — foi renomeada pra `complete_onboarding_impl` e envolvida por um
+wrapper `SECURITY DEFINER` de checagem de consentimento obrigatório
+(`0054`); a primeira versão da migration teria apagado esse wrapper
+silenciosamente. Corrigida pra reescrever `complete_onboarding_impl`,
+preservando também username/avatar_url + `phone_e164`→`profiles_private`
+(M7.1) e `effective_from` pelo dia nutricional do usuário (fix do M3.1) —
+nenhum dos dois estava na minha primeira leitura da função, feita no início
+do brainstorm contra uma versão desatualizada. Backend:
+`services/targets.ts` (`buildTargetsInput`) chamado pela rota antes da RPC.
+Verificação: `npm run typecheck`, `npm run lint` e `npm run test` passam no
+monorepo inteiro; `supabase db reset` aplica `0000`–`0060` sem erro; testado
+end-to-end de verdade (não só unitário) via usuário real criado pela
+Supabase Auth admin API + `POST /onboarding/complete` real — resposta bate
+exatamente com os valores esperados do Caso 1. **Campos novos (peso-alvo,
+ritmo, condições de saúde, triagem de TCA) ficam só no módulo TS** — sem
+UI/rota ainda, entram no M16. **M15 concluído.** Próximo: M16 (máquina de
+estados do onboarding + paywall placeholder).
+
 ## M16 — Máquina de estados do onboarding + paywall placeholder
 
 **Meta:** onboarding roda como máquina de estados com resume no servidor
