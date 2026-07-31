@@ -16,9 +16,19 @@ function packagerHost(): string | null {
   // hostUri shape: "192.168.1.107:8081" in dev. May be undefined on
   // standalone/preview builds.
   const hostUri = Constants.expoConfig?.hostUri ?? null;
-  if (!hostUri) return null;
-  const host = hostUri.split(":")[0];
-  return host && host.length > 0 ? host : null;
+  if (hostUri) {
+    const host = hostUri.split(":")[0];
+    if (host && host.length > 0) return host;
+  }
+
+  // Expo web does not always expose hostUri in Constants. The page host is
+  // the correct equivalent: localhost during browser development and the LAN
+  // address when another device opens the web build.
+  if (typeof window !== "undefined" && window.location.hostname) {
+    return window.location.hostname;
+  }
+
+  return null;
 }
 
 /**

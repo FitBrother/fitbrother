@@ -28,16 +28,21 @@ export default function SignUp() {
     if (!canSubmit) return;
     setLoading(true);
     setError(null);
-    const { error } = await supabase.auth.signUp({
-      email: normalizedEmail,
-      password,
-    });
-    setLoading(false);
-    if (error) {
-      setError(error.message);
-      return;
+    try {
+      const { error } = await supabase.auth.signUp({
+        email: normalizedEmail,
+        password,
+      });
+      if (error) {
+        setError(error.message);
+        return;
+      }
+      router.replace("/(onboarding)");
+    } catch {
+      setError("Não foi possível criar a conta. Verifique sua conexão e tente novamente.");
+    } finally {
+      setLoading(false);
     }
-    router.replace("/(onboarding)");
   }
 
   return (

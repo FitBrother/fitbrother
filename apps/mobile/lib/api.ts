@@ -5,6 +5,15 @@ import { supabase } from "@/lib/supabase";
 
 const API_BASE_URL = apiBaseUrl();
 
+export class AccountDeletionPendingError extends Error {
+  constructor(
+    public readonly scheduledPurgeAt: string | null,
+    public readonly canReactivate: boolean,
+  ) {
+    super("account_deletion_pending");
+  }
+}
+
 export async function authedFetch(path: string, init: RequestInit = {}): Promise<Response> {
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token;
@@ -33,7 +42,17 @@ export async function authedFetch(path: string, init: RequestInit = {}): Promise
     // token expired beyond refresh, etc). Clear the local session so the UI
     // bounces back to /(auth)/welcome instead of looping on a dead token.
     if (res.status === 401) {
-      await supabase.auth.signOut();
+      const body = (await res
+        .clone()
+        .json()
+        .catch(() => null)) as {
+        error?: string;
+        scheduled_purge_at?: string | null;
+        can_reactivate?: boolean;
+      } | null;
+      if (body?.error !== "account_deletion_pending") {
+        await supabase.auth.signOut();
+      }
     }
 
     return res;
@@ -90,9 +109,20 @@ export async function getMe() {
   const res = await authedFetch("/me");
   if (!res.ok) {
     if (res.status === 404) return null;
-    // 401 already triggered signOut above; report a transient error so the
-    // caller can re-render against the new signed_out state.
-    if (res.status === 401) return null;
+    if (res.status === 401) {
+      const body = (await res.json().catch(() => null)) as {
+        error?: string;
+        scheduled_purge_at?: string | null;
+        can_reactivate?: boolean;
+      } | null;
+      if (body?.error === "account_deletion_pending") {
+        throw new AccountDeletionPendingError(
+          body.scheduled_purge_at ?? null,
+          body.can_reactivate ?? false,
+        );
+      }
+      return null;
+    }
     throw new Error(`me_failed_${res.status}`);
   }
   return res.json();

@@ -38,7 +38,7 @@ const containerDisabledStyles: Record<ButtonVariant, string> = {
 };
 
 const labelStyles: Record<ButtonVariant, string> = {
-  primary: "text-white",
+  primary: "text-neutral-900",
   dark: "text-white",
   outline: "text-neutral-800",
   ghost: "text-primary-400",
@@ -82,7 +82,13 @@ export function Button({
       {loading ? (
         <ActivityIndicator
           size="small"
-          color={variant === "outline" || variant === "ghost" ? colors.primary[400] : "#ffffff"}
+          color={
+            variant === "primary"
+              ? colors.neutral[900]
+              : variant === "outline" || variant === "ghost"
+                ? colors.primary[400]
+                : colors.neutral[50]
+          }
         />
       ) : (
         <>

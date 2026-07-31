@@ -27,3 +27,10 @@ export function supabaseFromJwt(accessToken: string): SupabaseClient {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 }
+
+/** Fresh client for credential verification. It never persists the resulting session. */
+export function supabaseAnonymous(): SupabaseClient {
+  return createClient(env.SUPABASE_URL, env.SUPABASE_ANON_KEY, {
+    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+  });
+}

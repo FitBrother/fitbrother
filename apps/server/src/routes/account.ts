@@ -1,15 +1,20 @@
 import {
+  AuthorizeAccountDeletionPasswordRequestSchema,
+  CompleteAccountDeletionOAuthRequestSchema,
   DeleteAccountRequestSchema,
+  PatchAccountProfileRequestSchema,
   PatchAccountSettingsRequestSchema,
   PostAccountConsentRequestSchema,
+  StartAccountDeletionOAuthRequestSchema,
   type ConsentScope,
 } from "@fitbrother/shared";
+import { createHash, randomBytes } from "node:crypto";
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import JSZip from "jszip";
 import { z } from "zod";
 import { activeAccountRequired, authTokenRequired } from "../lib/auth.js";
 import { Sentry } from "../lib/sentry.js";
-import { supabaseFromJwt, supabaseService } from "../lib/supabase.js";
+import { supabaseAnonymous, supabaseFromJwt, supabaseService } from "../lib/supabase.js";
 
 const CONSENT_SCOPES = [
   "terms",
@@ -138,6 +143,44 @@ export async function accountRoutes(app: FastifyInstance) {
     return reply.send({ settings: data });
   });
 
+  app.patch("/account/profile", activeAccount, async (req, reply) => {
+    const parsed = PatchAccountProfileRequestSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: "invalid_payload", issues: parsed.error.issues });
+    }
+    const userId = req.user!.id;
+    const nextPath = parsed.data.avatar_url;
+    if (nextPath !== null && !isOwnedAvatarPath(nextPath, userId)) {
+      return reply.code(400).send({ error: "invalid_avatar_path" });
+    }
+
+    const admin = supabaseService();
+    const { data: previous, error: readError } = await admin
+      .from("profiles")
+      .select("avatar_url")
+      .eq("user_id", userId)
+      .single();
+    if (readError) return reply.code(500).send({ error: readError.message });
+
+    const { data, error } = await admin
+      .from("profiles")
+      .update({ avatar_url: nextPath })
+      .eq("user_id", userId)
+      .select("avatar_url, updated_at")
+      .single();
+    if (error) return reply.code(500).send({ error: error.message });
+
+    const oldPath = previous.avatar_url as string | null;
+    if (oldPath && oldPath !== nextPath && isOwnedAvatarPath(oldPath, userId)) {
+      const { error: storageError } = await admin.storage.from("post-images").remove([oldPath]);
+      if (storageError) {
+        req.log.warn({ err: storageError, user_id: userId }, "old_avatar_cleanup_failed");
+      }
+    }
+    await auditAccountAction(req, "account_profile", "success", { avatar_changed: true });
+    return reply.send({ profile: data });
+  });
+
   app.post("/account/consent", activeAccount, async (req, reply) => {
     const parsed = PostAccountConsentRequestSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -254,6 +297,99 @@ export async function accountRoutes(app: FastifyInstance) {
     });
   });
 
+  app.post(
+    "/account/deletion/authorize/password",
+    {
+      ...activeAccount,
+      config: { rateLimit: { max: 5, timeWindow: "1 minute" } },
+    },
+    async (req, reply) => {
+      const parsed = AuthorizeAccountDeletionPasswordRequestSchema.safeParse(req.body);
+      if (!parsed.success) return reply.code(400).send({ error: "invalid_payload" });
+      if (!req.user!.email) return reply.code(409).send({ error: "password_not_available" });
+
+      const { data, error } = await supabaseAnonymous().auth.signInWithPassword({
+        email: req.user!.email,
+        password: parsed.data.password,
+      });
+      if (error || data.user?.id !== req.user!.id) {
+        return reply.code(401).send({ error: "invalid_password" });
+      }
+      const authorization = await createAuthorization(req.user!.id, "password");
+      return reply.header("Cache-Control", "no-store").send(authorization);
+    },
+  );
+
+  app.post("/account/deletion/authorize/oauth/start", activeAccount, async (req, reply) => {
+    const parsed = StartAccountDeletionOAuthRequestSchema.safeParse(req.body);
+    if (!parsed.success) return reply.code(400).send({ error: "invalid_payload" });
+    const claims = jwtClaims(req.user!.accessToken);
+    const challenge = await createAuthorization(
+      req.user!.id,
+      "oauth_challenge",
+      parsed.data.provider,
+      typeof claims.session_id === "string" ? claims.session_id : null,
+    );
+    return reply.header("Cache-Control", "no-store").send({
+      challenge_token: challenge.authorization_token,
+      expires_at: challenge.expires_at,
+    });
+  });
+
+  app.post("/account/deletion/authorize/oauth/complete", activeAccount, async (req, reply) => {
+    const parsed = CompleteAccountDeletionOAuthRequestSchema.safeParse(req.body);
+    if (!parsed.success) return reply.code(400).send({ error: "invalid_payload" });
+    const admin = supabaseService();
+    const challengeHash = hashToken(parsed.data.challenge_token);
+    const { data: challenge, error } = await admin
+      .from("account_action_authorizations")
+      .select("id, user_id, provider, original_session_id, created_at, expires_at, consumed_at")
+      .eq("token_hash", challengeHash)
+      .eq("method", "oauth_challenge")
+      .maybeSingle();
+    const claims = jwtClaims(req.user!.accessToken);
+    const appMetadata =
+      claims.app_metadata && typeof claims.app_metadata === "object"
+        ? (claims.app_metadata as Record<string, unknown>)
+        : {};
+    const identities =
+      (await admin.auth.admin.getUserById(req.user!.id)).data.user?.identities ?? [];
+    const providerLinked = identities.some(
+      (identity) => identity.provider === parsed.data.provider,
+    );
+    const freshSession =
+      typeof claims.session_id === "string" &&
+      claims.session_id !== challenge?.original_session_id &&
+      typeof claims.iat === "number" &&
+      claims.iat * 1000 >= new Date(challenge?.created_at ?? 0).getTime() - 1000 &&
+      appMetadata.provider === parsed.data.provider;
+    if (
+      error ||
+      !challenge ||
+      challenge.user_id !== req.user!.id ||
+      challenge.provider !== parsed.data.provider ||
+      challenge.consumed_at ||
+      new Date(challenge.expires_at) <= new Date() ||
+      !providerLinked ||
+      !freshSession
+    ) {
+      return reply.code(401).send({ error: "oauth_reauthentication_invalid" });
+    }
+    const { data: consumed, error: consumeError } = await admin
+      .from("account_action_authorizations")
+      .update({ consumed_at: new Date().toISOString() })
+      .eq("id", challenge.id)
+      .is("consumed_at", null)
+      .select("id")
+      .maybeSingle();
+    if (consumeError || !consumed) {
+      return reply.code(401).send({ error: "oauth_reauthentication_invalid" });
+    }
+    return reply
+      .header("Cache-Control", "no-store")
+      .send(await createAuthorization(req.user!.id, "oauth", parsed.data.provider));
+  });
+
   app.delete("/account", tokenOnly, async (req, reply) => {
     const parsed = DeleteAccountRequestSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -261,6 +397,14 @@ export async function accountRoutes(app: FastifyInstance) {
     }
 
     const userId = req.user!.id;
+    const tokenHash = hashToken(parsed.data.authorization_token);
+    const { data: authorized, error: authorizationError } = await supabaseForToken(req).rpc(
+      "fitbrother_consume_account_action_authorization",
+      { p_token_hash: tokenHash, p_action: "account_delete" },
+    );
+    if (authorizationError || authorized !== true) {
+      return reply.code(401).send({ error: "deletion_authorization_invalid" });
+    }
     req.log.info(
       { user_id: userId, request_id: req.id, action: "account_delete" },
       "account_action",
@@ -284,6 +428,50 @@ export async function accountRoutes(app: FastifyInstance) {
       scheduled_purge_at: row.scheduled_purge_at,
     });
   });
+}
+
+export function isOwnedAvatarPath(path: string, userId: string): boolean {
+  return path === `${userId}/avatar.jpg`;
+}
+
+export function hashToken(token: string): string {
+  return createHash("sha256").update(token).digest("hex");
+}
+
+async function createAuthorization(
+  userId: string,
+  method: "password" | "oauth_challenge" | "oauth",
+  provider?: "google" | "apple",
+  originalSessionId?: string | null,
+) {
+  const token = randomBytes(32).toString("base64url");
+  const expiresAt = new Date(Date.now() + 5 * 60_000).toISOString();
+  const { error } = await supabaseService()
+    .from("account_action_authorizations")
+    .insert({
+      user_id: userId,
+      action: "account_delete",
+      method,
+      provider: provider ?? null,
+      token_hash: hashToken(token),
+      original_session_id: originalSessionId ?? null,
+      expires_at: expiresAt,
+    });
+  if (error) throw new Error(error.message);
+  return { authorization_token: token, expires_at: expiresAt };
+}
+
+export function jwtClaims(accessToken: string): Record<string, unknown> {
+  try {
+    const payload = accessToken.split(".")[1];
+    if (!payload) return {};
+    return JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as Record<
+      string,
+      unknown
+    >;
+  } catch {
+    return {};
+  }
 }
 
 function currentConsentState(rows: ConsentLogRow[]): Record<ConsentScope, ConsentState> {
