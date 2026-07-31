@@ -6,6 +6,7 @@ import { Button } from "@/components/Button";
 import { Input } from "@/components/Input";
 import { PasswordInput } from "@/components/PasswordInput";
 import { supabase } from "@/lib/supabase";
+import { authenticateWithOAuth, type OAuthProvider } from "@/lib/oauth";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -35,6 +36,20 @@ export default function SignIn() {
       return;
     }
     router.replace("/");
+  }
+
+  async function handleOAuth(provider: OAuthProvider) {
+    setLoading(true);
+    setError(null);
+    try {
+      await authenticateWithOAuth(provider);
+      router.replace("/");
+    } catch (e) {
+      if (e instanceof Error && e.message === "oauth_cancelled") return;
+      setError(`Não foi possível entrar com ${provider === "google" ? "Google" : "Apple"}.`);
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -98,6 +113,18 @@ export default function SignIn() {
               disabled={!canSubmit}
               loading={loading}
               onPress={handleSubmit}
+            />
+            <Button
+              label="Entrar com Google"
+              variant="outline"
+              disabled={loading}
+              onPress={() => handleOAuth("google")}
+            />
+            <Button
+              label="Entrar com Apple"
+              variant="dark"
+              disabled={loading}
+              onPress={() => handleOAuth("apple")}
             />
             <Button label="Voltar" variant="ghost" onPress={() => router.back()} />
           </View>

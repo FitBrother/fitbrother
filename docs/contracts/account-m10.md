@@ -174,13 +174,15 @@ Privacy rule:
 ## DELETE /account
 
 Requests account deletion. The account is anonymized immediately and physically
-purged after D+30.
+purged after D+30. A recent, one-use authorization obtained with the user's
+password or a linked Google/Apple identity is mandatory.
 
 Request:
 
 ```json
 {
   "confirm": true,
+  "authorization_token": "opaque-one-use-token",
   "reason": "optional"
 }
 ```
@@ -207,6 +209,35 @@ Response:
   "scheduled_purge_at": "2026-08-06T12:00:00.000Z"
 }
 ```
+
+## Recent authorization for deletion
+
+All authorization and challenge tokens expire after five minutes and can only
+be used once.
+
+### POST /account/deletion/authorize/password
+
+Request `{ "password": "..." }`. The backend verifies the password with
+Supabase and returns `{ "authorization_token": "...", "expires_at": "..." }`.
+Passwords and authorization tokens are redacted from logs.
+
+### POST /account/deletion/authorize/oauth/start
+
+Request `{ "provider": "google" }` or `{ "provider": "apple" }`. Returns an
+OAuth challenge token. The mobile app must then complete a fresh provider login.
+
+### POST /account/deletion/authorize/oauth/complete
+
+Request `{ "provider": "google", "challenge_token": "..." }` using the newly
+created Supabase session. The backend validates the same user, linked provider,
+new session and challenge lifetime, then returns the one-use deletion
+authorization.
+
+## PATCH /account/profile
+
+Updates the avatar storage path. M10 accepts only `"{auth.uid()}/avatar.jpg"` or
+`null`; replaced/removed avatar objects are cleaned from the private
+`post-images` bucket.
 
 ## GET /account/deletion
 

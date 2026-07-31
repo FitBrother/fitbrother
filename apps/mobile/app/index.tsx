@@ -2,7 +2,7 @@ import { Redirect } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { getMe } from "@/lib/api";
+import { AccountDeletionPendingError, getMe } from "@/lib/api";
 import { colors } from "@/lib/colors";
 import { useAuthSession } from "@/lib/hooks/useAuthSession";
 
@@ -10,6 +10,7 @@ type ProfileState =
   | { kind: "checking" }
   | { kind: "missing" }
   | { kind: "present" }
+  | { kind: "deletion_pending" }
   | { kind: "error"; message: string };
 
 export default function Index() {
@@ -24,6 +25,10 @@ export default function Index() {
       setProfile({ kind: me ? "present" : "missing" });
     } catch (e) {
       if (signal.cancelled) return;
+      if (e instanceof AccountDeletionPendingError) {
+        setProfile({ kind: "deletion_pending" });
+        return;
+      }
       // Don't redirect to onboarding on network/500 — the user may have
       // already completed it. Surface the error and let them retry.
       const message = e instanceof Error ? e.message : "Falha ao carregar perfil";
@@ -57,6 +62,10 @@ export default function Index() {
 
   if (profile.kind === "missing") {
     return <Redirect href="/(onboarding)" />;
+  }
+
+  if (profile.kind === "deletion_pending") {
+    return <Redirect href={"/account-reactivation" as never} />;
   }
 
   if (profile.kind === "error") {

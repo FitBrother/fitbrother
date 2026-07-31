@@ -356,6 +356,11 @@ export const PatchAccountSettingsRequestSchema = z.object({
 });
 export type PatchAccountSettingsRequest = z.infer<typeof PatchAccountSettingsRequestSchema>;
 
+export const PatchAccountProfileRequestSchema = z.object({
+  avatar_url: z.string().min(1).max(500).nullable(),
+});
+export type PatchAccountProfileRequest = z.infer<typeof PatchAccountProfileRequestSchema>;
+
 export const AccountSettingsResponseSchema = z.object({
   settings: z.object({
     timezone: z.string(),
@@ -379,6 +384,7 @@ export type AccountConsentResponse = z.infer<typeof AccountConsentResponseSchema
 
 export const DeleteAccountRequestSchema = z.object({
   confirm: z.literal(true),
+  authorization_token: z.string().min(32),
   reason: z.string().trim().max(500).optional(),
 });
 export type DeleteAccountRequest = z.infer<typeof DeleteAccountRequestSchema>;
@@ -403,6 +409,19 @@ export const ReactivateAccountResponseSchema = z.object({
   cancelled_at: z.string().nullable(),
 });
 export type ReactivateAccountResponse = z.infer<typeof ReactivateAccountResponseSchema>;
+
+export const AuthorizeAccountDeletionPasswordRequestSchema = z.object({
+  password: z.string().min(1).max(1024),
+});
+
+export const StartAccountDeletionOAuthRequestSchema = z.object({
+  provider: z.enum(["google", "apple"]),
+});
+
+export const CompleteAccountDeletionOAuthRequestSchema = z.object({
+  provider: z.enum(["google", "apple"]),
+  challenge_token: z.string().min(32),
+});
 
 // ── M5.3 social ────────────────────────────────────────────────────────────
 export const ContactsSyncRequestSchema = z.object({

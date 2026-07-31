@@ -79,6 +79,24 @@ export async function getPostImageSignedUrl(path: string): Promise<string> {
   return data.signedUrl;
 }
 
+export async function uploadAvatar(params: {
+  userId: string;
+  fileUri: string;
+}): Promise<{ path: string }> {
+  const path = `${params.userId}/avatar.jpg`;
+  const formData = new FormData();
+  formData.append("file", {
+    uri: params.fileUri,
+    name: "avatar.jpg",
+    type: "image/jpeg",
+  } as unknown as Blob);
+  const { error } = await supabase.storage
+    .from(IMAGE_BUCKET)
+    .upload(path, formData, { contentType: "image/jpeg", upsert: true });
+  if (error) throw error;
+  return { path };
+}
+
 export async function uploadMealPhoto(params: {
   userId: string;
   mealId: string;

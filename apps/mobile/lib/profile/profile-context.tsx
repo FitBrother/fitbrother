@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import { getMe } from "@/lib/api";
 import type { Profile } from "./types";
 
@@ -8,34 +8,51 @@ type State =
   | { status: "missing" }
   | { status: "error"; message: string };
 
-const ProfileContext = createContext<State>({ status: "loading" });
+type ContextValue = State & {
+  refresh: () => Promise<void>;
+  update: (patch: Partial<Profile>) => void;
+};
+
+const ProfileContext = createContext<ContextValue>({
+  status: "loading",
+  refresh: async () => {},
+  update: () => {},
+});
 
 export function ProfileProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<State>({ status: "loading" });
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        // getMe() returns { profile, nutrition_goal, anthropometric } or null
-        const data = (await getMe()) as { profile: Profile } | null;
-        if (cancelled) return;
-        const profile = data?.profile ?? null;
-        setState(profile ? { status: "ready", profile } : { status: "missing" });
-      } catch (e) {
-        if (cancelled) return;
-        setState({
-          status: "error",
-          message: e instanceof Error ? e.message : "profile_load_failed",
-        });
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
+  const load = useCallback(async () => {
+    try {
+      // getMe() returns { profile, nutrition_goal, anthropometric } or null
+      const data = (await getMe()) as { profile: Profile } | null;
+      const profile = data?.profile ?? null;
+      setState(profile ? { status: "ready", profile } : { status: "missing" });
+    } catch (e) {
+      setState({
+        status: "error",
+        message: e instanceof Error ? e.message : "profile_load_failed",
+      });
+    }
   }, []);
 
-  return <ProfileContext.Provider value={state}>{children}</ProfileContext.Provider>;
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const update = useCallback((patch: Partial<Profile>) => {
+    setState((current) =>
+      current.status === "ready"
+        ? { status: "ready", profile: { ...current.profile, ...patch } }
+        : current,
+    );
+  }, []);
+
+  return (
+    <ProfileContext.Provider value={{ ...state, refresh: load, update }}>
+      {children}
+    </ProfileContext.Provider>
+  );
 }
 
 export function useProfile(): Profile {
@@ -48,4 +65,9 @@ export function useProfile(): Profile {
 
 export function useProfileState(): State {
   return useContext(ProfileContext);
+}
+
+export function useProfileActions() {
+  const { refresh, update } = useContext(ProfileContext);
+  return { refresh, update };
 }

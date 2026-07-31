@@ -39,6 +39,10 @@ const app = Fastify({
         "authorization",
         "access_token",
         "refresh_token",
+        "password",
+        "req.body.password",
+        "authorization_token",
+        "challenge_token",
         "phone_e164",
         "email",
         "text",
@@ -61,6 +65,7 @@ await app.register(sensible);
 await app.register(cors, {
   origin: env.NODE_ENV === "production" ? false : true,
   credentials: true,
+  methods: ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
 });
 
 // Rate limit: 30 req/min per authenticated user (falls back to IP for

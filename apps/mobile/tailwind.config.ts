@@ -7,6 +7,9 @@ import type { Config } from "tailwindcss";
 const nativewindPreset = require("nativewind/preset");
 
 const config: Config = {
+  // NativeWind controls the React Native color scheme at runtime. Its web
+  // observer cannot do that while Tailwind uses the default `media` strategy.
+  darkMode: "class",
   content: ["./app/**/*.{js,jsx,ts,tsx}", "./components/**/*.{js,jsx,ts,tsx}"],
   presets: [nativewindPreset],
   theme: {
