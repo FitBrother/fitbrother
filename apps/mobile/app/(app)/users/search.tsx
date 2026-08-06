@@ -11,6 +11,7 @@ import { colors } from "@/lib/colors";
 import { followingKey, useFollowing } from "@/lib/hooks/useFollowing";
 import { leaderboardKey } from "@/lib/hooks/useWeeklyLeaderboard";
 import { useUserSearch } from "@/lib/hooks/useUserSearch";
+import { backOrHome } from "@/lib/navigation";
 
 type FollowMutationInput = {
   userId: string;
@@ -105,7 +106,7 @@ export default function UserSearch() {
     <SafeAreaView className="flex-1 bg-neutral-50">
       <View className="flex-row items-center px-4 py-2">
         <Pressable
-          onPress={() => router.back()}
+          onPress={() => backOrHome(router)}
           accessibilityLabel="Voltar"
           accessibilityRole="button"
           className="min-h-[44px] min-w-[44px] items-center justify-center"

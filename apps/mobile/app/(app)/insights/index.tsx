@@ -6,6 +6,7 @@ import { ChevronLeft } from "lucide-react-native";
 import type { Insight } from "@fitbrother/shared";
 import { InsightCard } from "@/components/domain/InsightCard";
 import { useInsights } from "@/lib/hooks/useInsights";
+import { backOrHome } from "@/lib/navigation";
 import { colors } from "@/lib/colors";
 
 const PERIODS = [
@@ -23,7 +24,7 @@ export default function InsightsScreen() {
     <SafeAreaView className="flex-1 bg-neutral-50">
       <View className="flex-row items-center px-4 py-2">
         <Pressable
-          onPress={() => router.back()}
+          onPress={() => backOrHome(router)}
           accessibilityLabel="Voltar"
           accessibilityRole="button"
           className="min-h-[44px] min-w-[44px] items-center justify-center"

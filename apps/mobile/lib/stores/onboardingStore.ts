@@ -12,6 +12,17 @@ import { brDateToIso } from "@/lib/masks";
 type Sex = z.infer<typeof SexSchema>;
 type ActivityLevel = z.infer<typeof ActivityLevelSchema>;
 type Goal = z.infer<typeof GoalSchema>;
+export type TrainingType = "none" | "cardio" | "strength" | "mixed";
+
+const TRAINING_TYPES: TrainingType[] = ["none", "cardio", "strength", "mixed"];
+
+function isTrainingType(value: unknown): value is TrainingType {
+  return typeof value === "string" && TRAINING_TYPES.includes(value as TrainingType);
+}
+
+export function trainingTypeUsesStrength(trainingType: TrainingType): boolean {
+  return trainingType === "strength" || trainingType === "mixed";
+}
 
 interface OnboardingState {
   full_name: string;
@@ -34,6 +45,7 @@ interface OnboardingState {
   };
   target_weight_kg: number | undefined;
   rate_kg_per_week: number | undefined;
+  training_type: TrainingType;
   strength_training: boolean;
   training_days_per_week: number | undefined;
   main_barriers: string[];
@@ -93,6 +105,7 @@ const INITIAL: Omit<
   consents: { terms: false, privacy: false, ai_processing: false },
   target_weight_kg: undefined,
   rate_kg_per_week: undefined,
+  training_type: "none",
   strength_training: false,
   training_days_per_week: undefined,
   main_barriers: [],
@@ -137,6 +150,7 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
       consents: s.consents,
       target_weight_kg: s.target_weight_kg,
       rate_kg_per_week: s.rate_kg_per_week,
+      training_type: s.training_type,
       strength_training: s.strength_training,
       training_days_per_week: s.training_days_per_week,
       main_barriers: s.main_barriers,
@@ -154,7 +168,14 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
     };
   },
 
-  hydrate: (answers) => set(answers as Partial<OnboardingState>),
+  hydrate: (answers) => {
+    const training_type = isTrainingType(answers.training_type)
+      ? answers.training_type
+      : answers.strength_training === true
+        ? "strength"
+        : "none";
+    set({ ...answers, training_type } as Partial<OnboardingState>);
+  },
 
   toPayload: () => {
     const s = get();
@@ -212,6 +233,7 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
         meal_times: s.meal_times,
         cooks_own_food: s.cooks_own_food,
         eats_out_frequency: s.eats_out_frequency,
+        training_type: s.training_type,
       },
     };
   },

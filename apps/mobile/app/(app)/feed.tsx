@@ -7,6 +7,7 @@ import { colors } from "@/lib/colors";
 import { useFeed } from "@/lib/hooks/useFeed";
 import { usePostsRealtime } from "@/lib/hooks/usePostsRealtime";
 import { useAuthSession } from "@/lib/hooks/useAuthSession";
+import { backOrHome } from "@/lib/navigation";
 
 export default function FeedScreen() {
   const router = useRouter();
@@ -19,7 +20,7 @@ export default function FeedScreen() {
     <SafeAreaView className="flex-1 bg-neutral-50">
       <View className="flex-row items-center px-4 py-2">
         <Pressable
-          onPress={() => router.back()}
+          onPress={() => backOrHome(router)}
           accessibilityLabel="Voltar"
           accessibilityRole="button"
           className="min-h-[44px] min-w-[44px] items-center justify-center"

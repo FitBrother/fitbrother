@@ -38,9 +38,9 @@ export function RecorderLockHint({ visible }: Props) {
     <Animated.View
       entering={FadeIn.duration(160)}
       exiting={FadeOut.duration(120)}
-      pointerEvents="none"
       style={[
         {
+          pointerEvents: "none",
           position: "absolute",
           right: 16,
           bottom: 96,

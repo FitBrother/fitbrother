@@ -36,6 +36,8 @@ export function HabitsBlock({ step, total, onNext, onBack, onSkip }: OnboardingB
             onChange={(e) => setField("cooks_own_food", COOKS[e.nativeEvent.selectedSegmentIndex])}
             tintColor="#ffffff"
             backgroundColor="#f1f5f9"
+            fontStyle={{ fontFamily: "Inter_500Medium", fontSize: 14, color: "#64748b" }}
+            activeFontStyle={{ fontFamily: "Inter_600SemiBold", fontSize: 14, color: "#04100c" }}
             style={{ height: 40 }}
           />
         </View>
@@ -55,6 +57,8 @@ export function HabitsBlock({ step, total, onNext, onBack, onSkip }: OnboardingB
             }
             tintColor="#ffffff"
             backgroundColor="#f1f5f9"
+            fontStyle={{ fontFamily: "Inter_500Medium", fontSize: 14, color: "#64748b" }}
+            activeFontStyle={{ fontFamily: "Inter_600SemiBold", fontSize: 14, color: "#04100c" }}
             style={{ height: 40 }}
           />
         </View>

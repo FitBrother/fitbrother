@@ -37,6 +37,7 @@ Thumbs.db
 !.vscode/extensions.json
 !.vscode/settings.example.json
 .claude/
+.codex/skills/start-fitbrother/
 
 # Native
 ios/

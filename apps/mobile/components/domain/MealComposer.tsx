@@ -332,13 +332,13 @@ export function MealComposer({
   })();
 
   return (
-    <View pointerEvents="box-none">
+    <View style={{ pointerEvents: "box-none" }}>
       {showBackdropFade && (
         <LinearGradient
-          pointerEvents="none"
           colors={["rgba(248, 250, 252, 0)", "rgba(248, 250, 252, 0.85)", "rgba(248, 250, 252, 1)"]}
           locations={[0, 0.55, 1]}
           style={{
+            pointerEvents: "none",
             position: "absolute",
             left: 0,
             right: 0,

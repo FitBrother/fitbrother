@@ -25,6 +25,7 @@ import { leaderboardKey } from "@/lib/hooks/useWeeklyLeaderboard";
 import { useStreak } from "@/lib/hooks/useStreak";
 import { useVerifyPhone } from "@/lib/hooks/useVerifyPhone";
 import { useSyncContacts } from "@/lib/hooks/useSyncContacts";
+import { backOrHome } from "@/lib/navigation";
 
 type OtpStep = "idle" | "phone" | "code";
 
@@ -106,7 +107,7 @@ export default function FriendsScreen() {
     <SafeAreaView className="flex-1 bg-neutral-50">
       <View className="flex-row items-center px-4 py-2">
         <Pressable
-          onPress={() => router.back()}
+          onPress={() => backOrHome(router)}
           accessibilityLabel="Voltar"
           accessibilityRole="button"
           className="min-h-[44px] min-w-[44px] items-center justify-center"

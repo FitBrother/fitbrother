@@ -33,10 +33,10 @@ function ToastView({ variant, message }: ToastInput) {
     <Animated.View
       entering={FadeInUp.duration(250)}
       exiting={FadeOutUp.duration(200)}
-      pointerEvents="none"
       style={[
         shadows.floating,
         {
+          pointerEvents: "none",
           position: "absolute",
           top: insets.top + 8,
           left: 16,

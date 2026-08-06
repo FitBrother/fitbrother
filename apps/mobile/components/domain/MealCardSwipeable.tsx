@@ -76,7 +76,10 @@ export function MealCardSwipeable({ meal, onPress, onDelete }: Props) {
       <View>
         {/* Delete action behind the card. Centered vertically by the absolute
             container; horizontal position aligned to the card's right edge. */}
-        <View pointerEvents="box-none" className="absolute inset-0 items-end justify-center pr-1">
+        <View
+          style={{ pointerEvents: "box-none" }}
+          className="absolute inset-0 items-end justify-center pr-1"
+        >
           <Animated.View style={actionStyle}>
             <Pressable
               onPress={triggerDelete}
