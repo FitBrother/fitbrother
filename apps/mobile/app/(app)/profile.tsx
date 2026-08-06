@@ -4,6 +4,7 @@ import { useRouter } from "expo-router";
 import {
   Award,
   BarChart3,
+  Camera,
   ChevronLeft,
   ChevronRight,
   Clock3,
@@ -14,13 +15,25 @@ import {
   Users,
 } from "lucide-react-native";
 import { useEffect, useState, type ComponentType, type ReactNode } from "react";
-import { ActivityIndicator, Alert, Image, Pressable, ScrollView, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Alert,
+  Image,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  Text,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { patchAccountAvatar } from "@/lib/api/account";
 import { profileInitials } from "@/lib/account-utils";
 import { colors } from "@/lib/colors";
 import { accountProfileKey, useAccountProfile } from "@/lib/hooks/useAccountProfile";
+import { backOrHome } from "@/lib/navigation";
 import { useProfileActions } from "@/lib/profile/profile-context";
+import { shadows } from "@/lib/shadows";
 import { getPostImageSignedUrl, uploadAvatar } from "@/lib/storage";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/lib/toast/toast-context";
@@ -35,6 +48,7 @@ export default function ProfileScreen() {
   const { update } = useProfileActions();
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
   const [avatarBusy, setAvatarBusy] = useState(false);
+  const [avatarModal, setAvatarModal] = useState<"actions" | "confirm-remove" | null>(null);
   const profile = account.data?.profile;
   const user = account.data?.user;
 
@@ -54,10 +68,12 @@ export default function ProfileScreen() {
 
   async function chooseAvatar() {
     if (!user) return;
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) {
-      Alert.alert("Permissão necessária", "Autorize o acesso às fotos para trocar seu avatar.");
-      return;
+    if (Platform.OS !== "web") {
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert("Permissão necessária", "Autorize o acesso às fotos para trocar seu avatar.");
+        return;
+      }
     }
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ["images"],
@@ -82,6 +98,7 @@ export default function ProfileScreen() {
   }
 
   async function removeAvatar() {
+    setAvatarModal(null);
     setAvatarBusy(true);
     try {
       await patchAccountAvatar(null);
@@ -94,22 +111,6 @@ export default function ProfileScreen() {
     } finally {
       setAvatarBusy(false);
     }
-  }
-
-  function avatarMenu() {
-    Alert.alert("Foto do perfil", undefined, [
-      { text: "Escolher foto", onPress: () => void chooseAvatar() },
-      ...(profile?.avatar_url
-        ? [
-            {
-              text: "Remover foto",
-              style: "destructive" as const,
-              onPress: () => void removeAvatar(),
-            },
-          ]
-        : []),
-      { text: "Cancelar", style: "cancel" },
-    ]);
   }
 
   if (account.isLoading) {
@@ -142,7 +143,7 @@ export default function ProfileScreen() {
     <SafeAreaView className="flex-1 bg-canvas">
       <View className="flex-row items-center px-4 py-2">
         <Pressable
-          onPress={() => router.back()}
+          onPress={() => backOrHome(router)}
           accessibilityLabel="Voltar"
           className="min-h-[44px] min-w-[44px] items-center justify-center"
         >
@@ -153,26 +154,31 @@ export default function ProfileScreen() {
       <ScrollView contentContainerClassName="gap-6 px-5 pb-10 pt-3">
         <View className="items-center">
           <Pressable
-            onPress={avatarMenu}
+            onPress={() => setAvatarModal("actions")}
             disabled={avatarBusy}
             accessibilityRole="button"
-            accessibilityLabel="Alterar foto do perfil"
-            className="h-24 w-24 items-center justify-center overflow-hidden rounded-full bg-primary-100"
+            accessibilityLabel="Opções da foto do perfil"
+            className="relative h-24 w-24"
           >
-            {avatarUri ? (
-              <Image
-                source={{ uri: avatarUri }}
-                className="h-24 w-24"
-                accessibilityLabel="Foto do perfil"
-              />
-            ) : (
-              <Text className="font-display-bold text-3xl text-primary-800">{initials}</Text>
-            )}
-            {avatarBusy ? (
-              <View className="absolute inset-0 items-center justify-center bg-neutral-900/40">
-                <ActivityIndicator color={colors.neutral[50]} />
-              </View>
-            ) : null}
+            <View className="h-24 w-24 items-center justify-center overflow-hidden rounded-full bg-primary-100">
+              {avatarUri ? (
+                <Image
+                  source={{ uri: avatarUri }}
+                  className="h-24 w-24"
+                  accessibilityLabel="Foto do perfil"
+                />
+              ) : (
+                <Text className="font-display-bold text-3xl text-primary-800">{initials}</Text>
+              )}
+              {avatarBusy ? (
+                <View className="absolute inset-0 items-center justify-center bg-neutral-900/40">
+                  <ActivityIndicator color={colors.neutral[50]} />
+                </View>
+              ) : null}
+            </View>
+            <View className="absolute bottom-0 right-0 h-9 w-9 items-center justify-center rounded-full bg-primary-400">
+              <Camera size={18} color={colors.neutral[50]} />
+            </View>
           </Pressable>
           <Text className="mt-3 font-display-bold text-2xl text-neutral-900">
             {profile.full_name || "FitBrother"}
@@ -220,6 +226,88 @@ export default function ProfileScreen() {
           <Text className="font-sans-semibold text-base text-danger-600">Sair</Text>
         </Pressable>
       </ScrollView>
+      <Modal
+        visible={avatarModal !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setAvatarModal(null)}
+      >
+        <View className="flex-1 items-center justify-center px-6">
+          <Pressable
+            onPress={() => setAvatarModal(null)}
+            accessibilityRole="button"
+            accessibilityLabel="Fechar opções da foto do perfil"
+            className="absolute inset-0 bg-black/40"
+          />
+          <View style={shadows.card} className="w-full max-w-sm rounded-2xl bg-white p-5">
+            {avatarModal === "confirm-remove" ? (
+              <>
+                <Text className="text-center font-display-bold text-xl text-neutral-900">
+                  Remover foto do perfil?
+                </Text>
+                <Text className="mt-2 text-center font-sans text-sm text-neutral-600">
+                  Suas iniciais serão exibidas no lugar da foto.
+                </Text>
+                <View className="mt-5 flex-row gap-3">
+                  <Pressable
+                    onPress={() => setAvatarModal("actions")}
+                    accessibilityRole="button"
+                    accessibilityLabel="Cancelar remoção"
+                    className="min-h-[48px] flex-1 items-center justify-center rounded-xl bg-neutral-100"
+                  >
+                    <Text className="font-sans-semibold text-neutral-700">Cancelar</Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => void removeAvatar()}
+                    accessibilityRole="button"
+                    accessibilityLabel="Confirmar remoção da foto"
+                    className="min-h-[48px] flex-1 items-center justify-center rounded-xl bg-danger-600"
+                  >
+                    <Text className="font-sans-semibold text-white">Remover</Text>
+                  </Pressable>
+                </View>
+              </>
+            ) : (
+              <>
+                <Text className="text-center font-display-bold text-xl text-neutral-900">
+                  Foto do perfil
+                </Text>
+                <View className="mt-5 gap-3">
+                  <Pressable
+                    onPress={() => {
+                      setAvatarModal(null);
+                      void chooseAvatar();
+                    }}
+                    accessibilityRole="button"
+                    accessibilityLabel="Alterar foto do perfil"
+                    className="min-h-[48px] items-center justify-center rounded-xl bg-primary-400"
+                  >
+                    <Text className="font-sans-semibold text-neutral-900">Alterar foto</Text>
+                  </Pressable>
+                  {profile.avatar_url ? (
+                    <Pressable
+                      onPress={() => setAvatarModal("confirm-remove")}
+                      accessibilityRole="button"
+                      accessibilityLabel="Remover foto do perfil"
+                      className="min-h-[48px] items-center justify-center rounded-xl border border-danger-200 bg-danger-50"
+                    >
+                      <Text className="font-sans-semibold text-danger-600">Remover foto</Text>
+                    </Pressable>
+                  ) : null}
+                  <Pressable
+                    onPress={() => setAvatarModal(null)}
+                    accessibilityRole="button"
+                    accessibilityLabel="Cancelar"
+                    className="min-h-[48px] items-center justify-center rounded-xl bg-neutral-100"
+                  >
+                    <Text className="font-sans-semibold text-neutral-700">Cancelar</Text>
+                  </Pressable>
+                </View>
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }

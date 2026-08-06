@@ -405,7 +405,7 @@ Validar:
 - limpar escopo ao terminar;
 - adicionar `request_id`, rota, source e stage como tags/contexto;
 - breadcrumbs antes/depois das etapas;
-- capturar exceções de rotas e workers;
+- capturar exceções de rotas e workers;https://calendar.google.com/calendar/u/0/r
 - aplicar `beforeSend` para remover headers, JWT, cookies, email, telefone,
   texto bruto e payloads.
 

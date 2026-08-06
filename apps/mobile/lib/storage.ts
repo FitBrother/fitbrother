@@ -1,7 +1,29 @@
+import { Platform } from "react-native";
 import { supabase } from "./supabase";
 
 const AUDIO_BUCKET = "meal-audios";
 const IMAGE_BUCKET = "post-images";
+
+async function imageUploadBody(
+  fileUri: string,
+  name: string,
+): Promise<{ body: Blob | FormData; contentType: string }> {
+  if (Platform.OS === "web") {
+    const response = await fetch(fileUri);
+    if (!response.ok) throw new Error("image_read_failed");
+    const blob = await response.blob();
+    if (blob.size === 0) throw new Error("empty_image_file");
+    return { body: blob, contentType: blob.type || "image/jpeg" };
+  }
+
+  const formData = new FormData();
+  formData.append("file", {
+    uri: fileUri,
+    name,
+    type: "image/jpeg",
+  } as unknown as Blob);
+  return { body: formData, contentType: "image/jpeg" };
+}
 
 /**
  * Upload an audio file recorded for a meal.
@@ -58,16 +80,11 @@ export async function uploadPostImage(params: {
   fileUri: string;
 }): Promise<{ path: string }> {
   const path = `${params.userId}/post-${params.postId}.jpg`;
-  const formData = new FormData();
-  formData.append("file", {
-    uri: params.fileUri,
-    name: `post-${params.postId}.jpg`,
-    type: "image/jpeg",
-  } as unknown as Blob);
+  const { body, contentType } = await imageUploadBody(params.fileUri, `post-${params.postId}.jpg`);
 
   const { error } = await supabase.storage
     .from(IMAGE_BUCKET)
-    .upload(path, formData, { contentType: "image/jpeg", upsert: true });
+    .upload(path, body, { contentType, upsert: true });
 
   if (error) throw error;
   return { path };
@@ -84,15 +101,10 @@ export async function uploadAvatar(params: {
   fileUri: string;
 }): Promise<{ path: string }> {
   const path = `${params.userId}/avatar.jpg`;
-  const formData = new FormData();
-  formData.append("file", {
-    uri: params.fileUri,
-    name: "avatar.jpg",
-    type: "image/jpeg",
-  } as unknown as Blob);
+  const { body, contentType } = await imageUploadBody(params.fileUri, "avatar.jpg");
   const { error } = await supabase.storage
     .from(IMAGE_BUCKET)
-    .upload(path, formData, { contentType: "image/jpeg", upsert: true });
+    .upload(path, body, { contentType, upsert: true });
   if (error) throw error;
   return { path };
 }
@@ -103,16 +115,11 @@ export async function uploadMealPhoto(params: {
   fileUri: string;
 }): Promise<{ path: string }> {
   const path = `${params.userId}/meal-photos/${params.mealId}.jpg`;
-  const formData = new FormData();
-  formData.append("file", {
-    uri: params.fileUri,
-    name: `${params.mealId}.jpg`,
-    type: "image/jpeg",
-  } as unknown as Blob);
+  const { body, contentType } = await imageUploadBody(params.fileUri, `${params.mealId}.jpg`);
 
   const { error } = await supabase.storage
     .from(IMAGE_BUCKET)
-    .upload(path, formData, { contentType: "image/jpeg", upsert: false });
+    .upload(path, body, { contentType, upsert: false });
 
   if (error) throw error;
   return { path };

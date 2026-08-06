@@ -70,7 +70,10 @@ export function MealItemRowSwipeable({ item, onDelete }: Props) {
       exiting={SlideOutLeft.springify().damping(20).stiffness(180)}
     >
       <View>
-        <View pointerEvents="box-none" className="absolute inset-0 items-end justify-center pr-1">
+        <View
+          style={{ pointerEvents: "box-none" }}
+          className="absolute inset-0 items-end justify-center pr-1"
+        >
           <Animated.View style={actionStyle}>
             <Pressable
               onPress={triggerDelete}
