@@ -29,6 +29,7 @@ import { useCreateMealPhoto } from "@/lib/hooks/useCreateMealPhoto";
 import { QuotaExceededError, getErrorStatus } from "@/lib/api/meals";
 import { colors } from "@/lib/colors";
 import { uploadMealAudio, uploadMealPhoto } from "@/lib/storage";
+import type { AudioExtension } from "@/lib/audio/recorder";
 import { HomeHeader } from "@/components/domain/HomeHeader";
 import { MealCardSwipeable } from "@/components/domain/MealCardSwipeable";
 import { MealCardSkeleton } from "@/components/domain/MealCardSkeleton";
@@ -86,7 +87,7 @@ export default function HomeScreen() {
   };
 
   const handleAudioReady = useCallback(
-    async (params: { fileUri: string; durationMs: number; ext: "m4a" | "opus" }) => {
+    async (params: { fileUri: string; durationMs: number; ext: AudioExtension }) => {
       if (!userId) return;
       setBanner(null);
       const client_meal_id = newClientMealId();

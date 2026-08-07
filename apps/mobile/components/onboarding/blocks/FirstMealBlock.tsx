@@ -6,6 +6,7 @@ import { MealComposer } from "@/components/domain/MealComposer";
 import { newClientMealId, useCreateMealText } from "@/lib/hooks/useCreateMealText";
 import { useCreateMealAudio } from "@/lib/hooks/useCreateMealAudio";
 import { uploadMealAudio } from "@/lib/storage";
+import type { AudioExtension } from "@/lib/audio/recorder";
 import { supabase } from "@/lib/supabase";
 import { useOnboardingStore } from "@/lib/stores/onboardingStore";
 import { nutritionalToday } from "@/lib/time/nutritional-day";
@@ -44,7 +45,7 @@ export function FirstMealBlock(_props: OnboardingBlockProps) {
   async function handleAudioReady(params: {
     fileUri: string;
     durationMs: number;
-    ext: "m4a" | "opus";
+    ext: AudioExtension;
   }) {
     setProcessing(true);
     try {

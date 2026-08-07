@@ -3,6 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { supabaseService } from "../lib/supabase.js";
 import { assertWithinCap, recordUsage } from "./ai-usage.js";
 import { transcribe } from "./llm/whisper.js";
+import { audioExtensionFromPath } from "./audio-format.js";
 
 /**
  * Transcribe an audio file already uploaded to the `meal-audios` bucket.
@@ -67,7 +68,7 @@ export async function transcribeFromPath(params: {
   // 4. Cache miss → cap check + Whisper call.
   await assertWithinCap(userClient, userId, "whisper_seconds");
 
-  const ext = audioPath.endsWith(".m4a") ? "m4a" : "opus";
+  const ext = audioExtensionFromPath(audioPath);
   const language = locale.split("-")[0]; // "pt-BR" → "pt"
   const result = await transcribe({
     audioBuffer,

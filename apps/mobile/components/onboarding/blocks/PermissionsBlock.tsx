@@ -1,4 +1,4 @@
-import * as Notifications from "expo-notifications";
+import Constants, { ExecutionEnvironment } from "expo-constants";
 import { Bell } from "lucide-react-native";
 import { Text, View } from "react-native";
 import { Button } from "@/components/Button";
@@ -9,7 +9,10 @@ import type { OnboardingBlockProps } from "@/lib/onboarding/types";
 export function PermissionsBlock({ step, total, onNext, onBack, onSkip }: OnboardingBlockProps) {
   async function handleEnable() {
     try {
-      await Notifications.requestPermissionsAsync();
+      if (Constants.executionEnvironment !== ExecutionEnvironment.StoreClient) {
+        const Notifications = await import("expo-notifications");
+        await Notifications.requestPermissionsAsync();
+      }
     } finally {
       onNext();
     }
