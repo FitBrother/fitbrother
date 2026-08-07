@@ -190,15 +190,29 @@ export async function startRecording(onMeter?: MeterCallback): Promise<RecorderH
   });
 
   const recording = new Audio.Recording();
-  await recording.prepareToRecordAsync(RECORDING_OPTIONS);
-  if (onMeter) {
-    recording.setOnRecordingStatusUpdate((status) => {
-      if (status.isRecording) onMeter(status.metering ?? -160);
-    });
-    recording.setProgressUpdateInterval(METERING_INTERVAL_MS);
+  try {
+    await recording.prepareToRecordAsync(RECORDING_OPTIONS);
+    if (onMeter) {
+      recording.setOnRecordingStatusUpdate((status) => {
+        if (status.isRecording) onMeter(status.metering ?? -160);
+      });
+      recording.setProgressUpdateInterval(METERING_INTERVAL_MS);
+    }
+    await recording.startAsync();
+    return { kind: "native", recording, ext: "m4a", startedAt: Date.now() };
+  } catch (error) {
+    try {
+      await recording.stopAndUnloadAsync();
+    } catch {
+      // The recorder may not have reached the prepared state yet.
+    }
+    try {
+      await Audio.setAudioModeAsync({ allowsRecordingIOS: false });
+    } catch {
+      // Preserve the original initialization error.
+    }
+    throw error;
   }
-  await recording.startAsync();
-  return { kind: "native", recording, ext: "m4a", startedAt: Date.now() };
 }
 
 export async function stopRecording(

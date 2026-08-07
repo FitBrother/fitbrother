@@ -7,9 +7,13 @@ jest.mock("expo-av", () => ({
     IOSAudioQuality: { MEDIUM: 1 },
     AndroidOutputFormat: { MPEG_4: 1 },
     AndroidAudioEncoder: { AAC: 1 },
+    Recording: jest.fn(),
+    requestPermissionsAsync: jest.fn(),
+    setAudioModeAsync: jest.fn(),
   },
 }));
 
+import { Audio } from "expo-av";
 import { cancelRecording, startRecording, stopRecording } from "./recorder";
 
 type Listener = (event: { data: Blob }) => void;
@@ -130,5 +134,41 @@ describe("web audio recorder", () => {
       code: "RECORDING_UNSUPPORTED",
     });
     expect(getUserMedia).not.toHaveBeenCalled();
+  });
+});
+
+describe("native audio recorder cleanup", () => {
+  const mockedAudio = Audio as unknown as {
+    Recording: jest.Mock<() => unknown>;
+    requestPermissionsAsync: jest.Mock<() => Promise<{ granted: boolean }>>;
+    setAudioModeAsync: jest.Mock<(options: unknown) => Promise<void>>;
+  };
+
+  beforeEach(() => {
+    Object.defineProperty(Platform, "OS", { configurable: true, value: "android" });
+    mockedAudio.Recording.mockReset();
+    mockedAudio.requestPermissionsAsync.mockReset().mockResolvedValue({ granted: true });
+    mockedAudio.setAudioModeAsync.mockReset().mockResolvedValue(undefined);
+  });
+
+  afterEach(() => {
+    Object.defineProperty(Platform, "OS", { configurable: true, value: originalPlatform });
+  });
+
+  test("unloads and restores audio mode when native start fails", async () => {
+    const startError = new Error("native_start_failed");
+    const recording = {
+      prepareToRecordAsync: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
+      setOnRecordingStatusUpdate: jest.fn(),
+      setProgressUpdateInterval: jest.fn(),
+      startAsync: jest.fn<() => Promise<void>>().mockRejectedValue(startError),
+      stopAndUnloadAsync: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
+    };
+    mockedAudio.Recording.mockImplementation(() => recording);
+
+    await expect(startRecording()).rejects.toBe(startError);
+
+    expect(recording.stopAndUnloadAsync).toHaveBeenCalledTimes(1);
+    expect(mockedAudio.setAudioModeAsync).toHaveBeenLastCalledWith({ allowsRecordingIOS: false });
   });
 });

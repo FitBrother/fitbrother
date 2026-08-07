@@ -39,19 +39,58 @@ type Props = {
 
 type ComposerMode =
   | { kind: "idle" }
-  | { kind: "recording-pressing"; handle: RecorderHandle }
-  | { kind: "cancel-hint"; handle: RecorderHandle }
-  | { kind: "recording-locked"; handle: RecorderHandle };
+  | { kind: "recording-starting" }
+  | { kind: "recording-pressing" }
+  | { kind: "cancel-hint" }
+  | { kind: "recording-locked" };
+
+type GestureIntent = "pressing" | "cancel" | "lock";
+type PendingAction = "send" | "cancel" | "lock" | null;
 
 const MULTILINE_THRESHOLD = 40;
-const HOLD_MS = 200;
 const CANCEL_PX = 80;
 const LOCK_PX = 60;
 const MIN_RECORDING_MS = 500;
 const MAX_RECORDING_MS = 600_000;
 
+export function classifyAudioGesture(
+  tx: number,
+  ty: number,
+  useVerticalLockLine = Platform.OS !== "web",
+): GestureIntent {
+  // Crossing the lock height is a horizontal activation line: the finger
+  // does not need to hit the lock icon or remain centered over the mic.
+  if (useVerticalLockLine) {
+    if (ty <= -LOCK_PX) return "lock";
+    if (tx <= -CANCEL_PX) return "cancel";
+  } else {
+    const horizontalDistance = Math.abs(tx);
+    const verticalDistance = Math.abs(ty);
+    if (tx <= -CANCEL_PX && horizontalDistance > verticalDistance) return "cancel";
+    if (ty <= -LOCK_PX && verticalDistance >= horizontalDistance) return "lock";
+  }
+  return "pressing";
+}
+
+export function actionAfterRecordingStarts(params: {
+  mounted: boolean;
+  gestureActive: boolean;
+  pendingAction: PendingAction;
+  tx: number;
+  ty: number;
+  isWeb: boolean;
+}): "send" | "cancel" | "lock" | "cancel-hint" | "pressing" {
+  if (!params.mounted || params.pendingAction === "cancel") return "cancel";
+  if (params.pendingAction === "send") return "send";
+  const intent = classifyAudioGesture(params.tx, params.ty);
+  if (params.isWeb || params.pendingAction === "lock" || intent === "lock") return "lock";
+  if (!params.gestureActive) return "cancel";
+  return intent === "cancel" ? "cancel-hint" : "pressing";
+}
+
 function recorderStateOf(mode: ComposerMode): RecorderState | null {
   switch (mode.kind) {
+    case "recording-starting":
     case "recording-pressing":
       return "pressing";
     case "cancel-hint":
@@ -85,14 +124,23 @@ export function MealComposer({
   // Timer interval ref so we can clear it on stop/cancel without keeping
   // stale closures.
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  // Pending hold-timer: cleared if user releases before 200ms threshold.
-  const holdTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Single source of truth for the current handle in JS callbacks. The mode
   // object also carries it, but a ref avoids stale closures inside the
   // gesture worklet → runOnJS bridge.
   const handleRef = useRef<RecorderHandle | null>(null);
-  // Set true once the 200ms hold fires (and beginRecording is called).
-  const holdFiredRef = useRef(false);
+  const modeRef = useRef<ComposerMode>({ kind: "idle" });
+  const mountedRef = useRef(true);
+  const startPendingRef = useRef(false);
+  const finishingRef = useRef(false);
+  const gestureActiveRef = useRef(false);
+  const pendingActionRef = useRef<PendingAction>(null);
+  const lastTranslationRef = useRef({ x: 0, y: 0 });
+  const gestureSessionRef = useRef(false);
+
+  const updateMode = useCallback((next: ComposerMode) => {
+    modeRef.current = next;
+    setMode(next);
+  }, []);
 
   // Spin animation for the processing state on the send button.
   useEffect(() => {
@@ -120,12 +168,13 @@ export function MealComposer({
 
   // Cleanup on unmount: if the screen leaves while recording, drop the file.
   useEffect(() => {
+    mountedRef.current = true;
     return () => {
+      mountedRef.current = false;
+      gestureActiveRef.current = false;
+      gestureSessionRef.current = false;
+      pendingActionRef.current = "cancel";
       stopTimer();
-      if (holdTimerRef.current) {
-        clearTimeout(holdTimerRef.current);
-        holdTimerRef.current = null;
-      }
       if (handleRef.current) {
         cancelRecording(handleRef.current).catch(() => {});
         handleRef.current = null;
@@ -133,16 +182,103 @@ export function MealComposer({
     };
   }, [stopTimer]);
 
+  const finishAndSend = useCallback(async () => {
+    const h = handleRef.current;
+    gestureActiveRef.current = false;
+    pendingActionRef.current = h ? null : startPendingRef.current ? "send" : null;
+    if (!h) {
+      stopTimer();
+      updateMode({ kind: "idle" });
+      setDurationMs(0);
+      meterLevel.value = -160;
+      return;
+    }
+    if (finishingRef.current) return;
+    finishingRef.current = true;
+    handleRef.current = null;
+    stopTimer();
+    updateMode({ kind: "idle" });
+    setDurationMs(0);
+    meterLevel.value = -160;
+    try {
+      const result = await stopRecording(h);
+      if (result.durationMs < MIN_RECORDING_MS) {
+        // Too short — silently drop. User likely tapped instead of held.
+        return;
+      }
+      onAudioReady({
+        fileUri: result.fileUri,
+        durationMs: result.durationMs,
+        ext: result.ext,
+      });
+    } catch {
+      // Recorder errors are non-fatal; UI returns to idle and user can retry.
+    } finally {
+      finishingRef.current = false;
+    }
+  }, [meterLevel, onAudioReady, stopTimer, updateMode]);
+
+  const finishAndCancel = useCallback(async () => {
+    const h = handleRef.current;
+    gestureActiveRef.current = false;
+    pendingActionRef.current = h ? null : startPendingRef.current ? "cancel" : null;
+    if (!h) {
+      stopTimer();
+      updateMode({ kind: "idle" });
+      setDurationMs(0);
+      meterLevel.value = -160;
+      return;
+    }
+    if (finishingRef.current) return;
+    finishingRef.current = true;
+    handleRef.current = null;
+    stopTimer();
+    updateMode({ kind: "idle" });
+    setDurationMs(0);
+    meterLevel.value = -160;
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
+    try {
+      await cancelRecording(h);
+    } finally {
+      finishingRef.current = false;
+    }
+  }, [meterLevel, stopTimer, updateMode]);
+
   const beginRecording = useCallback(async () => {
+    if (startPendingRef.current || handleRef.current || finishingRef.current) return;
+    startPendingRef.current = true;
     try {
       const h = await startRecording((level) => {
         meterLevel.value = level;
       });
+      startPendingRef.current = false;
       handleRef.current = h;
-      setMode(
-        Platform.OS === "web"
-          ? { kind: "recording-locked", handle: h }
-          : { kind: "recording-pressing", handle: h },
+
+      const pendingAction = pendingActionRef.current;
+      pendingActionRef.current = null;
+      const startAction = actionAfterRecordingStarts({
+        mounted: mountedRef.current,
+        gestureActive: gestureActiveRef.current,
+        pendingAction,
+        tx: lastTranslationRef.current.x,
+        ty: lastTranslationRef.current.y,
+        isWeb: Platform.OS === "web",
+      });
+      if (startAction === "cancel") {
+        await finishAndCancel();
+        return;
+      }
+      if (startAction === "send") {
+        await finishAndSend();
+        return;
+      }
+
+      updateMode(
+        startAction === "lock"
+          ? { kind: "recording-locked" }
+          : startAction === "cancel-hint"
+            ? { kind: "cancel-hint" }
+            : { kind: "recording-pressing" },
       );
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy).catch(() => {});
       setDurationMs(0);
@@ -150,12 +286,13 @@ export function MealComposer({
       timerRef.current = setInterval(() => {
         const elapsed = Date.now() - started;
         setDurationMs(elapsed);
-        if (elapsed >= MAX_RECORDING_MS) {
-          // Hard cap: force stop and ship.
-          finishAndSend();
-        }
+        if (elapsed >= MAX_RECORDING_MS) finishAndSend();
       }, 100);
     } catch (err) {
+      startPendingRef.current = false;
+      gestureActiveRef.current = false;
+      gestureSessionRef.current = false;
+      pendingActionRef.current = null;
       const code = (err as { code?: string } | null)?.code;
       if (code === "PERMISSION_DENIED") {
         if (Platform.OS === "web") {
@@ -179,134 +316,108 @@ export function MealComposer({
           "Este navegador não oferece uma opção compatível para gravar áudio.",
         );
       } else {
-        // Anything else (audio mode setup, prepareToRecord) — surface it so
-        // we don't fail silently like before.
         // eslint-disable-next-line no-console
         console.warn("[MealComposer] startRecording failed:", err);
       }
       handleRef.current = null;
-      setMode({ kind: "idle" });
+      updateMode({ kind: "idle" });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [meterLevel]);
-
-  const finishAndSend = useCallback(async () => {
-    const h = handleRef.current;
-    handleRef.current = null;
-    stopTimer();
-    setMode({ kind: "idle" });
-    if (!h) return;
-    try {
-      const result = await stopRecording(h);
-      if (result.durationMs < MIN_RECORDING_MS) {
-        // Too short — silently drop. User likely tapped instead of held.
-        return;
-      }
-      onAudioReady({
-        fileUri: result.fileUri,
-        durationMs: result.durationMs,
-        ext: result.ext,
-      });
-    } catch {
-      // Recorder errors are non-fatal; UI returns to idle and user can retry.
-    }
-  }, [onAudioReady, stopTimer]);
-
-  const finishAndCancel = useCallback(async () => {
-    const h = handleRef.current;
-    handleRef.current = null;
-    stopTimer();
-    setMode({ kind: "idle" });
-    if (!h) return;
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
-    await cancelRecording(h);
-  }, [stopTimer]);
+  }, [finishAndCancel, finishAndSend, meterLevel, updateMode]);
 
   // -- All gesture callbacks must be declared BEFORE `pan` --
 
-  const scheduleHoldCheck = useCallback(() => {
-    holdTimerRef.current = setTimeout(() => {
-      holdTimerRef.current = null;
-      holdFiredRef.current = true;
+  const startGestureRecording = useCallback(() => {
+    if (
+      disabled ||
+      processing ||
+      startPendingRef.current ||
+      handleRef.current ||
+      finishingRef.current
+    )
+      return;
+    gestureSessionRef.current = true;
+    gestureActiveRef.current = true;
+    pendingActionRef.current = null;
+    lastTranslationRef.current = { x: 0, y: 0 };
+    const startNow = () => {
+      updateMode({ kind: "recording-starting" });
       beginRecording();
-    }, HOLD_MS);
-  }, [beginRecording]);
+    };
+    startNow();
+  }, [beginRecording, disabled, processing, updateMode]);
 
-  const handlePanUpdate = useCallback((tx: number, ty: number) => {
-    if (!handleRef.current) return;
-    setMode((current) => {
-      if (current.kind === "recording-locked") return current;
+  const handlePanUpdate = useCallback(
+    (tx: number, ty: number) => {
+      lastTranslationRef.current = { x: tx, y: ty };
+      const h = handleRef.current;
+      if ((!h && !startPendingRef.current) || modeRef.current.kind === "recording-locked") return;
 
-      // Slide up beyond threshold → lock.
-      if (ty <= -LOCK_PX) {
-        const h = "handle" in current ? current.handle : handleRef.current!;
+      const intent = classifyAudioGesture(tx, ty);
+      if (intent === "lock") {
+        pendingActionRef.current = "lock";
+        updateMode({ kind: "recording-locked" });
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-        return { kind: "recording-locked", handle: h };
+        return;
       }
-
-      // Slide left beyond threshold → cancel-hint. Slide back → pressing.
-      const isCancelHint = current.kind === "cancel-hint";
-      if (tx <= -CANCEL_PX && !isCancelHint) {
-        const h = "handle" in current ? current.handle : handleRef.current!;
+      if (intent === "cancel" && modeRef.current.kind !== "cancel-hint") {
+        updateMode({ kind: "cancel-hint" });
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
-        return { kind: "cancel-hint", handle: h };
+        return;
       }
-      if (tx > -CANCEL_PX && isCancelHint) {
-        const h = "handle" in current ? current.handle : handleRef.current!;
-        return { kind: "recording-pressing", handle: h };
+      if (intent === "pressing" && modeRef.current.kind === "cancel-hint") {
+        updateMode({ kind: "recording-pressing" });
       }
-      return current;
-    });
-  }, []);
+    },
+    [updateMode],
+  );
 
-  const handlePanEnd = useCallback(() => {
-    // Cancel the pending hold timer if user released BEFORE 200ms — this is
-    // the tap-vs-hold disambiguation.
-    if (holdTimerRef.current) {
-      clearTimeout(holdTimerRef.current);
-      holdTimerRef.current = null;
-    }
-    // If hold never fired, there's nothing to stop. Bail.
-    if (!holdFiredRef.current) return;
-    holdFiredRef.current = false;
+  const handlePanFinalize = useCallback(
+    (success: boolean, tx: number, ty: number) => {
+      gestureActiveRef.current = false;
+      lastTranslationRef.current = { x: tx, y: ty };
+      if (!gestureSessionRef.current) return;
+      gestureSessionRef.current = false;
 
-    setMode((current) => {
-      switch (current.kind) {
-        case "recording-pressing":
-          finishAndSend();
-          return current;
-        case "cancel-hint":
-          finishAndCancel();
-          return current;
-        case "recording-locked":
-          // Locked: ignore release entirely. Stop/cancel comes from taps.
-          return current;
-        case "idle":
-        default:
-          return current;
+      if (!success) {
+        finishAndCancel();
+        return;
       }
-    });
-  }, [finishAndCancel, finishAndSend]);
+      const intent = classifyAudioGesture(tx, ty);
+      if (modeRef.current.kind === "recording-locked" || intent === "lock") {
+        const h = handleRef.current;
+        if (h) {
+          pendingActionRef.current = null;
+          if (modeRef.current.kind !== "recording-locked") {
+            updateMode({ kind: "recording-locked" });
+          }
+        } else {
+          pendingActionRef.current = "lock";
+        }
+        return;
+      }
+      if (intent === "cancel") finishAndCancel();
+      else finishAndSend();
+    },
+    [finishAndCancel, finishAndSend, updateMode],
+  );
 
-  // Pan gesture lives on the mic button. minDistance(0) forces the gesture
-  // to activate on touch-down — without it, iOS' default Pan threshold means
-  // a static hold never fires `onBegin`/`onUpdate`. The mic button isn't
+  // Pan gesture lives on the mic button. minDistance(0) activates it on
+  // touch-down so recording starts without an artificial hold delay. The
+  // mic button isn't
   // inside a scroll surface, so eager activation doesn't conflict with the
   // FlatList above it.
   const pan = Gesture.Pan()
     .minDistance(0)
     .onBegin(() => {
-      runOnJS(scheduleHoldCheck)();
+      runOnJS(startGestureRecording)();
     })
     .onUpdate((e) => {
       runOnJS(handlePanUpdate)(e.translationX, e.translationY);
     })
-    .onEnd(() => {
-      runOnJS(handlePanEnd)();
+    .onFinalize((e, success) => {
+      runOnJS(handlePanFinalize)(success, e.translationX, e.translationY);
     })
-    .onFinalize(() => {
-      runOnJS(handlePanEnd)();
-    });
+    .withTestId("meal-audio-pan");
 
   // Plain Pressable handlers for the typing path (send button).
   const handleSendText = () => {
@@ -341,6 +452,7 @@ export function MealComposer({
   })();
 
   const micAccessibilityLabel = (() => {
+    if (mode.kind === "recording-starting") return "Soltar para enviar gravação";
     if (mode.kind === "recording-pressing") return "Soltar para enviar gravação";
     if (mode.kind === "cancel-hint") return "Soltar para cancelar gravação";
     if (mode.kind === "recording-locked") return "Parar gravação";
@@ -366,7 +478,11 @@ export function MealComposer({
       )}
 
       <RecorderLockHint
-        visible={mode.kind === "recording-pressing" || mode.kind === "cancel-hint"}
+        visible={
+          mode.kind === "recording-starting" ||
+          mode.kind === "recording-pressing" ||
+          mode.kind === "cancel-hint"
+        }
       />
 
       <View style={{ paddingBottom: bottomPad }} className="px-4 pt-3">
