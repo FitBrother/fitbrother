@@ -9,6 +9,7 @@ import { defaultConsumedAtForDay } from "@/lib/dateMath";
 import { newClientMealId, useCreateMealText } from "@/lib/hooks/useCreateMealText";
 import { useCreateMealAudio } from "@/lib/hooks/useCreateMealAudio";
 import { uploadMealAudio } from "@/lib/storage";
+import type { AudioExtension } from "@/lib/audio/recorder";
 import { useAuthSession } from "@/lib/hooks/useAuthSession";
 import { QuotaExceededError, getErrorStatus } from "@/lib/api/meals";
 import { colors } from "@/lib/colors";
@@ -77,7 +78,7 @@ export default function BackfillScreen() {
   );
 
   const handleAudioReady = useCallback(
-    async (params: { fileUri: string; durationMs: number; ext: "m4a" | "opus" }) => {
+    async (params: { fileUri: string; durationMs: number; ext: AudioExtension }) => {
       if (!userId || !day) return;
       setBanner(null);
       const client_meal_id = newClientMealId();

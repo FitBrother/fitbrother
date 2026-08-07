@@ -9,3 +9,7 @@ export const POLICY_VERSION = "v1.0";
 /** Fetch timeout for backend calls — keeps the UI from hanging forever on a
     silent network drop. */
 export const API_TIMEOUT_MS = 10_000;
+
+/** AI-backed meal pipelines can legitimately outlive the default request
+    timeout while the provider analyzes audio or an image. */
+export const AI_API_TIMEOUT_MS = 60_000;

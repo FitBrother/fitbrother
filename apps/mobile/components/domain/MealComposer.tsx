@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Alert, Linking, Pressable, TextInput, View } from "react-native";
+import { Alert, Linking, Platform, Pressable, TextInput, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   Easing,
@@ -19,6 +19,7 @@ import {
   cancelRecording,
   startRecording,
   stopRecording,
+  type AudioExtension,
   type RecorderHandle,
 } from "@/lib/audio/recorder";
 import { MealRecorder, type RecorderState } from "./MealRecorder";
@@ -26,7 +27,7 @@ import { RecorderLockHint } from "./RecorderLockHint";
 
 type Props = {
   onSend: (text: string) => void;
-  onAudioReady: (params: { fileUri: string; durationMs: number; ext: "m4a" | "opus" }) => void;
+  onAudioReady: (params: { fileUri: string; durationMs: number; ext: AudioExtension }) => void;
   onPhotoPress?: () => void;
   onScanPress?: () => void;
   disabled?: boolean;
@@ -138,7 +139,11 @@ export function MealComposer({
         meterLevel.value = level;
       });
       handleRef.current = h;
-      setMode({ kind: "recording-pressing", handle: h });
+      setMode(
+        Platform.OS === "web"
+          ? { kind: "recording-locked", handle: h }
+          : { kind: "recording-pressing", handle: h },
+      );
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy).catch(() => {});
       setDurationMs(0);
       const started = Date.now();
@@ -153,13 +158,25 @@ export function MealComposer({
     } catch (err) {
       const code = (err as { code?: string } | null)?.code;
       if (code === "PERMISSION_DENIED") {
+        if (Platform.OS === "web") {
+          Alert.alert(
+            "Microfone bloqueado",
+            "Permita o uso do microfone nas configurações deste site e recarregue a página.",
+          );
+        } else {
+          Alert.alert(
+            "Microfone bloqueado",
+            "Habilite o microfone nas configurações pra gravar refeições.",
+            [
+              { text: "Cancelar", style: "cancel" },
+              { text: "Abrir Configurações", onPress: () => Linking.openSettings() },
+            ],
+          );
+        }
+      } else if (code === "RECORDING_UNSUPPORTED") {
         Alert.alert(
-          "Microfone bloqueado",
-          "Habilite o microfone nas configurações pra gravar refeições.",
-          [
-            { text: "Cancelar", style: "cancel" },
-            { text: "Abrir Configurações", onPress: () => Linking.openSettings() },
-          ],
+          "Gravação indisponível",
+          "Este navegador não oferece uma opção compatível para gravar áudio.",
         );
       } else {
         // Anything else (audio mode setup, prepareToRecord) — surface it so
@@ -328,7 +345,7 @@ export function MealComposer({
     if (mode.kind === "cancel-hint") return "Soltar para cancelar gravação";
     if (mode.kind === "recording-locked") return "Parar gravação";
     if (hasText) return "Enviar refeição";
-    return "Gravar áudio — segure";
+    return Platform.OS === "web" ? "Gravar áudio" : "Gravar áudio — segure";
   })();
 
   return (
@@ -439,6 +456,20 @@ export function MealComposer({
               accessibilityRole="button"
               style={shadows.floating}
               className="h-16 w-16 items-center justify-center rounded-full bg-danger-500 active:bg-danger-600"
+            >
+              {micIcon}
+            </Pressable>
+          ) : Platform.OS === "web" ? (
+            <Pressable
+              onPress={beginRecording}
+              accessibilityLabel={micAccessibilityLabel}
+              accessibilityRole="button"
+              disabled={disabled || processing}
+              style={shadows.floating}
+              className={[
+                "h-16 w-16 items-center justify-center rounded-full",
+                disabled || processing ? "bg-neutral-200" : "bg-primary-400 active:bg-primary-500",
+              ].join(" ")}
             >
               {micIcon}
             </Pressable>

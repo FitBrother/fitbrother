@@ -1,4 +1,5 @@
 import { Platform } from "react-native";
+import type { AudioExtension } from "./audio/recorder";
 import { supabase } from "./supabase";
 
 const AUDIO_BUCKET = "meal-audios";
@@ -46,20 +47,34 @@ export async function uploadMealAudio(params: {
   userId: string;
   mealId: string;
   fileUri: string;
-  ext: "m4a" | "opus";
+  ext: AudioExtension;
 }): Promise<{ path: string }> {
   const path = `${params.userId}/${params.mealId}.${params.ext}`;
-  const contentType = params.ext === "m4a" ? "audio/mp4" : "audio/ogg";
+  const contentType =
+    params.ext === "m4a" ? "audio/mp4" : params.ext === "webm" ? "audio/webm" : "audio/ogg";
+
+  if (Platform.OS === "web") {
+    try {
+      const response = await fetch(params.fileUri);
+      if (!response.ok) throw new Error("audio_read_failed");
+      const blob = await response.blob();
+      if (blob.size === 0) throw new Error("empty_audio_file");
+      const { error } = await supabase.storage
+        .from(AUDIO_BUCKET)
+        .upload(path, blob, { contentType, upsert: false });
+      if (error) throw error;
+      return { path };
+    } finally {
+      if (params.fileUri.startsWith("blob:")) URL.revokeObjectURL(params.fileUri);
+    }
+  }
 
   const formData = new FormData();
   formData.append("file", {
     uri: params.fileUri,
     name: `${params.mealId}.${params.ext}`,
     type: contentType,
-    // RN's FormData accepts this object shape; the official types don't
-    // model it, so we cast at the boundary.
   } as unknown as Blob);
-
   const { error } = await supabase.storage
     .from(AUDIO_BUCKET)
     .upload(path, formData, { contentType, upsert: false });

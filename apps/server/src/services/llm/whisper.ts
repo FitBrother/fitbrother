@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import { env } from "../../lib/env.js";
+import { mimeForAudioExtension, type AudioExtension } from "../audio-format.js";
 
 /**
  * OpenAI Whisper-1 wrapper.
@@ -54,7 +55,7 @@ export type TranscribeResult = {
 
 export async function transcribe(params: {
   audioBuffer: ArrayBuffer;
-  ext: "m4a" | "opus";
+  ext: AudioExtension;
   durationS: number;
   language?: string;
 }): Promise<TranscribeResult> {
@@ -64,7 +65,7 @@ export async function transcribe(params: {
   // globally. We need a filename with the right extension so OpenAI
   // identifies the codec.
   const blob = new Blob([params.audioBuffer], {
-    type: params.ext === "m4a" ? "audio/mp4" : "audio/ogg",
+    type: mimeForAudioExtension(params.ext),
   });
   const file = new File([blob], `audio.${params.ext}`, { type: blob.type });
 

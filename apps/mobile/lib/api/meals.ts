@@ -1,5 +1,6 @@
 import type { MealResponse, PatchMealRequest } from "@fitbrother/shared";
 import { authedFetch } from "@/lib/api";
+import { AI_API_TIMEOUT_MS } from "@/lib/constants";
 
 export class QuotaExceededError extends Error {
   code = "AI_QUOTA_EXCEEDED" as const;
@@ -66,6 +67,7 @@ export async function createMealAudio(input: {
   const res = await authedFetch("/meals/audio", {
     method: "POST",
     body: JSON.stringify(input),
+    timeoutMs: AI_API_TIMEOUT_MS,
   });
   return (await parseOrThrow(res)) as {
     meal: MealResponse;
@@ -84,6 +86,7 @@ export async function createMealPhoto(input: {
   const res = await authedFetch("/meals/photo", {
     method: "POST",
     body: JSON.stringify(input),
+    timeoutMs: AI_API_TIMEOUT_MS,
   });
   return (await parseOrThrow(res)) as {
     meal: MealResponse;

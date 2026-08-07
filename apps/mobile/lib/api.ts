@@ -14,26 +14,29 @@ export class AccountDeletionPendingError extends Error {
   }
 }
 
-export async function authedFetch(path: string, init: RequestInit = {}): Promise<Response> {
+type AuthedFetchInit = RequestInit & { timeoutMs?: number };
+
+export async function authedFetch(path: string, init: AuthedFetchInit = {}): Promise<Response> {
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token;
   if (!token) throw new Error("not_authenticated");
 
+  const { timeoutMs = API_TIMEOUT_MS, ...fetchInit } = init;
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
     // Only attach Content-Type when there's actually a body. Fastify rejects
     // bodiless requests (e.g. DELETE, GET) that carry application/json with
     // "FST_ERR_CTP_EMPTY_JSON_BODY".
     const headers: Record<string, string> = {
-      ...((init.headers as Record<string, string> | undefined) ?? {}),
+      ...((fetchInit.headers as Record<string, string> | undefined) ?? {}),
       Authorization: `Bearer ${token}`,
     };
-    if (init.body != null) headers["Content-Type"] = "application/json";
+    if (fetchInit.body != null) headers["Content-Type"] = "application/json";
 
     const res = await fetch(`${API_BASE_URL}${path}`, {
-      ...init,
+      ...fetchInit,
       headers,
       signal: controller.signal,
     });
