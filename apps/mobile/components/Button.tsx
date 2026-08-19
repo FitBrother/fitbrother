@@ -5,7 +5,7 @@ import { colors } from "@/lib/colors";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type ButtonVariant = "primary" | "dark" | "outline" | "ghost";
+type ButtonVariant = "primary" | "dark" | "outline" | "ghost" | "danger";
 type ButtonSize = "sm" | "md" | "lg";
 
 interface ButtonProps extends Omit<PressableProps, "style"> {
@@ -28,6 +28,7 @@ const containerStyles: Record<ButtonVariant, string> = {
   dark: "bg-neutral-900 border-transparent active:bg-neutral-700",
   outline: "bg-transparent border border-neutral-200 active:bg-neutral-100",
   ghost: "bg-transparent border-transparent active:bg-neutral-100",
+  danger: "bg-danger-500 border-transparent active:bg-danger-600",
 };
 
 const containerDisabledStyles: Record<ButtonVariant, string> = {
@@ -35,6 +36,7 @@ const containerDisabledStyles: Record<ButtonVariant, string> = {
   dark: "bg-neutral-400 border-transparent",
   outline: "bg-transparent border border-neutral-200 opacity-50",
   ghost: "bg-transparent border-transparent opacity-50",
+  danger: "bg-danger-500 border-transparent opacity-50",
 };
 
 const labelStyles: Record<ButtonVariant, string> = {
@@ -42,6 +44,7 @@ const labelStyles: Record<ButtonVariant, string> = {
   dark: "text-white",
   outline: "text-neutral-800",
   ghost: "text-primary-400",
+  danger: "text-white",
 };
 
 const sizeContainerStyles: Record<ButtonSize, string> = {
