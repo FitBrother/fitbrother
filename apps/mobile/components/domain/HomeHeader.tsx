@@ -1,5 +1,5 @@
 import { Pressable, Text, View } from "react-native";
-import { Calendar, Rss, Search, Sparkles, User, Users } from "lucide-react-native";
+import { Rss, Search, User } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { colors } from "@/lib/colors";
 import { useStreak } from "@/lib/hooks/useStreak";
@@ -27,14 +27,6 @@ export function HomeHeader({ name, softMode = false }: { name: string; softMode?
           <StreakCounter current={streakView.streak.current_streak} atRisk={streakView.atRisk} />
         ) : null}
         <Pressable
-          onPress={() => router.push("/(app)/history")}
-          accessibilityLabel="Histórico"
-          accessibilityRole="button"
-          className="min-h-[44px] min-w-[44px] items-center justify-center rounded-full"
-        >
-          <Calendar size={22} color={colors.neutral[800]} />
-        </Pressable>
-        <Pressable
           onPress={() => router.push("/(app)/feed" as never)}
           accessibilityLabel="Feed"
           accessibilityRole="button"
@@ -43,28 +35,12 @@ export function HomeHeader({ name, softMode = false }: { name: string; softMode?
           <Rss size={22} color={colors.neutral[800]} />
         </Pressable>
         <Pressable
-          onPress={() => router.push("/(app)/insights" as never)}
-          accessibilityLabel="Análises"
-          accessibilityRole="button"
-          className="min-h-[44px] min-w-[44px] items-center justify-center rounded-full"
-        >
-          <Sparkles size={22} color={colors.neutral[800]} />
-        </Pressable>
-        <Pressable
           onPress={() => router.push("/(app)/users/search" as never)}
           accessibilityLabel="Buscar pessoas"
           accessibilityRole="button"
           className="min-h-[44px] min-w-[44px] items-center justify-center rounded-full"
         >
           <Search size={22} color={colors.neutral[800]} />
-        </Pressable>
-        <Pressable
-          onPress={() => router.push("/(app)/friends")}
-          accessibilityLabel="Amigos"
-          accessibilityRole="button"
-          className="min-h-[44px] min-w-[44px] items-center justify-center rounded-full"
-        >
-          <Users size={22} color={colors.neutral[800]} />
         </Pressable>
         <Pressable
           onPress={() => router.push("/(app)/profile")}
