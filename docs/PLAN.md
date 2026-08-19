@@ -559,6 +559,51 @@ deliberadamente deferido e não bloqueia o início do M10.
 
 **Feito quando:** usuário abre Perfil real, edita timezone/day_start_hour, gerencia consentimento, dispara export e delete pela UI, e acessa Sobre.
 
+**Status M10 (Perfil completo + menus internos):** ✅ implementado em
+2026-08-19 na branch `worktree-m10-profile-settings`. Zero schema/migration
+novo — o contrato do M6 (`apps/server/src/routes/account.ts`) já cobria
+tudo.
+
+- `apps/mobile/lib/api/account.ts` novo (mesmo padrão de `lib/api/me.ts`) +
+  hooks `useAccountProfile`/`usePatchAccountSettings`/
+  `usePostAccountConsent`/`useDeleteAccount`.
+- `profile.tsx` reescrito: dados reais via `GET /account/profile` (hook
+  separado de `useProfile()`, shapes divergentes), avatar resolvido
+  client-side com `createSignedUrl` (bucket `post-images` é privado,
+  owner-only), 5 atalhos (Conquistas/Amigos/Análises/Histórico/
+  Configurações). `HomeHeader` perdeu os 3 ícones que migraram pra lá —
+  mantém só Feed/Buscar pessoas/Perfil.
+- `app/(app)/settings/index.tsx`: `day_start_hour` (mesmo padrão do
+  onboarding, `clampHour`), `timezone` por redetecção (sem seletor manual
+  — app é Brasil-only), consentimentos (`terms`/`privacy`/`ai_processing`
+  como linha fixa não-revogável, `marketing`/`data_export` como switch
+  real).
+- `settings/privacy.tsx`: exportar dados baixa o ZIP
+  (`expo-file-system/legacy` — a v19/SDK 54 moveu `downloadAsync` pro
+  subpath `/legacy`, a API nova é baseada em classes `File`/`Directory`) e
+  abre o share sheet nativo; excluir conta via `Alert.alert` (padrão já
+  usado em `meal/[id]`), sem fricção extra de digitar texto.
+- `settings/about.tsx`: versão via `Constants.expoConfig.version`; URLs de
+  Termos/Privacidade são placeholder (`lib/constants.ts`, comentado —
+  ainda não existe URL real publicada, item de Ops do M6).
+- `Button.tsx` ganhou a variante `danger` (só existiam
+  `primary/dark/outline/ghost`).
+- Verificado: typecheck/lint do monorepo inteiro passam. Smoke test HTTP
+  real (Supabase Auth real) cobrindo os 7 endpoints de `/account/*`,
+  incluindo `GET /account/export` baixando um ZIP de verdade (12 arquivos,
+  `unzip -l` confirmado) e — pela primeira vez neste projeto — o ciclo
+  completo `DELETE /account` → `GET /account/profile` (401
+  `account_deletion_pending`) → login de novo → `GET /account/deletion`
+  (`pending: true`) → `POST /account/deletion/cancel` → `GET
+  /account/profile` (dados intactos, incluindo o `day_start_hour` mudado
+  antes da exclusão).
+- **Não verificado nesta fatia:** walkthrough visual via Expo/browser — o
+  gap pré-existente do Metro bundler com `@fitbrother/shared` (sinalizado
+  no M16) segue bloqueando qualquer preview web; sem device físico
+  disponível nesta sessão pra testar nativo.
+
+**M10 concluído.**
+
 ---
 
 ## M11 — Aprimorar onboarding (SUPERADO — ver Fase 4)
