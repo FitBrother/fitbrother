@@ -559,6 +559,23 @@ deliberadamente deferido e não bloqueia o início do M10.
 
 **Feito quando:** usuário abre Perfil real, edita timezone/day_start_hour, gerencia consentimento, dispara export e delete pela UI, e acessa Sobre.
 
+**Status M10 (Perfil completo + menus internos):** ✅ implementado em
+2026-07-31, mergeado em `main` via PR #31 (`feat/m10-perfilcompleto-menusinternos`,
+Samuel Solano Neres) + fixes de acompanhamento em #32-#34 (seletores web,
+navegação, upload, áudio/Android). Escopo cobre `profile.tsx`,
+`settings.tsx`, `privacy.tsx`, `about.tsx`, `delete-account.tsx`,
+`account-reactivation.tsx`, `lib/api/account.ts`, além de ajustes em
+sign-in/sign-up/OAuth e testes Jest novos (`jest.config.js` — primeira
+suíte de testes do app mobile).
+
+Esta implementação foi feita em paralelo a um brainstorm/spec/plano
+próprios desta sessão (`docs/superpowers/specs/2026-07-30-m10-profile-settings-design.md`,
+`docs/superpowers/plans/2026-07-30-m10-profile-settings.md`, PR #35) — as
+duas divergem estruturalmente. Como #31 chegou em `main` primeiro, o PR
+#35 foi fechado sem merge; a implementação de #31 é a fonte de verdade.
+Spec/plano desta sessão ficam só como registro histórico do design
+considerado, não como documentação do que está de fato em produção.
+
 ---
 
 ## M11 — Aprimorar onboarding (SUPERADO — ver Fase 4)
