@@ -1,5 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Keyboard, Platform, Pressable, RefreshControl } from "react-native";
+import {
+  ActivityIndicator,
+  Keyboard,
+  Platform,
+  Pressable,
+  RefreshControl,
+  useWindowDimensions,
+  View,
+} from "react-native";
 import Animated, {
   Easing,
   LinearTransition,
@@ -58,6 +66,8 @@ export default function HomeScreen() {
   useMealsRealtime(userId, day);
   const deleteMeal = useDeleteMeal();
   const [banner, setBanner] = useState<ErrorBannerVariant | null>(null);
+  const { width } = useWindowDimensions();
+  const isDesktop = width >= 1024;
 
   const items = (mealsQuery.data ?? []) as OptimisticMeal[];
 
@@ -244,6 +254,57 @@ export default function HomeScreen() {
     // recreated at day rollover — FlatList compares by data reference anyway.
     [router, handleDelete],
   );
+
+  if (isDesktop) {
+    return (
+      <SafeAreaView className="flex-1 bg-neutral-50" edges={["top", "left", "right"]}>
+        <HomeHeader name={profile.full_name} softMode={profile.soft_mode} />
+        {banner && <ErrorBanner variant={banner} onDismiss={() => setBanner(null)} />}
+        <View className="mx-auto w-full max-w-[1120px] flex-1 flex-row gap-6 px-6">
+          <View className="w-[440px] shrink-0 gap-4 pt-4">
+            <TodaySummaryHeader summary={summaryQuery.data} softMode={profile.soft_mode} />
+            <MealComposer
+              onSend={handleSend}
+              onAudioReady={handleAudioReady}
+              onPhotoPress={handlePhotoPress}
+              onScanPress={() => router.push("/(app)/scan" as never)}
+              disabled={banner === "quota_exceeded"}
+              processing={
+                createMeal.isPending || createMealAudio.isPending || createMealPhoto.isPending
+              }
+            />
+          </View>
+          <View className="flex-1">
+            {mealsQuery.isLoading ? (
+              <View className="flex-1 items-center justify-center">
+                <ActivityIndicator color={colors.primary[400]} />
+              </View>
+            ) : items.length === 0 ? (
+              <EmptyMealsState />
+            ) : (
+              <Animated.FlatList
+                data={items}
+                keyExtractor={(m) => (m as OptimisticMeal).id}
+                renderItem={renderItem as never}
+                contentContainerStyle={{ paddingBottom: 40 }}
+                itemLayoutAnimation={LinearTransition.springify().damping(20).stiffness(180)}
+                refreshControl={
+                  <RefreshControl
+                    refreshing={mealsQuery.isRefetching || summaryQuery.isRefetching}
+                    onRefresh={() => {
+                      void mealsQuery.refetch();
+                      void summaryQuery.refetch();
+                    }}
+                    tintColor={colors.primary[400]}
+                  />
+                }
+              />
+            )}
+          </View>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView className="flex-1 bg-neutral-50" edges={["top", "left", "right"]}>

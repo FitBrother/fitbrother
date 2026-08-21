@@ -442,13 +442,13 @@ export function MealComposer({
     if (processing)
       return (
         <Animated.View style={spinStyle}>
-          <Loader2 size={22} color="#FFFFFF" />
+          <Loader2 size={22} color={colors.white} />
         </Animated.View>
       );
     if (mode.kind === "recording-locked")
-      return <Square size={20} color="#FFFFFF" fill="#FFFFFF" />;
-    if (hasText && !isRecording) return <Send size={22} color="#FFFFFF" />;
-    return <Mic size={22} color="#FFFFFF" />;
+      return <Square size={20} color={colors.white} fill={colors.white} />;
+    if (hasText && !isRecording) return <Send size={22} color={colors.white} />;
+    return <Mic size={22} color={colors.white} />;
   })();
 
   const micAccessibilityLabel = (() => {
@@ -512,7 +512,12 @@ export function MealComposer({
                 maxLength={2000}
                 editable={!disabled && !processing}
                 textAlignVertical="center"
-                style={{ paddingTop: 0, paddingBottom: 0, includeFontPadding: false }}
+                style={{
+                  paddingTop: 0,
+                  paddingBottom: 0,
+                  includeFontPadding: false,
+                  ...(Platform.OS === "web" ? { resize: "none" } : null),
+                }}
                 className="max-h-40 text-base font-sans text-neutral-800"
               />
             </View>
