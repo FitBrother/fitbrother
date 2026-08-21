@@ -152,7 +152,7 @@ export default function ScanConfirmScreen() {
   if (!product) return null;
 
   return (
-    <View className="flex-1 bg-neutral-50">
+    <View className="flex-1 bg-neutral-50 md:mx-auto md:w-full md:max-w-[640px]">
       <View
         style={{ paddingTop: insets.top }}
         className="px-4 pb-2 flex-row items-center border-b border-neutral-200 bg-white"

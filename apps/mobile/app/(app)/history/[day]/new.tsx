@@ -138,7 +138,7 @@ export default function BackfillScreen() {
   const processing = createMeal.isPending || createMealAudio.isPending;
 
   return (
-    <View className="bg-neutral-50">
+    <View className="bg-neutral-50 md:mx-auto md:w-full md:max-w-[640px]">
       <View className="flex-row items-center px-4 py-2">
         <Pressable
           onPress={() => router.back()}

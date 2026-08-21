@@ -40,7 +40,10 @@ export default function HistoryDayScreen() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-neutral-50" edges={["top", "left", "right"]}>
+    <SafeAreaView
+      className="flex-1 bg-neutral-50 md:mx-auto md:w-full md:max-w-[640px]"
+      edges={["top", "left", "right"]}
+    >
       <View className="flex-row items-center px-4 py-2">
         <Pressable
           onPress={() => router.back()}
@@ -66,7 +69,7 @@ export default function HistoryDayScreen() {
             accessibilityRole="button"
             className="min-h-[44px] min-w-[44px] flex-row items-center gap-1 rounded-full bg-primary-500 px-3"
           >
-            <Plus size={16} color="#ffffff" />
+            <Plus size={16} color={colors.white} />
             <Text className="text-xs font-sans-semibold text-white">Registrar</Text>
           </Pressable>
         )}

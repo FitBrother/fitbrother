@@ -21,7 +21,7 @@ export default function InsightsScreen() {
   const q = useInsights(period);
 
   return (
-    <SafeAreaView className="flex-1 bg-neutral-50">
+    <SafeAreaView className="flex-1 bg-neutral-50 md:mx-auto md:w-full md:max-w-[640px]">
       <View className="flex-row items-center px-4 py-2">
         <Pressable
           onPress={() => backOrHome(router)}

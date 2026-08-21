@@ -206,7 +206,10 @@ export function EditMealModal({ meal, day }: Props) {
   const isSaving = update.isPending || remove.isPending;
 
   return (
-    <SafeAreaView className="flex-1 bg-neutral-50" edges={["top", "left", "right"]}>
+    <SafeAreaView
+      className="flex-1 bg-neutral-50 md:mx-auto md:w-full md:max-w-[640px]"
+      edges={["top", "left", "right"]}
+    >
       <View className="flex-row items-center justify-between px-4 py-2">
         <Pressable
           onPress={handleClose}

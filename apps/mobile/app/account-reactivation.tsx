@@ -54,7 +54,7 @@ export default function AccountReactivationScreen() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-canvas px-5">
+    <SafeAreaView className="flex-1 bg-canvas px-5 md:mx-auto md:w-full md:max-w-[640px]">
       <View className="flex-1 justify-center">
         <Text className="font-display-bold text-3xl text-neutral-900">
           Sua conta está em exclusão
