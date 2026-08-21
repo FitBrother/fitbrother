@@ -1,4 +1,4 @@
-import { Pressable, Text, View } from "react-native";
+import { Pressable, ScrollView, Text, View } from "react-native";
 import { Calendar, Rss, Search, Sparkles, User, Users } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { colors } from "@/lib/colors";
@@ -18,11 +18,20 @@ export function HomeHeader({ name, softMode = false }: { name: string; softMode?
   const { data: streakView } = useStreak();
   return (
     <View className="flex-row items-center justify-between px-4 pt-2 pb-3">
-      <View className="flex-1">
-        <Text className="text-sm font-sans text-neutral-500">{greetingFor(new Date())},</Text>
-        <Text className="text-2xl font-display-bold text-neutral-800">{firstName}</Text>
+      <View className="min-w-[88px] shrink">
+        <Text numberOfLines={1} className="text-sm font-sans text-neutral-500">
+          {greetingFor(new Date())},
+        </Text>
+        <Text numberOfLines={1} className="text-2xl font-display-bold text-neutral-800">
+          {firstName}
+        </Text>
       </View>
-      <View className="flex-row items-center gap-2">
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerClassName="flex-row items-center gap-2"
+        className="ml-2 shrink-0 md:hidden"
+      >
         {!softMode && streakView ? (
           <StreakCounter current={streakView.streak.current_streak} atRisk={streakView.atRisk} />
         ) : null}
@@ -74,7 +83,7 @@ export function HomeHeader({ name, softMode = false }: { name: string; softMode?
         >
           <User size={22} color={colors.neutral[800]} />
         </Pressable>
-      </View>
+      </ScrollView>
     </View>
   );
 }

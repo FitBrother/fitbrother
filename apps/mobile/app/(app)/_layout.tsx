@@ -1,6 +1,7 @@
 import { Redirect, Stack, useRouter } from "expo-router";
 import { useEffect } from "react";
 import { ActivityIndicator, View } from "react-native";
+import { Sidebar } from "@/components/layout/Sidebar";
 import { supabase } from "@/lib/supabase";
 import { ProfileProvider, useProfileState } from "@/lib/profile/profile-context";
 import { useAuthSession } from "@/lib/hooks/useAuthSession";
@@ -51,19 +52,24 @@ function GuardedStack() {
   }
 
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="meal/[id]/edit" options={{ presentation: "modal" }} />
-      <Stack.Screen
-        name="history/[day]/new"
-        options={{
-          presentation: "formSheet",
-          sheetAllowedDetents: "fitToContents",
-          sheetCornerRadius: 24,
-          contentStyle: { backgroundColor: SHEET_BG },
-          gestureEnabled: false,
-        }}
-      />
-    </Stack>
+    <View className="flex-1 md:flex-row">
+      <Sidebar />
+      <View className="flex-1">
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="meal/[id]/edit" options={{ presentation: "modal" }} />
+          <Stack.Screen
+            name="history/[day]/new"
+            options={{
+              presentation: "formSheet",
+              sheetAllowedDetents: "fitToContents",
+              sheetCornerRadius: 24,
+              contentStyle: { backgroundColor: SHEET_BG },
+              gestureEnabled: false,
+            }}
+          />
+        </Stack>
+      </View>
+    </View>
   );
 }
 
