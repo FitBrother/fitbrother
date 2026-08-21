@@ -1,5 +1,12 @@
 import { useMemo } from "react";
-import { ActivityIndicator, FlatList, Pressable, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  FlatList,
+  Pressable,
+  Text,
+  useWindowDimensions,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ChevronLeft } from "lucide-react-native";
 import { useRouter } from "expo-router";
@@ -44,6 +51,8 @@ export default function HistoryScreen() {
   // além disso — sem cards motivacionais infinitos antes do signup.
   const cutoff = nutritionalDay(new Date(profile.created_at), profile);
   const query = useDailySummaries(today, cutoff);
+  const { width } = useWindowDimensions();
+  const numColumns = width >= 1280 ? 3 : width >= 768 ? 2 : 1;
 
   const entries = useMemo<DayEntry[]>(() => {
     if (!query.data) return [];
@@ -71,31 +80,37 @@ export default function HistoryScreen() {
           <ActivityIndicator size="large" color={colors.primary[400]} />
         </View>
       ) : (
-        <FlatList
-          data={entries}
-          keyExtractor={(e) => e.day}
-          renderItem={({ item }) =>
-            item.type === "filled" ? (
-              <HistoryDayCard summary={item.summary} softMode={profile.soft_mode} />
-            ) : (
-              <HistoryEmptyDayCard day={item.day} />
-            )
-          }
-          contentContainerStyle={{ paddingBottom: 24 }}
-          onEndReached={() => {
-            if (query.hasNextPage && !query.isFetchingNextPage) {
-              void query.fetchNextPage();
-            }
-          }}
-          onEndReachedThreshold={0.5}
-          ListFooterComponent={
-            query.isFetchingNextPage ? (
-              <View className="py-4">
-                <ActivityIndicator color={colors.primary[400]} />
+        <View className="mx-auto w-full flex-1 md:max-w-[1100px]">
+          <FlatList
+            key={numColumns}
+            data={entries}
+            numColumns={numColumns}
+            keyExtractor={(e) => e.day}
+            renderItem={({ item }) => (
+              <View className="flex-1">
+                {item.type === "filled" ? (
+                  <HistoryDayCard summary={item.summary} softMode={profile.soft_mode} />
+                ) : (
+                  <HistoryEmptyDayCard day={item.day} />
+                )}
               </View>
-            ) : null
-          }
-        />
+            )}
+            contentContainerStyle={{ paddingBottom: 24 }}
+            onEndReached={() => {
+              if (query.hasNextPage && !query.isFetchingNextPage) {
+                void query.fetchNextPage();
+              }
+            }}
+            onEndReachedThreshold={0.5}
+            ListFooterComponent={
+              query.isFetchingNextPage ? (
+                <View className="py-4">
+                  <ActivityIndicator color={colors.primary[400]} />
+                </View>
+              ) : null
+            }
+          />
+        </View>
       )}
     </SafeAreaView>
   );
