@@ -1,4 +1,11 @@
-import { ActivityIndicator, FlatList, Pressable, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  FlatList,
+  Pressable,
+  Text,
+  useWindowDimensions,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { ChevronLeft } from "lucide-react-native";
@@ -15,6 +22,8 @@ export default function FeedScreen() {
   const session = useAuthSession();
   const userId = session.status === "signed_in" ? session.session.user.id : undefined;
   usePostsRealtime(userId);
+  const { width } = useWindowDimensions();
+  const numColumns = width >= 768 ? 2 : 1;
 
   return (
     <SafeAreaView className="flex-1 bg-neutral-50">
@@ -35,24 +44,33 @@ export default function FeedScreen() {
           <ActivityIndicator color={colors.primary[400]} />
         </View>
       ) : (
-        <FlatList
-          data={feed.data ?? []}
-          keyExtractor={(post) => post.id}
-          contentContainerClassName="gap-4 px-4 pb-8"
-          refreshing={feed.isRefetching}
-          onRefresh={() => void feed.refetch()}
-          ListEmptyComponent={
-            <View className="mt-16 items-center px-6">
-              <Text className="text-center text-lg font-sans-bold text-neutral-800">
-                Seu feed ainda está vazio
-              </Text>
-              <Text className="mt-2 text-center text-sm font-sans text-neutral-500">
-                Siga pessoas e compartilhe uma refeição para ver posts aqui.
-              </Text>
-            </View>
-          }
-          renderItem={({ item }) => <PostCard post={item} />}
-        />
+        <View className="mx-auto w-full flex-1 md:max-w-[900px]">
+          <FlatList
+            key={numColumns}
+            data={feed.data ?? []}
+            numColumns={numColumns}
+            keyExtractor={(post) => post.id}
+            contentContainerClassName="gap-4 px-4 pb-8"
+            columnWrapperStyle={numColumns > 1 ? { gap: 16 } : undefined}
+            refreshing={feed.isRefetching}
+            onRefresh={() => void feed.refetch()}
+            ListEmptyComponent={
+              <View className="mt-16 items-center px-6">
+                <Text className="text-center text-lg font-sans-bold text-neutral-800">
+                  Seu feed ainda está vazio
+                </Text>
+                <Text className="mt-2 text-center text-sm font-sans text-neutral-500">
+                  Siga pessoas e compartilhe uma refeição para ver posts aqui.
+                </Text>
+              </View>
+            }
+            renderItem={({ item }) => (
+              <View className="flex-1">
+                <PostCard post={item} />
+              </View>
+            )}
+          />
+        </View>
       )}
     </SafeAreaView>
   );
