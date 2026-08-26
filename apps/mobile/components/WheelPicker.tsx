@@ -3,6 +3,7 @@ import * as Haptics from "expo-haptics";
 import { Minus, Plus } from "lucide-react-native";
 import { useMemo } from "react";
 import { Platform, Pressable, Text, View } from "react-native";
+import { colors } from "@/lib/colors";
 
 const ITEM_HEIGHT = 44;
 const VISIBLE_ITEMS = 5;
@@ -71,14 +72,14 @@ function NativeWheel({ min, max, step = 1, value, unit, onChange }: WheelPickerP
         itemTextStyle={{
           fontFamily: "Inter_500Medium",
           fontSize: 22,
-          color: "#94a3b8",
+          color: colors.neutral[400],
           fontVariant: ["tabular-nums"],
         }}
         overlayItemStyle={{
           backgroundColor: "transparent",
           borderTopWidth: 1,
           borderBottomWidth: 1,
-          borderColor: "#e2e8f0",
+          borderColor: colors.neutral[200],
         }}
       />
     </View>
@@ -140,7 +141,7 @@ function StepButton({
       hitSlop={8}
       className={`h-12 w-12 items-center justify-center rounded-full active:bg-neutral-700 ${bg}`}
     >
-      <Icon size={20} color="#ffffff" />
+      <Icon size={20} color={colors.white} />
     </Pressable>
   );
 }

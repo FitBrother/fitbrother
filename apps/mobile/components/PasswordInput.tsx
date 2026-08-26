@@ -19,7 +19,13 @@ export function passwordStrength(pw: string): 0 | 1 | 2 | 3 | 4 {
 }
 
 const STRENGTH_LABEL = ["Muito fraca", "Fraca", "Razoável", "Forte", "Muito forte"] as const;
-const STRENGTH_COLOR = ["#ef4444", "#ef4444", "#f59e0b", "#10b981", "#10b981"] as const;
+const STRENGTH_COLOR = [
+  colors.danger[500],
+  colors.danger[500],
+  colors.warning[500],
+  colors.success[500],
+  colors.success[500],
+] as const;
 
 interface PasswordInputProps extends Omit<
   TextInputProps,
@@ -63,7 +69,7 @@ export const PasswordInput = forwardRef<TextInput, PasswordInputProps>(function 
           autoCapitalize="none"
           autoCorrect={false}
           spellCheck={false}
-          placeholderTextColor="#94A3B8"
+          placeholderTextColor={colors.neutral[400]}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
           {...rest}
@@ -92,14 +98,14 @@ export const PasswordInput = forwardRef<TextInput, PasswordInputProps>(function 
                 key={i}
                 className="h-1 flex-1 rounded-full"
                 style={{
-                  backgroundColor: i < strength ? STRENGTH_COLOR[strength] : "#e5e7eb",
+                  backgroundColor: i < strength ? STRENGTH_COLOR[strength] : colors.neutral[200],
                 }}
               />
             ))}
           </View>
           <Text
             className="mt-1.5 text-xs font-sans-medium"
-            style={{ color: strength === 0 ? "#94a3b8" : STRENGTH_COLOR[strength] }}
+            style={{ color: strength === 0 ? colors.neutral[400] : STRENGTH_COLOR[strength] }}
           >
             {STRENGTH_LABEL[strength]}
           </Text>

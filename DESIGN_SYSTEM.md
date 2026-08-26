@@ -2,28 +2,24 @@
 
 App de nutrição com IA. Stack: **React Native · Expo · TypeScript · NativeWind v4 · Tailwind v3**.
 
-Este documento é a **fonte de verdade da marca e dos tokens visuais**. A partir da v2 ele reflete a **marca real do FitBrother** (menta `#06D59F` + tinta `#04100C`, display Space Grotesk) — consolidada na landing e nos assets em [`assets/brand`](assets/brand).
-
-> ⚠️ **O código do app ainda está em teal/Plus Jakarta** (`tailwind.config.ts`, `lib/colors.ts`). Este doc é o **alvo**; a migração do código está pendente — ver **§0**. Até a migração, doc e app divergem **por design**, não por bug.
+Este documento é a **fonte de verdade da marca e dos tokens visuais**. A partir da v2 ele reflete a **marca real do FitBrother** (menta `#06D59F` + tinta `#04100C`, display Space Grotesk) — consolidada na landing, nos assets em [`assets/brand`](assets/brand) e no código do app.
 
 Referência visual viva: **[`landing-page/public/styleguide.html`](landing-page/public/styleguide.html)** (`npm run dev` → `/styleguide.html`).
 
 ---
 
-## 0. Migração da Marca (pendente)
+## 0. Migração da Marca (concluída)
 
-A marca foi redefinida (menta + tinta, display Space Grotesk). O código do app ainda usa a paleta teal antiga e Plus Jakarta. Para sincronizar app ↔ marca:
+A marca foi redefinida (menta + tinta, display Space Grotesk) e migrada para o código do app em `feat(mobile): migra app para a marca real (menta/tinta + Space Grotesk/Inter)` (2026-06-22). `apps/mobile/tailwind.config.ts` e `apps/mobile/lib/colors.ts` já refletem os tokens abaixo; não há divergência pendente entre doc e app.
 
-| Arquivo | De | Para |
-|---|---|---|
-| `apps/mobile/tailwind.config.ts` → `primary` | teal `#2DD4BF` (400) | menta `#06D59F` (400) — escala em §2.1 |
-| `apps/mobile/tailwind.config.ts` → neutro mais escuro | `neutral-900 #0F172A` (slate) | **tinta** `#04100C` (botões dark, contraste máximo) |
-| `apps/mobile/lib/colors.ts` | espelho dos teal | espelho dos novos tokens |
-| Fonte display | Plus Jakarta Sans | **Space Grotesk** (`@expo-google-fonts/space-grotesk`) p/ headings e números hero |
-| Fonte corpo | Plus Jakarta Sans | **Inter** (decisão de marca; ver §3) |
-| Macros | `#F43F5E / #F59E0B / #8B5CF6` | tons da landing `#E8506B / #D98A1C / #7A5BE0` (contraste sobre claro) |
-
-**Importante:** os _nomes_ de token (`primary-400`, `font-sans-*`) permanecem — só mudam **valores** e **arquivos de fonte**. Componentes que referenciam `primary-400` continuam corretos após o swap. Fazer a migração em PR próprio, com revisão visual do app (Expo) tela a tela.
+| Arquivo | Token |
+|---|---|
+| `apps/mobile/tailwind.config.ts` → `primary` | menta `#06D59F` (400) — escala em §2.1 |
+| `apps/mobile/tailwind.config.ts` → neutro mais escuro | **tinta** `#04100C` (botões dark, contraste máximo) |
+| `apps/mobile/lib/colors.ts` | espelho dos tokens acima |
+| Fonte display | **Space Grotesk** (`@expo-google-fonts/space-grotesk`) p/ headings e números hero |
+| Fonte corpo | **Inter** (decisão de marca; ver §3) |
+| Macros | tons da landing `#E8506B / #D98A1C / #7A5BE0` (contraste sobre claro) |
 
 ---
 

@@ -6,6 +6,7 @@
  */
 
 export const colors = {
+  white: "#FFFFFF",
   // Marca — Menta (mint). Migrado de teal (DESIGN_SYSTEM §2.1).
   primary: {
     50: "#E9FCF5",

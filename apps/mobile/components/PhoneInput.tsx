@@ -10,6 +10,7 @@ import {
 import examples from "libphonenumber-js/examples.mobile.json";
 import { useMemo, useState } from "react";
 import { Text, TextInput, View } from "react-native";
+import { colors } from "@/lib/colors";
 
 // Flags for countries we want the chip to render. Anything not listed falls
 // back to a globe icon — the rest of the libphonenumber metadata still works
@@ -139,7 +140,7 @@ export function PhoneInput({ label, value, onChangeText, error }: PhoneInputProp
           value={display}
           onChangeText={handleChange}
           placeholder={placeholder}
-          placeholderTextColor="#94A3B8"
+          placeholderTextColor={colors.neutral[400]}
           keyboardType="phone-pad"
           autoComplete="tel"
           textContentType="telephoneNumber"

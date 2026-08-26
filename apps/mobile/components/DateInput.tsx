@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Text, View } from "react-native";
 import MaskInput, { Masks } from "react-native-mask-input";
+import { colors } from "@/lib/colors";
 
 interface DateInputProps {
   label?: string;
@@ -39,7 +40,7 @@ export function DateInput({
           onChangeText={(masked) => onChangeText(masked)}
           mask={Masks.DATE_DDMMYYYY}
           placeholder={placeholder}
-          placeholderTextColor="#94A3B8"
+          placeholderTextColor={colors.neutral[400]}
           keyboardType="number-pad"
           autoComplete="birthdate-full"
           textContentType="none"

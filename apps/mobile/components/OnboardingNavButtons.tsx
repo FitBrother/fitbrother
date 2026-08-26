@@ -1,5 +1,6 @@
 import { ChevronLeft, ChevronRight } from "lucide-react-native";
 import { Pressable, View } from "react-native";
+import { colors } from "@/lib/colors";
 
 interface OnboardingNavButtonsProps {
   onBack?: () => void;
@@ -44,7 +45,7 @@ function NavButton({
       hitSlop={8}
       className={`h-12 w-12 items-center justify-center rounded-full active:bg-neutral-700 ${bg}`}
     >
-      <Icon size={20} color="#ffffff" />
+      <Icon size={20} color={colors.white} />
     </Pressable>
   );
 }

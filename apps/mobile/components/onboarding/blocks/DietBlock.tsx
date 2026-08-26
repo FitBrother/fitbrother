@@ -2,6 +2,7 @@ import SegmentedControl from "@react-native-segmented-control/segmented-control"
 import { Pressable, Text, View } from "react-native";
 import { Input } from "@/components/Input";
 import { OnboardingStepShell } from "@/components/OnboardingStepShell";
+import { colors } from "@/lib/colors";
 import { useOnboardingStore } from "@/lib/stores/onboardingStore";
 import type { OnboardingBlockProps } from "@/lib/onboarding/types";
 
@@ -69,8 +70,8 @@ export function DietBlock({ step, total, onNext, onBack, onSkip }: OnboardingBlo
             values={[...BUDGETS]}
             selectedIndex={budget ? BUDGETS.indexOf(budget as (typeof BUDGETS)[number]) : -1}
             onChange={(e) => setField("budget", BUDGETS[e.nativeEvent.selectedSegmentIndex])}
-            tintColor="#ffffff"
-            backgroundColor="#f1f5f9"
+            tintColor={colors.white}
+            backgroundColor={colors.neutral[100]}
             style={{ height: 40 }}
           />
         </View>

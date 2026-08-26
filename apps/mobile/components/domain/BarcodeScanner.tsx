@@ -5,6 +5,7 @@ import Constants from "expo-constants";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { X, Flashlight, FlashlightOff } from "lucide-react-native";
+import { colors } from "@/lib/colors";
 import { shadows } from "@/lib/shadows";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -53,7 +54,7 @@ export function BarcodeScanner({ onScanned }: Props) {
 
         <TextInput
           placeholder="Ex: 7891000123456"
-          placeholderTextColor="#9CA3AF"
+          placeholderTextColor={colors.neutral[400]}
           value={mockBarcode}
           onChangeText={setMockBarcode}
           keyboardType="numeric"
@@ -122,7 +123,7 @@ export function BarcodeScanner({ onScanned }: Props) {
           style={shadows.floating}
           className="h-12 w-12 bg-black/40 rounded-full items-center justify-center"
         >
-          <X size={24} color="#FFFFFF" />
+          <X size={24} color={colors.white} />
         </Pressable>
         <Pressable
           onPress={() => setTorch(!torch)}
@@ -130,9 +131,9 @@ export function BarcodeScanner({ onScanned }: Props) {
           className="h-12 w-12 bg-black/40 rounded-full items-center justify-center"
         >
           {torch ? (
-            <Flashlight size={24} color="#FFFFFF" />
+            <Flashlight size={24} color={colors.white} />
           ) : (
-            <FlashlightOff size={24} color="#FFFFFF" />
+            <FlashlightOff size={24} color={colors.white} />
           )}
         </Pressable>
       </View>

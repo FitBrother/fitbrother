@@ -2,6 +2,7 @@ import SegmentedControl from "@react-native-segmented-control/segmented-control"
 import { Text, View } from "react-native";
 import { Input } from "@/components/Input";
 import { OnboardingStepShell } from "@/components/OnboardingStepShell";
+import { colors } from "@/lib/colors";
 import { useOnboardingStore } from "@/lib/stores/onboardingStore";
 import type { OnboardingBlockProps } from "@/lib/onboarding/types";
 
@@ -34,10 +35,10 @@ export function HabitsBlock({ step, total, onNext, onBack, onSkip }: OnboardingB
               cooks_own_food ? COOKS.indexOf(cooks_own_food as (typeof COOKS)[number]) : -1
             }
             onChange={(e) => setField("cooks_own_food", COOKS[e.nativeEvent.selectedSegmentIndex])}
-            tintColor="#ffffff"
-            backgroundColor="#f1f5f9"
-            fontStyle={{ fontFamily: "Inter_500Medium", fontSize: 14, color: "#64748b" }}
-            activeFontStyle={{ fontFamily: "Inter_600SemiBold", fontSize: 14, color: "#04100c" }}
+            tintColor={colors.white}
+            backgroundColor={colors.neutral[100]}
+            fontStyle={{ fontFamily: "Inter_500Medium", fontSize: 14, color: colors.neutral[500] }}
+            activeFontStyle={{ fontFamily: "Inter_600SemiBold", fontSize: 14, color: colors.ink }}
             style={{ height: 40 }}
           />
         </View>
@@ -55,10 +56,10 @@ export function HabitsBlock({ step, total, onNext, onBack, onSkip }: OnboardingB
             onChange={(e) =>
               setField("eats_out_frequency", EATS_OUT[e.nativeEvent.selectedSegmentIndex])
             }
-            tintColor="#ffffff"
-            backgroundColor="#f1f5f9"
-            fontStyle={{ fontFamily: "Inter_500Medium", fontSize: 14, color: "#64748b" }}
-            activeFontStyle={{ fontFamily: "Inter_600SemiBold", fontSize: 14, color: "#04100c" }}
+            tintColor={colors.white}
+            backgroundColor={colors.neutral[100]}
+            fontStyle={{ fontFamily: "Inter_500Medium", fontSize: 14, color: colors.neutral[500] }}
+            activeFontStyle={{ fontFamily: "Inter_600SemiBold", fontSize: 14, color: colors.ink }}
             style={{ height: 40 }}
           />
         </View>

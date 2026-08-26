@@ -48,7 +48,7 @@ export function RecorderLockHint({ visible }: Props) {
           gap: 4,
           padding: 8,
           borderRadius: 24,
-          backgroundColor: "#FFFFFF",
+          backgroundColor: colors.white,
         },
         shadows.floating,
       ]}

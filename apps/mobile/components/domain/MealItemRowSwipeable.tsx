@@ -11,6 +11,7 @@ import Animated, {
 import * as Haptics from "expo-haptics";
 import { Trash2 } from "lucide-react-native";
 import type { MealResponse } from "@fitbrother/shared";
+import { colors } from "@/lib/colors";
 import { shadows } from "@/lib/shadows";
 
 type MealItem = MealResponse["items"][number];
@@ -81,7 +82,7 @@ export function MealItemRowSwipeable({ item, onDelete }: Props) {
               accessibilityRole="button"
               className="h-16 w-16 items-center justify-center rounded-2xl bg-danger-500 active:bg-danger-600"
             >
-              <Trash2 size={20} color="#FFFFFF" />
+              <Trash2 size={20} color={colors.white} />
               <Text className="mt-0.5 text-[10px] font-sans-semibold text-white">Excluir</Text>
             </Pressable>
           </Animated.View>

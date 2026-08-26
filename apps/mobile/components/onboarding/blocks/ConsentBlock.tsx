@@ -1,6 +1,7 @@
 import { Check } from "lucide-react-native";
 import { Pressable, Text, View } from "react-native";
 import { OnboardingStepShell } from "@/components/OnboardingStepShell";
+import { colors } from "@/lib/colors";
 import { useOnboardingStore } from "@/lib/stores/onboardingStore";
 import type { OnboardingBlockProps } from "@/lib/onboarding/types";
 
@@ -44,7 +45,7 @@ export function ConsentBlock({ step, total, onNext, onBack }: OnboardingBlockPro
                   checked ? "border-primary-400 bg-primary-400" : "border-neutral-300 bg-white"
                 }`}
               >
-                {checked && <Check size={16} color="#ffffff" />}
+                {checked && <Check size={16} color={colors.white} />}
               </View>
               <Text className="flex-1 text-sm font-sans text-neutral-800">{c.label}</Text>
             </Pressable>

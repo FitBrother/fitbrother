@@ -2,6 +2,7 @@ import SegmentedControl from "@react-native-segmented-control/segmented-control"
 import { Pressable, Text, View } from "react-native";
 import { DateInput } from "@/components/DateInput";
 import { OnboardingStepShell } from "@/components/OnboardingStepShell";
+import { colors } from "@/lib/colors";
 import { validateBirthDate } from "@/lib/masks";
 import { useOnboardingStore } from "@/lib/stores/onboardingStore";
 import type { OnboardingBlockProps } from "@/lib/onboarding/types";
@@ -39,10 +40,10 @@ export function BasicsBlock({ step, total, onNext, onBack }: OnboardingBlockProp
               const i = e.nativeEvent.selectedSegmentIndex;
               setField("sex", SEX_VALUES[i]);
             }}
-            tintColor="#ffffff"
-            backgroundColor="#f1f5f9"
-            fontStyle={{ fontFamily: "Inter_500Medium", fontSize: 14, color: "#64748b" }}
-            activeFontStyle={{ fontFamily: "Inter_600SemiBold", fontSize: 14, color: "#04100c" }}
+            tintColor={colors.white}
+            backgroundColor={colors.neutral[100]}
+            fontStyle={{ fontFamily: "Inter_500Medium", fontSize: 14, color: colors.neutral[500] }}
+            activeFontStyle={{ fontFamily: "Inter_600SemiBold", fontSize: 14, color: colors.ink }}
             style={{ height: 40 }}
           />
           {sex !== undefined && (

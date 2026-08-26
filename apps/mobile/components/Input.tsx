@@ -50,7 +50,7 @@ export const Input = forwardRef<TextInput, InputProps>(function Input(
         <TextInput
           ref={ref}
           className={`flex-1 text-base font-sans text-neutral-800 ${className}`}
-          placeholderTextColor="#94A3B8"
+          placeholderTextColor={colors.neutral[400]}
           secureTextEntry={isSecure}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}

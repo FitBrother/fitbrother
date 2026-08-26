@@ -2,6 +2,7 @@ import SegmentedControl from "@react-native-segmented-control/segmented-control"
 import { Text, View } from "react-native";
 import { OnboardingStepShell } from "@/components/OnboardingStepShell";
 import { WheelPicker } from "@/components/WheelPicker";
+import { colors } from "@/lib/colors";
 import {
   type TrainingType,
   trainingTypeUsesStrength,
@@ -58,10 +59,10 @@ export function TrainingBlock({ step, total, onNext, onBack, onSkip }: Onboardin
               setField("training_type", trainingType);
               setField("strength_training", trainingTypeUsesStrength(trainingType));
             }}
-            tintColor="#ffffff"
-            backgroundColor="#f1f5f9"
-            fontStyle={{ fontFamily: "Inter_500Medium", fontSize: 14, color: "#64748b" }}
-            activeFontStyle={{ fontFamily: "Inter_600SemiBold", fontSize: 14, color: "#04100c" }}
+            tintColor={colors.white}
+            backgroundColor={colors.neutral[100]}
+            fontStyle={{ fontFamily: "Inter_500Medium", fontSize: 14, color: colors.neutral[500] }}
+            activeFontStyle={{ fontFamily: "Inter_600SemiBold", fontSize: 14, color: colors.ink }}
             style={{ height: 40 }}
           />
         </View>

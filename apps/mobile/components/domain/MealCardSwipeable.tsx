@@ -11,6 +11,7 @@ import Animated, {
 import * as Haptics from "expo-haptics";
 import { Trash2 } from "lucide-react-native";
 import type { MealResponse } from "@fitbrother/shared";
+import { colors } from "@/lib/colors";
 import { MealCard } from "./MealCard";
 
 const ACTION_WIDTH = 96;
@@ -87,7 +88,7 @@ export function MealCardSwipeable({ meal, onPress, onDelete }: Props) {
               accessibilityRole="button"
               className="h-20 w-20 items-center justify-center rounded-2xl bg-danger-500 active:bg-danger-600"
             >
-              <Trash2 size={22} color="#FFFFFF" />
+              <Trash2 size={22} color={colors.white} />
               <Text className="mt-1 text-xs font-sans-semibold text-white">Excluir</Text>
             </Pressable>
           </Animated.View>

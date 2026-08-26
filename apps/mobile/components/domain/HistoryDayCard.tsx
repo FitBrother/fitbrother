@@ -29,9 +29,7 @@ function formatDayHeader(day: string): string {
 }
 
 function streakColor(): string {
-  // colors.streak não existe ainda; fallback pro orange do design system.
-  const maybeStreak = (colors as unknown as { streak?: { 500?: string } }).streak;
-  return maybeStreak?.[500] ?? "#F97316";
+  return colors.streak[500];
 }
 
 export function HistoryDayCard({ summary, softMode = false }: Props) {
