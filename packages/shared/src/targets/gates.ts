@@ -10,7 +10,7 @@ function bmiRounded1(weight_kg: number, height_cm: number): number {
 }
 
 function goalImpliesLoss(goal: Goal): boolean {
-  return goal === "lose" || goal === "recomp";
+  return goal === "lose";
 }
 
 export function evaluateSafetyGates(input: TargetsInput): GateResult[] {
