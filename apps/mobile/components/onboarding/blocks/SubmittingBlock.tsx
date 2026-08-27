@@ -12,6 +12,7 @@ export function SubmittingBlock({ onNext }: OnboardingBlockProps) {
   const [error, setError] = useState<string | null>(null);
   const [retryKey, setRetryKey] = useState(0);
   const setResult = useOnboardingResultStore((s) => s.setResult);
+  const targetsInput = useOnboardingResultStore((s) => s.targetsInput);
 
   useEffect(() => {
     let cancelled = false;
@@ -38,15 +39,20 @@ export function SubmittingBlock({ onNext }: OnboardingBlockProps) {
           block_reason: string | null;
           soft_mode: boolean;
         };
-        setResult({
-          kcal: Number(body.kcal),
-          protein_g: Number(body.protein_g),
-          carbs_g: Number(body.carbs_g),
-          fat_g: Number(body.fat_g),
-          blocked: body.blocked === "true" || body.blocked === true,
-          block_reason: body.block_reason,
-          soft_mode: body.soft_mode,
-        });
+        if (targetsInput) {
+          setResult(
+            {
+              kcal: Number(body.kcal),
+              protein_g: Number(body.protein_g),
+              carbs_g: Number(body.carbs_g),
+              fat_g: Number(body.fat_g),
+              blocked: body.blocked === "true" || body.blocked === true,
+              block_reason: body.block_reason,
+              soft_mode: body.soft_mode,
+            },
+            targetsInput,
+          );
+        }
         onNext();
       } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : "Erro inesperado.");
@@ -56,7 +62,7 @@ export function SubmittingBlock({ onNext }: OnboardingBlockProps) {
     return () => {
       cancelled = true;
     };
-  }, [retryKey, onNext, setResult]);
+  }, [retryKey, onNext, setResult, targetsInput]);
 
   return (
     <View className="flex-1 items-center justify-center gap-6 bg-neutral-50 px-8">
