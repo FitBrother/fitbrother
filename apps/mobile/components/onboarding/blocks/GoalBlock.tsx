@@ -1,7 +1,7 @@
 import { computeTargets } from "@fitbrother/shared";
 import * as Haptics from "expo-haptics";
 import { Pressable, Text, View } from "react-native";
-import { OnboardingStepShell } from "@/components/OnboardingStepShell";
+import { OnboardingChapterShell } from "@/components/onboarding/OnboardingChapterShell";
 import { WheelPicker } from "@/components/WheelPicker";
 import { projectGoalDate } from "@/lib/onboarding/projectGoalDate";
 import { useOnboardingStore } from "@/lib/stores/onboardingStore";
@@ -20,7 +20,7 @@ function fmtDate(d: Date): string {
   return d.toLocaleDateString("pt-BR");
 }
 
-export function GoalBlock({ step, total, onNext, onBack }: OnboardingBlockProps) {
+export function GoalBlock({ onNext, onBack, chapter }: OnboardingBlockProps) {
   const goal = useOnboardingStore((s) => s.goal);
   const weight_kg = useOnboardingStore((s) => s.weight_kg);
   const height_cm = useOnboardingStore((s) => s.height_cm);
@@ -63,9 +63,8 @@ export function GoalBlock({ step, total, onNext, onBack }: OnboardingBlockProps)
   }
 
   return (
-    <OnboardingStepShell
-      step={step}
-      total={total}
+    <OnboardingChapterShell
+      chapter={chapter}
       title="Qual seu objetivo?"
       subtitle="Define as metas iniciais de calorias e macros."
       onBack={onBack}
@@ -130,6 +129,6 @@ export function GoalBlock({ step, total, onNext, onBack }: OnboardingBlockProps)
           </View>
         )}
       </View>
-    </OnboardingStepShell>
+    </OnboardingChapterShell>
   );
 }
