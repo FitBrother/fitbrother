@@ -1,13 +1,13 @@
 import { useEffect } from "react";
 import { View } from "react-native";
-import { OnboardingStepShell } from "@/components/OnboardingStepShell";
+import { OnboardingChapterShell } from "@/components/onboarding/OnboardingChapterShell";
 import { WheelPicker } from "@/components/WheelPicker";
 import { useOnboardingStore } from "@/lib/stores/onboardingStore";
 import type { OnboardingBlockProps } from "@/lib/onboarding/types";
 
 const DEFAULT_HEIGHT = 170;
 
-export function HeightBlock({ step, total, onNext, onBack }: OnboardingBlockProps) {
+export function HeightBlock({ onNext, onBack, chapter }: OnboardingBlockProps) {
   const height_cm = useOnboardingStore((s) => s.height_cm);
   const setField = useOnboardingStore((s) => s.setField);
   const selectedHeight = height_cm ?? DEFAULT_HEIGHT;
@@ -22,9 +22,8 @@ export function HeightBlock({ step, total, onNext, onBack }: OnboardingBlockProp
   }
 
   return (
-    <OnboardingStepShell
-      step={step}
-      total={total}
+    <OnboardingChapterShell
+      chapter={chapter}
       title="Qual sua altura?"
       subtitle="Em centímetros."
       onBack={onBack}
@@ -41,6 +40,6 @@ export function HeightBlock({ step, total, onNext, onBack }: OnboardingBlockProp
           onChange={(v) => setField("height_cm", v)}
         />
       </View>
-    </OnboardingStepShell>
+    </OnboardingChapterShell>
   );
 }

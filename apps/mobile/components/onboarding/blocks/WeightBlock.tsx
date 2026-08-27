@@ -1,13 +1,13 @@
 import { useEffect } from "react";
 import { View } from "react-native";
-import { OnboardingStepShell } from "@/components/OnboardingStepShell";
+import { OnboardingChapterShell } from "@/components/onboarding/OnboardingChapterShell";
 import { WheelPicker } from "@/components/WheelPicker";
 import { useOnboardingStore } from "@/lib/stores/onboardingStore";
 import type { OnboardingBlockProps } from "@/lib/onboarding/types";
 
 const DEFAULT_WEIGHT = 70;
 
-export function WeightBlock({ step, total, onNext, onBack }: OnboardingBlockProps) {
+export function WeightBlock({ onNext, onBack, chapter }: OnboardingBlockProps) {
   const weight_kg = useOnboardingStore((s) => s.weight_kg);
   const setField = useOnboardingStore((s) => s.setField);
   const selectedWeight = weight_kg ?? DEFAULT_WEIGHT;
@@ -22,9 +22,8 @@ export function WeightBlock({ step, total, onNext, onBack }: OnboardingBlockProp
   }
 
   return (
-    <OnboardingStepShell
-      step={step}
-      total={total}
+    <OnboardingChapterShell
+      chapter={chapter}
       title="E seu peso atual?"
       subtitle="Em quilos. Você pode atualizar isso a qualquer momento."
       onBack={onBack}
@@ -41,6 +40,6 @@ export function WeightBlock({ step, total, onNext, onBack }: OnboardingBlockProp
           onChange={(v) => setField("weight_kg", v)}
         />
       </View>
-    </OnboardingStepShell>
+    </OnboardingChapterShell>
   );
 }

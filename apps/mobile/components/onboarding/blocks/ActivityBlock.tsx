@@ -1,6 +1,6 @@
 import * as Haptics from "expo-haptics";
 import { Pressable, Text, View } from "react-native";
-import { OnboardingStepShell } from "@/components/OnboardingStepShell";
+import { OnboardingChapterShell } from "@/components/onboarding/OnboardingChapterShell";
 import { useOnboardingStore } from "@/lib/stores/onboardingStore";
 import type { OnboardingBlockProps } from "@/lib/onboarding/types";
 
@@ -20,14 +20,13 @@ const OPTIONS = [
   },
 ] as const;
 
-export function ActivityBlock({ step, total, onNext, onBack }: OnboardingBlockProps) {
+export function ActivityBlock({ onNext, onBack, chapter }: OnboardingBlockProps) {
   const activity_level = useOnboardingStore((s) => s.activity_level);
   const setField = useOnboardingStore((s) => s.setField);
 
   return (
-    <OnboardingStepShell
-      step={step}
-      total={total}
+    <OnboardingChapterShell
+      chapter={chapter}
       title="Qual seu nível de atividade?"
       subtitle="Isso ajusta o gasto calórico diário (TDEE)."
       onBack={onBack}
@@ -55,6 +54,6 @@ export function ActivityBlock({ step, total, onNext, onBack }: OnboardingBlockPr
           </Pressable>
         ))}
       </View>
-    </OnboardingStepShell>
+    </OnboardingChapterShell>
   );
 }

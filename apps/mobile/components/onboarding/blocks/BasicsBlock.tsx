@@ -1,7 +1,7 @@
 import SegmentedControl from "@react-native-segmented-control/segmented-control";
 import { Pressable, Text, View } from "react-native";
 import { DateInput } from "@/components/DateInput";
-import { OnboardingStepShell } from "@/components/OnboardingStepShell";
+import { OnboardingChapterShell } from "@/components/onboarding/OnboardingChapterShell";
 import { colors } from "@/lib/colors";
 import { validateBirthDate } from "@/lib/masks";
 import { useOnboardingStore } from "@/lib/stores/onboardingStore";
@@ -10,7 +10,7 @@ import type { OnboardingBlockProps } from "@/lib/onboarding/types";
 const SEX_VALUES = ["female", "male", "other"] as const;
 const SEX_LABELS = ["Feminino", "Masculino", "Outro"];
 
-export function BasicsBlock({ step, total, onNext, onBack }: OnboardingBlockProps) {
+export function BasicsBlock({ onNext, onBack, chapter }: OnboardingBlockProps) {
   const sex = useOnboardingStore((s) => s.sex);
   const birth_date = useOnboardingStore((s) => s.birth_date);
   const setField = useOnboardingStore((s) => s.setField);
@@ -21,9 +21,8 @@ export function BasicsBlock({ step, total, onNext, onBack }: OnboardingBlockProp
   const selectedIndex = sex ? SEX_VALUES.indexOf(sex) : -1;
 
   return (
-    <OnboardingStepShell
-      step={step}
-      total={total}
+    <OnboardingChapterShell
+      chapter={chapter}
       title="Conta um pouco sobre você"
       subtitle="Sexo biológico e data de nascimento — calculamos o gasto calórico com eles."
       onBack={onBack}
@@ -64,6 +63,6 @@ export function BasicsBlock({ step, total, onNext, onBack }: OnboardingBlockProp
           error={dateValidationError ?? undefined}
         />
       </View>
-    </OnboardingStepShell>
+    </OnboardingChapterShell>
   );
 }

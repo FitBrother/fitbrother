@@ -1,16 +1,15 @@
 import { Input } from "@/components/Input";
-import { OnboardingStepShell } from "@/components/OnboardingStepShell";
+import { OnboardingChapterShell } from "@/components/onboarding/OnboardingChapterShell";
 import { useOnboardingStore } from "@/lib/stores/onboardingStore";
 import type { OnboardingBlockProps } from "@/lib/onboarding/types";
 
-export function NameBlock({ step, total, onNext, onBack }: OnboardingBlockProps) {
+export function NameBlock({ onNext, onBack, chapter }: OnboardingBlockProps) {
   const full_name = useOnboardingStore((s) => s.full_name);
   const setField = useOnboardingStore((s) => s.setField);
 
   return (
-    <OnboardingStepShell
-      step={step}
-      total={total}
+    <OnboardingChapterShell
+      chapter={chapter}
       title="Como podemos te chamar?"
       subtitle="Seu nome aparece nas conquistas e nas conversas com o bot."
       onBack={onBack}
@@ -28,6 +27,6 @@ export function NameBlock({ step, total, onNext, onBack }: OnboardingBlockProps)
         returnKeyType="done"
         maxLength={80}
       />
-    </OnboardingStepShell>
+    </OnboardingChapterShell>
   );
 }
