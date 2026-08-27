@@ -37,6 +37,7 @@ export function CalculatingBlock({ onNext, chapter }: OnboardingBlockProps) {
       !birthDateIso ||
       s.weight_kg === undefined ||
       s.height_cm === undefined ||
+      s.body_fat_pct === undefined ||
       !s.activity_level ||
       !s.goal
     ) {
@@ -53,6 +54,7 @@ export function CalculatingBlock({ onNext, chapter }: OnboardingBlockProps) {
       height_cm: s.height_cm,
       activity_level: s.activity_level,
       goal: s.goal,
+      body_fat_pct: s.body_fat_pct,
       target_weight_kg: s.target_weight_kg,
       rate_kg_per_week: s.rate_kg_per_week,
       is_pregnant_or_lactating: s.is_pregnant_or_lactating,
@@ -65,15 +67,18 @@ export function CalculatingBlock({ onNext, chapter }: OnboardingBlockProps) {
     const gates = evaluateSafetyGates(targetsInput);
     const soft_mode = gates.some((g) => g.severity === "SOFT_MODE");
 
-    setResult({
-      kcal: targets.kcal,
-      protein_g: targets.protein_g,
-      carbs_g: targets.carbs_g,
-      fat_g: targets.fat_g,
-      blocked: targets.blocked,
-      block_reason: targets.block_reason,
-      soft_mode,
-    });
+    setResult(
+      {
+        kcal: targets.kcal,
+        protein_g: targets.protein_g,
+        carbs_g: targets.carbs_g,
+        fat_g: targets.fat_g,
+        blocked: targets.blocked,
+        block_reason: targets.block_reason,
+        soft_mode,
+      },
+      targetsInput,
+    );
 
     const timer = setTimeout(onNext, PREVIEW_DELAY_MS);
     return () => clearTimeout(timer);
