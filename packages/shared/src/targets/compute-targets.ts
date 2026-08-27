@@ -13,11 +13,6 @@ function round2(value: number): number {
   return Math.round(value * 100) / 100;
 }
 
-function bmi(weight_kg: number, height_cm: number): number {
-  const heightM = height_cm / 100;
-  return weight_kg / (heightM * heightM);
-}
-
 const RATE_CAP_PCT: Record<"lose" | "gain", number> = { lose: 1.0, gain: 0.5 };
 const RATE_DEFAULT_PCT: Record<"lose" | "gain", number> = { lose: 0.625, gain: 0.375 };
 const DEFICIT_CAP_PCT: Record<"lose" | "gain", number> = { lose: 25, gain: 15 };
@@ -40,8 +35,6 @@ export function computeTargets(input: TargetsInput): Targets {
     effectiveGoal = input.goal;
     if (effectiveGoal === "maintain") {
       kcal = tdee;
-    } else if (effectiveGoal === "recomp") {
-      kcal = tdee * 0.95;
     } else {
       const direction = effectiveGoal; // "lose" | "gain"
       const capPct = RATE_CAP_PCT[direction];
@@ -92,28 +85,27 @@ export function computeTargets(input: TargetsInput): Targets {
     }
   }
 
-  const currentBmi = bmi(input.weight_kg, input.height_cm);
-  const useTargetWeightForProtein = currentBmi > 30 && input.target_weight_kg !== undefined;
-  if (currentBmi > 30 && input.target_weight_kg === undefined) {
-    warnings.push({
-      code: "protein_on_current_weight_imc_over_30",
-      message: "IMC acima de 30 sem peso-alvo informado — proteína calculada sobre o peso atual.",
-    });
-  }
-  const weightForProtein = useTargetWeightForProtein
-    ? (input.target_weight_kg as number)
-    : input.weight_kg;
+  // Massa magra = peso total menos a fração de gordura — base mais precisa
+  // pra proteína que peso total (dois corpos com o mesmo peso e composições
+  // diferentes precisam de quantidades de proteína bem diferentes).
+  const leanMass_kg = input.weight_kg * (1 - input.body_fat_pct / 100);
 
   const hasKidneyDisease = gates.some((g) => g.condition === "kidney_disease");
-  let proteinPerKg: number;
+  let protein_g: number;
   if (hasKidneyDisease) {
-    proteinPerKg = 0.8;
-  } else if (effectiveGoal === "lose" || effectiveGoal === "recomp") {
-    proteinPerKg = input.strength_training === true ? 2.0 : 1.8;
+    // Restrição clínica é dosada por peso corporal total, não massa magra.
+    protein_g = input.weight_kg * 0.8;
   } else {
-    proteinPerKg = 1.6;
+    const proteinPerKgLeanMass = effectiveGoal === "lose" ? 2.2 : 1.8;
+    let raw = leanMass_kg * proteinPerKgLeanMass;
+    if (input.protein_g_override !== undefined) {
+      // Ajuste manual (slider na tela de revelação) — clampado a uma faixa seguinda.
+      const minProtein = leanMass_kg * 1.2;
+      const maxProtein = leanMass_kg * 3.0;
+      raw = Math.min(maxProtein, Math.max(minProtein, input.protein_g_override));
+    }
+    protein_g = raw;
   }
-  const protein_g = weightForProtein * proteinPerKg;
 
   const fatFromPct = (kcal * 0.25) / 9;
   const fatFloor = 0.6 * input.weight_kg;
