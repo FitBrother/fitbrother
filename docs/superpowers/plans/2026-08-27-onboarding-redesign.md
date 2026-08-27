@@ -1657,11 +1657,17 @@ export const ONBOARDING_BLOCKS: OnboardingBlockDef[] = [
   { id: "first_meal", Component: FirstMealBlock },
 ];
 
-// "name" .. "submitting" — únicos blocos que autosalvam progresso via
-// PATCH /onboarding/progress. A partir de "permissions" a conta já existe
-// de verdade (submitting já rodou complete_onboarding com sucesso), então
-// não há mais o que retomar — mesma semântica que o M16 já estabeleceu.
-export const DATA_BLOCK_COUNT = 13;
+// Índice de "submitting" no array acima (12) — também a contagem de blocos
+// "name".."consent" (0-11) que ainda autosalvam progresso ao avançar. O
+// próprio "submitting" fica de fora: quando ele avança com sucesso, a conta
+// já foi criada e complete_onboarding_impl já apagou a linha de
+// onboarding_progress — salvar de novo aqui recriaria uma linha órfã (mesma
+// armadilha que o M16 evitava excluindo "calculating" do DATA_BLOCK_COUNT
+// antigo). CORREÇÃO durante a execução: a primeira versão deste plano tinha
+// 13 aqui (contando "submitting" como incluso) — gerava um PATCH espúrio
+// depois do POST /onboarding/complete ter sucesso. Achado e corrigido no
+// teste manual da Task 18.
+export const DATA_BLOCK_COUNT = 12;
 ```
 
 - [ ] **Step 2: Typecheck**
