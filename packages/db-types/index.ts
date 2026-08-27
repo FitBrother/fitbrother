@@ -28,6 +28,45 @@ export type Database = {
   };
   public: {
     Tables: {
+      account_action_authorizations: {
+        Row: {
+          action: string;
+          consumed_at: string | null;
+          created_at: string;
+          expires_at: string;
+          id: string;
+          method: string;
+          original_session_id: string | null;
+          provider: string | null;
+          token_hash: string;
+          user_id: string;
+        };
+        Insert: {
+          action: string;
+          consumed_at?: string | null;
+          created_at?: string;
+          expires_at: string;
+          id?: string;
+          method: string;
+          original_session_id?: string | null;
+          provider?: string | null;
+          token_hash: string;
+          user_id: string;
+        };
+        Update: {
+          action?: string;
+          consumed_at?: string | null;
+          created_at?: string;
+          expires_at?: string;
+          id?: string;
+          method?: string;
+          original_session_id?: string | null;
+          provider?: string | null;
+          token_hash?: string;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
       account_audit_log: {
         Row: {
           action: string;
@@ -261,29 +300,59 @@ export type Database = {
       anthropometrics: {
         Row: {
           bmr_kcal: number | null;
+          body_fat_pct: number | null;
+          has_kidney_disease: boolean | null;
+          has_type1_diabetes: boolean | null;
           height_cm: number;
           id: string;
+          is_pregnant_or_lactating: boolean | null;
           measured_at: string;
+          rate_kg_per_week: number | null;
+          strength_training: boolean | null;
+          target_weight_kg: number | null;
+          tca_screening_positive: boolean | null;
           tdee_kcal: number | null;
+          training_days_per_week: number | null;
           user_id: string;
+          uses_glp1: boolean | null;
           weight_kg: number;
         };
         Insert: {
           bmr_kcal?: number | null;
+          body_fat_pct?: number | null;
+          has_kidney_disease?: boolean | null;
+          has_type1_diabetes?: boolean | null;
           height_cm: number;
           id?: string;
+          is_pregnant_or_lactating?: boolean | null;
           measured_at?: string;
+          rate_kg_per_week?: number | null;
+          strength_training?: boolean | null;
+          target_weight_kg?: number | null;
+          tca_screening_positive?: boolean | null;
           tdee_kcal?: number | null;
+          training_days_per_week?: number | null;
           user_id: string;
+          uses_glp1?: boolean | null;
           weight_kg: number;
         };
         Update: {
           bmr_kcal?: number | null;
+          body_fat_pct?: number | null;
+          has_kidney_disease?: boolean | null;
+          has_type1_diabetes?: boolean | null;
           height_cm?: number;
           id?: string;
+          is_pregnant_or_lactating?: boolean | null;
           measured_at?: string;
+          rate_kg_per_week?: number | null;
+          strength_training?: boolean | null;
+          target_weight_kg?: number | null;
+          tca_screening_positive?: boolean | null;
           tdee_kcal?: number | null;
+          training_days_per_week?: number | null;
           user_id?: string;
+          uses_glp1?: boolean | null;
           weight_kg?: number;
         };
         Relationships: [];
@@ -653,36 +722,69 @@ export type Database = {
       };
       nutrition_goals: {
         Row: {
+          blocked: boolean;
           carbs_g: number;
           created_at: string;
           effective_from: string;
           effective_to: string | null;
           fat_g: number;
+          fiber_g: number | null;
           id: string;
           kcal: number;
           protein_g: number;
+          tdee_source: string;
           user_id: string;
+          warnings: Json;
         };
         Insert: {
+          blocked?: boolean;
           carbs_g: number;
           created_at?: string;
           effective_from?: string;
           effective_to?: string | null;
           fat_g: number;
+          fiber_g?: number | null;
           id?: string;
           kcal: number;
           protein_g: number;
+          tdee_source?: string;
           user_id: string;
+          warnings?: Json;
         };
         Update: {
+          blocked?: boolean;
           carbs_g?: number;
           created_at?: string;
           effective_from?: string;
           effective_to?: string | null;
           fat_g?: number;
+          fiber_g?: number | null;
           id?: string;
           kcal?: number;
           protein_g?: number;
+          tdee_source?: string;
+          user_id?: string;
+          warnings?: Json;
+        };
+        Relationships: [];
+      };
+      onboarding_progress: {
+        Row: {
+          answers: Json;
+          current_block: string;
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          answers?: Json;
+          current_block: string;
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          answers?: Json;
+          current_block?: string;
+          updated_at?: string;
           user_id?: string;
         };
         Relationships: [];
@@ -885,7 +987,9 @@ export type Database = {
           goal: Database["public"]["Enums"]["goal"] | null;
           lgpd_consent_at: string | null;
           locale: string;
+          onboarding_context: Json;
           sex: Database["public"]["Enums"]["sex"] | null;
+          soft_mode: boolean;
           timezone: string;
           updated_at: string;
           user_id: string;
@@ -902,7 +1006,9 @@ export type Database = {
           goal?: Database["public"]["Enums"]["goal"] | null;
           lgpd_consent_at?: string | null;
           locale?: string;
+          onboarding_context?: Json;
           sex?: Database["public"]["Enums"]["sex"] | null;
+          soft_mode?: boolean;
           timezone: string;
           updated_at?: string;
           user_id: string;
@@ -919,7 +1025,9 @@ export type Database = {
           goal?: Database["public"]["Enums"]["goal"] | null;
           lgpd_consent_at?: string | null;
           locale?: string;
+          onboarding_context?: Json;
           sex?: Database["public"]["Enums"]["sex"] | null;
+          soft_mode?: boolean;
           timezone?: string;
           updated_at?: string;
           user_id?: string;
@@ -1210,6 +1318,10 @@ export type Database = {
         Args: { p_day: string };
         Returns: number;
       };
+      fitbrother_consume_account_action_authorization: {
+        Args: { p_action: string; p_token_hash: string };
+        Returns: boolean;
+      };
       fitbrother_evaluate_achievements: {
         Args: { p_user_id: string };
         Returns: undefined;
@@ -1296,9 +1408,16 @@ export type Database = {
       device_platform: "ios" | "android";
       food_source: "taco" | "usda" | "openfoodfacts" | "ai" | "user";
       friendship_status: "pending" | "accepted" | "blocked";
-      goal: "lose" | "maintain" | "gain" | "recomp";
+      goal: "lose" | "maintain" | "gain";
       insight_period: "day" | "week" | "month";
-      meal_source: "app_text" | "app_audio" | "wa_text" | "wa_audio" | "manual" | "app_photo";
+      meal_source:
+        | "app_text"
+        | "app_audio"
+        | "wa_text"
+        | "wa_audio"
+        | "manual"
+        | "app_photo"
+        | "app_barcode";
       meal_type: "breakfast" | "lunch" | "snack" | "dinner" | "other";
       notification_channel: "push" | "wa";
       notification_kind:
@@ -1449,9 +1568,17 @@ export const Constants = {
       device_platform: ["ios", "android"],
       food_source: ["taco", "usda", "openfoodfacts", "ai", "user"],
       friendship_status: ["pending", "accepted", "blocked"],
-      goal: ["lose", "maintain", "gain", "recomp"],
+      goal: ["lose", "maintain", "gain"],
       insight_period: ["day", "week", "month"],
-      meal_source: ["app_text", "app_audio", "wa_text", "wa_audio", "manual", "app_photo"],
+      meal_source: [
+        "app_text",
+        "app_audio",
+        "wa_text",
+        "wa_audio",
+        "manual",
+        "app_photo",
+        "app_barcode",
+      ],
       meal_type: ["breakfast", "lunch", "snack", "dinner", "other"],
       notification_channel: ["push", "wa"],
       notification_kind: [
