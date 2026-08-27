@@ -45,6 +45,8 @@ interface OnboardingState {
   };
   target_weight_kg: number | undefined;
   rate_kg_per_week: number | undefined;
+  body_fat_pct: number | undefined;
+  protein_g_override: number | undefined;
   training_type: TrainingType;
   strength_training: boolean;
   training_days_per_week: number | undefined;
@@ -104,6 +106,8 @@ const INITIAL: Omit<
   consents: { terms: false, privacy: false, ai_processing: false },
   target_weight_kg: undefined,
   rate_kg_per_week: undefined,
+  body_fat_pct: undefined,
+  protein_g_override: undefined,
   training_type: "none",
   strength_training: false,
   training_days_per_week: undefined,
@@ -148,6 +152,8 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
       consents: s.consents,
       target_weight_kg: s.target_weight_kg,
       rate_kg_per_week: s.rate_kg_per_week,
+      body_fat_pct: s.body_fat_pct,
+      protein_g_override: s.protein_g_override,
       training_type: s.training_type,
       strength_training: s.strength_training,
       training_days_per_week: s.training_days_per_week,
@@ -185,6 +191,7 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
       !s.sex ||
       s.weight_kg === undefined ||
       s.height_cm === undefined ||
+      s.body_fat_pct === undefined ||
       !s.activity_level ||
       !s.goal ||
       !s.consents.terms ||
@@ -213,6 +220,8 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
         ai_processing: true,
         policy_version: POLICY_VERSION,
       },
+      body_fat_pct: s.body_fat_pct,
+      protein_g_override: s.protein_g_override,
       target_weight_kg: s.target_weight_kg,
       rate_kg_per_week: s.rate_kg_per_week,
       strength_training: s.strength_training,
