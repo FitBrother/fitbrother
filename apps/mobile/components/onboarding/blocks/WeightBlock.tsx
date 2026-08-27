@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { View } from "react-native";
 import { OnboardingChapterShell } from "@/components/onboarding/OnboardingChapterShell";
-import { WheelPicker } from "@/components/WheelPicker";
+import { SliderInput } from "@/components/SliderInput";
 import { useOnboardingStore } from "@/lib/stores/onboardingStore";
 import type { OnboardingBlockProps } from "@/lib/onboarding/types";
 
@@ -30,8 +30,9 @@ export function WeightBlock({ onNext, onBack, chapter }: OnboardingBlockProps) {
       onNext={handleNext}
       scrollable={false}
     >
-      <View className="flex-1 items-center justify-center">
-        <WheelPicker
+      <View className="flex-1 justify-center">
+        <SliderInput
+          label="Peso"
           min={30}
           max={200}
           step={0.5}
