@@ -114,26 +114,6 @@ describe("computeTargets — Caso 4 (IMC > 30 usa peso-alvo pra proteína)", () 
   });
 });
 
-describe("computeTargets — Caso 5 (SOFT_MODE)", () => {
-  it("triagem de TCA positiva não impede computeTargets de retornar kcal válido", () => {
-    const result = computeTargets({
-      sex: "female",
-      age_years: 32,
-      weight_kg: 78,
-      height_cm: 165,
-      activity_level: "light",
-      goal: "lose",
-      rate_kg_per_week: 0.5,
-      tca_screening_positive: true,
-    });
-
-    // Esconder o número da UI é responsabilidade de quem consome (M16/M18) —
-    // computeTargets sempre calcula, nunca retorna kcal nulo/undefined.
-    expect(typeof result.kcal).toBe("number");
-    expect(result.kcal).toBeGreaterThan(0);
-  });
-});
-
 describe("computeTargets — direção ganho", () => {
   it("clampa ritmo de ganho acima do teto (0.5%/semana)", () => {
     const result = computeTargets({

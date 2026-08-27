@@ -308,7 +308,6 @@ export const OnboardingPayloadSchema = z.object({
   has_kidney_disease: z.boolean().optional(),
   has_type1_diabetes: z.boolean().optional(),
   uses_glp1: z.boolean().optional(),
-  tca_screening_positive: z.boolean().optional(),
   onboarding_context: z.record(z.string(), z.unknown()).default({}),
 });
 

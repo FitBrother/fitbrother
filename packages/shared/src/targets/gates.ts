@@ -57,14 +57,6 @@ export function evaluateSafetyGates(input: TargetsInput): GateResult[] {
     }
   }
 
-  if (input.tca_screening_positive === true) {
-    gates.push({
-      condition: "tca_screening_positive",
-      severity: "SOFT_MODE",
-      message: "Triagem de TCA positiva — modo suave ativado.",
-    });
-  }
-
   if (input.has_kidney_disease === true) {
     gates.push({
       condition: "kidney_disease",

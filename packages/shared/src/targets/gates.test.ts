@@ -59,11 +59,6 @@ describe("evaluateSafetyGates", () => {
     expect(gates.some((g) => g.condition === "target_weight_underweight")).toBe(false);
   });
 
-  it("SOFT_MODE quando triagem de TCA é positiva", () => {
-    const gates = evaluateSafetyGates({ ...BASE, tca_screening_positive: true });
-    expect(gates.some((g) => g.severity === "SOFT_MODE")).toBe(true);
-  });
-
   it("REFER por doença renal", () => {
     const gates = evaluateSafetyGates({ ...BASE, has_kidney_disease: true });
     expect(gates.some((g) => g.severity === "REFER" && g.condition === "kidney_disease")).toBe(

@@ -9,7 +9,7 @@ export type TargetsInput = {
   height_cm: number;
   activity_level: ActivityLevel;
   goal: Goal;
-  // Opcionais — sem UI própria até o M16. Ausentes = gate correspondente não dispara.
+  // Opcionais — ausentes = gate correspondente não dispara.
   target_weight_kg?: number;
   rate_kg_per_week?: number;
   strength_training?: boolean;
@@ -17,7 +17,6 @@ export type TargetsInput = {
   has_kidney_disease?: boolean;
   has_type1_diabetes?: boolean;
   uses_glp1?: boolean;
-  tca_screening_positive?: boolean;
 };
 
 export type WarningCode =
