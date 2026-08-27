@@ -2,11 +2,11 @@ import Constants, { ExecutionEnvironment } from "expo-constants";
 import { Bell } from "lucide-react-native";
 import { Text, View } from "react-native";
 import { Button } from "@/components/Button";
-import { OnboardingStepShell } from "@/components/OnboardingStepShell";
+import { OnboardingChapterShell } from "@/components/onboarding/OnboardingChapterShell";
 import { colors } from "@/lib/colors";
 import type { OnboardingBlockProps } from "@/lib/onboarding/types";
 
-export function PermissionsBlock({ step, total, onNext, onBack, onSkip }: OnboardingBlockProps) {
+export function PermissionsBlock({ onNext, onBack, onSkip, chapter }: OnboardingBlockProps) {
   async function handleEnable() {
     try {
       if (Constants.executionEnvironment !== ExecutionEnvironment.StoreClient) {
@@ -19,7 +19,7 @@ export function PermissionsBlock({ step, total, onNext, onBack, onSkip }: Onboar
   }
 
   return (
-    <OnboardingStepShell step={step} total={total} title="Notificações" onBack={onBack}>
+    <OnboardingChapterShell chapter={chapter} title="Notificações" onBack={onBack}>
       <View className="flex-1 items-center justify-center gap-6 px-4">
         <View className="h-20 w-20 items-center justify-center rounded-full bg-primary-50">
           <Bell size={36} color={colors.primary[400]} />
@@ -38,6 +38,6 @@ export function PermissionsBlock({ step, total, onNext, onBack, onSkip }: Onboar
           </Text>
         )}
       </View>
-    </OnboardingStepShell>
+    </OnboardingChapterShell>
   );
 }
