@@ -33,6 +33,5 @@ export function buildTargetsInput(payload: OnboardingPayload): TargetsInput {
     has_kidney_disease: payload.has_kidney_disease,
     has_type1_diabetes: payload.has_type1_diabetes,
     uses_glp1: payload.uses_glp1,
-    tca_screening_positive: payload.tca_screening_positive,
   };
 }
