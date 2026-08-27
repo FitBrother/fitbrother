@@ -1,82 +1,92 @@
-import { useEffect, useState } from "react";
-import { ActivityIndicator, Text, View } from "react-native";
-import { Button } from "@/components/Button";
-import { postOnboarding } from "@/lib/api";
+import { computeTargets, evaluateSafetyGates } from "@fitbrother/shared";
+import { useEffect } from "react";
+import { View } from "react-native";
+import { OnboardingChapterShell } from "@/components/onboarding/OnboardingChapterShell";
 import { useOnboardingStore } from "@/lib/stores/onboardingStore";
 import { useOnboardingResultStore } from "@/lib/stores/onboardingResultStore";
 import type { OnboardingBlockProps } from "@/lib/onboarding/types";
 
-const MIN_DURATION_MS = 3000;
+const PREVIEW_DELAY_MS = 2600;
 
-export function CalculatingBlock({ onNext }: OnboardingBlockProps) {
-  const [error, setError] = useState<string | null>(null);
-  const [retryKey, setRetryKey] = useState(0);
+/** Idade completa em anos, mesma semântica do EXTRACT(YEAR FROM age(...)) do
+ * Postgres — replica apps/server/src/services/targets.ts (não exportado por
+ * @fitbrother/shared) porque este preview roda 100% no client, sem round-trip. */
+function ageYearsFromBirthDate(birth_date: string): number {
+  const birth = new Date(birth_date);
+  const now = new Date();
+  let age = now.getFullYear() - birth.getFullYear();
+  const monthDiff = now.getMonth() - birth.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && now.getDate() < birth.getDate())) {
+    age -= 1;
+  }
+  return age;
+}
+
+export function CalculatingBlock({ onNext, chapter }: OnboardingBlockProps) {
   const setResult = useOnboardingResultStore((s) => s.setResult);
 
   useEffect(() => {
-    let cancelled = false;
-    setError(null);
+    const s = useOnboardingStore.getState();
+    if (
+      !s.sex ||
+      !s.birth_date ||
+      s.weight_kg === undefined ||
+      s.height_cm === undefined ||
+      !s.activity_level ||
+      !s.goal
+    ) {
+      // Faltou algo obrigatório de um bloco anterior — não deveria acontecer
+      // (todos são required antes do goal), mas evita crash silencioso.
+      onNext();
+      return;
+    }
 
-    (async () => {
-      const payload = useOnboardingStore.getState().toPayload();
-      if (!payload) {
-        setError("Faltam informações de um dos passos anteriores.");
-        return;
-      }
-      try {
-        const [response] = await Promise.all([
-          postOnboarding(payload),
-          new Promise((resolve) => setTimeout(resolve, MIN_DURATION_MS)),
-        ]);
-        if (cancelled) return;
-        const body = response as {
-          kcal: string;
-          protein_g: string;
-          carbs_g: string;
-          fat_g: string;
-          blocked: string | boolean;
-          block_reason: string | null;
-          soft_mode: boolean;
-        };
-        setResult({
-          kcal: Number(body.kcal),
-          protein_g: Number(body.protein_g),
-          carbs_g: Number(body.carbs_g),
-          fat_g: Number(body.fat_g),
-          blocked: body.blocked === "true" || body.blocked === true,
-          block_reason: body.block_reason,
-          soft_mode: body.soft_mode,
-        });
-        onNext();
-      } catch (e) {
-        if (!cancelled) setError(e instanceof Error ? e.message : "Erro inesperado.");
-      }
-    })();
-
-    return () => {
-      cancelled = true;
+    const targetsInput = {
+      sex: s.sex,
+      age_years: ageYearsFromBirthDate(s.birth_date),
+      weight_kg: s.weight_kg,
+      height_cm: s.height_cm,
+      activity_level: s.activity_level,
+      goal: s.goal,
+      target_weight_kg: s.target_weight_kg,
+      rate_kg_per_week: s.rate_kg_per_week,
+      is_pregnant_or_lactating: s.is_pregnant_or_lactating,
+      has_kidney_disease: s.has_kidney_disease,
+      has_type1_diabetes: s.has_type1_diabetes,
+      uses_glp1: s.uses_glp1,
     };
-  }, [retryKey, onNext, setResult]);
+
+    const targets = computeTargets(targetsInput);
+    const gates = evaluateSafetyGates(targetsInput);
+    const soft_mode = gates.some((g) => g.severity === "SOFT_MODE");
+
+    setResult({
+      kcal: targets.kcal,
+      protein_g: targets.protein_g,
+      carbs_g: targets.carbs_g,
+      fat_g: targets.fat_g,
+      blocked: targets.blocked,
+      block_reason: targets.block_reason,
+      soft_mode,
+    });
+
+    const timer = setTimeout(onNext, PREVIEW_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [onNext, setResult]);
 
   return (
-    <View className="flex-1 items-center justify-center gap-6 bg-neutral-50 px-8">
-      {error ? (
-        <>
-          <Text className="text-center text-sm font-sans text-danger-600">{error}</Text>
-          <Button
-            label="Tentar de novo"
-            variant="primary"
-            onPress={() => setRetryKey((k) => k + 1)}
-          />
-        </>
-      ) : (
-        <>
-          <ActivityIndicator size="large" />
-          <Text className="text-center text-base font-sans text-neutral-600">
-            Calculando suas metas...
-          </Text>
-        </>
-      )}
-    </View>
+    <OnboardingChapterShell chapter={chapter} title="Calculando suas metas..." showNav={false}>
+      <View className="flex-1 items-center justify-center gap-3 py-12">
+        <View className="flex-row gap-2.5">
+          {[0, 1, 2].map((i) => (
+            <View
+              key={i}
+              className="h-3 w-3 rounded-full bg-primary-400"
+              style={{ opacity: 0.4 + i * 0.3 }}
+            />
+          ))}
+        </View>
+      </View>
+    </OnboardingChapterShell>
   );
 }
