@@ -59,7 +59,6 @@ interface OnboardingState {
   has_kidney_disease: boolean;
   has_type1_diabetes: boolean;
   uses_glp1: boolean;
-  tca_screening_positive: boolean;
 
   setField: <
     K extends keyof Omit<
@@ -119,7 +118,6 @@ const INITIAL: Omit<
   has_kidney_disease: false,
   has_type1_diabetes: false,
   uses_glp1: false,
-  tca_screening_positive: false,
 };
 
 export const useOnboardingStore = create<OnboardingState>((set, get) => ({
@@ -164,7 +162,6 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
       has_kidney_disease: s.has_kidney_disease,
       has_type1_diabetes: s.has_type1_diabetes,
       uses_glp1: s.uses_glp1,
-      tca_screening_positive: s.tca_screening_positive,
     };
   },
 
@@ -224,7 +221,6 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
       has_kidney_disease: s.has_kidney_disease,
       has_type1_diabetes: s.has_type1_diabetes,
       uses_glp1: s.uses_glp1,
-      tca_screening_positive: s.tca_screening_positive,
       onboarding_context: {
         main_barriers: s.main_barriers,
         dietary_restrictions: s.dietary_restrictions,
