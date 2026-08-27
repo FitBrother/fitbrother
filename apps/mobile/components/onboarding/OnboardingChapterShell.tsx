@@ -86,15 +86,17 @@ export function OnboardingChapterShell({
           >
             <ChevronLeft size={20} color={colors.neutral[800]} />
           </Pressable>
-          <View className="flex-1">
-            <Button
-              label="Continuar"
-              variant="primary"
-              size="lg"
-              disabled={nextDisabled || !onNext}
-              onPress={onNext}
-            />
-          </View>
+          {onNext && (
+            <View className="flex-1">
+              <Button
+                label="Continuar"
+                variant="primary"
+                size="lg"
+                disabled={nextDisabled}
+                onPress={onNext}
+              />
+            </View>
+          )}
         </View>
       )}
 

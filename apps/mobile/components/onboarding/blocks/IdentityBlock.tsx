@@ -2,7 +2,6 @@ import * as ImagePicker from "expo-image-picker";
 import { Camera, CheckCircle2, UserCircle2 } from "lucide-react-native";
 import { useState } from "react";
 import { Image, Pressable, Text, View } from "react-native";
-import { Button } from "@/components/Button";
 import { Input } from "@/components/Input";
 import { OnboardingChapterShell } from "@/components/onboarding/OnboardingChapterShell";
 import { colors } from "@/lib/colors";
@@ -122,8 +121,6 @@ export function IdentityBlock({ onNext, onBack, chapter }: OnboardingBlockProps)
             </View>
           ) : null}
         </View>
-
-        <Button label="Continuar" variant="primary" disabled={!canContinue} onPress={onNext} />
       </View>
     </OnboardingChapterShell>
   );

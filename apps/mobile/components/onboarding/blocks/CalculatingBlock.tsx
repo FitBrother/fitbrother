@@ -2,6 +2,7 @@ import { computeTargets, evaluateSafetyGates } from "@fitbrother/shared";
 import { useEffect } from "react";
 import { View } from "react-native";
 import { OnboardingChapterShell } from "@/components/onboarding/OnboardingChapterShell";
+import { brDateToIso } from "@/lib/masks";
 import { useOnboardingStore } from "@/lib/stores/onboardingStore";
 import { useOnboardingResultStore } from "@/lib/stores/onboardingResultStore";
 import type { OnboardingBlockProps } from "@/lib/onboarding/types";
@@ -27,9 +28,13 @@ export function CalculatingBlock({ onNext, chapter }: OnboardingBlockProps) {
 
   useEffect(() => {
     const s = useOnboardingStore.getState();
+    // birth_date fica em DD/MM/AAAA no store (formato de digitação do
+    // BasicsBlock) — precisa converter pra ISO antes de calcular idade,
+    // mesma conversão que toPayload() já faz na submissão real.
+    const birthDateIso = s.birth_date ? brDateToIso(s.birth_date) : null;
     if (
       !s.sex ||
-      !s.birth_date ||
+      !birthDateIso ||
       s.weight_kg === undefined ||
       s.height_cm === undefined ||
       !s.activity_level ||
@@ -43,7 +48,7 @@ export function CalculatingBlock({ onNext, chapter }: OnboardingBlockProps) {
 
     const targetsInput = {
       sex: s.sex,
-      age_years: ageYearsFromBirthDate(s.birth_date),
+      age_years: ageYearsFromBirthDate(birthDateIso),
       weight_kg: s.weight_kg,
       height_cm: s.height_cm,
       activity_level: s.activity_level,
