@@ -9,6 +9,7 @@ const BASE: TargetsInput = {
   height_cm: 165,
   activity_level: "moderate",
   goal: "lose",
+  body_fat_pct: 28,
 };
 
 describe("evaluateSafetyGates", () => {
