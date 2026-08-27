@@ -1,3 +1,4 @@
+import type { TargetsInput } from "@fitbrother/shared";
 import { create } from "zustand";
 
 type OnboardingResult = {
@@ -12,10 +13,14 @@ type OnboardingResult = {
 
 interface OnboardingResultState {
   result: OnboardingResult;
-  setResult: (result: OnboardingResult) => void;
+  // Input usado pra gerar `result` — guardado pra RevealBlock poder
+  // rechamar computeTargets() com protein_g_override sem reconstruir tudo.
+  targetsInput: TargetsInput | null;
+  setResult: (result: OnboardingResult, targetsInput: TargetsInput) => void;
 }
 
 export const useOnboardingResultStore = create<OnboardingResultState>((set) => ({
   result: null,
-  setResult: (result) => set({ result }),
+  targetsInput: null,
+  setResult: (result, targetsInput) => set({ result, targetsInput }),
 }));
