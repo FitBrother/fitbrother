@@ -1,5 +1,6 @@
 import { ActivityBlock } from "@/components/onboarding/blocks/ActivityBlock";
 import { BasicsBlock } from "@/components/onboarding/blocks/BasicsBlock";
+import { BodyFatBlock } from "@/components/onboarding/blocks/BodyFatBlock";
 import { CalculatingBlock } from "@/components/onboarding/blocks/CalculatingBlock";
 import { ConsentBlock } from "@/components/onboarding/blocks/ConsentBlock";
 import { FirstMealBlock } from "@/components/onboarding/blocks/FirstMealBlock";
@@ -22,6 +23,7 @@ export const ONBOARDING_BLOCKS: OnboardingBlockDef[] = [
   { id: "basics", Component: BasicsBlock, chapter: 1 },
   { id: "height", Component: HeightBlock, chapter: 1 },
   { id: "weight", Component: WeightBlock, chapter: 1 },
+  { id: "body_fat", Component: BodyFatBlock, chapter: 1 },
   { id: "activity", Component: ActivityBlock, chapter: 1 },
   { id: "goal", Component: GoalBlock, chapter: 2 },
   { id: "health", Component: HealthBlock, chapter: 2, skippable: true },
@@ -38,11 +40,12 @@ export const ONBOARDING_BLOCKS: OnboardingBlockDef[] = [
   { id: "first_meal", Component: FirstMealBlock },
 ];
 
-// Índice de "submitting" no array acima (12) — é também a contagem de blocos
-// "name".."consent" (0-11) que ainda autosalvam progresso ao avançar. O
+// Índice de "submitting" no array acima (13, depois de "body_fat" entrar
+// entre "weight" e "activity") — é também a contagem de blocos
+// "name".."consent" (0-12) que ainda autosalvam progresso ao avançar. O
 // próprio "submitting" fica de fora: quando ele avança com sucesso, a conta
 // já foi criada e complete_onboarding_impl já apagou a linha de
 // onboarding_progress — salvar de novo aqui recriaria uma linha órfã que
 // nunca mais seria lida (mesma armadilha que o M16 já evitava excluindo
 // "calculating" do antigo DATA_BLOCK_COUNT).
-export const DATA_BLOCK_COUNT = 12;
+export const DATA_BLOCK_COUNT = 13;
