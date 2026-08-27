@@ -2,6 +2,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { useEffect } from "react";
 import { ONBOARDING_BLOCKS, DATA_BLOCK_COUNT } from "@/lib/onboarding/blocks";
 import { patchOnboardingProgress } from "@/lib/api";
+import { CHAPTER_NAMES } from "@/lib/onboarding/types";
 import { useOnboardingStore } from "@/lib/stores/onboardingStore";
 
 export default function OnboardingBlockScreen() {
@@ -39,6 +40,10 @@ export default function OnboardingBlockScreen() {
   }
 
   const Component = block.Component;
+  const chapter = block.chapter
+    ? { num: block.chapter, name: CHAPTER_NAMES[block.chapter] }
+    : undefined;
+
   return (
     <Component
       step={index + 1}
@@ -46,6 +51,7 @@ export default function OnboardingBlockScreen() {
       onNext={handleNext}
       onBack={handleBack}
       onSkip={block.skippable ? handleNext : undefined}
+      chapter={chapter}
     />
   );
 }
