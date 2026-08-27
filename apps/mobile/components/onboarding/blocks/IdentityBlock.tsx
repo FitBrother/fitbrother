@@ -4,14 +4,14 @@ import { useState } from "react";
 import { Image, Pressable, Text, View } from "react-native";
 import { Button } from "@/components/Button";
 import { Input } from "@/components/Input";
-import { OnboardingStepShell } from "@/components/OnboardingStepShell";
+import { OnboardingChapterShell } from "@/components/onboarding/OnboardingChapterShell";
 import { colors } from "@/lib/colors";
 import { useUsernameAvailable, USERNAME_RE } from "@/lib/hooks/useUsernameAvailable";
 import { supabase } from "@/lib/supabase";
 import { useOnboardingStore } from "@/lib/stores/onboardingStore";
 import type { OnboardingBlockProps } from "@/lib/onboarding/types";
 
-export function IdentityBlock({ step, total, onNext, onBack }: OnboardingBlockProps) {
+export function IdentityBlock({ onNext, onBack, chapter }: OnboardingBlockProps) {
   const username = useOnboardingStore((s) => s.username);
   const avatarUrl = useOnboardingStore((s) => s.avatar_url);
   const setField = useOnboardingStore((s) => s.setField);
@@ -58,9 +58,8 @@ export function IdentityBlock({ step, total, onNext, onBack }: OnboardingBlockPr
   }
 
   return (
-    <OnboardingStepShell
-      step={step}
-      total={total}
+    <OnboardingChapterShell
+      chapter={chapter}
       title="Escolha seu @username"
       subtitle="É assim que outras pessoas vão te encontrar no Fitbrother."
       onBack={onBack}
@@ -126,6 +125,6 @@ export function IdentityBlock({ step, total, onNext, onBack }: OnboardingBlockPr
 
         <Button label="Continuar" variant="primary" disabled={!canContinue} onPress={onNext} />
       </View>
-    </OnboardingStepShell>
+    </OnboardingChapterShell>
   );
 }

@@ -1,6 +1,6 @@
 import { Check } from "lucide-react-native";
 import { Pressable, Text, View } from "react-native";
-import { OnboardingStepShell } from "@/components/OnboardingStepShell";
+import { OnboardingChapterShell } from "@/components/onboarding/OnboardingChapterShell";
 import { colors } from "@/lib/colors";
 import { useOnboardingStore } from "@/lib/stores/onboardingStore";
 import type { OnboardingBlockProps } from "@/lib/onboarding/types";
@@ -14,15 +14,14 @@ const CONSENTS = [
   },
 ];
 
-export function ConsentBlock({ step, total, onNext, onBack }: OnboardingBlockProps) {
+export function ConsentBlock({ onNext, onBack, chapter }: OnboardingBlockProps) {
   const consents = useOnboardingStore((s) => s.consents);
   const setConsent = useOnboardingStore((s) => s.setConsent);
   const allConsents = consents.terms && consents.privacy && consents.ai_processing;
 
   return (
-    <OnboardingStepShell
-      step={step}
-      total={total}
+    <OnboardingChapterShell
+      chapter={chapter}
       title="Antes de continuar"
       subtitle="Precisamos do seu consentimento para guardar e processar seus dados."
       onBack={onBack}
@@ -52,6 +51,6 @@ export function ConsentBlock({ step, total, onNext, onBack }: OnboardingBlockPro
           );
         })}
       </View>
-    </OnboardingStepShell>
+    </OnboardingChapterShell>
   );
 }
