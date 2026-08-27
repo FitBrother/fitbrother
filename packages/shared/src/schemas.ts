@@ -12,7 +12,7 @@ export const ActivityLevelSchema = z.enum([
   "active",
   "very_active",
 ]);
-export const GoalSchema = z.enum(["lose", "maintain", "gain", "recomp"]);
+export const GoalSchema = z.enum(["lose", "maintain", "gain"]);
 export const ConsentScopeSchema = z.enum([
   "terms",
   "privacy",
@@ -302,6 +302,8 @@ export const OnboardingPayloadSchema = z.object({
   }),
   target_weight_kg: z.number().positive().max(500).optional(),
   rate_kg_per_week: z.number().positive().max(2).optional(),
+  body_fat_pct: z.number().min(3).max(60),
+  protein_g_override: z.number().positive().optional(),
   strength_training: z.boolean().optional(),
   training_days_per_week: z.number().int().min(0).max(7).optional(),
   is_pregnant_or_lactating: z.boolean().optional(),
