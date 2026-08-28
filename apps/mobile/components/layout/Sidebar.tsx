@@ -34,7 +34,7 @@ export function Sidebar() {
   const { data: streakView } = useStreak();
 
   return (
-    <View className="hidden w-[248px] shrink-0 border-r border-neutral-200 bg-white p-4 md:flex">
+    <View className="sticky top-0 hidden h-screen w-[248px] shrink-0 border-r border-neutral-200 bg-white p-4 md:flex">
       <Text className="mb-6 px-2 text-xl font-display-bold text-primary-400">Fitbrother</Text>
 
       {NAV_ITEMS.map((item) => {

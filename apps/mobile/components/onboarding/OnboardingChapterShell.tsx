@@ -14,6 +14,10 @@ const shadowStyleElevated = Platform.select({
     shadowRadius: 12,
   },
   android: { elevation: 3 },
+  // Platform.select nunca teve um caso `web` aqui — sem ele, react-native-web
+  // não recebe shadowColor/shadowOffset/etc (só existem em iOS/Android),
+  // então o card ficava sem sombra nenhuma no browser.
+  web: { boxShadow: "0 4px 12px rgba(0, 0, 0, 0.06)" },
   default: {},
 });
 
