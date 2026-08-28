@@ -118,6 +118,41 @@ export function MealComposer({
   const meterLevel = useSharedValue<number>(-160);
   const hasText = text.trim().length > 0;
   const isMultiline = contentHeight > MULTILINE_THRESHOLD;
+  const textInputRef = useRef<TextInput>(null);
+
+  // A <textarea>'s scrollHeight can never read below its current
+  // clientHeight (DOM invariant) — so driving height off scrollHeight
+  // directly ratchets upward forever from any one stray tall measurement
+  // (e.g. the placeholder wrapping while the pill is momentarily narrow
+  // before the photo/scan buttons hide). Resetting to "auto" before each
+  // read is the standard auto-grow-textarea fix: it drops the previous
+  // clamp so scrollHeight reflects only what the new content actually
+  // needs. RN's onContentSizeChange doesn't give us that reset-first
+  // control, so this bypasses it and measures the DOM node directly.
+  function autosizeWeb() {
+    if (Platform.OS !== "web") return;
+    const node = textInputRef.current as unknown as HTMLTextAreaElement | null;
+    if (!node) return;
+    node.style.height = "auto";
+    const next = Math.min(160, Math.max(24, node.scrollHeight));
+    node.style.height = `${next}px`;
+    setContentHeight(next);
+  }
+
+  const handleChangeText = (value: string) => {
+    setText(value);
+    // The native <textarea>'s own value is already updated by the time this
+    // fires, so measure synchronously for an instant response. But this can
+    // still land mid-flight: e.g. the char that flips `hasText` also widens
+    // the pill (hides the photo/scan buttons) via a React re-render that
+    // hasn't painted yet, so this first measurement sees the old, narrower
+    // width. A deferred correction pass, once that layout has settled, fixes
+    // it — setTimeout rather than rAF, since rAF never fires on a backgrounded
+    // tab and this needs to work either way.
+    autosizeWeb();
+    setTimeout(autosizeWeb, 0);
+  };
+
   const insets = useSafeAreaInsets();
   const rotation = useSharedValue(0);
 
@@ -425,6 +460,14 @@ export function MealComposer({
     if (!value || disabled || processing) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
     setText("");
+    // The DOM node still shows the pre-clear text until React re-renders
+    // with the new value, so there's nothing meaningful to measure yet —
+    // just collapse straight back to the single-line minimum.
+    if (Platform.OS === "web") {
+      const node = textInputRef.current as unknown as HTMLTextAreaElement | null;
+      if (node) node.style.height = "24px";
+    }
+    setContentHeight(0);
     onSend(value);
   };
 
@@ -503,9 +546,30 @@ export function MealComposer({
               ].join(" ")}
             >
               <TextInput
+                ref={textInputRef}
                 value={text}
-                onChangeText={setText}
-                onContentSizeChange={(e) => setContentHeight(e.nativeEvent.contentSize.height)}
+                onChangeText={handleChangeText}
+                onContentSizeChange={(e) => {
+                  // Web sizes itself via autosizeWeb (see above); native has
+                  // no clientHeight/scrollHeight ratchet to fight, so the OS
+                  // grows the input on its own and this is just tracked for
+                  // the isMultiline padding toggle below.
+                  if (Platform.OS !== "web") setContentHeight(e.nativeEvent.contentSize.height);
+                }}
+                onKeyPress={
+                  Platform.OS === "web"
+                    ? (e) => {
+                        const nativeEvent = e.nativeEvent as unknown as {
+                          key: string;
+                          shiftKey?: boolean;
+                        };
+                        if (nativeEvent.key === "Enter" && !nativeEvent.shiftKey) {
+                          e.preventDefault();
+                          handleSendText();
+                        }
+                      }
+                    : undefined
+                }
                 placeholder="O que você comeu?"
                 placeholderTextColor={colors.neutral[400]}
                 multiline
@@ -516,7 +580,9 @@ export function MealComposer({
                   paddingTop: 0,
                   paddingBottom: 0,
                   includeFontPadding: false,
-                  ...(Platform.OS === "web" ? { resize: "none" } : null),
+                  ...(Platform.OS === "web"
+                    ? { resize: "none", outlineWidth: 0, height: contentHeight || 24 }
+                    : null),
                 }}
                 className="max-h-40 text-base font-sans text-neutral-800"
               />
