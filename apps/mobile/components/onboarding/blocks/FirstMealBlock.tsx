@@ -79,6 +79,7 @@ export function FirstMealBlock({ chapter }: OnboardingBlockProps) {
       title="Vamos registrar sua primeira refeição"
       subtitle="Texto ou áudio — do jeito que for mais fácil agora."
       showNav={false}
+      onSkip={finish}
     >
       <View className="flex-1 justify-end">
         <MealComposer onSend={handleSend} onAudioReady={handleAudioReady} processing={processing} />

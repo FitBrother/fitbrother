@@ -108,7 +108,7 @@ export function OnboardingChapterShell({
         {chapter && (
           <View
             className="hidden w-[300px] justify-between bg-white px-6 py-10 lg:flex"
-            style={shadows.card}
+            style={shadows.rail}
           >
             <View className="gap-8">
               <Text className="text-xl font-display-bold text-primary-400">Fitbrother</Text>

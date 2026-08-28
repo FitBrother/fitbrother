@@ -35,7 +35,7 @@ export function Sidebar() {
   return (
     <View
       className="sticky top-0 hidden h-screen w-[248px] shrink-0 bg-white p-4 md:flex"
-      style={shadows.card}
+      style={shadows.rail}
     >
       <Image
         source={logoHorizontal}

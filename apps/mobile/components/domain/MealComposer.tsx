@@ -133,7 +133,11 @@ export function MealComposer({
     if (Platform.OS !== "web") return;
     const node = textInputRef.current as unknown as HTMLTextAreaElement | null;
     if (!node) return;
-    node.style.height = "auto";
+    // "auto" isn't actually zero here: a <textarea> with no `rows` attribute
+    // (RN Web never sets one) falls back to the UA default of 2 rows, so
+    // "auto" floors scrollHeight at 48px even for one short line. "0px"
+    // forces a true content-only measurement.
+    node.style.height = "0px";
     const next = Math.min(160, Math.max(24, node.scrollHeight));
     node.style.height = `${next}px`;
     setContentHeight(next);

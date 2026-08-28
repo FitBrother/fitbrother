@@ -70,7 +70,7 @@ export function MealCardSwipeable({ meal, onPress, onDelete }: Props) {
 
   return (
     <Animated.View
-      className="mx-4 mt-3"
+      style={{ marginHorizontal: 16, marginTop: 12 }}
       entering={FadeIn.duration(180)}
       exiting={SlideOutLeft.springify().damping(20).stiffness(180)}
     >
