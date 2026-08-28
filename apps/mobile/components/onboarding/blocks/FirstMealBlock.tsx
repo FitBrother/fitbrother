@@ -1,7 +1,7 @@
 import { router } from "expo-router";
 import { useState } from "react";
-import { Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { View } from "react-native";
+import { OnboardingChapterShell } from "@/components/onboarding/OnboardingChapterShell";
 import { MealComposer } from "@/components/domain/MealComposer";
 import { newClientMealId, useCreateMealText } from "@/lib/hooks/useCreateMealText";
 import { useCreateMealAudio } from "@/lib/hooks/useCreateMealAudio";
@@ -12,7 +12,7 @@ import { useOnboardingStore } from "@/lib/stores/onboardingStore";
 import { nutritionalToday } from "@/lib/time/nutritional-day";
 import type { OnboardingBlockProps } from "@/lib/onboarding/types";
 
-export function FirstMealBlock(_props: OnboardingBlockProps) {
+export function FirstMealBlock({ chapter }: OnboardingBlockProps) {
   const [processing, setProcessing] = useState(false);
   const createText = useCreateMealText();
   const createAudio = useCreateMealAudio();
@@ -74,17 +74,15 @@ export function FirstMealBlock(_props: OnboardingBlockProps) {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-neutral-50" edges={["top", "left", "right"]}>
-      <View className="gap-2 px-6 pt-4">
-        <Text className="text-2xl font-display-bold text-neutral-800">
-          Vamos registrar sua primeira refeição
-        </Text>
-        <Text className="text-base font-sans text-neutral-600">
-          Texto ou áudio — do jeito que for mais fácil agora.
-        </Text>
+    <OnboardingChapterShell
+      chapter={chapter}
+      title="Vamos registrar sua primeira refeição"
+      subtitle="Texto ou áudio — do jeito que for mais fácil agora."
+      showNav={false}
+    >
+      <View className="flex-1 justify-end">
+        <MealComposer onSend={handleSend} onAudioReady={handleAudioReady} processing={processing} />
       </View>
-      <View className="flex-1" />
-      <MealComposer onSend={handleSend} onAudioReady={handleAudioReady} processing={processing} />
-    </SafeAreaView>
+    </OnboardingChapterShell>
   );
 }
