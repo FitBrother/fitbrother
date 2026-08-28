@@ -5,7 +5,7 @@ import { colors } from "@/lib/colors";
 import { useStreak } from "@/lib/hooks/useStreak";
 import { StreakCounter } from "@/components/domain/StreakCounter";
 
-function greetingFor(date: Date): string {
+export function greetingFor(date: Date): string {
   const h = date.getHours();
   if (h < 12) return "Bom dia";
   if (h < 18) return "Boa tarde";
