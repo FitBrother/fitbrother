@@ -36,6 +36,12 @@ const Hero = () => (
           proteínas, carboidratos e gorduras. Com gamificação estilo Duolingo pra te manter no ritmo.
         </p>
 
+        <div className="hero__cta-row">
+          <a href="/app" className="btn btn--primary btn--lg">
+            Usar agora
+          </a>
+        </div>
+
         <StoreBadges className="hero__badges" />
 
         <div className="hero__metrics">

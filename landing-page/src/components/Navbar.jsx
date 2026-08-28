@@ -4,7 +4,7 @@
  * Funcionalidades:
  * - Logo FitBrother (PNG horizontal da marca)
  * - Links de navegação com scroll suave para âncoras (#features, #how-it-works, #faq)
- * - CTA "Baixar" que leva à faixa de download (#download)
+ * - CTA "Usar agora" que leva direto pro app web (/app)
  * - Efeito glassmorphism escuro via CSS
  * - Detecta scroll para aplicar classe "scrolled" (fundo mais opaco + borda)
  * - Menu hambúrguer para mobile com animação de X
@@ -44,10 +44,9 @@ const Navbar = () => {
   return (
     <nav className={`navbar ${scrolled ? 'scrolled' : ''}`}>
       <div className="navbar__inner">
-        {/* Logo do FitBrother — selo + nome (alto contraste no tema claro) */}
+        {/* Logo do FitBrother — lockup horizontal real da marca */}
         <a href="#hero" className="navbar__logo" aria-label="FitBrother — início">
-          <img src="/brand/app_icon.png" alt="" />
-          FitBrother
+          <img src="/brand/logo-horizontal-menta.png" alt="" />
         </a>
 
         {/* Links de navegação — desktop inline, overlay no mobile */}
@@ -59,14 +58,14 @@ const Navbar = () => {
           ))}
 
           {/* CTA dentro do menu mobile */}
-          <a href="#download" className="btn btn--primary navbar__cta" onClick={handleNavClick}>
-            Baixar
+          <a href="/app" className="btn btn--primary navbar__cta" onClick={handleNavClick}>
+            Usar agora
           </a>
         </div>
 
         {/* CTA no desktop */}
-        <a href="#download" className="btn btn--primary navbar__cta navbar__cta--desktop">
-          Baixar
+        <a href="/app" className="btn btn--primary navbar__cta navbar__cta--desktop">
+          Usar agora
         </a>
 
         {/* Botão hambúrguer — visível apenas no mobile */}

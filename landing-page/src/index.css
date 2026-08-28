@@ -3,6 +3,9 @@
    Sistema de design: light, clean, moderno e arredondado.
    Marca: menta #06D59F · quase-preto #04100C · branco/cinza claro.
    Nunca usar cores "soltas" — sempre referenciar variáveis de :root.
+   ELEVAÇÃO, NÃO HAIRLINE: superfícies (cards, painéis, navbar, FAQ) se separam
+   por sombra suave. Borda sobrevive só em campos de formulário e estados
+   semânticos (foco, erro), onde a borda carrega significado.
    ======================================================================== */
 
 /* ========================================================================
@@ -51,6 +54,10 @@
   --shadow-md: 0 10px 34px rgba(4, 16, 12, 0.09);
   --shadow-lg: 0 26px 60px rgba(4, 16, 12, 0.14);
   --shadow-menta: 0 20px 48px rgba(6, 213, 159, 0.28);
+  /* barras ancoradas embaixo elevam para cima em vez de desenhar hairline no topo */
+  --shadow-raised-top: 0 -6px 22px rgba(4, 16, 12, 0.07);
+  /* sombra de repouso de card — o padrão de separação de superfícies */
+  --shadow-card: 0 2px 10px rgba(4, 16, 12, 0.06);
 
   /* Tipografia */
   --font-display: 'Space Grotesk', sans-serif;
@@ -260,14 +267,19 @@ h6 {
 .btn--primary:active {
   transform: translateY(0);
 }
+/* secundário: superfície branca elevada em vez de contorno */
 .btn--outline {
-  background: transparent;
+  background: var(--surface);
   color: var(--ink);
-  border: 1.5px solid var(--border-strong);
+  box-shadow: var(--shadow-card);
 }
 .btn--outline:hover {
-  border-color: var(--ink);
   transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+.btn--outline:active {
+  transform: translateY(0);
+  box-shadow: var(--shadow-xs);
 }
 .btn--lg {
   padding: 16px 32px;
@@ -285,12 +297,11 @@ h6 {
   background: rgba(246, 247, 245, 0.72);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border-bottom: 1px solid transparent;
   transition: all var(--dur-fast) var(--ease);
 }
 .navbar.scrolled {
   background: rgba(246, 247, 245, 0.92);
-  border-bottom: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
 }
 .navbar__inner {
   display: flex;
@@ -304,16 +315,10 @@ h6 {
 .navbar__logo {
   display: flex;
   align-items: center;
-  gap: 10px;
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 1.3rem;
-  color: var(--ink);
-  letter-spacing: -0.02em;
 }
 .navbar__logo img {
-  width: 32px;
-  height: 32px;
+  height: 28px;
+  width: auto;
 }
 .navbar__links {
   display: flex;
@@ -414,12 +419,11 @@ h6 {
   gap: 8px;
   padding: 7px 16px;
   background: var(--surface);
-  border: 1px solid var(--border);
   border-radius: var(--radius-full);
   font-size: 0.84rem;
   font-weight: 500;
   color: var(--ink);
-  box-shadow: var(--shadow-xs);
+  box-shadow: var(--shadow-sm);
 }
 .hero__title {
   font-size: clamp(2.6rem, 5.4vw, 4.2rem);
@@ -449,8 +453,12 @@ h6 {
   line-height: 1.65;
   max-width: 30em;
 }
-.hero__badges {
+.hero__cta-row {
+  display: flex;
   margin-top: 4px;
+}
+.hero__badges {
+  margin-top: 12px;
 }
 .hero__metrics {
   display: flex;
@@ -502,7 +510,6 @@ h6 {
   width: 300px;
   max-width: 78vw;
   background: var(--surface);
-  border: 1px solid var(--border);
   border-radius: 34px;
   padding: 22px 18px;
   box-shadow: var(--shadow-lg);
@@ -552,7 +559,14 @@ h6 {
   align-items: center;
   justify-content: center;
   position: relative;
-  background: conic-gradient(var(--menta-500) 0% var(--pct), var(--mist-2) var(--pct) 100%);
+}
+.cring__svg {
+  position: absolute;
+  inset: 0;
+  transform: rotate(-90deg);
+}
+.cring__svg circle {
+  transition: stroke-dashoffset 0.6s var(--ease);
 }
 .cring__inner {
   position: absolute;
@@ -564,7 +578,7 @@ h6 {
   align-items: center;
   justify-content: center;
   text-align: center;
-  box-shadow: inset 0 0 0 1px var(--border);
+  box-shadow: var(--shadow-xs);
 }
 .cring__inner strong {
   font-family: var(--font-display);
@@ -630,7 +644,6 @@ h6 {
 }
 .lb-row--you {
   background: var(--menta-tint);
-  box-shadow: inset 0 0 0 1px var(--menta-tint-strong);
 }
 .lb-rank {
   font-family: var(--font-display);
@@ -654,41 +667,11 @@ h6 {
 }
 
 /* ========================================================================
-   10. STORE BADGES
+   10. STORE NOTE
    ======================================================================== */
-.store-badges {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-.store-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  padding: 11px 18px;
-  background: var(--ink);
-  color: var(--text-on-ink);
-  border-radius: var(--radius-md);
-  transition:
-    transform var(--dur-fast) var(--ease),
-    box-shadow var(--dur-fast) var(--ease);
-}
-.store-badge:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
-}
-.store-badge span {
-  display: flex;
-  flex-direction: column;
-  line-height: 1.1;
-}
-.store-badge small {
-  font-size: 0.62rem;
-  opacity: 0.8;
-}
-.store-badge strong {
-  font-family: var(--font-display);
-  font-size: 0.98rem;
+.store-note {
+  font-size: 0.86rem;
+  color: var(--text-faint);
 }
 
 /* ========================================================================
@@ -701,21 +684,19 @@ h6 {
 }
 .feature-card {
   background: var(--surface);
-  border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   padding: 32px 26px;
   display: flex;
   flex-direction: column;
   gap: 14px;
+  box-shadow: var(--shadow-card);
   transition:
     transform var(--dur-fast) var(--ease),
-    box-shadow var(--dur-fast) var(--ease),
-    border-color var(--dur-fast) var(--ease);
+    box-shadow var(--dur-fast) var(--ease);
 }
 .feature-card:hover {
   transform: translateY(-6px);
   box-shadow: var(--shadow-md);
-  border-color: var(--menta-tint-strong);
 }
 .feature-card__icon {
   width: 52px;
@@ -809,7 +790,6 @@ h6 {
   max-width: 340px;
   border-radius: var(--radius-xl);
   background: var(--surface);
-  border: 1px solid var(--border);
   box-shadow: var(--shadow-md);
   padding: 22px;
   overflow: hidden;
@@ -864,15 +844,14 @@ h6 {
   align-items: stretch;
 }
 .preview__card {
-  background: var(--canvas);
-  border: 1px solid var(--border);
+  background: var(--surface);
   border-radius: var(--radius-xl);
   padding: 24px;
   min-height: 280px;
   display: flex;
   flex-direction: column;
   gap: 14px;
-  box-shadow: var(--shadow-xs);
+  box-shadow: var(--shadow-card);
 }
 .preview__card-title {
   color: var(--ink);
@@ -903,13 +882,13 @@ h6 {
 }
 .faq__item {
   background: var(--surface);
-  border: 1px solid var(--border);
   border-radius: var(--radius-md);
   padding: 2px 22px;
-  transition: border-color var(--dur-fast) var(--ease);
+  box-shadow: var(--shadow-card);
+  transition: box-shadow var(--dur-fast) var(--ease);
 }
 .faq__item[open] {
-  border-color: var(--menta-tint-strong);
+  box-shadow: var(--shadow-md);
 }
 .faq__q {
   display: flex;
@@ -966,6 +945,7 @@ h6 {
 }
 .final-cta__badges {
   margin-top: 8px;
+  color: rgba(4, 16, 12, 0.65);
 }
 
 /* ========================================================================
@@ -973,7 +953,6 @@ h6 {
    ======================================================================== */
 .footer {
   background: var(--canvas);
-  border-top: 1px solid var(--border);
   padding: 64px 0 32px;
 }
 .footer__inner {
@@ -990,15 +969,10 @@ h6 {
 .footer__brand-logo {
   display: flex;
   align-items: center;
-  gap: 10px;
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 1.25rem;
-  color: var(--ink);
 }
 .footer__brand-logo img {
-  width: 30px;
-  height: 30px;
+  height: 24px;
+  width: auto;
 }
 .footer__brand-description {
   font-size: 0.9rem;
@@ -1111,6 +1085,7 @@ h6 {
   .hero__content {
     align-items: center;
   }
+  .hero__cta-row,
   .hero__badges,
   .hero__metrics {
     justify-content: center;

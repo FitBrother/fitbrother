@@ -11,20 +11,20 @@ import Icon from './Icon'
 
 const faqs = [
   {
-    q: 'Meus dados ficam seguros?',
-    a: 'Sim. Seus registros são privados e você pode exportar ou apagar tudo quando quiser, conforme a LGPD.',
+    q: 'Preciso pesar a comida?',
+    a: 'Não. Descreva do jeito que você fala — "dois ovos e uma fatia de pão" — e a IA estima as porções. Se quiser precisão, dá pra ajustar a quantidade depois.',
   },
   {
-    q: 'Preciso de balança ou pesar a comida?',
-    a: 'Não. Descreva naturalmente ("2 ovos e um café com leite") e a IA estima as porções e os macros pra você.',
+    q: 'Funciona pelo WhatsApp?',
+    a: 'Sim. Manda texto ou áudio pro número do Fitbrother e a refeição aparece no app em tempo real.',
   },
   {
-    q: 'Funciona mesmo pelo WhatsApp?',
-    a: 'Funciona. Mande texto ou áudio pro nosso número e o registro sincroniza no app em tempo real.',
+    q: 'Meus dados são meus?',
+    a: 'São. Você pode exportar tudo ou apagar a conta inteira direto nas configurações, a qualquer momento.',
   },
   {
-    q: 'O FitBrother é grátis?',
-    a: 'Você começa de graça. Recursos avançados podem fazer parte de um plano no futuro.',
+    q: 'Tem versão web?',
+    a: 'Tem — e é por onde estamos começando. O mesmo app roda no navegador, com layout adaptado pra tablet e desktop.',
   },
 ]
 

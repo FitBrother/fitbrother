@@ -23,25 +23,25 @@ const stepsData = [
   {
     number: '01',
     shot: 'whatsapp',
-    title: 'Fale ou escreva',
+    title: 'Diga o que comeu',
     description:
-      'Abra o app ou mande um WhatsApp. Diga naturalmente: "Comi 2 ovos e um café com leite". Sem formulários complicados.',
+      'Um áudio de oito segundos ou uma frase digitada. No app ou no WhatsApp — o que estiver mais perto.',
     imageAlt: 'Conversa de WhatsApp registrando uma refeição',
   },
   {
     number: '02',
     shot: 'ai-flow',
-    title: 'A IA faz o trabalho',
+    title: 'A IA faz a conta',
     description:
-      'A inteligência artificial transcreve áudios, identifica cada alimento e calcula os macronutrientes automaticamente.',
+      'Transcrição, identificação dos alimentos e cálculo dos macros. Se algo saiu errado, é um toque pra corrigir.',
     imageAlt: 'Resultado da IA — calorias e macronutrientes',
   },
   {
     number: '03',
     shot: 'gamification',
-    title: 'Acompanhe e compita',
+    title: 'Volte amanhã',
     description:
-      'Dashboard em tempo real com seus macros. Mantenha seu streak, desbloqueie conquistas e suba no ranking dos amigos.',
+      'Ofensiva, conquistas e ranking semanal com os amigos. O hábito é a parte difícil — essa é a parte que a gente resolve.',
     imageAlt: 'Ranking semanal e aderência da semana',
   },
 ]
@@ -81,8 +81,8 @@ const HowItWorks = () => {
     <section id="how-it-works" className="section">
       <div className="container">
         <div className="section__header reveal">
-          <h2 className="section__title">Como funciona</h2>
-          <p className="section__subtitle">Três passos simples para controlar sua nutrição.</p>
+          <span className="section__eyebrow">Como funciona</span>
+          <h2 className="section__title">Três passos e pronto</h2>
         </div>
 
         <div className="steps">

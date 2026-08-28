@@ -27,10 +27,9 @@ const Footer = () => {
 
           {/* === Coluna 1: Marca + Descrição === */}
           <div className="footer__brand">
-            {/* Logo da marca — selo + nome */}
+            {/* Logo da marca — lockup horizontal real */}
             <div className="footer__brand-logo">
-              <img src="/brand/app_icon.png" alt="" />
-              FitBrother
+              <img src="/brand/logo-horizontal-menta.png" alt="FitBrother" />
             </div>
 
             {/* Tagline do projeto */}
@@ -72,8 +71,8 @@ const Footer = () => {
                 </a>
               </li>
               <li>
-                <a href="#download" className="footer__link">
-                  Baixar
+                <a href="/app" className="footer__link">
+                  Usar agora
                 </a>
               </li>
               <li>
