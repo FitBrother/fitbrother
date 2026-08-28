@@ -1,5 +1,6 @@
 import React from "react";
-import { Platform, Pressable, type PressableProps, View } from "react-native";
+import { Pressable, type PressableProps, View } from "react-native";
+import { shadows } from "@/lib/shadows";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -11,27 +12,6 @@ interface CardProps {
   onPress?: PressableProps["onPress"];
   className?: string;
 }
-
-// ─── Shadow Styles (plataforma-específico para Android + iOS) ─────────────────
-
-const shadowStyleElevated = Platform.select({
-  ios: {
-    shadowColor: "#000000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
-  },
-  android: {
-    elevation: 2,
-  },
-  // Platform.select nunca teve um caso `web` aqui — sem ele, react-native-web
-  // não recebe shadowColor/shadowOffset/etc (só existem em iOS/Android),
-  // então todo Card "elevated" ficava sem sombra nenhuma no browser.
-  web: {
-    boxShadow: "0 1px 4px rgba(0, 0, 0, 0.06)",
-  },
-  default: {},
-});
 
 // ─── Style Maps ───────────────────────────────────────────────────────────────
 
@@ -52,7 +32,7 @@ export function Card({ children, variant = "elevated", onPress, className = "" }
     return (
       <Pressable
         onPress={onPress}
-        style={variant === "elevated" ? shadowStyleElevated : undefined}
+        style={variant === "elevated" ? shadows.card : undefined}
         className={`${baseClass} ${variant !== "elevated" ? "active:opacity-80" : ""}`}
       >
         {children}
@@ -61,7 +41,7 @@ export function Card({ children, variant = "elevated", onPress, className = "" }
   }
 
   return (
-    <View className={baseClass} style={variant === "elevated" ? shadowStyleElevated : undefined}>
+    <View className={baseClass} style={variant === "elevated" ? shadows.card : undefined}>
       {children}
     </View>
   );

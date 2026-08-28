@@ -4,22 +4,8 @@ import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } fro
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Button } from "@/components/Button";
 import { colors } from "@/lib/colors";
+import { shadows } from "@/lib/shadows";
 import { CHAPTER_NAMES, CHAPTER_TOTAL } from "@/lib/onboarding/types";
-
-const shadowStyleElevated = Platform.select({
-  ios: {
-    shadowColor: "#000000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-  },
-  android: { elevation: 3 },
-  // Platform.select nunca teve um caso `web` aqui — sem ele, react-native-web
-  // não recebe shadowColor/shadowOffset/etc (só existem em iOS/Android),
-  // então o card ficava sem sombra nenhuma no browser.
-  web: { boxShadow: "0 4px 12px rgba(0, 0, 0, 0.06)" },
-  default: {},
-});
 
 interface OnboardingChapterShellProps {
   /** Presente só na Fase A (capítulos 1-3) — liga o painel lateral (desktop)
@@ -54,7 +40,7 @@ export function OnboardingChapterShell({
   const card = (
     <View
       className="mx-auto w-full max-w-[560px] flex-1 px-5 py-6 sm:my-8 sm:flex-none sm:rounded-2xl sm:bg-white sm:p-10"
-      style={shadowStyleElevated}
+      style={shadows.card}
     >
       {chapter && (
         <>
@@ -86,7 +72,7 @@ export function OnboardingChapterShell({
             accessibilityRole="button"
             accessibilityLabel="Voltar"
             className="h-[52px] w-[52px] items-center justify-center rounded-full bg-white active:bg-neutral-50"
-            style={shadowStyleElevated}
+            style={shadows.card}
           >
             <ChevronLeft size={20} color={colors.neutral[800]} />
           </Pressable>
@@ -122,7 +108,7 @@ export function OnboardingChapterShell({
         {chapter && (
           <View
             className="hidden w-[300px] justify-between bg-white px-6 py-10 lg:flex"
-            style={shadowStyleElevated}
+            style={shadows.card}
           >
             <View className="gap-8">
               <Text className="text-xl font-display-bold text-primary-400">Fitbrother</Text>

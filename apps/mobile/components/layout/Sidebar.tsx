@@ -1,10 +1,10 @@
 import { useRouter, usePathname } from "expo-router";
 import { Calendar, Home as HomeIcon, Rss, Search, Sparkles, Users } from "lucide-react-native";
-import { Pressable, Text, View } from "react-native";
-import { StreakCounter } from "@/components/domain/StreakCounter";
+import { Image, Pressable, Text, View } from "react-native";
+import logoHorizontal from "@/assets/brand/logo-horizontal-menta.png";
 import { profileInitials } from "@/lib/account-utils";
 import { colors } from "@/lib/colors";
-import { useStreak } from "@/lib/hooks/useStreak";
+import { shadows } from "@/lib/shadows";
 import { useProfile } from "@/lib/profile/profile-context";
 
 type NavItem = {
@@ -31,11 +31,19 @@ export function Sidebar() {
   const router = useRouter();
   const pathname = usePathname();
   const profile = useProfile();
-  const { data: streakView } = useStreak();
 
   return (
-    <View className="sticky top-0 hidden h-screen w-[248px] shrink-0 border-r border-neutral-200 bg-white p-4 md:flex">
-      <Text className="mb-6 px-2 text-xl font-display-bold text-primary-400">Fitbrother</Text>
+    <View
+      className="sticky top-0 hidden h-screen w-[248px] shrink-0 bg-white p-4 md:flex"
+      style={shadows.card}
+    >
+      <Image
+        source={logoHorizontal}
+        style={{ height: 28, width: 173 }}
+        resizeMode="contain"
+        accessibilityLabel="Fitbrother"
+        className="mb-6 ml-2"
+      />
 
       {NAV_ITEMS.map((item) => {
         const active = isActive(pathname, item.href);
@@ -61,12 +69,6 @@ export function Sidebar() {
       })}
 
       <View className="flex-1" />
-
-      {streakView ? (
-        <View className="mb-3 px-2">
-          <StreakCounter current={streakView.streak.current_streak} atRisk={streakView.atRisk} />
-        </View>
-      ) : null}
 
       <Pressable
         onPress={() => router.push("/(app)/profile")}
