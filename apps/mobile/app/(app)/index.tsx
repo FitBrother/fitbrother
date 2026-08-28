@@ -5,6 +5,7 @@ import {
   Platform,
   Pressable,
   RefreshControl,
+  Text,
   useWindowDimensions,
   View,
 } from "react-native";
@@ -38,13 +39,17 @@ import { QuotaExceededError, getErrorStatus } from "@/lib/api/meals";
 import { colors } from "@/lib/colors";
 import { uploadMealAudio, uploadMealPhoto } from "@/lib/storage";
 import type { AudioExtension } from "@/lib/audio/recorder";
-import { HomeHeader } from "@/components/domain/HomeHeader";
+import { Card } from "@/components/Card";
+import { HomeHeader, greetingFor } from "@/components/domain/HomeHeader";
 import { MealCardSwipeable } from "@/components/domain/MealCardSwipeable";
 import { MealCardSkeleton } from "@/components/domain/MealCardSkeleton";
 import { MealComposer } from "@/components/domain/MealComposer";
 import { EmptyMealsState } from "@/components/domain/EmptyMealsState";
 import { ErrorBanner, type ErrorBannerVariant } from "@/components/domain/ErrorBanner";
 import { TodaySummaryHeader } from "@/components/domain/TodaySummaryHeader";
+import { GoalsDisclaimer } from "@/components/domain/GoalsDisclaimer";
+import { StreakCounter } from "@/components/domain/StreakCounter";
+import { useStreak } from "@/lib/hooks/useStreak";
 
 function detectLocale(): string {
   const tag = Localization.getLocales()[0]?.languageTag;
@@ -68,6 +73,8 @@ export default function HomeScreen() {
   const [banner, setBanner] = useState<ErrorBannerVariant | null>(null);
   const { width } = useWindowDimensions();
   const isDesktop = width >= 1024;
+  const { data: streakView } = useStreak();
+  const firstName = profile.full_name.split(" ")[0] ?? profile.full_name;
 
   const items = (mealsQuery.data ?? []) as OptimisticMeal[];
 
@@ -258,35 +265,60 @@ export default function HomeScreen() {
   if (isDesktop) {
     return (
       <SafeAreaView className="flex-1 bg-neutral-50" edges={["top", "left", "right"]}>
-        <HomeHeader name={profile.full_name} softMode={profile.soft_mode} />
         {banner && <ErrorBanner variant={banner} onDismiss={() => setBanner(null)} />}
-        <View className="mx-auto w-full max-w-[1120px] flex-1 flex-row gap-6 px-6">
-          <View className="w-[440px] shrink-0 gap-4 pt-4">
-            <TodaySummaryHeader summary={summaryQuery.data} softMode={profile.soft_mode} />
-            <MealComposer
-              onSend={handleSend}
-              onAudioReady={handleAudioReady}
-              onPhotoPress={handlePhotoPress}
-              onScanPress={() => router.push("/(app)/scan" as never)}
-              disabled={banner === "quota_exceeded"}
-              processing={
-                createMeal.isPending || createMealAudio.isPending || createMealPhoto.isPending
-              }
-            />
+
+        <View className="sticky top-0 z-10 bg-neutral-50 px-6 pb-4 pt-5">
+          <Card
+            variant="elevated"
+            className="mx-auto w-full max-w-[1120px] flex-row items-center justify-between"
+          >
+            <View>
+              <Text className="text-[13px] font-sans text-neutral-500">
+                {greetingFor(new Date())}, {firstName}
+              </Text>
+              <Text className="mt-0.5 text-[28px] font-display-bold text-neutral-800">Hoje</Text>
+            </View>
+            {!profile.soft_mode && streakView && (
+              <StreakCounter
+                current={streakView.streak.current_streak}
+                atRisk={streakView.atRisk}
+              />
+            )}
+          </Card>
+        </View>
+
+        <View className="mx-auto w-full max-w-[1120px] flex-1 flex-row items-start gap-8 px-6">
+          <View className="sticky top-[124px] w-[400px] shrink-0 gap-5">
+            <Card variant="elevated">
+              <TodaySummaryHeader summary={summaryQuery.data} softMode={profile.soft_mode} />
+            </Card>
+            <GoalsDisclaimer />
           </View>
+
           <View className="flex-1">
+            <View className="mb-4 flex-row items-baseline justify-between gap-4">
+              <Text className="text-2xl font-display-bold text-neutral-800">Refeições</Text>
+              <Text
+                className="text-[13px] text-neutral-500"
+                style={{ fontVariant: ["tabular-nums"] }}
+              >
+                {items.length} de hoje
+              </Text>
+            </View>
             {mealsQuery.isLoading ? (
               <View className="flex-1 items-center justify-center">
                 <ActivityIndicator color={colors.primary[400]} />
               </View>
             ) : items.length === 0 ? (
-              <EmptyMealsState />
+              <Card variant="flat">
+                <EmptyMealsState />
+              </Card>
             ) : (
               <Animated.FlatList
                 data={items}
                 keyExtractor={(m) => (m as OptimisticMeal).id}
                 renderItem={renderItem as never}
-                contentContainerStyle={{ paddingBottom: 40 }}
+                contentContainerStyle={{ paddingBottom: 180 }}
                 itemLayoutAnimation={LinearTransition.springify().damping(20).stiffness(180)}
                 refreshControl={
                   <RefreshControl
@@ -302,9 +334,42 @@ export default function HomeScreen() {
             )}
           </View>
         </View>
+
+        <View className="sticky bottom-0 z-10 bg-neutral-50 px-6 pb-3 pt-4">
+          <View className="mx-auto w-full max-w-[1120px]">
+            <MealComposer
+              onSend={handleSend}
+              onAudioReady={handleAudioReady}
+              onPhotoPress={handlePhotoPress}
+              onScanPress={() => router.push("/(app)/scan" as never)}
+              disabled={banner === "quota_exceeded"}
+              processing={
+                createMeal.isPending || createMealAudio.isPending || createMealPhoto.isPending
+              }
+            />
+            <Text className="mt-2.5 text-center text-[12.5px] text-neutral-400">
+              Escreva, dite ou fotografe — a IA calcula os macros.
+            </Text>
+          </View>
+        </View>
       </SafeAreaView>
     );
   }
+
+  const listHeader = (
+    <View className="gap-4 px-4 pb-2">
+      <Card variant="elevated">
+        <TodaySummaryHeader summary={summaryQuery.data} softMode={profile.soft_mode} />
+      </Card>
+      <GoalsDisclaimer />
+      <View className="flex-row items-baseline justify-between gap-4">
+        <Text className="text-xl font-display-bold text-neutral-800">Refeições</Text>
+        <Text className="text-[13px] text-neutral-500" style={{ fontVariant: ["tabular-nums"] }}>
+          {items.length} de hoje
+        </Text>
+      </View>
+    </View>
+  );
 
   return (
     <SafeAreaView className="flex-1 bg-neutral-50" edges={["top", "left", "right"]}>
@@ -314,18 +379,18 @@ export default function HomeScreen() {
         <Pressable className="flex-1" onPress={Keyboard.dismiss} />
       ) : items.length === 0 ? (
         <Pressable className="flex-1" onPress={Keyboard.dismiss}>
-          <TodaySummaryHeader summary={summaryQuery.data} softMode={profile.soft_mode} />
-          <EmptyMealsState />
+          {listHeader}
+          <Card variant="flat" className="mx-4">
+            <EmptyMealsState />
+          </Card>
         </Pressable>
       ) : (
         <Animated.FlatList
           data={items}
           keyExtractor={(m) => (m as OptimisticMeal).id}
           renderItem={renderItem as never}
-          ListHeaderComponent={
-            <TodaySummaryHeader summary={summaryQuery.data} softMode={profile.soft_mode} />
-          }
-          contentContainerStyle={{ paddingBottom: 140 }}
+          ListHeaderComponent={listHeader}
+          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 140 }}
           keyboardDismissMode="on-drag"
           keyboardShouldPersistTaps="handled"
           itemLayoutAnimation={LinearTransition.springify().damping(20).stiffness(180)}
@@ -347,16 +412,21 @@ export default function HomeScreen() {
       <Animated.View
         style={[{ position: "absolute", left: 0, right: 0, bottom: 0 }, composerStyle]}
       >
-        <MealComposer
-          onSend={handleSend}
-          onAudioReady={handleAudioReady}
-          onPhotoPress={handlePhotoPress}
-          onScanPress={() => router.push("/(app)/scan" as never)}
-          disabled={banner === "quota_exceeded"}
-          processing={
-            createMeal.isPending || createMealAudio.isPending || createMealPhoto.isPending
-          }
-        />
+        <View className="bg-neutral-50 px-4 pb-2 pt-3">
+          <MealComposer
+            onSend={handleSend}
+            onAudioReady={handleAudioReady}
+            onPhotoPress={handlePhotoPress}
+            onScanPress={() => router.push("/(app)/scan" as never)}
+            disabled={banner === "quota_exceeded"}
+            processing={
+              createMeal.isPending || createMealAudio.isPending || createMealPhoto.isPending
+            }
+          />
+          <Text className="mt-2 text-center text-xs text-neutral-400">
+            Escreva, dite ou fotografe — a IA calcula os macros.
+          </Text>
+        </View>
       </Animated.View>
     </SafeAreaView>
   );
