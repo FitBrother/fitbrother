@@ -58,7 +58,7 @@ export default function SignIn() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         className="flex-1"
       >
-        <View className="flex-1 p-5 pt-12">
+        <View className="w-full flex-1 p-5 pt-12 md:mx-auto md:max-w-[440px]">
           <Text className="mb-2 text-3xl font-display-bold text-neutral-800">
             Bem-vindo de volta
           </Text>
