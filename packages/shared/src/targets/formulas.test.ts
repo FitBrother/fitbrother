@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   calculateBmr,
   calculateTdee,
+  computeTargetWeightBounds,
   deficitKcalPerDayToRateKgPerWeek,
   fiberTargetG,
   percentOfWeightPerWeekToRateKgPerWeek,
@@ -65,5 +66,58 @@ describe("fiberTargetG", () => {
 
   it("respeita o teto de 40g", () => {
     expect(fiberTargetG(4000)).toBe(40);
+  });
+});
+
+describe("computeTargetWeightBounds", () => {
+  it("'perder gordura': teto é o peso atual, piso é a massa magra sobre o % saudável mínimo", () => {
+    // massa magra = 90*(1-0.30) = 63; piso = 63/(1-0.10) = 70
+    const bounds = computeTargetWeightBounds({
+      goal: "lose",
+      weight_kg: 90,
+      height_cm: 180,
+      body_fat_pct: 30,
+      sex: "male",
+    });
+    expect(bounds).toEqual({ min: 70, max: 90 });
+  });
+
+  it("'perder gordura': piso trava em peso-0.5 quando já abaixo do % saudável mínimo", () => {
+    // 60kg a 9% (abaixo do piso saudável de 10% pra homem) faria o piso por
+    // massa magra passar do próprio peso atual — trava em 59.5 pra manter
+    // min < max.
+    const bounds = computeTargetWeightBounds({
+      goal: "lose",
+      weight_kg: 60,
+      height_cm: 175,
+      body_fat_pct: 9,
+      sex: "male",
+    });
+    expect(bounds).toEqual({ min: 59.5, max: 60 });
+  });
+
+  it("'ganhar massa': piso é o peso atual, teto é o IMC de obesidade pra altura", () => {
+    // 1,60m: teto = 30 * 1.6² = 76.8 — não deixa mirar 110kg.
+    const bounds = computeTargetWeightBounds({
+      goal: "gain",
+      weight_kg: 65,
+      height_cm: 160,
+      body_fat_pct: 25,
+      sex: "female",
+    });
+    expect(bounds).toEqual({ min: 65, max: 76.8 });
+  });
+
+  it("'ganhar massa': teto trava em peso+0.5 quando já acima do IMC de obesidade", () => {
+    // 95kg a 1,70m já passa do IMC 30 (86.7) — trava em 95.5 pra manter
+    // min < max.
+    const bounds = computeTargetWeightBounds({
+      goal: "gain",
+      weight_kg: 95,
+      height_cm: 170,
+      body_fat_pct: 20,
+      sex: "male",
+    });
+    expect(bounds).toEqual({ min: 95, max: 95.5 });
   });
 });

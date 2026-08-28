@@ -1,5 +1,6 @@
-import { computeTargets } from "@fitbrother/shared";
+import { computeTargetWeightBounds, computeTargets } from "@fitbrother/shared";
 import * as Haptics from "expo-haptics";
+import { useEffect } from "react";
 import { Pressable, Text, View } from "react-native";
 import { OnboardingChapterShell } from "@/components/onboarding/OnboardingChapterShell";
 import { SliderInput } from "@/components/SliderInput";
@@ -32,9 +33,36 @@ export function GoalBlock({ onNext, onBack, chapter }: OnboardingBlockProps) {
 
   const showRateInputs = goal === "lose" || goal === "gain";
   const currentWeight = weight_kg ?? 70;
+  const targetBounds =
+    goal === "lose" || goal === "gain"
+      ? computeTargetWeightBounds({
+          goal,
+          weight_kg: currentWeight,
+          height_cm: height_cm ?? 170,
+          body_fat_pct: body_fat_pct ?? 20,
+          sex: sex ?? "other",
+        })
+      : { min: 30, max: 250 };
   const defaultTarget =
-    goal === "lose" ? Math.max(30, currentWeight - 5) : Math.min(250, currentWeight + 5);
-  const selectedTarget = target_weight_kg ?? defaultTarget;
+    goal === "lose"
+      ? Math.max(targetBounds.min, currentWeight - 5)
+      : Math.min(targetBounds.max, currentWeight + 5);
+  const selectedTarget = Math.min(
+    targetBounds.max,
+    Math.max(targetBounds.min, target_weight_kg ?? defaultTarget),
+  );
+
+  // Trocar de objetivo muda os limites do slider — se o valor já salvo cair
+  // fora do novo intervalo, o slider mostra a posição corrigida (acima) mas
+  // o store ainda guarda o valor velho até o usuário arrastar de novo. Sem
+  // isso, "Continuar" sem tocar no slider submeteria um peso-alvo fora dos
+  // limites atuais.
+  useEffect(() => {
+    if (target_weight_kg === undefined) return;
+    const clamped = Math.min(targetBounds.max, Math.max(targetBounds.min, target_weight_kg));
+    if (clamped !== target_weight_kg) setField("target_weight_kg", clamped);
+  }, [target_weight_kg, targetBounds.min, targetBounds.max, setField]);
+
   const defaultRate =
     goal === "lose" || goal === "gain"
       ? Math.round((DEFAULT_RATE_PCT[goal] / 100) * currentWeight * 10) / 10
@@ -100,8 +128,8 @@ export function GoalBlock({ onNext, onBack, chapter }: OnboardingBlockProps) {
           <View className="gap-3">
             <SliderInput
               label="Peso-alvo"
-              min={30}
-              max={250}
+              min={targetBounds.min}
+              max={targetBounds.max}
               step={0.5}
               value={selectedTarget}
               unit="kg"

@@ -60,6 +60,12 @@ export function BodyFatBlock({ onNext, onBack, chapter }: OnboardingBlockProps) 
     setExactText(String(clamped));
   }
 
+  // Bucket 3 ("médio") como estimativa padrão — não deixa o campo em branco
+  // (protein_g depende de body_fat_pct) nem exige que o usuário adivinhe.
+  function useDefaultEstimate() {
+    selectBucket(3);
+  }
+
   return (
     <OnboardingChapterShell
       chapter={chapter}
@@ -102,6 +108,16 @@ export function BodyFatBlock({ onNext, onBack, chapter }: OnboardingBlockProps) 
         >
           <Text className="text-center text-sm font-sans-medium text-primary-500">
             {exactMode ? "Usar as ilustrações" : "Prefiro digitar o número exato"}
+          </Text>
+        </Pressable>
+
+        <Pressable
+          onPress={useDefaultEstimate}
+          accessibilityRole="button"
+          accessibilityLabel="Não sei — usar uma estimativa"
+        >
+          <Text className="text-center text-sm font-sans-medium text-neutral-500">
+            Não sei — usar uma estimativa
           </Text>
         </Pressable>
 
