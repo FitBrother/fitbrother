@@ -408,7 +408,7 @@ export default function HomeScreen() {
       <Animated.View
         style={[{ position: "absolute", left: 0, right: 0, bottom: 0 }, composerStyle]}
       >
-        <View className="bg-neutral-50 px-4 pb-2 pt-3">
+        <View className="bg-neutral-50 pb-2 pt-3">
           <MealComposer
             onSend={handleSend}
             onAudioReady={handleAudioReady}
