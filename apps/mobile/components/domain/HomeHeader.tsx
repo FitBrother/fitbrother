@@ -51,11 +51,12 @@ export function HomeHeader({
 
       <View className="flex-row items-center gap-1">
         <Pressable
-          onPress={() => setMenuOpen(true)}
-          accessibilityLabel="Menu"
+          onPress={() => router.push("/(app)/feed" as never)}
+          accessibilityLabel="Feed"
           accessibilityRole="button"
+          className="min-h-[44px] min-w-[44px] items-center justify-center rounded-full"
         >
-          <Avatar avatarPath={avatarUrl} fullName={name} size={48} />
+          <Rss size={22} color={colors.neutral[800]} />
         </Pressable>
         <Pressable
           onPress={() => router.push("/(app)/insights" as never)}
@@ -66,12 +67,11 @@ export function HomeHeader({
           <Sparkles size={22} color={colors.neutral[800]} />
         </Pressable>
         <Pressable
-          onPress={() => router.push("/(app)/feed" as never)}
-          accessibilityLabel="Feed"
+          onPress={() => setMenuOpen(true)}
+          accessibilityLabel="Menu"
           accessibilityRole="button"
-          className="min-h-[44px] min-w-[44px] items-center justify-center rounded-full"
         >
-          <Rss size={22} color={colors.neutral[800]} />
+          <Avatar avatarPath={avatarUrl} fullName={name} size={48} />
         </Pressable>
       </View>
 
