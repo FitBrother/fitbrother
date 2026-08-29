@@ -77,7 +77,7 @@ export function MealRecorder({ state, durationMs, meterLevel, onCancel }: Props)
       entering={FadeIn.duration(160)}
       exiting={FadeOut.duration(120)}
       style={shadows.floating}
-      className="min-h-[64px] flex-1 flex-row items-center justify-between rounded-[32px] bg-white px-5"
+      className="min-h-[48px] flex-1 flex-row items-center justify-between rounded-[24px] bg-white px-4"
     >
       <View className="flex-row items-center gap-3">
         <PulsingDot />

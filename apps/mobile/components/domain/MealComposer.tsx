@@ -490,13 +490,13 @@ export function MealComposer({
     if (processing)
       return (
         <Animated.View style={spinStyle}>
-          <Loader2 size={22} color={colors.white} />
+          <Loader2 size={20} color={colors.white} />
         </Animated.View>
       );
     if (mode.kind === "recording-locked")
-      return <Square size={20} color={colors.white} fill={colors.white} />;
-    if (hasText && !isRecording) return <Send size={22} color={colors.white} />;
-    return <Mic size={22} color={colors.white} />;
+      return <Square size={18} color={colors.white} fill={colors.white} />;
+    if (hasText && !isRecording) return <Send size={20} color={colors.white} />;
+    return <Mic size={20} color={colors.white} />;
   })();
 
   const micAccessibilityLabel = (() => {
@@ -534,7 +534,7 @@ export function MealComposer({
       />
 
       <View style={{ paddingBottom: bottomPad }} className="px-4 pt-3">
-        <View className="flex-row items-end gap-3">
+        <View className="flex-row items-end gap-2">
           {isRecording && recState ? (
             <MealRecorder
               state={recState}
@@ -546,8 +546,8 @@ export function MealComposer({
             <View
               style={shadows.floating}
               className={[
-                "min-h-[64px] flex-1 justify-center rounded-[32px] bg-white px-5",
-                isMultiline ? "py-3" : "",
+                "min-h-[48px] flex-1 justify-center rounded-[24px] bg-white px-4",
+                isMultiline ? "py-2" : "",
               ].join(" ")}
             >
               <TextInput
@@ -602,11 +602,11 @@ export function MealComposer({
               disabled={disabled || processing}
               style={shadows.floating}
               className={[
-                "h-16 w-16 items-center justify-center rounded-full",
+                "h-12 w-12 items-center justify-center rounded-full",
                 disabled || processing ? "bg-neutral-200" : "bg-white active:bg-neutral-100",
               ].join(" ")}
             >
-              <Plus size={22} color={colors.neutral[800]} />
+              <Plus size={20} color={colors.neutral[800]} />
             </Pressable>
           ) : !hasText && !isRecording && onPhotoPress ? (
             <Pressable
@@ -616,11 +616,11 @@ export function MealComposer({
               disabled={disabled || processing}
               style={shadows.floating}
               className={[
-                "h-16 w-16 items-center justify-center rounded-full",
+                "h-12 w-12 items-center justify-center rounded-full",
                 disabled || processing ? "bg-neutral-200" : "bg-white active:bg-neutral-100",
               ].join(" ")}
             >
-              <Camera size={22} color={colors.neutral[800]} />
+              <Camera size={20} color={colors.neutral[800]} />
             </Pressable>
           ) : !hasText && !isRecording && onScanPress ? (
             <Pressable
@@ -630,11 +630,11 @@ export function MealComposer({
               disabled={disabled || processing}
               style={shadows.floating}
               className={[
-                "h-16 w-16 items-center justify-center rounded-full",
+                "h-12 w-12 items-center justify-center rounded-full",
                 disabled || processing ? "bg-neutral-200" : "bg-white active:bg-neutral-100",
               ].join(" ")}
             >
-              <ScanLine size={22} color={colors.neutral[800]} />
+              <ScanLine size={20} color={colors.neutral[800]} />
             </Pressable>
           ) : null}
 
@@ -646,7 +646,7 @@ export function MealComposer({
               disabled={disabled || processing}
               style={shadows.floating}
               className={[
-                "h-16 w-16 items-center justify-center rounded-full",
+                "h-12 w-12 items-center justify-center rounded-full",
                 disabled || processing ? "bg-neutral-200" : "bg-primary-400 active:bg-primary-500",
               ].join(" ")}
             >
@@ -658,7 +658,7 @@ export function MealComposer({
               accessibilityLabel={micAccessibilityLabel}
               accessibilityRole="button"
               style={shadows.floating}
-              className="h-16 w-16 items-center justify-center rounded-full bg-danger-500 active:bg-danger-600"
+              className="h-12 w-12 items-center justify-center rounded-full bg-danger-500 active:bg-danger-600"
             >
               {micIcon}
             </Pressable>
@@ -670,7 +670,7 @@ export function MealComposer({
               disabled={disabled || processing}
               style={shadows.floating}
               className={[
-                "h-16 w-16 items-center justify-center rounded-full",
+                "h-12 w-12 items-center justify-center rounded-full",
                 disabled || processing ? "bg-neutral-200" : "bg-primary-400 active:bg-primary-500",
               ].join(" ")}
             >
@@ -684,7 +684,7 @@ export function MealComposer({
                 accessibilityRole="button"
                 style={shadows.floating}
                 className={[
-                  "h-16 w-16 items-center justify-center rounded-full",
+                  "h-12 w-12 items-center justify-center rounded-full",
                   isRecording ? "bg-danger-500" : "bg-primary-400 active:bg-primary-500",
                 ].join(" ")}
               >
