@@ -10,7 +10,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { ChevronLeft } from "lucide-react-native";
+import { ChevronLeft, Search } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { parsePhoneNumberFromString } from "libphonenumber-js";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -106,16 +106,26 @@ export default function FriendsScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-neutral-50 md:mx-auto md:w-full md:max-w-[640px]">
-      <View className="flex-row items-center px-4 py-2">
+      <View className="flex-row items-center justify-between px-4 py-2">
+        <View className="flex-row items-center">
+          <Pressable
+            onPress={() => backOrHome(router)}
+            accessibilityLabel="Voltar"
+            accessibilityRole="button"
+            className="min-h-[44px] min-w-[44px] items-center justify-center"
+          >
+            <ChevronLeft size={24} color={colors.neutral[800]} />
+          </Pressable>
+          <Text className="ml-2 text-xl font-display-bold text-neutral-800">Amigos</Text>
+        </View>
         <Pressable
-          onPress={() => backOrHome(router)}
-          accessibilityLabel="Voltar"
+          onPress={() => router.push("/(app)/users/search" as never)}
+          accessibilityLabel="Buscar pessoas"
           accessibilityRole="button"
           className="min-h-[44px] min-w-[44px] items-center justify-center"
         >
-          <ChevronLeft size={24} color={colors.neutral[800]} />
+          <Search size={22} color={colors.neutral[800]} />
         </Pressable>
-        <Text className="ml-2 text-xl font-display-bold text-neutral-800">Amigos</Text>
       </View>
 
       <ScrollView contentContainerClassName="px-5 pb-10 gap-5">
