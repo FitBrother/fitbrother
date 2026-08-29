@@ -284,7 +284,7 @@ export default function HomeScreen() {
         </View>
 
         <View className="mx-auto w-full max-w-[1120px] flex-1 flex-row items-start gap-8">
-          <View className="sticky top-[124px] w-[400px] shrink-0 gap-5">
+          <View className="sticky top-[124px] w-[320px] shrink-0 gap-5 xl:w-[400px]">
             <Card variant="elevated">
               <TodaySummaryHeader summary={summaryQuery.data} softMode={profile.soft_mode} />
             </Card>

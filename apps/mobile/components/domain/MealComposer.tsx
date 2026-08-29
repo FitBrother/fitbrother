@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Alert, Linking, Platform, Pressable, TextInput, View } from "react-native";
+import { Alert, Linking, Modal, Platform, Pressable, Text, TextInput, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   Easing,
@@ -12,7 +12,7 @@ import Animated, {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
-import { Camera, Loader2, Mic, Send, Square, ScanLine } from "lucide-react-native";
+import { Camera, Loader2, Mic, Plus, Send, Square, ScanLine } from "lucide-react-native";
 import { colors } from "@/lib/colors";
 import { shadows } from "@/lib/shadows";
 import {
@@ -114,6 +114,7 @@ export function MealComposer({
   const [text, setText] = useState("");
   const [contentHeight, setContentHeight] = useState(0);
   const [mode, setMode] = useState<ComposerMode>({ kind: "idle" });
+  const [attachMenuOpen, setAttachMenuOpen] = useState(false);
   const [durationMs, setDurationMs] = useState(0);
   const meterLevel = useSharedValue<number>(-160);
   const hasText = text.trim().length > 0;
@@ -593,37 +594,48 @@ export function MealComposer({
             </View>
           )}
 
-          {!hasText && !isRecording && onPhotoPress ? (
-            <View className="flex-row items-center gap-2">
-              {onScanPress && (
-                <Pressable
-                  onPress={onScanPress}
-                  accessibilityLabel="Registrar por código de barras"
-                  accessibilityRole="button"
-                  disabled={disabled || processing}
-                  style={shadows.floating}
-                  className={[
-                    "h-16 w-16 items-center justify-center rounded-full",
-                    disabled || processing ? "bg-neutral-200" : "bg-white active:bg-neutral-100",
-                  ].join(" ")}
-                >
-                  <ScanLine size={22} color={colors.neutral[800]} />
-                </Pressable>
-              )}
-              <Pressable
-                onPress={onPhotoPress}
-                accessibilityLabel="Registrar por foto"
-                accessibilityRole="button"
-                disabled={disabled || processing}
-                style={shadows.floating}
-                className={[
-                  "h-16 w-16 items-center justify-center rounded-full",
-                  disabled || processing ? "bg-neutral-200" : "bg-white active:bg-neutral-100",
-                ].join(" ")}
-              >
-                <Camera size={22} color={colors.neutral[800]} />
-              </Pressable>
-            </View>
+          {!hasText && !isRecording && onPhotoPress && onScanPress ? (
+            <Pressable
+              onPress={() => setAttachMenuOpen(true)}
+              accessibilityLabel="Mais opções de registro"
+              accessibilityRole="button"
+              disabled={disabled || processing}
+              style={shadows.floating}
+              className={[
+                "h-16 w-16 items-center justify-center rounded-full",
+                disabled || processing ? "bg-neutral-200" : "bg-white active:bg-neutral-100",
+              ].join(" ")}
+            >
+              <Plus size={22} color={colors.neutral[800]} />
+            </Pressable>
+          ) : !hasText && !isRecording && onPhotoPress ? (
+            <Pressable
+              onPress={onPhotoPress}
+              accessibilityLabel="Registrar por foto"
+              accessibilityRole="button"
+              disabled={disabled || processing}
+              style={shadows.floating}
+              className={[
+                "h-16 w-16 items-center justify-center rounded-full",
+                disabled || processing ? "bg-neutral-200" : "bg-white active:bg-neutral-100",
+              ].join(" ")}
+            >
+              <Camera size={22} color={colors.neutral[800]} />
+            </Pressable>
+          ) : !hasText && !isRecording && onScanPress ? (
+            <Pressable
+              onPress={onScanPress}
+              accessibilityLabel="Registrar por código de barras"
+              accessibilityRole="button"
+              disabled={disabled || processing}
+              style={shadows.floating}
+              className={[
+                "h-16 w-16 items-center justify-center rounded-full",
+                disabled || processing ? "bg-neutral-200" : "bg-white active:bg-neutral-100",
+              ].join(" ")}
+            >
+              <ScanLine size={22} color={colors.neutral[800]} />
+            </Pressable>
           ) : null}
 
           {hasText && !isRecording ? (
@@ -682,6 +694,51 @@ export function MealComposer({
           )}
         </View>
       </View>
+
+      <Modal
+        visible={attachMenuOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setAttachMenuOpen(false)}
+      >
+        <Pressable
+          onPress={() => setAttachMenuOpen(false)}
+          accessibilityLabel="Fechar menu"
+          accessibilityRole="button"
+          className="flex-1 items-end justify-end bg-black/40 px-8 pb-28"
+        >
+          <View
+            style={shadows.card}
+            className="w-full max-w-xs rounded-2xl bg-white py-2"
+            onStartShouldSetResponder={() => true}
+          >
+            <Pressable
+              onPress={() => {
+                setAttachMenuOpen(false);
+                onPhotoPress?.();
+              }}
+              accessibilityLabel="Registrar por foto"
+              accessibilityRole="button"
+              className="min-h-[44px] flex-row items-center gap-3 px-4 py-3 active:bg-neutral-50"
+            >
+              <Camera size={20} color={colors.neutral[700]} />
+              <Text className="text-base font-sans-medium text-neutral-800">Foto</Text>
+            </Pressable>
+            <Pressable
+              onPress={() => {
+                setAttachMenuOpen(false);
+                onScanPress?.();
+              }}
+              accessibilityLabel="Registrar por código de barras"
+              accessibilityRole="button"
+              className="min-h-[44px] flex-row items-center gap-3 px-4 py-3 active:bg-neutral-50"
+            >
+              <ScanLine size={20} color={colors.neutral[700]} />
+              <Text className="text-base font-sans-medium text-neutral-800">Código de barras</Text>
+            </Pressable>
+          </View>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
