@@ -12,15 +12,19 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 export function SignupBlock({ onNext, onBack, chapter }: OnboardingBlockProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [emailTouched, setEmailTouched] = useState(false);
+  const [confirmTouched, setConfirmTouched] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const passwordRef = useRef<TextInput>(null);
+  const confirmPasswordRef = useRef<TextInput>(null);
 
   const normalizedEmail = email.trim().toLowerCase();
   const emailValid = EMAIL_RE.test(normalizedEmail);
   const passwordValid = passwordStrength(password) >= 2;
-  const canSubmit = emailValid && passwordValid && !loading;
+  const passwordsMatch = confirmPassword === password;
+  const canSubmit = emailValid && passwordValid && passwordsMatch && !loading;
 
   async function handleSubmit() {
     if (!canSubmit) return;
@@ -81,8 +85,26 @@ export function SignupBlock({ onNext, onBack, chapter }: OnboardingBlockProps) {
           textContentType="newPassword"
           passwordRules="minlength: 8;"
           placeholder="Crie uma senha segura"
+          returnKeyType="next"
+          onSubmitEditing={() => confirmPasswordRef.current?.focus()}
+          submitBehavior="submit"
+        />
+        <PasswordInput
+          ref={confirmPasswordRef}
+          label="Confirmar senha"
+          value={confirmPassword}
+          onChangeText={setConfirmPassword}
+          onBlur={() => setConfirmTouched(true)}
+          autoComplete="password-new"
+          textContentType="newPassword"
+          placeholder="Digite a senha de novo"
           returnKeyType="go"
           onSubmitEditing={handleSubmit}
+          error={
+            confirmTouched && confirmPassword.length > 0 && !passwordsMatch
+              ? "As senhas não coincidem"
+              : undefined
+          }
         />
         {error && (
           <View className="rounded-xl border border-danger-600 bg-danger-50 p-3">

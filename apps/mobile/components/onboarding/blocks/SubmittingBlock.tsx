@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { ActivityIndicator, Text, View } from "react-native";
 import { Button } from "@/components/Button";
 import { postOnboarding } from "@/lib/api";
+import { colors } from "@/lib/colors";
 import { useOnboardingStore } from "@/lib/stores/onboardingStore";
 import { useOnboardingResultStore } from "@/lib/stores/onboardingResultStore";
 import type { OnboardingBlockProps } from "@/lib/onboarding/types";
@@ -77,7 +78,7 @@ export function SubmittingBlock({ onNext }: OnboardingBlockProps) {
         </>
       ) : (
         <>
-          <ActivityIndicator size="large" />
+          <ActivityIndicator size="large" color={colors.primary[500]} />
           <Text className="text-center text-base font-sans text-neutral-600">
             Criando sua conta...
           </Text>
