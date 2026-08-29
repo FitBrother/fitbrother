@@ -18,6 +18,13 @@ const BUCKETS_BY_SEX: Record<BodyFatSex, Record<Bucket, number>> = {
 };
 
 const BUCKETS: Bucket[] = [1, 2, 3, 4, 5];
+const MIN_EXACT_PCT = 3;
+const MAX_EXACT_PCT = 60;
+
+// Só dígitos, vírgula e ponto — barra letras/símbolos antes mesmo de entrar no campo.
+function sanitizeNumericText(raw: string): string {
+  return raw.replace(/[^0-9.,]/g, "");
+}
 
 function nearestBucket(pct: number, sex: BodyFatSex): Bucket {
   const table = BUCKETS_BY_SEX[sex];
@@ -41,6 +48,7 @@ export function BodyFatBlock({ onNext, onBack, chapter }: OnboardingBlockProps) 
   const [exactText, setExactText] = useState(
     body_fat_pct !== undefined ? String(body_fat_pct) : "",
   );
+  const [clampMessage, setClampMessage] = useState<string | null>(null);
 
   const table = BUCKETS_BY_SEX[sex];
   const selectedBucket = body_fat_pct !== undefined ? nearestBucket(body_fat_pct, sex) : undefined;
@@ -52,10 +60,22 @@ export function BodyFatBlock({ onNext, onBack, chapter }: OnboardingBlockProps) 
     setExactText(String(table[bucket]));
   }
 
+  function handleExactChangeText(raw: string) {
+    setClampMessage(null);
+    setExactText(sanitizeNumericText(raw));
+  }
+
   function commitExact(raw: string) {
     const parsed = Number(raw.replace(",", "."));
     if (Number.isNaN(parsed)) return;
-    const clamped = Math.min(60, Math.max(3, parsed));
+    const clamped = Math.min(MAX_EXACT_PCT, Math.max(MIN_EXACT_PCT, parsed));
+    setClampMessage(
+      parsed !== clamped
+        ? clamped === MIN_EXACT_PCT
+          ? `Ajustado para o mínimo (${MIN_EXACT_PCT}%).`
+          : `Ajustado para o máximo (${MAX_EXACT_PCT}%).`
+        : null,
+    );
     setField("body_fat_pct", clamped);
     setExactText(String(clamped));
   }
@@ -122,18 +142,23 @@ export function BodyFatBlock({ onNext, onBack, chapter }: OnboardingBlockProps) 
         </Pressable>
 
         {exactMode && (
-          <View className="flex-row items-center justify-center gap-2">
-            <TextInput
-              value={exactText}
-              onChangeText={setExactText}
-              onBlur={() => commitExact(exactText)}
-              onSubmitEditing={() => commitExact(exactText)}
-              keyboardType="decimal-pad"
-              className="w-20 rounded-xl border border-neutral-200 bg-white px-3 py-2 text-center text-base font-sans-semibold text-neutral-800"
-              style={{ fontVariant: ["tabular-nums"] }}
-              accessibilityLabel="% de gordura corporal exato"
-            />
-            <Text className="text-base font-sans text-neutral-600">%</Text>
+          <View className="items-center gap-1.5">
+            <View className="flex-row items-center justify-center gap-2">
+              <TextInput
+                value={exactText}
+                onChangeText={handleExactChangeText}
+                onBlur={() => commitExact(exactText)}
+                onSubmitEditing={() => commitExact(exactText)}
+                keyboardType="decimal-pad"
+                className="w-20 rounded-xl border border-neutral-200 bg-white px-3 py-2 text-center text-base font-sans-semibold text-neutral-800"
+                style={{ fontVariant: ["tabular-nums"] }}
+                accessibilityLabel="% de gordura corporal exato"
+              />
+              <Text className="text-base font-sans text-neutral-600">%</Text>
+            </View>
+            {clampMessage && (
+              <Text className="text-xs font-sans-medium text-warning-500">{clampMessage}</Text>
+            )}
           </View>
         )}
       </View>

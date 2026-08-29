@@ -26,7 +26,7 @@ export const ONBOARDING_BLOCKS: OnboardingBlockDef[] = [
   { id: "body_fat", Component: BodyFatBlock, chapter: 1 },
   { id: "activity", Component: ActivityBlock, chapter: 1 },
   { id: "goal", Component: GoalBlock, chapter: 2 },
-  { id: "health", Component: HealthBlock, chapter: 2, skippable: true },
+  { id: "health", Component: HealthBlock, chapter: 2 },
   { id: "calculating", Component: CalculatingBlock, chapter: 3 },
   { id: "reveal", Component: RevealBlock, chapter: 3 },
   // Fase B — conta e legal, sem painel de capítulos

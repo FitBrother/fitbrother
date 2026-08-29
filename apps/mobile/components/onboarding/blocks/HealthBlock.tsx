@@ -1,4 +1,5 @@
 import { Check } from "lucide-react-native";
+import { useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { OnboardingChapterShell } from "@/components/onboarding/OnboardingChapterShell";
 import { colors } from "@/lib/colors";
@@ -19,13 +20,16 @@ const CONDITIONS = [
   },
 ];
 
-export function HealthBlock({ onNext, onBack, onSkip, chapter }: OnboardingBlockProps) {
+export function HealthBlock({ onNext, onBack, chapter }: OnboardingBlockProps) {
   const sex = useOnboardingStore((s) => s.sex);
   const is_pregnant_or_lactating = useOnboardingStore((s) => s.is_pregnant_or_lactating);
   const has_kidney_disease = useOnboardingStore((s) => s.has_kidney_disease);
   const has_type1_diabetes = useOnboardingStore((s) => s.has_type1_diabetes);
   const uses_glp1 = useOnboardingStore((s) => s.uses_glp1);
   const setField = useOnboardingStore((s) => s.setField);
+  // `false` em todas as 4 condições é ambíguo entre "ainda não decidiu" e
+  // "confirmou que nenhuma se aplica" — esse estado local resolve isso.
+  const [noneSelected, setNoneSelected] = useState(false);
 
   type ConditionKey =
     | "is_pregnant_or_lactating"
@@ -40,18 +44,28 @@ export function HealthBlock({ onNext, onBack, onSkip, chapter }: OnboardingBlock
     uses_glp1,
   };
 
+  const hasAnySelected = Object.values(conditionValues).some(Boolean);
+
   function toggleCondition(key: ConditionKey) {
+    setNoneSelected(false);
     setField(key, !conditionValues[key]);
+  }
+
+  function selectNone() {
+    setNoneSelected(true);
+    for (const key of Object.keys(conditionValues) as ConditionKey[]) {
+      setField(key, false);
+    }
   }
 
   return (
     <OnboardingChapterShell
       chapter={chapter}
       title="Sua saúde, com cuidado"
-      subtitle="Leva 10 segundos, e só pra manter suas metas seguras — pode pular."
+      subtitle="Leva 10 segundos, e ajuda a manter suas metas seguras."
       onBack={onBack}
       onNext={onNext}
-      onSkip={onSkip}
+      nextDisabled={!hasAnySelected && !noneSelected}
     >
       <View className="gap-3">
         {CONDITIONS.filter((c) => !c.femaleOnly || sex === "female").map((c) => {
@@ -75,6 +89,21 @@ export function HealthBlock({ onNext, onBack, onSkip, chapter }: OnboardingBlock
             </Pressable>
           );
         })}
+        <Pressable
+          onPress={selectNone}
+          accessibilityRole="checkbox"
+          accessibilityState={{ checked: noneSelected }}
+          className="min-h-[52px] flex-row items-center gap-3 rounded-xl border border-neutral-200 bg-white p-3"
+        >
+          <View
+            className={`h-6 w-6 items-center justify-center rounded-md border ${
+              noneSelected ? "border-primary-400 bg-primary-400" : "border-neutral-300 bg-white"
+            }`}
+          >
+            {noneSelected && <Check size={16} color={colors.white} />}
+          </View>
+          <Text className="flex-1 text-sm font-sans text-neutral-800">Nenhuma dessas</Text>
+        </Pressable>
       </View>
     </OnboardingChapterShell>
   );

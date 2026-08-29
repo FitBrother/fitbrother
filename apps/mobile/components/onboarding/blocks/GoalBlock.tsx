@@ -1,7 +1,9 @@
 import { computeTargetWeightBounds, computeTargets } from "@fitbrother/shared";
 import * as Haptics from "expo-haptics";
+import { Calendar } from "lucide-react-native";
 import { useEffect } from "react";
 import { Pressable, Text, View } from "react-native";
+import { colors } from "@/lib/colors";
 import { OnboardingChapterShell } from "@/components/onboarding/OnboardingChapterShell";
 import { SliderInput } from "@/components/SliderInput";
 import { projectGoalDate } from "@/lib/onboarding/projectGoalDate";
@@ -145,12 +147,19 @@ export function GoalBlock({ onNext, onBack, chapter }: OnboardingBlockProps) {
               onChange={(v) => setField("rate_kg_per_week", v)}
             />
             {projectedDateLabel && (
-              <Text
-                className="text-center text-sm font-sans text-neutral-600"
-                style={{ fontVariant: ["tabular-nums"] }}
-              >
-                Nesse ritmo, você chega no peso-alvo em torno de {projectedDateLabel}.
-              </Text>
+              <View className="flex-row items-center justify-center gap-2 rounded-xl bg-primary-50 px-3 py-2.5">
+                <Calendar size={16} color={colors.primary[600]} />
+                <Text className="text-center text-sm font-sans text-primary-700">
+                  Nesse ritmo, você chega no peso-alvo em torno de{" "}
+                  <Text
+                    className="font-sans-semibold text-primary-700"
+                    style={{ fontVariant: ["tabular-nums"] }}
+                  >
+                    {projectedDateLabel}
+                  </Text>
+                  .
+                </Text>
+              </View>
             )}
           </View>
         )}
