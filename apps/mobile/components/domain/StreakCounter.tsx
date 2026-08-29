@@ -23,6 +23,8 @@ type StreakCounterProps = {
    * Wired by the alert logic in M5.3; defaults to false until then.
    */
   atRisk?: boolean;
+  /** Flame icon size. Defaults to 24 (Home header desktop); mobile header passes a smaller value. */
+  size?: number;
 };
 
 /**
@@ -34,7 +36,7 @@ type StreakCounterProps = {
  * - At risk: grayscale, neutral-400, no pulse.
  * - Broken (current = 0): FlameKindling + neutral-300, no pulse.
  */
-export function StreakCounter({ current, atRisk = false }: StreakCounterProps) {
+export function StreakCounter({ current, atRisk = false, size = 24 }: StreakCounterProps) {
   const broken = current === 0;
   const active = !broken && !atRisk;
   const reduced = useReducedMotion();
@@ -67,7 +69,7 @@ export function StreakCounter({ current, atRisk = false }: StreakCounterProps) {
 
   return (
     <View
-      className="min-h-[44px] flex-row items-center gap-1 px-1"
+      className="min-h-[44px] flex-row items-center gap-0.5 px-1"
       accessibilityRole="text"
       accessibilityLabel={
         broken ? "Sem ofensiva" : `Ofensiva de ${current} ${current === 1 ? "dia" : "dias"}`
@@ -75,9 +77,9 @@ export function StreakCounter({ current, atRisk = false }: StreakCounterProps) {
     >
       <Animated.View style={animatedStyle}>
         {broken ? (
-          <FlameKindling size={24} color={iconColor} />
+          <FlameKindling size={size} color={iconColor} />
         ) : (
-          <Flame size={24} color={iconColor} />
+          <Flame size={size} color={iconColor} />
         )}
       </Animated.View>
       <Text

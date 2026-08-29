@@ -400,11 +400,11 @@ export default function HomeScreen() {
       />
       {banner && <ErrorBanner variant={banner} onDismiss={() => setBanner(null)} />}
       {macroPanel}
+      {listHeader}
       {mealsQuery.isLoading ? (
         <Pressable className="flex-1" onPress={Keyboard.dismiss} />
       ) : items.length === 0 ? (
         <Pressable className="flex-1" onPress={Keyboard.dismiss}>
-          {listHeader}
           <Card variant="flat" className="mx-4">
             <EmptyMealsState />
           </Card>
@@ -414,7 +414,6 @@ export default function HomeScreen() {
           data={items}
           keyExtractor={(m) => (m as OptimisticMeal).id}
           renderItem={renderItem as never}
-          ListHeaderComponent={listHeader}
           contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 140 }}
           keyboardDismissMode="on-drag"
           keyboardShouldPersistTaps="handled"

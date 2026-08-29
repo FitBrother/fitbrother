@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Image, Modal, Pressable, Text, View } from "react-native";
-import { Calendar, Menu, Rss, Search, Sparkles, User, Users } from "lucide-react-native";
+import Svg, { Line } from "react-native-svg";
+import { Calendar, Rss, Search, Sparkles, User, Users } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import logoHorizontal from "@/assets/brand/logo-horizontal-menta.png";
 import { Avatar } from "@/components/Avatar";
@@ -17,6 +18,17 @@ const MENU_ITEMS = [
   { href: "/(app)/users/search" as const, label: "Buscar pessoas", Icon: Search },
   { href: "/(app)/friends" as const, label: "Amigos", Icon: Users },
 ];
+
+// Ícone de menu com só duas barras (em vez das 3 do Menu do lucide), pontas
+// arredondadas pra combinar com o traço dos outros ícones lucide do app.
+function HamburgerIcon({ size, color }: { size: number; color: string }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Line x1="4" y1="8" x2="20" y2="8" stroke={color} strokeWidth={2} strokeLinecap="round" />
+      <Line x1="4" y1="16" x2="20" y2="16" stroke={color} strokeWidth={2} strokeLinecap="round" />
+    </Svg>
+  );
+}
 
 export function greetingFor(date: Date): string {
   const h = date.getHours();
@@ -45,12 +57,15 @@ export function HomeHeader({
           onPress={() => router.push("/(app)/profile")}
           accessibilityLabel="Perfil"
           accessibilityRole="button"
-          hitSlop={8}
         >
-          <Avatar avatarPath={avatarUrl} fullName={name} />
+          <Avatar avatarPath={avatarUrl} fullName={name} size={48} />
         </Pressable>
         {!softMode && streakView ? (
-          <StreakCounter current={streakView.streak.current_streak} atRisk={streakView.atRisk} />
+          <StreakCounter
+            current={streakView.streak.current_streak}
+            atRisk={streakView.atRisk}
+            size={20}
+          />
         ) : null}
       </View>
 
@@ -67,9 +82,9 @@ export function HomeHeader({
         onPress={() => setMenuOpen(true)}
         accessibilityLabel="Menu"
         accessibilityRole="button"
-        className="min-h-[44px] min-w-[44px] items-center justify-center rounded-full"
+        className="h-12 w-12 items-center justify-center rounded-full"
       >
-        <Menu size={24} color={colors.neutral[800]} />
+        <HamburgerIcon size={28} color={colors.neutral[800]} />
       </Pressable>
 
       <Modal
