@@ -393,11 +393,7 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-neutral-50" edges={["top", "left", "right"]}>
-      <HomeHeader
-        name={profile.full_name}
-        softMode={profile.soft_mode}
-        avatarUrl={profile.avatar_url as string | null | undefined}
-      />
+      <HomeHeader softMode={profile.soft_mode} />
       {banner && <ErrorBanner variant={banner} onDismiss={() => setBanner(null)} />}
       {macroPanel}
       {listHeader}
