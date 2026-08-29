@@ -81,17 +81,19 @@ export function HomeHeader({
         animationType="fade"
         onRequestClose={() => setMenuOpen(false)}
       >
-        <Pressable
-          onPress={() => setMenuOpen(false)}
-          accessibilityLabel="Fechar menu"
-          accessibilityRole="button"
-          className="flex-1 items-center justify-center bg-black/40 px-8"
-        >
-          <View
-            style={shadows.card}
-            className="w-full max-w-xs rounded-2xl bg-white py-2"
-            onStartShouldSetResponder={() => true}
-          >
+        <View className="flex-1 items-center justify-center bg-black/40 px-8">
+          {/* Backdrop as a sibling, not a parent, of the menu card — a
+              Pressable with accessibilityRole="button" renders as an actual
+              <button> on web, and nesting the menu items' own <button>s
+              inside it is invalid HTML that silently breaks click handling. */}
+          <Pressable
+            onPress={() => setMenuOpen(false)}
+            accessibilityLabel="Fechar menu"
+            accessibilityRole="button"
+            pointerEvents="auto"
+            style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
+          />
+          <View style={shadows.card} className="w-full max-w-xs rounded-2xl bg-white py-2">
             {MENU_ITEMS.map(({ href, label, Icon }) => (
               <Pressable
                 key={href}
@@ -108,7 +110,7 @@ export function HomeHeader({
               </Pressable>
             ))}
           </View>
-        </Pressable>
+        </View>
       </Modal>
     </View>
   );

@@ -701,17 +701,19 @@ export function MealComposer({
         animationType="fade"
         onRequestClose={() => setAttachMenuOpen(false)}
       >
-        <Pressable
-          onPress={() => setAttachMenuOpen(false)}
-          accessibilityLabel="Fechar menu"
-          accessibilityRole="button"
-          className="flex-1 items-end justify-end bg-black/40 px-8 pb-28"
-        >
-          <View
-            style={shadows.card}
-            className="w-full max-w-xs rounded-2xl bg-white py-2"
-            onStartShouldSetResponder={() => true}
-          >
+        <View className="flex-1 items-end justify-end bg-black/40 px-8 pb-28">
+          {/* Backdrop as a sibling, not a parent, of the menu card — a
+              Pressable with accessibilityRole="button" renders as an actual
+              <button> on web, and nesting the menu items' own <button>s
+              inside it is invalid HTML that silently breaks click handling. */}
+          <Pressable
+            onPress={() => setAttachMenuOpen(false)}
+            accessibilityLabel="Fechar menu"
+            accessibilityRole="button"
+            pointerEvents="auto"
+            style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
+          />
+          <View style={shadows.card} className="w-full max-w-xs rounded-2xl bg-white py-2">
             <Pressable
               onPress={() => {
                 setAttachMenuOpen(false);
@@ -737,7 +739,7 @@ export function MealComposer({
               <Text className="text-base font-sans-medium text-neutral-800">Código de barras</Text>
             </Pressable>
           </View>
-        </Pressable>
+        </View>
       </Modal>
     </View>
   );
