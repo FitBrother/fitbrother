@@ -414,7 +414,7 @@ export default function HomeScreen() {
           data={items}
           keyExtractor={(m) => (m as OptimisticMeal).id}
           renderItem={renderItem as never}
-          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 140 }}
+          contentContainerStyle={{ paddingBottom: 140 }}
           keyboardDismissMode="on-drag"
           keyboardShouldPersistTaps="handled"
           itemLayoutAnimation={LinearTransition.springify().damping(20).stiffness(180)}
