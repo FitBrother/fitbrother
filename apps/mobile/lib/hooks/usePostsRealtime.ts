@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabase";
+import { removeStaleChannel, supabase } from "@/lib/supabase";
 import { feedKey } from "./useFeed";
 
 /**
@@ -13,14 +13,24 @@ export function usePostsRealtime(userId: string | undefined) {
 
   useEffect(() => {
     if (!userId) return;
-    const channel = supabase
-      .channel(`posts-feed:${userId}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "posts" }, () => {
-        void qc.invalidateQueries({ queryKey: feedKey });
-      })
-      .subscribe();
+
+    let cancelled = false;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    const topic = `posts-feed:${userId}`;
+
+    void removeStaleChannel(topic).then(() => {
+      if (cancelled) return;
+      channel = supabase
+        .channel(topic)
+        .on("postgres_changes", { event: "*", schema: "public", table: "posts" }, () => {
+          void qc.invalidateQueries({ queryKey: feedKey });
+        })
+        .subscribe();
+    });
+
     return () => {
-      void supabase.removeChannel(channel);
+      cancelled = true;
+      if (channel) void supabase.removeChannel(channel);
     };
   }, [userId, qc]);
 }

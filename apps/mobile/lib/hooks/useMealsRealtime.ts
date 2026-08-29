@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabase";
+import { removeStaleChannel, supabase } from "@/lib/supabase";
 import { mealsForDayKey } from "./useMealsForDay";
 import { dailySummaryKey } from "./useDailySummary";
 
@@ -20,25 +20,33 @@ export function useMealsRealtime(userId: string | undefined, day: string) {
   useEffect(() => {
     if (!userId || !day) return;
 
-    const channel = supabase
-      .channel(`meals:${userId}:${day}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "meals",
-          filter: `user_id=eq.${userId}`,
-        },
-        () => {
-          qc.invalidateQueries({ queryKey: mealsForDayKey(day) });
-          qc.invalidateQueries({ queryKey: dailySummaryKey(day) });
-        },
-      )
-      .subscribe();
+    let cancelled = false;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    const topic = `meals:${userId}:${day}`;
+
+    void removeStaleChannel(topic).then(() => {
+      if (cancelled) return;
+      channel = supabase
+        .channel(topic)
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "meals",
+            filter: `user_id=eq.${userId}`,
+          },
+          () => {
+            qc.invalidateQueries({ queryKey: mealsForDayKey(day) });
+            qc.invalidateQueries({ queryKey: dailySummaryKey(day) });
+          },
+        )
+        .subscribe();
+    });
 
     return () => {
-      void supabase.removeChannel(channel);
+      cancelled = true;
+      if (channel) void supabase.removeChannel(channel);
     };
   }, [userId, day, qc]);
 }

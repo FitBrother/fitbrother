@@ -44,3 +44,17 @@ export const supabase = createClient(url, anonKey, {
     detectSessionInUrl: false,
   },
 });
+
+/**
+ * `supabase.channel(topic)` reaproveita um canal já registrado com o mesmo
+ * tópico, mesmo que ele ainda esteja em teardown assíncrono de um
+ * `removeChannel` anterior — `.on()` num canal reaproveitado que já chamou
+ * `.subscribe()` lança "cannot add postgres_changes callbacks ... after
+ * subscribe()". Isso acontece ao navegar pra fora de uma tela com assinatura
+ * Realtime e voltar rápido (o cleanup do effect anterior ainda não terminou).
+ * Chamar isso antes de criar um canal novo evita a corrida.
+ */
+export async function removeStaleChannel(topic: string) {
+  const stale = supabase.getChannels().find((c) => c.topic === `realtime:${topic}`);
+  if (stale) await supabase.removeChannel(stale);
+}
