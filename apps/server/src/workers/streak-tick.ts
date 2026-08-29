@@ -14,17 +14,20 @@ export const STREAK_TICK_QUEUE = "streak-tick";
  * All the logic lives in SQL so it's deterministic and testable via
  * `supabase db reset`; this worker is only the scheduler + invoker.
  */
+/** Lógica pura, reutilizada pelo worker local (pg-boss) e pelo handler Lambda. */
+export async function runStreakTick(log: FastifyBaseLogger): Promise<void> {
+  const { data, error } = await supabaseService().rpc("fitbrother_streak_tick");
+  if (error) {
+    log.error({ error }, "streak_tick_failed");
+    throw new Error(error.message);
+  }
+  log.info({ evaluated: data }, "streak_tick_done");
+}
+
 export async function registerStreakTick(boss: PgBoss, log: FastifyBaseLogger): Promise<void> {
   await boss.createQueue(STREAK_TICK_QUEUE);
 
-  await boss.work(STREAK_TICK_QUEUE, async () => {
-    const { data, error } = await supabaseService().rpc("fitbrother_streak_tick");
-    if (error) {
-      log.error({ error }, "streak_tick_failed");
-      throw new Error(error.message);
-    }
-    log.info({ evaluated: data }, "streak_tick_done");
-  });
+  await boss.work(STREAK_TICK_QUEUE, async () => runStreakTick(log));
 
   // Top of every hour, UTC. The per-user day boundary is handled in SQL, so a
   // single UTC schedule covers every timezone — each user is only touched in

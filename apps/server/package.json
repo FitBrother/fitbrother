@@ -12,6 +12,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@fastify/aws-lambda": "^6.4.1",
     "@fastify/cors": "^11.2.0",
     "@fastify/http-proxy": "^11.4.4",
     "@fastify/rate-limit": "^10.3.0",
@@ -19,6 +20,7 @@
     "@fitbrother/db-types": "*",
     "@fitbrother/shared": "*",
     "@google/generative-ai": "^0.24.1",
+    "@sentry/aws-serverless": "^8.55.2",
     "@sentry/node": "^8.45.0",
     "@supabase/supabase-js": "^2.47.10",
     "dotenv": "^16.4.7",
@@ -32,6 +34,7 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@types/aws-lambda": "^8.10.162",
     "@types/node": "^22.10.0",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2",

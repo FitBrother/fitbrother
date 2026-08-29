@@ -1,0 +1,203 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Fitbrother apps/server na AWS (free tier permanente): Lambda pra API HTTP
+  (Function URL) + EventBridge Scheduler pros jobs que hoje rodam via
+  pg-boss. Nenhuma função entra em VPC — toda comunicação com o banco é via
+  Supabase HTTPS (service role), não Postgres direto.
+
+Parameters:
+  SupabaseUrl:
+    Type: String
+  SupabaseAnonKey:
+    Type: String
+    NoEcho: true
+  SupabaseServiceRoleKey:
+    Type: String
+    NoEcho: true
+  DatabaseUrl:
+    Type: String
+    NoEcho: true
+  WhatsappAppSecret:
+    Type: String
+    NoEcho: true
+    Default: ""
+  WhatsappVerifyToken:
+    Type: String
+    NoEcho: true
+    Default: ""
+  WhatsappPhoneNumberId:
+    Type: String
+    Default: ""
+  WhatsappAccessToken:
+    Type: String
+    NoEcho: true
+    Default: ""
+  GeminiApiKey:
+    Type: String
+    NoEcho: true
+    Default: ""
+  OpenaiApiKey:
+    Type: String
+    NoEcho: true
+    Default: ""
+  SentryDsn:
+    Type: String
+    Default: ""
+
+Globals:
+  Function:
+    # nodejs20.x não tem WebSocket nativo — @supabase/supabase-js instancia um
+    # RealtimeClient na criação do client e quebra sem isso. nodejs22.x tem.
+    Runtime: nodejs22.x
+    Architectures: [arm64]
+    MemorySize: 512
+    Timeout: 30
+    Environment:
+      Variables:
+        NODE_ENV: production
+        SUPABASE_URL: !Ref SupabaseUrl
+        SUPABASE_ANON_KEY: !Ref SupabaseAnonKey
+        SUPABASE_SERVICE_ROLE_KEY: !Ref SupabaseServiceRoleKey
+        DATABASE_URL: !Ref DatabaseUrl
+        WHATSAPP_APP_SECRET: !Ref WhatsappAppSecret
+        WHATSAPP_VERIFY_TOKEN: !Ref WhatsappVerifyToken
+        WHATSAPP_PHONE_NUMBER_ID: !Ref WhatsappPhoneNumberId
+        WHATSAPP_ACCESS_TOKEN: !Ref WhatsappAccessToken
+        GEMINI_API_KEY: !Ref GeminiApiKey
+        OPENAI_API_KEY: !Ref OpenaiApiKey
+        LLM_PROVIDER: gemini
+        SENTRY_DSN: !Ref SentryDsn
+
+Resources:
+  ApiFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      CodeUri: ./
+      Handler: apps/server/dist/lambda/http.handler
+      # A cadeia Whisper → LLM em POST /meals/audio é a rota mais longa.
+      Timeout: 120
+      FunctionUrlConfig:
+        AuthType: NONE
+
+  StreakTickFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      CodeUri: ./
+      Handler: apps/server/dist/lambda/jobs/streak-tick.handler
+      Events:
+        Schedule:
+          Type: Schedule
+          Properties:
+            Schedule: cron(0 * * * ? *)
+
+  StreakAlertFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      CodeUri: ./
+      Handler: apps/server/dist/lambda/jobs/streak-alert.handler
+      Events:
+        Schedule:
+          Type: Schedule
+          Properties:
+            Schedule: cron(0 * * * ? *)
+
+  GoalReminderFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      CodeUri: ./
+      Handler: apps/server/dist/lambda/jobs/goal-reminder.handler
+      Events:
+        Schedule:
+          Type: Schedule
+          Properties:
+            Schedule: cron(0 * * * ? *)
+
+  DispatchNotificationFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      CodeUri: ./
+      Handler: apps/server/dist/lambda/jobs/dispatch-notification.handler
+      Events:
+        Schedule:
+          Type: Schedule
+          Properties:
+            Schedule: rate(1 minute)
+
+  InsightsFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      CodeUri: ./
+      Handler: apps/server/dist/lambda/jobs/insights.handler
+      Events:
+        Day:
+          Type: Schedule
+          Properties:
+            Schedule: cron(0 * * * ? *)
+            Input: '{"period":"day"}'
+        Week:
+          Type: Schedule
+          Properties:
+            Schedule: cron(30 0 * * ? *)
+            Input: '{"period":"week"}'
+        Month:
+          Type: Schedule
+          Properties:
+            Schedule: cron(45 0 * * ? *)
+            Input: '{"period":"month"}'
+
+  MetricsDailyFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      CodeUri: ./
+      Handler: apps/server/dist/lambda/jobs/metrics-daily.handler
+      Events:
+        Schedule:
+          Type: Schedule
+          Properties:
+            Schedule: cron(0 4 * * ? *)
+
+  PurgeAccountsFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      CodeUri: ./
+      Handler: apps/server/dist/lambda/jobs/purge-accounts.handler
+      Events:
+        Schedule:
+          Type: Schedule
+          Properties:
+            Schedule: cron(15 3 * * ? *)
+
+  PurgeAudiosFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      CodeUri: ./
+      Handler: apps/server/dist/lambda/jobs/purge-audios.handler
+      Events:
+        Schedule:
+          Type: Schedule
+          Properties:
+            Schedule: cron(30 3 * * ? *)
+
+Outputs:
+  ApiFunctionUrl:
+    Description: URL pública da API (usar em EXPO_PUBLIC_API_BASE_URL)
+    Value: !GetAtt ApiFunctionUrl.FunctionUrl

@@ -10,45 +10,45 @@ type AccountDeletionRow = {
   scheduled_purge_at: string;
 };
 
+export async function runPurgeAccounts(log: FastifyBaseLogger): Promise<void> {
+  const admin = supabaseService();
+  const { data, error } = await admin
+    .from("account_deletions")
+    .select("user_id, scheduled_purge_at")
+    .lte("scheduled_purge_at", new Date().toISOString())
+    .is("cancelled_at", null)
+    .is("purged_at", null)
+    .limit(100);
+
+  if (error) {
+    log.error({ error }, "purge_accounts_lookup_failed");
+    throw new Error(error.message);
+  }
+
+  let purged = 0;
+  for (const row of (data ?? []) as AccountDeletionRow[]) {
+    try {
+      await purgeAccount(row, log);
+      purged++;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "unknown_error";
+      await admin
+        .from("account_deletions")
+        .update({ last_purge_error: message.slice(0, 500) })
+        .eq("user_id", row.user_id);
+      Sentry.captureException(error, {
+        tags: { worker: PURGE_ACCOUNTS_QUEUE },
+        extra: { user_id: row.user_id },
+      });
+    }
+  }
+
+  log.info({ purged }, "purge_accounts_done");
+}
+
 export async function registerPurgeAccounts(boss: PgBoss, log: FastifyBaseLogger): Promise<void> {
   await boss.createQueue(PURGE_ACCOUNTS_QUEUE);
-
-  await boss.work(PURGE_ACCOUNTS_QUEUE, async () => {
-    const admin = supabaseService();
-    const { data, error } = await admin
-      .from("account_deletions")
-      .select("user_id, scheduled_purge_at")
-      .lte("scheduled_purge_at", new Date().toISOString())
-      .is("cancelled_at", null)
-      .is("purged_at", null)
-      .limit(100);
-
-    if (error) {
-      log.error({ error }, "purge_accounts_lookup_failed");
-      throw new Error(error.message);
-    }
-
-    let purged = 0;
-    for (const row of (data ?? []) as AccountDeletionRow[]) {
-      try {
-        await purgeAccount(row, log);
-        purged++;
-      } catch (error) {
-        const message = error instanceof Error ? error.message : "unknown_error";
-        await admin
-          .from("account_deletions")
-          .update({ last_purge_error: message.slice(0, 500) })
-          .eq("user_id", row.user_id);
-        Sentry.captureException(error, {
-          tags: { worker: PURGE_ACCOUNTS_QUEUE },
-          extra: { user_id: row.user_id },
-        });
-      }
-    }
-
-    log.info({ purged }, "purge_accounts_done");
-  });
-
+  await boss.work(PURGE_ACCOUNTS_QUEUE, async () => runPurgeAccounts(log));
   await boss.schedule(PURGE_ACCOUNTS_QUEUE, "15 3 * * *", undefined, { tz: "UTC" });
   log.info("purge_accounts_scheduled");
 }

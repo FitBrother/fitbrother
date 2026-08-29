@@ -1,0 +1,14 @@
+.git
+node_modules
+**/node_modules
+**/dist
+apps/mobile/ios
+apps/mobile/android
+apps/mobile/.expo
+apps/mobile/public
+landing-page
+supabase
+infra
+docs
+.claude
+*.md

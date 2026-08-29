@@ -7,22 +7,29 @@ export const METRICS_DAILY_QUEUE = "metrics-daily";
 
 type MetricsJob = { day?: string };
 
+export async function runMetricsDaily(log: FastifyBaseLogger, day?: string): Promise<void> {
+  const resolvedDay = day ?? previousUtcDay();
+  const startedAt = Date.now();
+  const { data, error } = await supabaseService().rpc("fitbrother_compute_metrics_daily", {
+    p_day: resolvedDay,
+  });
+  if (error) {
+    log.error({ err: error, day: resolvedDay }, "metrics_daily_failed");
+    Sentry.captureException(new Error(`metrics_daily_failed: ${error.message}`), {
+      tags: { worker: METRICS_DAILY_QUEUE, day: resolvedDay },
+    });
+    throw new Error(error.message);
+  }
+  log.info(
+    { day: resolvedDay, rows: data, duration_ms: Date.now() - startedAt },
+    "metrics_daily_done",
+  );
+}
+
 export async function registerMetricsDaily(boss: PgBoss, log: FastifyBaseLogger): Promise<void> {
   await boss.createQueue(METRICS_DAILY_QUEUE);
   await boss.work<MetricsJob>(METRICS_DAILY_QUEUE, async ([job]) => {
-    const day = job?.data.day ?? previousUtcDay();
-    const startedAt = Date.now();
-    const { data, error } = await supabaseService().rpc("fitbrother_compute_metrics_daily", {
-      p_day: day,
-    });
-    if (error) {
-      log.error({ err: error, day }, "metrics_daily_failed");
-      Sentry.captureException(new Error(`metrics_daily_failed: ${error.message}`), {
-        tags: { worker: METRICS_DAILY_QUEUE, day },
-      });
-      throw new Error(error.message);
-    }
-    log.info({ day, rows: data, duration_ms: Date.now() - startedAt }, "metrics_daily_done");
+    await runMetricsDaily(log, job?.data.day);
   });
   await boss.schedule(METRICS_DAILY_QUEUE, "0 4 * * *", undefined, { tz: "UTC" });
   log.info({ queue: METRICS_DAILY_QUEUE }, "metrics_daily_scheduled");

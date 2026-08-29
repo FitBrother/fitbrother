@@ -1,0 +1,37 @@
+# Config do apps/server (Fastify + pg-boss) no Fly.io.
+# Rodar os comandos de deploy a partir da RAIZ do repo (não de apps/server) —
+# o build precisa do monorepo inteiro (packages/shared, packages/db-types).
+#
+# app = "fitbrother-server"   # troque se esse nome já estiver em uso
+
+app = "fitbrother-server"
+primary_region = "gru" # São Paulo — troque se preferir outra região
+
+[build]
+  dockerfile = "apps/server/Dockerfile"
+
+[env]
+  NODE_ENV = "production"
+  PORT = "3000"
+
+[http_service]
+  internal_port = 3000
+  force_https = true
+  # IMPORTANTE: NÃO deixar o Fly parar a máquina quando ociosa — o pg-boss
+  # (streaks, conquistas, notificações, purge de contas/áudios) roda em
+  # background e depende do processo estar de pé o tempo todo, não só quando
+  # chega uma request HTTP.
+  auto_stop_machines = false
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [[http_service.checks]]
+    grace_period = "10s"
+    interval = "15s"
+    method = "GET"
+    timeout = "5s"
+    path = "/health"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"

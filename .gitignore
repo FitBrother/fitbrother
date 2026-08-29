@@ -8,6 +8,10 @@ build/
 .expo-shared/
 *.tsbuildinfo
 
+# AWS SAM (apps/server → Lambda)
+.aws-sam/
+samconfig.toml
+
 # Env
 .env
 .env.local
