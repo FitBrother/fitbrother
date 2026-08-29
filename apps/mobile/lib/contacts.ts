@@ -1,6 +1,7 @@
 import * as Contacts from "expo-contacts";
 import * as Crypto from "expo-crypto";
 import { parsePhoneNumberFromString } from "libphonenumber-js";
+import { Platform } from "react-native";
 
 /**
  * Lê a agenda, normaliza cada número pra E.164 e devolve os hashes SHA-256
@@ -8,6 +9,13 @@ import { parsePhoneNumberFromString } from "libphonenumber-js";
  * números locais sem código de país (BR por padrão).
  */
 export async function collectContactHashes(defaultCountry = "BR"): Promise<string[]> {
+  // Web não tem Contact Picker API confiável cross-browser — a UI já oculta
+  // essa feature inteira em Platform.OS === "web" (ver app/(app)/friends.tsx),
+  // isto é só uma proteção extra caso algum outro caller apareça.
+  if (Platform.OS === "web") {
+    throw new Error("contacts_not_supported_web");
+  }
+
   const { status } = await Contacts.requestPermissionsAsync();
   if (status !== "granted") {
     throw new Error("contacts_permission_denied");

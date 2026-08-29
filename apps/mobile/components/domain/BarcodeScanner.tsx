@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from "react";
-import { StyleSheet, View, Text, Pressable, Linking, TextInput } from "react-native";
+import { StyleSheet, View, Text, Pressable, Linking, Platform, TextInput } from "react-native";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import Constants from "expo-constants";
 import { useRouter } from "expo-router";
@@ -21,7 +21,9 @@ export function BarcodeScanner({ onScanned }: Props) {
   const insets = useSafeAreaInsets();
   const scannedRef = useRef(false);
 
-  const isExpoGo = Constants.appOwnership === "expo";
+  // O shim web do expo-camera só detecta QR, não EAN13/EAN8/UPC (o que este
+  // scanner precisa) — reaproveita o mesmo fallback manual do Expo Go.
+  const useManualFallback = Constants.appOwnership === "expo" || Platform.OS === "web";
 
   const handleScan = useCallback(
     (result: { data: string }) => {
@@ -38,18 +40,19 @@ export function BarcodeScanner({ onScanned }: Props) {
     onScanned(mockBarcode.trim());
   };
 
-  if (isExpoGo) {
+  if (useManualFallback) {
     return (
       <View
         style={{ paddingTop: Math.max(insets.top, 20) }}
         className="flex-1 bg-neutral-900 px-6 justify-center"
       >
         <Text className="text-white text-xl font-sans-semibold text-center mb-2">
-          Modo de Simulação (Expo Go)
+          {Platform.OS === "web" ? "Digite o código de barras" : "Modo de Simulação (Expo Go)"}
         </Text>
         <Text className="text-neutral-400 text-sm font-sans text-center mb-6">
-          Como o Expo Go não suporta a câmera nativa deste projeto, digite ou cole um código de
-          barras de um produto real para testar o fluxo:
+          {Platform.OS === "web"
+            ? "A leitura de código de barras não está disponível no navegador. Digite ou cole o código do produto:"
+            : "Como o Expo Go não suporta a câmera nativa deste projeto, digite ou cole um código de barras de um produto real para testar o fluxo:"}
         </Text>
 
         <TextInput

@@ -27,6 +27,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { InstallPrompt } from "@/components/domain/InstallPrompt";
 import { patchAccountAvatar } from "@/lib/api/account";
 import { profileInitials } from "@/lib/account-utils";
 import { colors } from "@/lib/colors";
@@ -217,6 +218,7 @@ export default function ProfileScreen() {
           />
           <MenuItem icon={Info} label="Sobre" onPress={() => router.push("/about" as never)} last />
         </MenuSection>
+        <InstallPrompt />
         <Pressable
           onPress={() => supabase.auth.signOut()}
           accessibilityRole="button"

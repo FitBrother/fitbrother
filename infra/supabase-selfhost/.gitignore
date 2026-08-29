@@ -1,0 +1,4 @@
+.env
+volumes/storage/
+volumes/snippets/
+volumes/functions/

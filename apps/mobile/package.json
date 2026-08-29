@@ -8,6 +8,7 @@
     "ios": "expo run:ios",
     "android": "expo run:android",
     "web": "expo start --web",
+    "build:web": "expo export -p web",
     "typecheck": "tsc --noEmit",
     "test": "jest --runInBand"
   },

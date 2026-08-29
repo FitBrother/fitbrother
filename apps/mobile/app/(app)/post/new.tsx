@@ -1,7 +1,6 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ChevronLeft, ImagePlus, X } from "lucide-react-native";
 import { randomUUID } from "expo-crypto";
-import * as ImagePicker from "expo-image-picker";
 import { useState } from "react";
 import { Alert, Image, Keyboard, Pressable, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -11,6 +10,7 @@ import { getMeal } from "@/lib/api/meals";
 import { colors } from "@/lib/colors";
 import { mealDetailKey } from "@/lib/hooks/useMealsForDay";
 import { useCreatePost } from "@/lib/hooks/useCreatePost";
+import { pickImage } from "@/lib/media/image-picker";
 import { uploadPostImage } from "@/lib/storage";
 import { supabase } from "@/lib/supabase";
 
@@ -25,13 +25,8 @@ export default function NewPostScreen() {
   const create = useCreatePost();
 
   async function pickPhoto() {
-    const res = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [4, 3],
-      quality: 0.7,
-    });
-    if (!res.canceled && res.assets[0]) setPhotoUri(res.assets[0].uri);
+    const uri = await pickImage({ allowsEditing: true, aspect: [4, 3], quality: 0.7 });
+    if (uri) setPhotoUri(uri);
   }
   const mealQuery = useQuery({
     queryKey: mealDetailKey(meal_id ?? ""),

@@ -2,6 +2,7 @@ import { useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Platform,
   Pressable,
   ScrollView,
   Text,
@@ -177,78 +178,86 @@ export default function FriendsScreen() {
           )}
         </View>
 
-        <View className="mt-2 gap-3 rounded-2xl border border-neutral-200 bg-white p-4">
-          <Text className="font-sans-bold text-base text-neutral-800">Conectar contatos</Text>
-          <Text className="font-sans text-sm text-neutral-500">
-            A busca por username funciona sem telefone. Verificar o WhatsApp só ajuda a encontrar
-            contatos automaticamente.
-          </Text>
-          {!isVerified ? (
-            <>
-              {otpStep === "idle" && (
-                <>
-                  <Button label="Verificar telefone" onPress={() => setOtpStep("phone")} />
-                </>
-              )}
-              {otpStep === "phone" && (
-                <>
-                  <Text className="font-sans-medium text-sm text-neutral-700">Seu telefone</Text>
-                  <TextInput
-                    value={phone}
-                    onChangeText={setPhone}
-                    placeholder="(11) 99999-9999"
-                    keyboardType="phone-pad"
-                    className="rounded-2xl border border-neutral-200 bg-white p-4 font-sans text-base"
-                  />
-                  {otpError && (
-                    <Text className="font-sans text-sm text-danger-500">{otpError}</Text>
-                  )}
-                  <Button label="Enviar código" onPress={sendCode} />
-                </>
-              )}
-              {otpStep === "code" && (
-                <>
-                  <Text className="font-sans-medium text-sm text-neutral-700">
-                    Código enviado para {phone}
-                  </Text>
-                  <TextInput
-                    value={code}
-                    onChangeText={setCode}
-                    placeholder="000000"
-                    keyboardType="number-pad"
-                    maxLength={6}
-                    className="rounded-2xl border border-neutral-200 bg-white p-4 text-center font-sans-bold text-2xl"
-                    style={{ fontVariant: ["tabular-nums"] }}
-                  />
-                  {otpError && (
-                    <Text className="font-sans text-sm text-danger-500">{otpError}</Text>
-                  )}
-                  <Button label="Confirmar" onPress={confirmCode} loading={verifyPhone.isPending} />
-                  <Pressable
-                    onPress={() => setOtpStep("phone")}
-                    className="min-h-[44px] justify-center"
-                  >
-                    <Text className="font-sans text-sm text-neutral-500">
-                      Reenviar / trocar número
+        {/* Sincronização de contatos não tem equivalente confiável no navegador
+            (sem Contact Picker API cross-browser) — só faz sentido no app nativo. */}
+        {Platform.OS !== "web" && (
+          <View className="mt-2 gap-3 rounded-2xl border border-neutral-200 bg-white p-4">
+            <Text className="font-sans-bold text-base text-neutral-800">Conectar contatos</Text>
+            <Text className="font-sans text-sm text-neutral-500">
+              A busca por username funciona sem telefone. Verificar o WhatsApp só ajuda a encontrar
+              contatos automaticamente.
+            </Text>
+            {!isVerified ? (
+              <>
+                {otpStep === "idle" && (
+                  <>
+                    <Button label="Verificar telefone" onPress={() => setOtpStep("phone")} />
+                  </>
+                )}
+                {otpStep === "phone" && (
+                  <>
+                    <Text className="font-sans-medium text-sm text-neutral-700">Seu telefone</Text>
+                    <TextInput
+                      value={phone}
+                      onChangeText={setPhone}
+                      placeholder="(11) 99999-9999"
+                      keyboardType="phone-pad"
+                      className="rounded-2xl border border-neutral-200 bg-white p-4 font-sans text-base"
+                    />
+                    {otpError && (
+                      <Text className="font-sans text-sm text-danger-500">{otpError}</Text>
+                    )}
+                    <Button label="Enviar código" onPress={sendCode} />
+                  </>
+                )}
+                {otpStep === "code" && (
+                  <>
+                    <Text className="font-sans-medium text-sm text-neutral-700">
+                      Código enviado para {phone}
                     </Text>
-                  </Pressable>
-                </>
-              )}
-            </>
-          ) : (
-            <>
-              <Button
-                label={syncContacts.isPending ? "Sincronizando..." : "Conectar contatos"}
-                onPress={onSync}
-                loading={syncContacts.isPending}
-                disabled={syncContacts.isPending}
-              />
-              <Text className="font-sans text-xs text-neutral-400">
-                Só enviamos os números de forma criptografada (hash). Nunca em texto.
-              </Text>
-            </>
-          )}
-        </View>
+                    <TextInput
+                      value={code}
+                      onChangeText={setCode}
+                      placeholder="000000"
+                      keyboardType="number-pad"
+                      maxLength={6}
+                      className="rounded-2xl border border-neutral-200 bg-white p-4 text-center font-sans-bold text-2xl"
+                      style={{ fontVariant: ["tabular-nums"] }}
+                    />
+                    {otpError && (
+                      <Text className="font-sans text-sm text-danger-500">{otpError}</Text>
+                    )}
+                    <Button
+                      label="Confirmar"
+                      onPress={confirmCode}
+                      loading={verifyPhone.isPending}
+                    />
+                    <Pressable
+                      onPress={() => setOtpStep("phone")}
+                      className="min-h-[44px] justify-center"
+                    >
+                      <Text className="font-sans text-sm text-neutral-500">
+                        Reenviar / trocar número
+                      </Text>
+                    </Pressable>
+                  </>
+                )}
+              </>
+            ) : (
+              <>
+                <Button
+                  label={syncContacts.isPending ? "Sincronizando..." : "Conectar contatos"}
+                  onPress={onSync}
+                  loading={syncContacts.isPending}
+                  disabled={syncContacts.isPending}
+                />
+                <Text className="font-sans text-xs text-neutral-400">
+                  Só enviamos os números de forma criptografada (hash). Nunca em texto.
+                </Text>
+              </>
+            )}
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );

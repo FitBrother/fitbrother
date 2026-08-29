@@ -1,4 +1,3 @@
-import * as ImagePicker from "expo-image-picker";
 import { Camera, CheckCircle2, UserCircle2 } from "lucide-react-native";
 import { useState } from "react";
 import { Image, Pressable, Text, View } from "react-native";
@@ -6,6 +5,7 @@ import { Input } from "@/components/Input";
 import { OnboardingChapterShell } from "@/components/onboarding/OnboardingChapterShell";
 import { colors } from "@/lib/colors";
 import { useUsernameAvailable, USERNAME_RE } from "@/lib/hooks/useUsernameAvailable";
+import { pickImage } from "@/lib/media/image-picker";
 import { supabase } from "@/lib/supabase";
 import { useOnboardingStore } from "@/lib/stores/onboardingStore";
 import type { OnboardingBlockProps } from "@/lib/onboarding/types";
@@ -28,20 +28,15 @@ export function IdentityBlock({ onNext, onBack, chapter }: OnboardingBlockProps)
     setUploading(true);
     setAvatarError(null);
     try {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ["images"],
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.7,
-      });
-      if (result.canceled || !result.assets[0]) return;
-      setAvatarPreview(result.assets[0].uri);
+      const uri = await pickImage({ allowsEditing: true, aspect: [1, 1], quality: 0.7 });
+      if (!uri) return;
+      setAvatarPreview(uri);
 
       const userResult = await supabase.auth.getUser();
       const userId = userResult.data.user?.id;
       if (!userId) throw new Error("not_authenticated");
 
-      const file = await fetch(result.assets[0].uri).then((r) => r.blob());
+      const file = await fetch(uri).then((r) => r.blob());
       const path = `${userId}/avatar.jpg`;
       const { error } = await supabase.storage.from("post-images").upload(path, file, {
         contentType: "image/jpeg",

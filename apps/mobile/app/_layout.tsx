@@ -20,6 +20,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { queryClient } from "@/lib/query-client";
+import { registerServiceWorker } from "@/lib/pwa/register-service-worker";
 import { ToastProvider } from "@/lib/toast/toast-context";
 import "../global.css";
 
@@ -42,6 +43,10 @@ export default function RootLayout() {
       SplashScreen.hideAsync().catch(() => {});
     }
   }, [fontsLoaded]);
+
+  useEffect(() => {
+    registerServiceWorker();
+  }, []);
 
   if (!fontsLoaded) return null;
 

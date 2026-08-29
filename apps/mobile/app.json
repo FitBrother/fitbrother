@@ -22,7 +22,13 @@
       }
     },
     "web": {
-      "bundler": "metro"
+      "bundler": "metro",
+      "lang": "pt-BR",
+      "name": "Fitbrother",
+      "shortName": "Fitbrother",
+      "description": "App de nutrição com IA — registre refeições por texto ou áudio e acompanhe macros em tempo real.",
+      "themeColor": "#06D59F",
+      "backgroundColor": "#F8FAFC"
     },
     "plugins": ["expo-router", "expo-font", "expo-secure-store", "expo-localization"],
     "experiments": {

@@ -19,7 +19,7 @@ import Animated, {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import * as Localization from "expo-localization";
-import * as ImagePicker from "expo-image-picker";
+import { pickImage } from "@/lib/media/image-picker";
 import { useProfile } from "@/lib/profile/profile-context";
 import { nutritionalToday } from "@/lib/time/nutritional-day";
 import { useMealsForDay } from "@/lib/hooks/useMealsForDay";
@@ -155,17 +155,13 @@ export default function HomeScreen() {
     if (!userId) return;
     setBanner(null);
     try {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ["images"],
-        allowsEditing: false,
-        quality: 0.75,
-      });
-      if (result.canceled || !result.assets[0]) return;
+      const uri = await pickImage();
+      if (!uri) return;
       const client_meal_id = newClientMealId();
       const { path } = await uploadMealPhoto({
         userId,
         mealId: client_meal_id,
-        fileUri: result.assets[0].uri,
+        fileUri: uri,
       });
       createMealPhoto.mutate(
         {
