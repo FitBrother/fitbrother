@@ -20,6 +20,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import * as Localization from "expo-localization";
 import { pickImage } from "@/lib/media/image-picker";
+import { Info } from "lucide-react-native";
+import { GOALS_DISCLAIMER_TEXT } from "@fitbrother/shared";
 import { useProfile } from "@/lib/profile/profile-context";
 import { nutritionalToday } from "@/lib/time/nutritional-day";
 import { useMealsForDay } from "@/lib/hooks/useMealsForDay";
@@ -71,6 +73,7 @@ export default function HomeScreen() {
   useMealsRealtime(userId, day);
   const deleteMeal = useDeleteMeal();
   const [banner, setBanner] = useState<ErrorBannerVariant | null>(null);
+  const [disclaimerOpen, setDisclaimerOpen] = useState(false);
   const { width } = useWindowDimensions();
   const isDesktop = width >= 1024;
   const { data: streakView } = useStreak();
@@ -353,11 +356,7 @@ export default function HomeScreen() {
   }
 
   const listHeader = (
-    <View className="gap-4 px-4 pb-2">
-      <Card variant="elevated">
-        <TodaySummaryHeader summary={summaryQuery.data} softMode={profile.soft_mode} />
-      </Card>
-      <GoalsDisclaimer />
+    <View className="px-4 pb-2">
       <View className="flex-row items-baseline justify-between gap-4">
         <Text className="text-xl font-display-bold text-neutral-800">Refeições</Text>
         <Text className="text-[13px] text-neutral-500" style={{ fontVariant: ["tabular-nums"] }}>
@@ -367,10 +366,40 @@ export default function HomeScreen() {
     </View>
   );
 
+  const macroPanel = (
+    <View className="gap-2 px-4 pb-2">
+      <Card variant="elevated" className="relative">
+        <TodaySummaryHeader summary={summaryQuery.data} softMode={profile.soft_mode} />
+        <Pressable
+          onPress={() => setDisclaimerOpen((v) => !v)}
+          accessibilityLabel={
+            disclaimerOpen ? "Esconder aviso sobre as metas" : "Sobre estas metas"
+          }
+          accessibilityRole="button"
+          hitSlop={8}
+          className="absolute bottom-2 right-2 h-8 w-8 items-center justify-center rounded-full"
+        >
+          <Info size={16} color={colors.neutral[400]} />
+        </Pressable>
+      </Card>
+      {disclaimerOpen && (
+        <View className="flex-row items-start gap-2 rounded-2xl bg-neutral-100 p-3">
+          <Info size={16} color={colors.neutral[500]} />
+          <Text className="flex-1 text-xs font-sans text-neutral-600">{GOALS_DISCLAIMER_TEXT}</Text>
+        </View>
+      )}
+    </View>
+  );
+
   return (
     <SafeAreaView className="flex-1 bg-neutral-50" edges={["top", "left", "right"]}>
-      <HomeHeader name={profile.full_name} softMode={profile.soft_mode} />
+      <HomeHeader
+        name={profile.full_name}
+        softMode={profile.soft_mode}
+        avatarUrl={profile.avatar_url as string | null | undefined}
+      />
       {banner && <ErrorBanner variant={banner} onDismiss={() => setBanner(null)} />}
+      {macroPanel}
       {mealsQuery.isLoading ? (
         <Pressable className="flex-1" onPress={Keyboard.dismiss} />
       ) : items.length === 0 ? (
@@ -419,9 +448,6 @@ export default function HomeScreen() {
               createMeal.isPending || createMealAudio.isPending || createMealPhoto.isPending
             }
           />
-          <Text className="mt-2 text-center text-xs text-neutral-400">
-            Escreva, dite ou fotografe — a IA calcula os macros.
-          </Text>
         </View>
       </Animated.View>
     </SafeAreaView>
