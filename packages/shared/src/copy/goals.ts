@@ -24,3 +24,12 @@ export const ALLOWED_GOAL_TERMS = [
 
 export const GOALS_DISCLAIMER_TEXT =
   "Suas metas aqui são estimativas geradas por esta ferramenta de acompanhamento nutricional — não substituem uma avaliação profissional. Consulte um nutricionista ou médico para orientação individualizada.";
+
+export const PROTEIN_ADJUST_INFO_TEXT =
+  "Essa é a quantidade de proteína recomendada com base em fórmulas — você pode ajustar por preferência pessoal ou orientação de um profissional de saúde.";
+
+export const PROTEIN_MIN_LIMIT_TEXT =
+  "Você chegou no piso mínimo — abaixo disso, pode não ser proteína suficiente pra manter sua massa magra.";
+
+export const PROTEIN_MAX_LIMIT_TEXT =
+  "Você chegou no teto máximo pra seu peso e composição corporal.";
