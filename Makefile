@@ -31,3 +31,11 @@ build-PurgeAudiosFunction:
 		mkdir -p "$(ARTIFACTS_DIR)/apps/server/node_modules"; \
 		cp -R apps/server/node_modules/. "$(ARTIFACTS_DIR)/apps/server/node_modules/"; \
 	fi
+	# node_modules/@fitbrother/mobile é um symlink dos workspaces do npm
+	# apontando pro apps/mobile — de propósito não empacotamos apps/mobile
+	# aqui (server não depende dele), então esse link fica quebrado. O
+	# `sam build` não liga, mas o `sam deploy` trava tentando zipar um
+	# symlink morto. Remove qualquer symlink quebrado do pacote final.
+	find "$(ARTIFACTS_DIR)" -type l | while read -r link; do \
+		if [ ! -e "$$link" ]; then rm -f "$$link"; fi; \
+	done
