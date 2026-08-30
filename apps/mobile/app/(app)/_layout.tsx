@@ -1,6 +1,7 @@
 import { Redirect, Stack, useRouter } from "expo-router";
 import { useEffect } from "react";
 import { ActivityIndicator, View } from "react-native";
+import { ScreenFade } from "@/components/ScreenFade";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { supabase } from "@/lib/supabase";
 import { ProfileProvider, useProfileState } from "@/lib/profile/profile-context";
@@ -54,7 +55,7 @@ function GuardedStack() {
   return (
     <View className="flex-1 md:flex-row">
       <Sidebar />
-      <View className="flex-1">
+      <ScreenFade>
         <Stack screenOptions={{ headerShown: false, animation: "fade" }}>
           <Stack.Screen name="meal/[id]/edit" options={{ presentation: "modal" }} />
           <Stack.Screen
@@ -68,7 +69,7 @@ function GuardedStack() {
             }}
           />
         </Stack>
-      </View>
+      </ScreenFade>
     </View>
   );
 }
