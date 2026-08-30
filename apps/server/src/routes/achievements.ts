@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { AchievementSchema, UserAchievementSchema } from "@fitbrother/shared";
 import { authRequired, supabaseForRequest } from "../lib/auth.js";
+import { internalError } from "../lib/errors.js";
 
 export async function achievementsRoutes(app: FastifyInstance) {
   // Global catalog (read-only, RLS USING true). The client merges this with
@@ -13,8 +14,7 @@ export async function achievementsRoutes(app: FastifyInstance) {
       .order("sort_order", { ascending: true });
 
     if (error) {
-      req.log.error({ err: error }, "achievements_query_failed");
-      return reply.code(500).send({ error: error.message });
+      return internalError(reply, req.log, error, { where: "achievements_query" });
     }
 
     return reply.send({
@@ -31,8 +31,7 @@ export async function achievementsRoutes(app: FastifyInstance) {
       .order("unlocked_at", { ascending: false });
 
     if (error) {
-      req.log.error({ err: error }, "user_achievements_query_failed");
-      return reply.code(500).send({ error: error.message });
+      return internalError(reply, req.log, error, { where: "user_achievements_query" });
     }
 
     return reply.send({

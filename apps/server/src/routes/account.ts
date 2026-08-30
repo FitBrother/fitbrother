@@ -13,6 +13,7 @@ import type { FastifyInstance, FastifyRequest } from "fastify";
 import JSZip from "jszip";
 import { z } from "zod";
 import { activeAccountRequired, authTokenRequired } from "../lib/auth.js";
+import { internalError } from "../lib/errors.js";
 import { Sentry } from "../lib/sentry.js";
 import { supabaseAnonymous, supabaseFromJwt, supabaseService } from "../lib/supabase.js";
 
@@ -83,8 +84,10 @@ export async function accountRoutes(app: FastifyInstance) {
 
     const firstError = profileQ.error ?? privateQ.error ?? consentQ.error ?? deletionQ.error;
     if (firstError) {
-      req.log.error({ err: firstError, user_id: userId }, "account_profile_failed");
-      return reply.code(500).send({ error: firstError.message });
+      return internalError(reply, req.log, firstError, {
+        user_id: userId,
+        where: "account_profile",
+      });
     }
     if (!profileQ.data) return reply.code(404).send({ error: "profile_not_found" });
 
@@ -133,8 +136,7 @@ export async function accountRoutes(app: FastifyInstance) {
 
     if (error) {
       await auditAccountAction(req, "account_settings", "failed", { error: error.message });
-      req.log.error({ err: error, user_id: userId, request_id: req.id }, "account_settings_failed");
-      return reply.code(500).send({ error: error.message });
+      return internalError(reply, req.log, error, { user_id: userId, where: "account_settings" });
     }
 
     await auditAccountAction(req, "account_settings", "success", {
@@ -160,7 +162,8 @@ export async function accountRoutes(app: FastifyInstance) {
       .select("avatar_url")
       .eq("user_id", userId)
       .single();
-    if (readError) return reply.code(500).send({ error: readError.message });
+    if (readError)
+      return internalError(reply, req.log, readError, { where: "account_profile_avatar_read" });
 
     const { data, error } = await admin
       .from("profiles")
@@ -168,7 +171,8 @@ export async function accountRoutes(app: FastifyInstance) {
       .eq("user_id", userId)
       .select("avatar_url, updated_at")
       .single();
-    if (error) return reply.code(500).send({ error: error.message });
+    if (error)
+      return internalError(reply, req.log, error, { where: "account_profile_avatar_update" });
 
     const oldPath = previous.avatar_url as string | null;
     if (oldPath && oldPath !== nextPath && isOwnedAvatarPath(oldPath, userId)) {
@@ -212,8 +216,11 @@ export async function accountRoutes(app: FastifyInstance) {
       });
       if (error) {
         await auditAccountAction(req, "account_consent", "failed", { scope, error: error.message });
-        req.log.error({ err: error, user_id: userId, scope }, "account_consent_grant_failed");
-        return reply.code(500).send({ error: error.message });
+        return internalError(reply, req.log, error, {
+          user_id: userId,
+          scope,
+          where: "account_consent_grant",
+        });
       }
     } else {
       const { error } = await admin
@@ -224,8 +231,11 @@ export async function accountRoutes(app: FastifyInstance) {
         .is("revoked_at", null);
       if (error) {
         await auditAccountAction(req, "account_consent", "failed", { scope, error: error.message });
-        req.log.error({ err: error, user_id: userId, scope }, "account_consent_revoke_failed");
-        return reply.code(500).send({ error: error.message });
+        return internalError(reply, req.log, error, {
+          user_id: userId,
+          scope,
+          where: "account_consent_revoke",
+        });
       }
     }
 
@@ -270,7 +280,7 @@ export async function accountRoutes(app: FastifyInstance) {
       .is("cancelled_at", null)
       .is("purged_at", null)
       .maybeSingle();
-    if (error) return reply.code(500).send({ error: error.message });
+    if (error) return internalError(reply, req.log, error, { where: "account_deletion_get" });
     return reply.send({
       pending: Boolean(data),
       requested_at: data?.requested_at ?? null,

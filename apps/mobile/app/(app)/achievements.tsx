@@ -3,6 +3,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { ChevronLeft, Lock, Share2, Trophy } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { colors } from "@/lib/colors";
+import { friendlyApiError } from "@/lib/errors";
 import { useAchievements, useMyAchievements } from "@/lib/hooks/useAchievements";
 import { useCreateAchievementPost } from "@/lib/hooks/useCreatePost";
 
@@ -79,7 +80,8 @@ export default function AchievementsScreen() {
                         {
                           onSuccess: () =>
                             Alert.alert("Publicado", "Conquista compartilhada no feed."),
-                          onError: (err) => Alert.alert("Não foi possível publicar", err.message),
+                          onError: () =>
+                            Alert.alert("Não foi possível publicar", friendlyApiError()),
                         },
                       )
                     }

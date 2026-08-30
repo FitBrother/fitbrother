@@ -44,8 +44,8 @@ export function IdentityBlock({ onNext, onBack, chapter }: OnboardingBlockProps)
       });
       if (error) throw error;
       setField("avatar_url", path);
-    } catch (err) {
-      setAvatarError(err instanceof Error ? err.message : "Não foi possível salvar o avatar.");
+    } catch {
+      setAvatarError("Não foi possível salvar o avatar. Tente novamente.");
     } finally {
       setUploading(false);
     }

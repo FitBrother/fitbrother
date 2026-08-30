@@ -4,6 +4,7 @@ import { ActivityIndicator, Pressable, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AccountDeletionPendingError, getMe } from "@/lib/api";
 import { colors } from "@/lib/colors";
+import { friendlyApiError } from "@/lib/errors";
 import { useAuthSession } from "@/lib/hooks/useAuthSession";
 
 type ProfileState =
@@ -31,8 +32,7 @@ export default function Index() {
       }
       // Don't redirect to onboarding on network/500 — the user may have
       // already completed it. Surface the error and let them retry.
-      const message = e instanceof Error ? e.message : "Falha ao carregar perfil";
-      setProfile({ kind: "error", message });
+      setProfile({ kind: "error", message: friendlyApiError() });
     }
   }, []);
 

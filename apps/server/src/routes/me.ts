@@ -8,6 +8,7 @@ import {
   type Streak,
 } from "@fitbrother/shared";
 import { authRequired, supabaseForRequest } from "../lib/auth.js";
+import { internalError } from "../lib/errors.js";
 import { supabaseService } from "../lib/supabase.js";
 import { hashE164, reverseMatchFollows } from "../services/contacts.js";
 
@@ -41,8 +42,7 @@ export async function meRoutes(app: FastifyInstance) {
 
     const firstError = profileQ.error ?? privateQ.error ?? goalQ.error ?? anthroQ.error;
     if (firstError) {
-      req.log.error({ err: firstError }, "me_query_failed");
-      return reply.code(500).send({ error: firstError.message });
+      return internalError(reply, req.log, firstError, { where: "me_query" });
     }
 
     if (!profileQ.data) {
@@ -76,8 +76,7 @@ export async function meRoutes(app: FastifyInstance) {
 
     const { data, error } = await query;
     if (error) {
-      req.log.error({ err: error }, "daily_summary_query_failed");
-      return reply.code(500).send({ error: error.message });
+      return internalError(reply, req.log, error, { where: "daily_summary_query" });
     }
 
     if (data) {
@@ -88,8 +87,7 @@ export async function meRoutes(app: FastifyInstance) {
     const resolvedDay = day ?? (await supabase.rpc("fitbrother_today", { p_user_id: userId })).data;
 
     if (!resolvedDay) {
-      req.log.error({ userId }, "fitbrother_today_returned_null");
-      return reply.code(500).send({ error: "could_not_resolve_today" });
+      return internalError(reply, req.log, new Error("fitbrother_today_returned_null"), { userId });
     }
 
     const { data: goal } = await supabase
@@ -129,8 +127,7 @@ export async function meRoutes(app: FastifyInstance) {
       supabase.rpc("fitbrother_streak_at_risk", { p_user_id: userId }),
     ]);
     if (streakQ.error) {
-      req.log.error({ err: streakQ.error }, "streak_query_failed");
-      return reply.code(500).send({ error: streakQ.error.message });
+      return internalError(reply, req.log, streakQ.error, { where: "streak_query" });
     }
 
     // No row yet (new user, never hit a goal) → zeroed default so the client
@@ -158,8 +155,9 @@ export async function meRoutes(app: FastifyInstance) {
 
     const { data: udata, error: uerr } = await admin.auth.admin.getUserById(userId);
     if (uerr || !udata.user) {
-      req.log.error({ err: uerr }, "verify_phone_getuser_failed");
-      return reply.code(500).send({ error: "could_not_read_user" });
+      return internalError(reply, req.log, uerr ?? new Error("verify_phone_getuser_no_user"), {
+        where: "verify_phone_getuser",
+      });
     }
     const phone = udata.user.phone;
     const confirmed = udata.user.phone_confirmed_at;
@@ -177,8 +175,7 @@ export async function meRoutes(app: FastifyInstance) {
       .eq("user_id", userId)
       .maybeSingle();
     if (pErr) {
-      req.log.error({ err: pErr }, "verify_phone_profile_read_failed");
-      return reply.code(500).send({ error: pErr.message });
+      return internalError(reply, req.log, pErr, { where: "verify_phone_profile_read" });
     }
 
     const { error: upErr } = await admin.from("profiles_private").upsert(
@@ -191,8 +188,7 @@ export async function meRoutes(app: FastifyInstance) {
       { onConflict: "user_id" },
     );
     if (upErr) {
-      req.log.error({ err: upErr }, "verify_phone_update_failed");
-      return reply.code(500).send({ error: upErr.message });
+      return internalError(reply, req.log, upErr, { where: "verify_phone_update" });
     }
 
     try {
@@ -230,8 +226,7 @@ export async function meRoutes(app: FastifyInstance) {
       .order("day", { ascending: false });
 
     if (error) {
-      req.log.error({ err: error }, "daily_summaries_query_failed");
-      return reply.code(500).send({ error: error.message });
+      return internalError(reply, req.log, error, { where: "daily_summaries_query" });
     }
 
     return reply.send({
@@ -253,8 +248,7 @@ export async function meRoutes(app: FastifyInstance) {
     }
     const { data, error } = await q;
     if (error) {
-      req.log.error({ err: error }, "insights_query_failed");
-      return reply.code(500).send({ error: error.message });
+      return internalError(reply, req.log, error, { where: "insights_query" });
     }
     return reply.send({ insights: (data ?? []).map((r) => InsightSchema.parse(r)) });
   });
@@ -269,7 +263,7 @@ export async function meRoutes(app: FastifyInstance) {
         .select("id, period_type, period_start, payload, created_at")
         .eq("id", req.params.id)
         .maybeSingle();
-      if (error) return reply.code(500).send({ error: error.message });
+      if (error) return internalError(reply, req.log, error, { where: "insight_by_id" });
       if (!data) return reply.code(404).send({ error: "not_found" });
       return reply.send({ insight: InsightSchema.parse(data) });
     },

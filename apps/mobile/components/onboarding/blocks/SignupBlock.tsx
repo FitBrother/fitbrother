@@ -7,6 +7,7 @@ import { Input } from "@/components/Input";
 import { OnboardingChapterShell } from "@/components/onboarding/OnboardingChapterShell";
 import { PasswordInput, passwordStrength } from "@/components/PasswordInput";
 import { colors } from "@/lib/colors";
+import { friendlyAuthError } from "@/lib/errors";
 import { useAuthSession } from "@/lib/hooks/useAuthSession";
 import { supabase } from "@/lib/supabase";
 import type { OnboardingBlockProps } from "@/lib/onboarding/types";
@@ -69,10 +70,8 @@ export function SignupBlock({ onNext, onBack, chapter }: OnboardingBlockProps) {
         // erro técnico do Supabase.
         if (error.code === "email_exists") {
           setEmailExists(true);
-          setError("Esse e-mail já tem uma conta cadastrada.");
-          return;
         }
-        setError(error.message);
+        setError(friendlyAuthError(error));
         return;
       }
       onNext();

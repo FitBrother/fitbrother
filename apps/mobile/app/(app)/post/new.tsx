@@ -8,6 +8,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/Button";
 import { getMeal } from "@/lib/api/meals";
 import { colors } from "@/lib/colors";
+import { friendlyApiError } from "@/lib/errors";
 import { mealDetailKey } from "@/lib/hooks/useMealsForDay";
 import { useCreatePost } from "@/lib/hooks/useCreatePost";
 import { pickImage } from "@/lib/media/image-picker";
@@ -58,11 +59,11 @@ export default function NewPostScreen() {
         },
         {
           onSuccess: () => router.replace("/(app)/feed" as never),
-          onError: (err) => Alert.alert("Não foi possível publicar", err.message),
+          onError: () => Alert.alert("Não foi possível publicar", friendlyApiError()),
         },
       );
-    } catch (err) {
-      Alert.alert("Não foi possível enviar a foto", err instanceof Error ? err.message : "Erro");
+    } catch {
+      Alert.alert("Não foi possível enviar a foto", friendlyApiError());
     } finally {
       setUploading(false);
     }

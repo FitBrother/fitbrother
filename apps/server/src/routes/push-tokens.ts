@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { RegisterPushTokenRequestSchema } from "@fitbrother/shared";
 import { authRequired } from "../lib/auth.js";
+import { internalError } from "../lib/errors.js";
 import { supabaseService } from "../lib/supabase.js";
 
 export async function pushTokensRoutes(app: FastifyInstance) {
@@ -26,8 +27,7 @@ export async function pushTokensRoutes(app: FastifyInstance) {
       );
 
     if (error) {
-      req.log.error({ err: error }, "push_token_register_failed");
-      return reply.code(500).send({ error: error.message });
+      return internalError(reply, req.log, error, { where: "push_token_register" });
     }
 
     return reply.code(204).send();

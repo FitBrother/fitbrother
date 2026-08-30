@@ -15,6 +15,7 @@ import { useRouter } from "expo-router";
 import { parsePhoneNumberFromString } from "libphonenumber-js";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { colors } from "@/lib/colors";
+import { friendlyAuthError } from "@/lib/errors";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/Button";
 import { LeaderboardRow } from "@/components/domain/LeaderboardRow";
@@ -68,7 +69,7 @@ export default function FriendsScreen() {
     }
     const { error } = await supabase.auth.updateUser({ phone: parsed.number });
     if (error) {
-      setOtpError(error.message);
+      setOtpError(friendlyAuthError(error));
       return;
     }
     setPhone(parsed.number);

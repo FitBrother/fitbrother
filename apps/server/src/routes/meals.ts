@@ -9,6 +9,7 @@ import type { FastifyInstance, FastifyRequest } from "fastify";
 import { authRequired, supabaseForRequest } from "../lib/auth.js";
 import { addDaysIso } from "../lib/dateMath.js";
 import { env } from "../lib/env.js";
+import { internalError } from "../lib/errors.js";
 import { AiQuotaExceededError } from "../services/ai-usage.js";
 import { extractMeal } from "../services/extraction.js";
 import { applyCatalogToItems } from "../services/meals.js";
@@ -144,8 +145,7 @@ export async function mealsRoutes(app: FastifyInstance) {
     );
 
     if (rpcError) {
-      req.log.error({ err: rpcError, client_meal_id }, "create_meal_rpc_failed");
-      return reply.code(500).send({ error: rpcError.message });
+      return internalError(reply, req.log, rpcError, { client_meal_id, where: "create_meal_rpc" });
     }
 
     const meal = await loadMeal(supabase, client_meal_id, req);
@@ -311,8 +311,7 @@ export async function mealsRoutes(app: FastifyInstance) {
     );
 
     if (rpcError) {
-      req.log.error({ err: rpcError, client_meal_id }, "create_meal_rpc_failed");
-      return reply.code(500).send({ error: rpcError.message });
+      return internalError(reply, req.log, rpcError, { client_meal_id, where: "create_meal_rpc" });
     }
 
     const meal = await loadMeal(supabase, client_meal_id, req);
@@ -440,8 +439,10 @@ export async function mealsRoutes(app: FastifyInstance) {
     );
 
     if (rpcError) {
-      req.log.error({ err: rpcError, client_meal_id }, "create_photo_meal_rpc_failed");
-      return reply.code(500).send({ error: rpcError.message });
+      return internalError(reply, req.log, rpcError, {
+        client_meal_id,
+        where: "create_photo_meal_rpc",
+      });
     }
 
     const meal = await loadMeal(supabase, client_meal_id, req);
@@ -552,8 +553,10 @@ export async function mealsRoutes(app: FastifyInstance) {
     });
 
     if (rpcError) {
-      req.log.error({ err: rpcError, client_meal_id }, "create_barcode_meal_rpc_failed");
-      return reply.code(500).send({ error: rpcError.message });
+      return internalError(reply, req.log, rpcError, {
+        client_meal_id,
+        where: "create_barcode_meal_rpc",
+      });
     }
 
     const meal = await loadMeal(supabase, client_meal_id, req);
@@ -594,7 +597,7 @@ export async function mealsRoutes(app: FastifyInstance) {
       .is("deleted_at", null)
       .order("consumed_at", { ascending: false });
 
-    if (error) return reply.code(500).send({ error: error.message });
+    if (error) return internalError(reply, req.log, error, { where: "meals_list" });
 
     // Filter by the nutritional day for this user (avoid mis-attributing
     // meals around the day_start_hour boundary).
@@ -612,7 +615,7 @@ export async function mealsRoutes(app: FastifyInstance) {
       .is("deleted_at", null)
       .maybeSingle();
 
-    if (error) return reply.code(500).send({ error: error.message });
+    if (error) return internalError(reply, req.log, error, { where: "meal_get" });
     if (!data) return reply.code(404).send({ error: "not_found" });
     return reply.send({ meal: data });
   });
@@ -630,7 +633,7 @@ export async function mealsRoutes(app: FastifyInstance) {
 
     if (Object.keys(patch).length > 0) {
       const { error } = await supabase.from("meals").update(patch).eq("id", req.params.id);
-      if (error) return reply.code(500).send({ error: error.message });
+      if (error) return internalError(reply, req.log, error, { where: "meal_patch" });
     }
 
     if (parsed.data.items) {
@@ -640,7 +643,8 @@ export async function mealsRoutes(app: FastifyInstance) {
         .from("meal_items")
         .delete()
         .eq("meal_id", req.params.id);
-      if (deleteErr) return reply.code(500).send({ error: deleteErr.message });
+      if (deleteErr)
+        return internalError(reply, req.log, deleteErr, { where: "meal_items_delete" });
 
       const { error: insertErr } = await supabase.from("meal_items").insert(
         parsed.data.items.map((it) => ({
@@ -654,7 +658,8 @@ export async function mealsRoutes(app: FastifyInstance) {
           fat_g: it.fat_g,
         })),
       );
-      if (insertErr) return reply.code(500).send({ error: insertErr.message });
+      if (insertErr)
+        return internalError(reply, req.log, insertErr, { where: "meal_items_insert" });
     }
 
     const meal = await loadMeal(supabase, req.params.id, req);
@@ -669,7 +674,7 @@ export async function mealsRoutes(app: FastifyInstance) {
       .from("meals")
       .update({ review_required: false })
       .eq("id", req.params.id);
-    if (error) return reply.code(500).send({ error: error.message });
+    if (error) return internalError(reply, req.log, error, { where: "meal_confirm" });
     const meal = await loadMeal(supabase, req.params.id, req);
     if (!meal) return reply.code(404).send({ error: "not_found" });
     return reply.send({ meal });
@@ -682,7 +687,7 @@ export async function mealsRoutes(app: FastifyInstance) {
       .from("meals")
       .update({ deleted_at: new Date().toISOString() })
       .eq("id", req.params.id);
-    if (error) return reply.code(500).send({ error: error.message });
+    if (error) return internalError(reply, req.log, error, { where: "meal_delete" });
     return reply.code(204).send();
   });
 }

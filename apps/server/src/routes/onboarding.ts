@@ -2,6 +2,7 @@ import { OnboardingPayloadSchema } from "@fitbrother/shared";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { authRequired, supabaseForRequest } from "../lib/auth.js";
+import { internalError } from "../lib/errors.js";
 import { buildTargetsInput, computeTargets, evaluateSafetyGates } from "../services/targets.js";
 
 const PatchOnboardingProgressRequestSchema = z.object({
@@ -31,7 +32,10 @@ export async function onboardingRoutes(app: FastifyInstance) {
 
     if (error) {
       req.log.error({ err: error }, "onboarding_rpc_failed");
-      return reply.code(error.code === "23505" ? 409 : 500).send({ error: error.message });
+      if (error.code === "23505") {
+        return reply.code(409).send({ error: "onboarding_already_completed" });
+      }
+      return internalError(reply, req.log, error);
     }
 
     return reply.code(201).send(data);
@@ -45,8 +49,7 @@ export async function onboardingRoutes(app: FastifyInstance) {
       .maybeSingle();
 
     if (error) {
-      req.log.error({ err: error }, "onboarding_progress_get_failed");
-      return reply.code(500).send({ error: error.message });
+      return internalError(reply, req.log, error, { where: "onboarding_progress_get" });
     }
 
     return reply.send({ progress: data ?? null });
@@ -74,8 +77,7 @@ export async function onboardingRoutes(app: FastifyInstance) {
     );
 
     if (error) {
-      req.log.error({ err: error }, "onboarding_progress_patch_failed");
-      return reply.code(500).send({ error: error.message });
+      return internalError(reply, req.log, error, { where: "onboarding_progress_patch" });
     }
 
     return reply.code(204).send();

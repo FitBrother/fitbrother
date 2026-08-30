@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { FollowRequestSchema, PublicProfileSchema, UsernameSchema } from "@fitbrother/shared";
 import { authRequired } from "../lib/auth.js";
+import { internalError } from "../lib/errors.js";
 import { supabaseService } from "../lib/supabase.js";
 
 const searchQuerySchema = z.object({
@@ -29,8 +30,7 @@ export async function usersRoutes(app: FastifyInstance) {
       .limit(20);
 
     if (error) {
-      req.log.error({ err: error }, "user_search_failed");
-      return reply.code(500).send({ error: error.message });
+      return internalError(reply, req.log, error, { where: "user_search" });
     }
 
     return reply.send({ users: (data ?? []).map((u) => PublicProfileSchema.parse(u)) });
@@ -48,8 +48,7 @@ export async function usersRoutes(app: FastifyInstance) {
       .ilike("username", parsed.data.u);
 
     if (error) {
-      req.log.error({ err: error }, "username_available_failed");
-      return reply.code(500).send({ error: error.message });
+      return internalError(reply, req.log, error, { where: "username_available" });
     }
 
     return reply.send({ available: (count ?? 0) === 0 });
@@ -72,7 +71,8 @@ export async function usersRoutes(app: FastifyInstance) {
       .select("user_id")
       .eq("user_id", parsed.data.followee_id)
       .maybeSingle();
-    if (targetError) return reply.code(500).send({ error: targetError.message });
+    if (targetError)
+      return internalError(reply, req.log, targetError, { where: "follow_target_lookup" });
     if (!target) return reply.code(404).send({ error: "user_not_found" });
 
     const { error } = await admin
@@ -83,8 +83,7 @@ export async function usersRoutes(app: FastifyInstance) {
       );
 
     if (error) {
-      req.log.error({ err: error }, "follow_failed");
-      return reply.code(500).send({ error: error.message });
+      return internalError(reply, req.log, error, { where: "follow" });
     }
 
     return reply.code(204).send();
@@ -101,8 +100,7 @@ export async function usersRoutes(app: FastifyInstance) {
       .eq("followee_id", followeeId);
 
     if (error) {
-      req.log.error({ err: error }, "unfollow_failed");
-      return reply.code(500).send({ error: error.message });
+      return internalError(reply, req.log, error, { where: "unfollow" });
     }
 
     return reply.code(204).send();

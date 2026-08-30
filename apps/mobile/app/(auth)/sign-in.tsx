@@ -5,6 +5,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Button } from "@/components/Button";
 import { Input } from "@/components/Input";
 import { PasswordInput } from "@/components/PasswordInput";
+import { friendlyAuthError } from "@/lib/errors";
 import { supabase } from "@/lib/supabase";
 import { authenticateWithOAuth, type OAuthProvider } from "@/lib/oauth";
 
@@ -32,7 +33,7 @@ export default function SignIn() {
     });
     setLoading(false);
     if (error) {
-      setError(error.message);
+      setError(friendlyAuthError(error));
       return;
     }
     router.replace("/");

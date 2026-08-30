@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { ContactsSyncRequestSchema } from "@fitbrother/shared";
 import { authRequired } from "../lib/auth.js";
+import { internalError } from "../lib/errors.js";
 import { supabaseService } from "../lib/supabase.js";
 import { syncContacts } from "../services/contacts.js";
 
@@ -22,8 +23,7 @@ export async function contactsRoutes(app: FastifyInstance) {
       .eq("user_id", userId)
       .maybeSingle();
     if (pErr) {
-      req.log.error({ err: pErr }, "contacts_sync_profile_failed");
-      return reply.code(500).send({ error: pErr.message });
+      return internalError(reply, req.log, pErr, { where: "contacts_sync_profile" });
     }
     if (!prof?.phone_verified_at) {
       return reply.code(403).send({ error: "phone_not_verified" });
@@ -33,8 +33,7 @@ export async function contactsRoutes(app: FastifyInstance) {
       const followed = await syncContacts(admin, userId, parsed.data.hashes);
       return reply.send({ followed });
     } catch (err) {
-      req.log.error({ err }, "contacts_sync_failed");
-      return reply.code(500).send({ error: "contacts_sync_failed" });
+      return internalError(reply, req.log, err, { where: "contacts_sync" });
     }
   });
 }

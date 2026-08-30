@@ -114,7 +114,13 @@ export async function buildApp(): Promise<FastifyInstance> {
         extra: { user_id: req.user?.id },
       });
     }
-    reply.status(err.statusCode ?? 500).send({ error: err.message });
+    const statusCode = err.statusCode ?? 500;
+    // Erro sem statusCode explícito (exceção não tratada, bug, falha de
+    // banco/storage) nunca deve vazar err.message pro cliente — só erros
+    // deliberadamente construídos com um statusCode de cliente (4xx) têm
+    // texto seguro de mostrar.
+    const message = statusCode < 500 ? err.message : "internal_error";
+    reply.status(statusCode).send({ error: message });
   });
 
   return app;

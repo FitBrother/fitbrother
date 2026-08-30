@@ -11,6 +11,7 @@ import {
   PostSchema,
 } from "@fitbrother/shared";
 import { authRequired } from "../lib/auth.js";
+import { internalError } from "../lib/errors.js";
 import { supabaseService } from "../lib/supabase.js";
 
 type PostRow = {
@@ -57,8 +58,7 @@ export async function postsRoutes(app: FastifyInstance) {
       .maybeSingle();
 
     if (mealError) {
-      req.log.error({ err: mealError }, "post_meal_lookup_failed");
-      return reply.code(500).send({ error: mealError.message });
+      return internalError(reply, req.log, mealError, { where: "post_meal_lookup" });
     }
     if (!meal || meal.deleted_at) return reply.code(404).send({ error: "meal_not_found" });
     if (meal.user_id !== userId) return reply.code(403).send({ error: "meal_not_owned" });
@@ -82,11 +82,10 @@ export async function postsRoutes(app: FastifyInstance) {
       .single();
 
     if (error) {
-      const status = error.code === "23505" ? 409 : 500;
-      req.log.error({ err: error }, "post_insert_failed");
-      return reply
-        .code(status)
-        .send({ error: error.code === "23505" ? "already_posted" : error.message });
+      if (error.code === "23505") {
+        return reply.code(409).send({ error: "already_posted" });
+      }
+      return internalError(reply, req.log, error, { where: "post_insert" });
     }
 
     const post = await attachAuthor(data as PostRow);
@@ -108,8 +107,9 @@ export async function postsRoutes(app: FastifyInstance) {
       .eq("achievement_id", parsed.data.achievement_id)
       .maybeSingle();
     if (unlockedError) {
-      req.log.error({ err: unlockedError }, "achievement_post_unlocked_lookup_failed");
-      return reply.code(500).send({ error: unlockedError.message });
+      return internalError(reply, req.log, unlockedError, {
+        where: "achievement_post_unlocked_lookup",
+      });
     }
     if (!unlocked) return reply.code(403).send({ error: "achievement_not_unlocked" });
 
@@ -126,11 +126,10 @@ export async function postsRoutes(app: FastifyInstance) {
       .single();
 
     if (error) {
-      const status = error.code === "23505" ? 409 : 500;
-      req.log.error({ err: error }, "achievement_post_insert_failed");
-      return reply
-        .code(status)
-        .send({ error: error.code === "23505" ? "already_posted" : error.message });
+      if (error.code === "23505") {
+        return reply.code(409).send({ error: "already_posted" });
+      }
+      return internalError(reply, req.log, error, { where: "achievement_post_insert" });
     }
 
     return reply.code(201).send({ post: await attachAuthor(data as PostRow) });
@@ -145,8 +144,7 @@ export async function postsRoutes(app: FastifyInstance) {
       .select("followee_id")
       .eq("follower_id", userId);
     if (followsError) {
-      req.log.error({ err: followsError }, "feed_follows_failed");
-      return reply.code(500).send({ error: followsError.message });
+      return internalError(reply, req.log, followsError, { where: "feed_follows" });
     }
 
     const network = [userId, ...((follows ?? []).map((f) => f.followee_id) as string[])];
@@ -159,8 +157,7 @@ export async function postsRoutes(app: FastifyInstance) {
       .limit(50);
 
     if (error) {
-      req.log.error({ err: error }, "feed_posts_failed");
-      return reply.code(500).send({ error: error.message });
+      return internalError(reply, req.log, error, { where: "feed_posts" });
     }
 
     const rows = (data ?? []) as PostRow[];
@@ -181,7 +178,7 @@ export async function postsRoutes(app: FastifyInstance) {
       .select(POST_SELECT)
       .eq("id", req.params.id)
       .maybeSingle();
-    if (error) return reply.code(500).send({ error: error.message });
+    if (error) return internalError(reply, req.log, error, { where: "post_get" });
     if (!data || data.deleted_at) return reply.code(404).send({ error: "not_found" });
     if (data.user_id !== userId) {
       const { data: follow } = await admin
@@ -202,7 +199,7 @@ export async function postsRoutes(app: FastifyInstance) {
       .update({ deleted_at: new Date().toISOString() })
       .eq("id", req.params.id)
       .eq("user_id", req.user!.id);
-    if (error) return reply.code(500).send({ error: error.message });
+    if (error) return internalError(reply, req.log, error, { where: "post_delete" });
     return reply.code(204).send();
   });
 
@@ -215,8 +212,7 @@ export async function postsRoutes(app: FastifyInstance) {
 
     const { error } = await admin.from("post_likes").insert({ post_id: post.id, user_id: userId });
     if (error && error.code !== "23505") {
-      req.log.error({ err: error }, "like_failed");
-      return reply.code(500).send({ error: error.message });
+      return internalError(reply, req.log, error, { where: "like" });
     }
     // Notifica o autor só num like NOVO (não duplicado) e se não for o próprio.
     if (!error && post.user_id !== userId) {
@@ -247,8 +243,7 @@ export async function postsRoutes(app: FastifyInstance) {
       .eq("post_id", req.params.id)
       .eq("user_id", userId);
     if (error) {
-      req.log.error({ err: error }, "unlike_failed");
-      return reply.code(500).send({ error: error.message });
+      return internalError(reply, req.log, error, { where: "unlike" });
     }
     const { data: fresh } = await admin
       .from("posts")
@@ -275,8 +270,7 @@ export async function postsRoutes(app: FastifyInstance) {
       .order("created_at", { ascending: true })
       .limit(100);
     if (error) {
-      req.log.error({ err: error }, "comments_query_failed");
-      return reply.code(500).send({ error: error.message });
+      return internalError(reply, req.log, error, { where: "comments_query" });
     }
     const comments = await attachCommentAuthors(admin, data ?? []);
     return reply.send(CommentsResponseSchema.parse({ comments }));
@@ -298,9 +292,10 @@ export async function postsRoutes(app: FastifyInstance) {
       .select("id, post_id, user_id, body, created_at")
       .single();
     if (error) {
-      const status = error.code === "23505" ? 409 : 500;
-      req.log.error({ err: error }, "comment_insert_failed");
-      return reply.code(status).send({ error: error.message });
+      if (error.code === "23505") {
+        return reply.code(409).send({ error: "already_commented" });
+      }
+      return internalError(reply, req.log, error, { where: "comment_insert" });
     }
     if (post.user_id !== userId) {
       await admin.from("notifications").insert({
@@ -321,7 +316,7 @@ export async function postsRoutes(app: FastifyInstance) {
       .update({ deleted_at: new Date().toISOString() })
       .eq("id", req.params.id)
       .eq("user_id", req.user!.id);
-    if (error) return reply.code(500).send({ error: error.message });
+    if (error) return internalError(reply, req.log, error, { where: "comment_delete" });
     return reply.code(204).send();
   });
 }

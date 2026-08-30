@@ -3,6 +3,7 @@ import { ActivityIndicator, Text, View } from "react-native";
 import { Button } from "@/components/Button";
 import { postOnboarding } from "@/lib/api";
 import { colors } from "@/lib/colors";
+import { friendlyApiError } from "@/lib/errors";
 import { useOnboardingStore } from "@/lib/stores/onboardingStore";
 import { useOnboardingResultStore } from "@/lib/stores/onboardingResultStore";
 import type { OnboardingBlockProps } from "@/lib/onboarding/types";
@@ -55,8 +56,8 @@ export function SubmittingBlock({ onNext }: OnboardingBlockProps) {
           );
         }
         onNext();
-      } catch (e) {
-        if (!cancelled) setError(e instanceof Error ? e.message : "Erro inesperado.");
+      } catch {
+        if (!cancelled) setError(friendlyApiError());
       }
     })();
 

@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { FollowedProfileSchema, LeaderboardRowSchema } from "@fitbrother/shared";
 import { authRequired } from "../lib/auth.js";
+import { internalError } from "../lib/errors.js";
 import { supabaseService } from "../lib/supabase.js";
 
 export async function socialRoutes(app: FastifyInstance) {
@@ -15,8 +16,7 @@ export async function socialRoutes(app: FastifyInstance) {
       .select("followee_id")
       .eq("follower_id", req.user!.id);
     if (error) {
-      req.log.error({ err: error }, "following_query_failed");
-      return reply.code(500).send({ error: error.message });
+      return internalError(reply, req.log, error, { where: "following_query" });
     }
     const ids = (rows ?? []).map((r) => r.followee_id);
     if (ids.length === 0) return reply.send({ following: [] });
@@ -26,8 +26,7 @@ export async function socialRoutes(app: FastifyInstance) {
       .select("user_id, display_name")
       .in("user_id", ids);
     if (pErr) {
-      req.log.error({ err: pErr }, "following_profiles_failed");
-      return reply.code(500).send({ error: pErr.message });
+      return internalError(reply, req.log, pErr, { where: "following_profiles" });
     }
     const following = (profs ?? []).map((p) =>
       FollowedProfileSchema.parse({ user_id: p.user_id, full_name: p.display_name }),
@@ -43,8 +42,7 @@ export async function socialRoutes(app: FastifyInstance) {
       p_user_id: userId,
     });
     if (error) {
-      req.log.error({ err: error }, "leaderboard_query_failed");
-      return reply.code(500).send({ error: error.message });
+      return internalError(reply, req.log, error, { where: "leaderboard_query" });
     }
     const rows = (data ?? []).map((r: Record<string, unknown>) =>
       LeaderboardRowSchema.parse({
