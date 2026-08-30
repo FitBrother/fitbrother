@@ -1,6 +1,6 @@
 import { describe, expect, test } from "@jest/globals";
 
-import { resolveIndex } from "./SwipeableTabs";
+import { clampOffset, resolveIndex } from "./SwipeableTabs";
 
 const WIDTH = 390;
 const COUNT = 3;
@@ -33,5 +33,31 @@ describe("resolveIndex", () => {
 
   test("não passa da primeira aba", () => {
     expect(resolveIndex({ ...base, current: 0, translationX: 300, velocityX: 900 })).toBe(0);
+  });
+});
+
+// Sem limite no arrasto, a última aba podia ser puxada além do fim e revelar
+// espaço vazio depois da última cena — a "tela em branco" relatada.
+describe("clampOffset", () => {
+  const limiteEsquerdo = -(COUNT - 1) * WIDTH; // -780 para 3 abas de 390
+
+  test("mantém deslocamentos válidos intactos", () => {
+    expect(clampOffset(-WIDTH, WIDTH, COUNT)).toBe(-WIDTH);
+    expect(clampOffset(-200, WIDTH, COUNT)).toBe(-200);
+  });
+
+  test("não deixa arrastar antes da primeira aba", () => {
+    expect(clampOffset(120, WIDTH, COUNT)).toBe(0);
+    expect(clampOffset(5000, WIDTH, COUNT)).toBe(0);
+  });
+
+  test("não deixa arrastar além da última aba", () => {
+    expect(clampOffset(limiteEsquerdo - 120, WIDTH, COUNT)).toBe(limiteEsquerdo);
+    expect(clampOffset(-5000, WIDTH, COUNT)).toBe(limiteEsquerdo);
+  });
+
+  test("as duas bordas exatas são posições válidas", () => {
+    expect(clampOffset(0, WIDTH, COUNT)).toBe(0);
+    expect(clampOffset(limiteEsquerdo, WIDTH, COUNT)).toBe(limiteEsquerdo);
   });
 });

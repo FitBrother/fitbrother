@@ -5,15 +5,23 @@ import Animated, {
   runOnJS,
   useAnimatedStyle,
   useSharedValue,
-  withSpring,
+  withTiming,
 } from "react-native-reanimated";
+import { Motion } from "@/lib/motion";
 
 /** Fração da largura da tela que confirma a troca de aba por distância. */
 export const SWIPE_DISTANCE_RATIO = 1 / 3;
 /** Velocidade (px/s) que confirma a troca mesmo sem distância suficiente. */
 export const SWIPE_VELOCITY_THRESHOLD = 500;
 
-const SPRING = { damping: 20, stiffness: 180 } as const;
+// Timing, não spring: uma mola com damping 20 / stiffness 180 tem razão de
+// amortecimento ~0.75, ou seja, oscila. Na prática passava ~20px do alvo e
+// levava mais de 1s pra assentar — a aba parecia "tremer" e demorar. Um
+// timing curto com a curva padrão chega no lugar exato e para.
+const SLIDE = {
+  duration: Motion.duration.base,
+  easing: Motion.easing.standard,
+} as const;
 /** Ignora arrastos quase verticais para não sequestrar o scroll das listas. */
 const ACTIVE_OFFSET_X: [number, number] = [-12, 12];
 const FAIL_OFFSET_Y: [number, number] = [-12, 12];
@@ -49,6 +57,16 @@ export function resolveIndex({
 }
 
 /**
+ * Prende o deslocamento ao intervalo das cenas existentes. Sem isso, arrastar
+ * na primeira ou na última aba puxa o pager para fora e expõe espaço vazio.
+ */
+export function clampOffset(offset: number, width: number, count: number): number {
+  "worklet";
+  const minimo = -(count - 1) * width;
+  return Math.min(Math.max(offset, minimo), 0);
+}
+
+/**
  * Pager horizontal controlado. Não conhece o domínio — recebe o índice ativo,
  * um callback de mudança e as cenas como filhos.
  */
@@ -73,17 +91,20 @@ export function SwipeableTabs({
 
   useEffect(() => {
     indexSV.value = index;
-    translateX.value = withSpring(-index * width, SPRING);
+    translateX.value = withTiming(-index * width, SLIDE);
   }, [index, width, indexSV, translateX]);
 
   const pan = Gesture.Pan()
     .activeOffsetX(ACTIVE_OFFSET_X)
     .failOffsetY(FAIL_OFFSET_Y)
     .onBegin(() => {
-      startX.value = translateX.value;
+      // Ancora na posição da aba já confirmada, não em translateX — este pode
+      // estar no meio de uma animação, e partir dele fazia o desalinhamento
+      // se acumular a cada gesto até as cenas saírem do lugar.
+      startX.value = -indexSV.value * width;
     })
     .onUpdate((e) => {
-      translateX.value = startX.value + e.translationX;
+      translateX.value = clampOffset(startX.value + e.translationX, width, count);
     })
     .onEnd((e) => {
       const next = resolveIndex({
@@ -93,7 +114,7 @@ export function SwipeableTabs({
         width,
         count,
       });
-      translateX.value = withSpring(-next * width, SPRING);
+      translateX.value = withTiming(-next * width, SLIDE);
       if (next !== indexSV.value) {
         indexSV.value = next;
         runOnJS(onIndexChange)(next);
