@@ -1,6 +1,7 @@
 import { computeTargets, evaluateSafetyGates } from "@fitbrother/shared";
 import { useEffect } from "react";
 import { View } from "react-native";
+import { LoadingDots } from "@/components/LoadingDots";
 import { OnboardingChapterShell } from "@/components/onboarding/OnboardingChapterShell";
 import { brDateToIso } from "@/lib/masks";
 import { useOnboardingStore } from "@/lib/stores/onboardingStore";
@@ -87,15 +88,7 @@ export function CalculatingBlock({ onNext, chapter }: OnboardingBlockProps) {
   return (
     <OnboardingChapterShell chapter={chapter} title="Calculando suas metas..." showNav={false}>
       <View className="flex-1 items-center justify-center gap-3 py-12">
-        <View className="flex-row gap-2.5">
-          {[0, 1, 2].map((i) => (
-            <View
-              key={i}
-              className="h-3 w-3 rounded-full bg-primary-400"
-              style={{ opacity: 0.4 + i * 0.3 }}
-            />
-          ))}
-        </View>
+        <LoadingDots />
       </View>
     </OnboardingChapterShell>
   );
