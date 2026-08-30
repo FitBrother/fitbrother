@@ -1,7 +1,15 @@
+import { useEffect, useState } from "react";
 import { Pressable, Text, View } from "react-native";
+import Animated, {
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
 import { useRouter } from "expo-router";
 import { BarChart3, Home as HomeIcon, Rss } from "lucide-react-native";
 import { colors } from "@/lib/colors";
+import { Motion } from "@/lib/motion";
 import { shadows } from "@/lib/shadows";
 import { profileInitials } from "@/lib/account-utils";
 import { useAuthSession } from "@/lib/hooks/useAuthSession";
@@ -16,6 +24,18 @@ export const TABS: { key: HomeTab; label: string; Icon: typeof HomeIcon }[] = [
   { key: "feed", label: "Social", Icon: Rss },
   { key: "analises", label: "Análises", Icon: BarChart3 },
 ];
+
+/** Padding interno da barra de abas, em px (equivale ao `p-[3px]`). */
+const TAB_BAR_PADDING = 3;
+
+/**
+ * Largura de cada aba dentro da barra, descontado o padding das duas pontas.
+ * É o passo do indicador deslizante — o deslocamento da aba i é `i * slot`.
+ * Devolve 0 antes do primeiro onLayout, quando a largura ainda é desconhecida.
+ */
+export function tabSlotWidth(barWidth: number, count: number, padding: number): number {
+  return Math.max(0, (barWidth - padding * 2) / count);
+}
 
 export function greetingFor(date: Date): string {
   const h = date.getHours();
@@ -39,6 +59,31 @@ export function HomeHeader({
   const session = useAuthSession();
   const email = session.status === "signed_in" ? (session.session.user.email ?? null) : null;
   const initials = profileInitials(profile.full_name, email);
+
+  // Indicador deslizante da aba ativa. A largura da barra só é conhecida depois
+  // do layout, então o indicador só é renderizado a partir daí.
+  const [barWidth, setBarWidth] = useState(0);
+  const slot = tabSlotWidth(barWidth, TABS.length, TAB_BAR_PADDING);
+  const activeIndex = Math.max(
+    0,
+    TABS.findIndex((t) => t.key === activeTab),
+  );
+  const indicatorX = useSharedValue(0);
+  const reducedMotion = useReducedMotion();
+
+  useEffect(() => {
+    const destino = activeIndex * slot;
+    indicatorX.value = reducedMotion
+      ? destino
+      : withTiming(destino, {
+          duration: Motion.duration.base,
+          easing: Motion.easing.standard,
+        });
+  }, [activeIndex, slot, indicatorX, reducedMotion]);
+
+  const indicatorStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: indicatorX.value }],
+  }));
 
   return (
     <View className="gap-2 px-4 pt-2 pb-1 md:hidden">
@@ -76,7 +121,30 @@ export function HomeHeader({
         </Pressable>
       </View>
 
-      <View style={shadows.floating} className="flex-row rounded-full bg-white p-[3px]">
+      <View
+        onLayout={(e) => setBarWidth(e.nativeEvent.layout.width)}
+        style={shadows.floating}
+        className="flex-row rounded-full bg-white p-[3px]"
+      >
+        {/* Estilo inline: o NativeWind não processa className em componentes
+            do Reanimated. */}
+        {slot > 0 && (
+          <Animated.View
+            pointerEvents="none"
+            style={[
+              {
+                position: "absolute",
+                top: TAB_BAR_PADDING,
+                bottom: TAB_BAR_PADDING,
+                left: TAB_BAR_PADDING,
+                width: slot,
+                borderRadius: 9999,
+                backgroundColor: colors.primary[400],
+              },
+              indicatorStyle,
+            ]}
+          />
+        )}
         {TABS.map(({ key, label, Icon }) => {
           const active = key === activeTab;
           return (
@@ -86,9 +154,7 @@ export function HomeHeader({
               accessibilityRole="button"
               accessibilityLabel={label}
               accessibilityState={{ selected: active }}
-              className={`min-h-[44px] flex-1 flex-row items-center justify-center gap-1.5 rounded-full active:opacity-70 ${
-                active ? "bg-primary-400" : ""
-              }`}
+              className="min-h-[44px] flex-1 flex-row items-center justify-center gap-1.5 rounded-full active:opacity-70"
             >
               <Icon size={15} color={active ? colors.neutral[900] : colors.neutral[400]} />
               <Text

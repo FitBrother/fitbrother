@@ -20,7 +20,7 @@ jest.mock("@/lib/hooks/useAuthSession", () => ({
   }),
 }));
 
-import { HomeHeader, TABS } from "./HomeHeader";
+import { HomeHeader, tabSlotWidth, TABS } from "./HomeHeader";
 
 describe("abas da Home", () => {
   test("a aba social é rotulada 'Social'", () => {
@@ -29,6 +29,35 @@ describe("abas da Home", () => {
 
   test("a ordem das abas é home → feed → analises", () => {
     expect(TABS.map((t) => t.key)).toEqual(["home", "feed", "analises"]);
+  });
+});
+
+// O destaque da aba ativa era uma classe condicional, que troca de uma vez.
+// Com o conteúdo deslizando em 250ms, o salto da pílula ficava evidente —
+// agora ela é um indicador posicionado, e a largura do slot é o que define
+// para onde ele desliza.
+describe("tabSlotWidth", () => {
+  const PADDING = 3;
+
+  test("divide a largura útil entre as abas", () => {
+    // 300 de barra - 6 de padding = 294 úteis / 3 abas = 98
+    expect(tabSlotWidth(300, 3, PADDING)).toBeCloseTo(98);
+  });
+
+  test("desconta o padding das duas pontas", () => {
+    expect(tabSlotWidth(106, 2, PADDING)).toBeCloseTo(50);
+  });
+
+  test("não devolve valor negativo antes da medição do layout", () => {
+    expect(tabSlotWidth(0, 3, PADDING)).toBe(0);
+    expect(tabSlotWidth(4, 3, PADDING)).toBe(0);
+  });
+
+  test("o deslocamento da última aba mantém o indicador dentro da barra", () => {
+    const barra = 300;
+    const slot = tabSlotWidth(barra, 3, PADDING);
+    const deslocamentoFinal = slot * 2;
+    expect(deslocamentoFinal + slot).toBeLessThanOrEqual(barra - PADDING * 2);
   });
 });
 
