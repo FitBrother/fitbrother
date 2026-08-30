@@ -42,7 +42,9 @@ import { colors } from "@/lib/colors";
 import { uploadMealAudio, uploadMealPhoto } from "@/lib/storage";
 import type { AudioExtension } from "@/lib/audio/recorder";
 import { Card } from "@/components/Card";
-import { HomeHeader, greetingFor } from "@/components/domain/HomeHeader";
+import { AnalisesPanel } from "@/components/domain/AnalisesPanel";
+import { FeedTabContent } from "@/components/domain/FeedTabContent";
+import { HomeHeader, greetingFor, type HomeTab } from "@/components/domain/HomeHeader";
 import { MealCardSwipeable } from "@/components/domain/MealCardSwipeable";
 import { MealCardSkeleton } from "@/components/domain/MealCardSkeleton";
 import { MealComposer } from "@/components/domain/MealComposer";
@@ -74,6 +76,7 @@ export default function HomeScreen() {
   const deleteMeal = useDeleteMeal();
   const [banner, setBanner] = useState<ErrorBannerVariant | null>(null);
   const [disclaimerOpen, setDisclaimerOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<HomeTab>("home");
   const { width } = useWindowDimensions();
   const isDesktop = width >= 1024;
   const { data: streakView } = useStreak();
@@ -393,39 +396,45 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-neutral-50" edges={["top", "left", "right"]}>
-      <HomeHeader softMode={profile.soft_mode} />
+      <HomeHeader softMode={profile.soft_mode} activeTab={activeTab} onChangeTab={setActiveTab} />
       {banner && <ErrorBanner variant={banner} onDismiss={() => setBanner(null)} />}
-      {macroPanel}
-      {listHeader}
-      {mealsQuery.isLoading ? (
-        <Pressable className="flex-1" onPress={Keyboard.dismiss} />
-      ) : items.length === 0 ? (
-        <Pressable className="flex-1" onPress={Keyboard.dismiss}>
-          <Card variant="flat" className="mx-4">
-            <EmptyMealsState />
-          </Card>
-        </Pressable>
-      ) : (
-        <Animated.FlatList
-          data={items}
-          keyExtractor={(m) => (m as OptimisticMeal).id}
-          renderItem={renderItem as never}
-          contentContainerStyle={{ paddingBottom: 140 }}
-          keyboardDismissMode="on-drag"
-          keyboardShouldPersistTaps="handled"
-          itemLayoutAnimation={LinearTransition.springify().damping(20).stiffness(180)}
-          refreshControl={
-            <RefreshControl
-              refreshing={mealsQuery.isRefetching || summaryQuery.isRefetching}
-              onRefresh={() => {
-                void mealsQuery.refetch();
-                void summaryQuery.refetch();
-              }}
-              tintColor={colors.primary[400]}
+      {activeTab === "home" && (
+        <>
+          {macroPanel}
+          {listHeader}
+          {mealsQuery.isLoading ? (
+            <Pressable className="flex-1" onPress={Keyboard.dismiss} />
+          ) : items.length === 0 ? (
+            <Pressable className="flex-1" onPress={Keyboard.dismiss}>
+              <Card variant="flat" className="mx-4">
+                <EmptyMealsState />
+              </Card>
+            </Pressable>
+          ) : (
+            <Animated.FlatList
+              data={items}
+              keyExtractor={(m) => (m as OptimisticMeal).id}
+              renderItem={renderItem as never}
+              contentContainerStyle={{ paddingBottom: 140 }}
+              keyboardDismissMode="on-drag"
+              keyboardShouldPersistTaps="handled"
+              itemLayoutAnimation={LinearTransition.springify().damping(20).stiffness(180)}
+              refreshControl={
+                <RefreshControl
+                  refreshing={mealsQuery.isRefetching || summaryQuery.isRefetching}
+                  onRefresh={() => {
+                    void mealsQuery.refetch();
+                    void summaryQuery.refetch();
+                  }}
+                  tintColor={colors.primary[400]}
+                />
+              }
             />
-          }
-        />
+          )}
+        </>
       )}
+      {activeTab === "feed" && <FeedTabContent />}
+      {activeTab === "analises" && <AnalisesPanel />}
       {/* Composer sits over the list. We drive its position from
           useAnimatedKeyboard instead of KeyboardAvoidingView because absolute
           children inside KAV don't observe the padding it adds. */}
