@@ -104,9 +104,12 @@ export function SwipeableTabs({
 
   return (
     <GestureDetector gesture={pan}>
-      <Animated.View className="flex-1 flex-row" style={[{ width: width * count }, style]}>
+      {/* Layout vai em `style`, não em className: o NativeWind não processa
+          className em componentes do Reanimated — a classe cai na default do
+          RNW e o flex-row é perdido, empilhando as cenas verticalmente. */}
+      <Animated.View style={[{ flex: 1, flexDirection: "row", width: width * count }, style]}>
         {scenes.map((scene, i) => (
-          <View key={i} style={{ width }} className="flex-1">
+          <View key={i} style={{ width, flexShrink: 0 }}>
             {scene}
           </View>
         ))}

@@ -102,7 +102,7 @@ export default function HistoryScreen() {
             keyExtractor={(e) => e.day}
             renderItem={({ item, index }) => (
               <Animated.View
-                className="flex-1"
+                style={{ flex: 1 }}
                 entering={FadeInDown.duration(250).delay(Math.min(index, 9) * 40)}
               >
                 {item.type === "filled" ? (
