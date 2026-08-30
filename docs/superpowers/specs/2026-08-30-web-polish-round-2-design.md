@@ -71,22 +71,39 @@ hoje é instantânea (render condicional sem transição).
 `&&` condicional (linhas ~401, 436-437). Não há `ScrollView` horizontal, `PagerView` nem lib de
 tabs. `HomeHeader` dispara `onChangeTab(key)` no toque.
 
-**Dependência nova:** `react-native-tab-view` — decisão explícita do usuário durante o
-brainstorm, com o alinhamento que o `CLAUDE.md` exige para dependências de navegação. A lib tem
-pager próprio em JS e funciona em web sem exigir `react-native-pager-view` nativo. Peers
-(`reanimated`, `gesture-handler`) já estão instalados.
+**Decisão de dependência (revisada):** implementação própria com `react-native-gesture-handler`
++ `react-native-reanimated`, ambos já instalados. **Nenhuma dependência nova.**
+
+Durante o brainstorm foi cogitado `react-native-tab-view`, mas a verificação empírica do pacote
+mostrou um custo que não estava claro na hora da decisão:
+
+- Em **web**, o Metro resolve `Pager.js` → `PanResponderAdapter` (JS puro, não precisa de
+  `react-native-pager-view`).
+- Em **iOS/Android**, resolve `Pager.ios.js`/`Pager.android.js` → `PagerViewAdapter`, que importa
+  `react-native-pager-view` — um **módulo nativo**, ausente do projeto e sem arquivos web no
+  pacote publicado.
+
+Como o branch mobile-web de `index.tsx` é escolhido por **largura** (`width < 1024`) e não por
+plataforma, um celular real executa esse mesmo código. Adotar tab-view exigiria instalar o
+módulo nativo e rebuildar o dev client (`expo prebuild` / EAS) para não quebrar o app nativo.
+A implementação própria evita isso e funciona igual nas duas plataformas.
 
 **Mudança:**
 
-- `HomeHeader` continua sendo a barra de abas visível — nada muda visualmente nela. O `TabView`
-  é usado com `renderTabBar={() => null}`, delegando a UI de abas ao componente existente.
-- O conteúdo das três abas (`macroPanel`+lista, `FeedTabContent`, `AnalisesPanel`) passa a ser
-  as três cenas do `TabView`.
-- `activeTab` (state existente) permanece a fonte da verdade e fica sincronizado nos dois
-  sentidos: toque na aba do `HomeHeader` → muda o índice do `TabView`; swipe → atualiza
-  `activeTab`, mantendo o destaque visual correto na barra.
-- Aplicado somente no branch mobile-web de `index.tsx`. O branch `isDesktop` (retorno antecipado
-  no início do componente) não é tocado.
+- Novo componente `components/domain/SwipeableTabs.tsx`, genérico e isolado: recebe o índice
+  ativo, um callback de mudança e as cenas; cuida do `Pan` gesture horizontal e do `translateX`
+  animado. Não sabe nada sobre nutrição — é um primitivo de layout.
+- `HomeHeader` continua sendo a barra de abas visível — nada muda visualmente nela.
+- O conteúdo das três abas (`macroPanel`+lista, `FeedTabContent`, `AnalisesPanel`) vira as três
+  cenas do `SwipeableTabs`.
+- `activeTab` (state existente) permanece a fonte da verdade, sincronizado nos dois sentidos:
+  toque na aba → anima para o índice; swipe → atualiza `activeTab`, mantendo o destaque correto
+  na barra.
+- Regras de gesto: troca de aba ao ultrapassar 1/3 da largura da tela **ou** com velocidade
+  suficiente (fling); caso contrário volta com spring para a aba atual. Sem wrap-around — swipe
+  além das bordas (antes de Home, depois de Análises) resiste e volta.
+- `activeOffsetX` no `Pan` para não sequestrar scroll vertical das listas.
+- Aplicado somente no branch mobile-web de `index.tsx`. O branch `isDesktop` não é tocado.
 
 ---
 
