@@ -60,7 +60,7 @@ enable_confirmations = false
 # Templates → Change Email Address) — config.toml só vale pro Supabase
 # local, não sincroniza sozinho com o projeto hospedado.
 [auth.email.template.email_change]
-subject = "Confirme seu e-mail para ativar sua conta no Fitbrother"
+subject = "🎉 Confirme seu e-mail e ative sua conta no Fitbrother"
 content_path = "./supabase/templates/email_change.html"
 
 [auth.sms]
