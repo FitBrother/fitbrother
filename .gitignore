@@ -10,6 +10,7 @@ build/
 
 # AWS SAM (apps/server → Lambda)
 .aws-sam/
+.sam-src/
 samconfig.toml
 
 # Env

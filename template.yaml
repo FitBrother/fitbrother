@@ -1,3 +1,11 @@
+# CodeUri (abaixo, em cada função) aponta pra .sam-src/ — um diretório
+# mínimo gerado por scripts/sam-stage.sh (rodar `npm run sam:stage` antes de
+# `sam build`/`sam deploy`), não pra raiz do repo. O CustomMakeBuilder do SAM
+# copia o CodeUri inteiro pra um diretório isolado antes de rodar o
+# Makefile, sem nenhum filtro configurável (.samignore não é lido por este
+# builder — a exclusão é fixa, só .aws-sam/.git). Copiar a raiz do monorepo
+# (node_modules + apps/mobile/ios ≈ 4-5GB) fazia essa cópia sozinha dominar
+# o tempo de build; copiar só .sam-src/ (poucos MB) resolve isso.
 AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
 Description: >
@@ -80,7 +88,7 @@ Resources:
     Metadata:
       BuildMethod: makefile
     Properties:
-      CodeUri: ./
+      CodeUri: .sam-src/
       Handler: apps/server/dist/lambda/http.handler
       # A cadeia Whisper → LLM em POST /meals/audio é a rota mais longa.
       Timeout: 120
@@ -92,7 +100,7 @@ Resources:
     Metadata:
       BuildMethod: makefile
     Properties:
-      CodeUri: ./
+      CodeUri: .sam-src/
       Handler: apps/server/dist/lambda/jobs/streak-tick.handler
       Events:
         Schedule:
@@ -105,7 +113,7 @@ Resources:
     Metadata:
       BuildMethod: makefile
     Properties:
-      CodeUri: ./
+      CodeUri: .sam-src/
       Handler: apps/server/dist/lambda/jobs/streak-alert.handler
       Events:
         Schedule:
@@ -118,7 +126,7 @@ Resources:
     Metadata:
       BuildMethod: makefile
     Properties:
-      CodeUri: ./
+      CodeUri: .sam-src/
       Handler: apps/server/dist/lambda/jobs/goal-reminder.handler
       Events:
         Schedule:
@@ -131,7 +139,7 @@ Resources:
     Metadata:
       BuildMethod: makefile
     Properties:
-      CodeUri: ./
+      CodeUri: .sam-src/
       Handler: apps/server/dist/lambda/jobs/dispatch-notification.handler
       Events:
         Schedule:
@@ -144,7 +152,7 @@ Resources:
     Metadata:
       BuildMethod: makefile
     Properties:
-      CodeUri: ./
+      CodeUri: .sam-src/
       Handler: apps/server/dist/lambda/jobs/insights.handler
       Events:
         Day:
@@ -168,7 +176,7 @@ Resources:
     Metadata:
       BuildMethod: makefile
     Properties:
-      CodeUri: ./
+      CodeUri: .sam-src/
       Handler: apps/server/dist/lambda/jobs/metrics-daily.handler
       Events:
         Schedule:
@@ -181,7 +189,7 @@ Resources:
     Metadata:
       BuildMethod: makefile
     Properties:
-      CodeUri: ./
+      CodeUri: .sam-src/
       Handler: apps/server/dist/lambda/jobs/purge-accounts.handler
       Events:
         Schedule:
@@ -194,7 +202,7 @@ Resources:
     Metadata:
       BuildMethod: makefile
     Properties:
-      CodeUri: ./
+      CodeUri: .sam-src/
       Handler: apps/server/dist/lambda/jobs/purge-audios.handler
       Events:
         Schedule:

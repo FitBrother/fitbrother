@@ -10,6 +10,7 @@
     "dev:mobile": "npm run dev --workspace apps/mobile",
     "dev:server": "npm run dev --workspace apps/server",
     "build:server": "npm run build --workspace packages/shared && npm run build --workspace apps/server",
+    "sam:stage": "./scripts/sam-stage.sh",
     "db:start": "supabase start",
     "db:stop": "supabase stop",
     "db:reset": "supabase db reset",
