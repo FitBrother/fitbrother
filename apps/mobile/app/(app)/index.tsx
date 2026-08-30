@@ -44,7 +44,8 @@ import type { AudioExtension } from "@/lib/audio/recorder";
 import { Card } from "@/components/Card";
 import { AnalisesPanel } from "@/components/domain/AnalisesPanel";
 import { FeedTabContent } from "@/components/domain/FeedTabContent";
-import { HomeHeader, greetingFor, type HomeTab } from "@/components/domain/HomeHeader";
+import { HomeHeader, greetingFor, TABS, type HomeTab } from "@/components/domain/HomeHeader";
+import { SwipeableTabs } from "@/components/domain/SwipeableTabs";
 import { MealCardSwipeable } from "@/components/domain/MealCardSwipeable";
 import { MealCardSkeleton } from "@/components/domain/MealCardSkeleton";
 import { MealComposer } from "@/components/domain/MealComposer";
@@ -398,7 +399,10 @@ export default function HomeScreen() {
     <SafeAreaView className="flex-1 bg-neutral-50" edges={["top", "left", "right"]}>
       <HomeHeader softMode={profile.soft_mode} activeTab={activeTab} onChangeTab={setActiveTab} />
       {banner && <ErrorBanner variant={banner} onDismiss={() => setBanner(null)} />}
-      {activeTab === "home" && (
+      <SwipeableTabs
+        index={TABS.findIndex((t) => t.key === activeTab)}
+        onIndexChange={(i) => setActiveTab(TABS[i]!.key)}
+      >
         <>
           {macroPanel}
           {listHeader}
@@ -432,9 +436,9 @@ export default function HomeScreen() {
             />
           )}
         </>
-      )}
-      {activeTab === "feed" && <FeedTabContent />}
-      {activeTab === "analises" && <AnalisesPanel />}
+        <FeedTabContent />
+        <AnalisesPanel />
+      </SwipeableTabs>
       {/* Composer sits over the list. We drive its position from
           useAnimatedKeyboard instead of KeyboardAvoidingView because absolute
           children inside KAV don't observe the padding it adds. */}
