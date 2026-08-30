@@ -56,6 +56,16 @@ Parameters:
     Type: String
     Description: Origens do PWA web liberadas pra chamar a API (separadas por vírgula).
     Default: "https://www.fitbrother.app,https://fitbrother.app"
+  ResendApiKey:
+    Type: String
+    NoEcho: true
+    Default: ""
+  EmailFrom:
+    Type: String
+    Default: "Fitbrother <onboarding@fitbrother.app>"
+  AppUrl:
+    Type: String
+    Default: "https://www.fitbrother.app"
 
 Globals:
   Function:
@@ -81,6 +91,9 @@ Globals:
         LLM_PROVIDER: gemini
         SENTRY_DSN: !Ref SentryDsn
         CORS_ORIGIN: !Ref CorsOrigin
+        RESEND_API_KEY: !Ref ResendApiKey
+        EMAIL_FROM: !Ref EmailFrom
+        APP_URL: !Ref AppUrl
 
 Resources:
   ApiFunction:
@@ -209,6 +222,32 @@ Resources:
           Type: Schedule
           Properties:
             Schedule: cron(30 3 * * ? *)
+
+  OnboardingReminderFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      CodeUri: .sam-src/
+      Handler: apps/server/dist/lambda/jobs/onboarding-reminder.handler
+      Events:
+        Schedule:
+          Type: Schedule
+          Properties:
+            Schedule: cron(0 * * * ? *)
+
+  PurgeAbandonedSignupsFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      CodeUri: .sam-src/
+      Handler: apps/server/dist/lambda/jobs/purge-abandoned-signups.handler
+      Events:
+        Schedule:
+          Type: Schedule
+          Properties:
+            Schedule: cron(45 3 * * ? *)
 
 Outputs:
   ApiFunctionUrl:

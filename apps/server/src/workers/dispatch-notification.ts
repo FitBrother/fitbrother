@@ -1,6 +1,6 @@
 import type { FastifyBaseLogger } from "fastify";
 import type PgBoss from "pg-boss";
-import { dispatchPendingPush } from "../services/notifications.js";
+import { dispatchPendingEmail, dispatchPendingPush } from "../services/notifications.js";
 
 export const DISPATCH_QUEUE = "dispatch-notification";
 
@@ -20,6 +20,7 @@ export async function registerDispatchNotification(
 
   await boss.work(DISPATCH_QUEUE, async () => {
     await dispatchPendingPush(log);
+    await dispatchPendingEmail(log);
   });
 
   await boss.schedule(DISPATCH_QUEUE, "* * * * *", undefined, { tz: "UTC" });

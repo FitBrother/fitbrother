@@ -1,11 +1,10 @@
 import * as SentryServerless from "@sentry/aws-serverless";
 import { initSentry } from "../../lib/sentry.js";
-import { dispatchPendingEmail, dispatchPendingPush } from "../../services/notifications.js";
+import { runOnboardingReminder } from "../../workers/onboarding-reminder.js";
 import { logger } from "../logger.js";
 
 initSentry();
 
 export const handler = SentryServerless.wrapHandler(async () => {
-  await dispatchPendingPush(logger);
-  await dispatchPendingEmail(logger);
+  await runOnboardingReminder(logger);
 });

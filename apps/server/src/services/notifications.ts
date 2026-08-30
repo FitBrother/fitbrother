@@ -1,7 +1,9 @@
 import type { FastifyBaseLogger } from "fastify";
+import { env } from "../lib/env.js";
 import { supabaseService } from "../lib/supabase.js";
 
 const EXPO_PUSH_URL = "https://exp.host/--/api/v2/push/send";
+const RESEND_API_URL = "https://api.resend.com/emails";
 const BATCH = 100;
 
 type PendingNotification = {
@@ -135,5 +137,94 @@ export async function dispatchPendingPush(log: FastifyBaseLogger): Promise<numbe
   }
 
   log.info({ processed: pending.length, sent }, "dispatch_done");
+  return pending.length;
+}
+
+type PendingEmailNotification = PendingNotification & { payload: { email?: string } };
+
+/** Keyed on `kind` — só onboarding_reminder por enquanto (M17). */
+function renderEmail(
+  n: PendingEmailNotification,
+): { subject: string; html: string; text: string } | null {
+  switch (n.kind) {
+    case "onboarding_reminder":
+      return {
+        subject: "Falta pouco pra terminar seu cadastro no Fitbrother",
+        text: `Você começou a criar sua conta no Fitbrother mas não terminou o cadastro. Acesse ${env.APP_URL} pra continuar de onde parou.`,
+        html: `<p>Você começou a criar sua conta no Fitbrother mas não terminou o cadastro.</p><p><a href="${env.APP_URL}">Continue de onde parou</a>.</p>`,
+      };
+    default:
+      return null;
+  }
+}
+
+async function sendEmail(
+  to: string,
+  subject: string,
+  html: string,
+  text: string,
+): Promise<boolean> {
+  // Sem chave configurada (dev local) — no-op silencioso, não é um erro.
+  if (!env.RESEND_API_KEY) return false;
+  const res = await fetch(RESEND_API_URL, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${env.RESEND_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ from: env.EMAIL_FROM, to: [to], subject, html, text }),
+  });
+  return res.ok;
+}
+
+/**
+ * Drain the email outbox: send every pending `channel='email'` notification
+ * via Resend and stamp `sent_at`. Mesmo padrão de dispatchPendingPush, canal
+ * separado.
+ */
+export async function dispatchPendingEmail(log: FastifyBaseLogger): Promise<number> {
+  const supabase = supabaseService();
+
+  const { data: pending, error } = await supabase
+    .from("notifications")
+    .select("id, user_id, kind, template, payload")
+    .eq("channel", "email")
+    .is("sent_at", null)
+    .order("created_at", { ascending: true })
+    .limit(BATCH);
+
+  if (error) {
+    log.error({ err: error }, "dispatch_email_query_failed");
+    throw new Error(error.message);
+  }
+  if (!pending || pending.length === 0) return 0;
+
+  let sent = 0;
+  for (const n of pending as PendingEmailNotification[]) {
+    const stamp: { sent_at: string; error: string | null } = {
+      sent_at: new Date().toISOString(),
+      error: null,
+    };
+
+    const to = n.payload.email;
+    const rendered = to ? renderEmail(n) : null;
+
+    if (!to || !rendered) {
+      stamp.error = "missing_email_or_template";
+    } else {
+      try {
+        const ok = await sendEmail(to, rendered.subject, rendered.html, rendered.text);
+        if (ok) sent += 1;
+        else stamp.error = "email_send_failed";
+      } catch (err) {
+        stamp.error = err instanceof Error ? err.message : "email_send_failed";
+        log.error({ err, notificationId: n.id }, "email_send_failed");
+      }
+    }
+
+    await supabase.from("notifications").update(stamp).eq("id", n.id);
+  }
+
+  log.info({ processed: pending.length, sent }, "dispatch_email_done");
   return pending.length;
 }

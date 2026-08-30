@@ -4,9 +4,11 @@ import { startJobs, stopJobs } from "./lib/jobs.js";
 import { initSentry } from "./lib/sentry.js";
 import { registerDispatchNotification } from "./workers/dispatch-notification.js";
 import { registerGoalReminder } from "./workers/goal-reminder.js";
+import { registerOnboardingReminder } from "./workers/onboarding-reminder.js";
 import { registerStreakAlert } from "./workers/streak-alert.js";
 import { registerStreakTick } from "./workers/streak-tick.js";
 import { registerInsightWorkers } from "./workers/insights.js";
+import { registerPurgeAbandonedSignups } from "./workers/purge-abandoned-signups.js";
 import { registerPurgeAccounts } from "./workers/purge-accounts.js";
 import { registerPurgeAudios } from "./workers/purge-audios.js";
 import { registerMetricsDaily } from "./workers/metrics-daily.js";
@@ -37,6 +39,8 @@ if (boss) {
   await registerPurgeAccounts(boss, app.log);
   await registerPurgeAudios(boss, app.log);
   await registerMetricsDaily(boss, app.log);
+  await registerOnboardingReminder(boss, app.log);
+  await registerPurgeAbandonedSignups(boss, app.log);
 }
 
 for (const signal of ["SIGTERM", "SIGINT"] as const) {

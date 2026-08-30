@@ -28,7 +28,8 @@
 build-ApiFunction build-StreakTickFunction build-StreakAlertFunction \
 build-GoalReminderFunction build-DispatchNotificationFunction \
 build-InsightsFunction build-MetricsDailyFunction build-PurgeAccountsFunction \
-build-PurgeAudiosFunction:
+build-PurgeAudiosFunction build-OnboardingReminderFunction \
+build-PurgeAbandonedSignupsFunction:
 	npm ci -w apps/server -w packages/shared -w packages/db-types --prefer-offline --no-audit --no-fund --ignore-scripts
 	npm run build --workspace packages/shared
 	npm run build --workspace apps/server

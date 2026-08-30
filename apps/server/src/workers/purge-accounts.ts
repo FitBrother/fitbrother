@@ -1,5 +1,6 @@
 import type { FastifyBaseLogger } from "fastify";
 import type PgBoss from "pg-boss";
+import { deleteAuthUserAndAudit, removeUserStorage } from "../lib/account-purge.js";
 import { Sentry } from "../lib/sentry.js";
 import { supabaseService } from "../lib/supabase.js";
 
@@ -76,40 +77,10 @@ async function purgeAccount(row: AccountDeletionRow, log: FastifyBaseLogger): Pr
   await removeUserStorage("meal-audios", userId);
   await removeUserStorage("post-images", userId);
 
-  await admin.from("account_audit_log").insert({
-    user_id: userId,
-    action: "account_purge",
-    status: "started",
-    metadata: { scheduled_purge_at: row.scheduled_purge_at },
-  });
-
-  const { error } = await admin.auth.admin.deleteUser(userId);
-  if (error) {
-    await admin.from("account_audit_log").insert({
-      user_id: userId,
-      action: "account_purge",
-      status: "failed",
-      metadata: { error: error.message },
-    });
-    log.error({ err: error, user_id: userId }, "purge_account_delete_user_failed");
-    throw new Error(error.message);
-  }
-
-  log.info({ user_id: userId }, "purge_account_done");
-}
-
-async function removeUserStorage(bucket: string, userId: string): Promise<void> {
-  const storage = supabaseService().storage.from(bucket);
-  let hasObjects = true;
-  while (hasObjects) {
-    const { data, error } = await storage.list(userId, { limit: 1000, offset: 0 });
-    if (error) throw new Error(`${bucket}: ${error.message}`);
-    const paths = (data ?? []).map((object) => `${userId}/${object.name}`);
-    if (paths.length === 0) {
-      hasObjects = false;
-      continue;
-    }
-    const { error: removeError } = await storage.remove(paths);
-    if (removeError) throw new Error(`${bucket}: ${removeError.message}`);
-  }
+  await deleteAuthUserAndAudit(
+    userId,
+    "account_purge",
+    { scheduled_purge_at: row.scheduled_purge_at },
+    log,
+  );
 }
