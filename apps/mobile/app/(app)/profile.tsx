@@ -27,6 +27,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { EmailConfirmationBanner } from "@/components/domain/EmailConfirmationBanner";
 import { InstallPrompt } from "@/components/domain/InstallPrompt";
 import { patchAccountAvatar } from "@/lib/api/account";
 import { profileInitials } from "@/lib/account-utils";
@@ -153,6 +154,7 @@ export default function ProfileScreen() {
         <Text className="ml-2 font-display-bold text-xl text-neutral-900">Perfil</Text>
       </View>
       <ScrollView contentContainerClassName="gap-6 px-5 pb-10 pt-3">
+        <EmailConfirmationBanner />
         <View className="items-center">
           <Pressable
             onPress={() => setAvatarModal("actions")}

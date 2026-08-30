@@ -51,6 +51,18 @@ enable_signup = true
 double_confirm_changes = true
 enable_confirmations = false
 
+# Contas começam anônimas (signInAnonymously) e "viram reais" via
+# updateUser(email, senha) — o Supabase trata isso como troca de e-mail, não
+# cadastro, e usa este template por padrão ("Confirm Change of Email",
+# mencionando e-mail antigo/novo — que não existe numa conta que começou
+# anônima). Reescrito pra soar como ativação de conta. Espelha o mesmo texto
+# configurado em produção via Dashboard (Authentication → Emails →
+# Templates → Change Email Address) — config.toml só vale pro Supabase
+# local, não sincroniza sozinho com o projeto hospedado.
+[auth.email.template.email_change]
+subject = "Confirme seu e-mail para ativar sua conta no Fitbrother"
+content_path = "./supabase/templates/email_change.html"
+
 [auth.sms]
 enable_signup = false
 enable_confirmations = true
