@@ -44,6 +44,10 @@ Parameters:
   SentryDsn:
     Type: String
     Default: ""
+  CorsOrigin:
+    Type: String
+    Description: Origens do PWA web liberadas pra chamar a API (separadas por vírgula).
+    Default: "https://www.fitbrother.app,https://fitbrother.app"
 
 Globals:
   Function:
@@ -68,6 +72,7 @@ Globals:
         OPENAI_API_KEY: !Ref OpenaiApiKey
         LLM_PROVIDER: gemini
         SENTRY_DSN: !Ref SentryDsn
+        CORS_ORIGIN: !Ref CorsOrigin
 
 Resources:
   ApiFunction:
