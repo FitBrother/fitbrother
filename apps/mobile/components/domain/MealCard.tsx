@@ -62,7 +62,7 @@ export function MealCard({ meal, onPress }: Props) {
       accessibilityLabel={`Refeição ${MEAL_TYPE_LABEL[meal.meal_type]}, ${Math.round(meal.total_kcal)} kcal, ${meal.items.length} ${meal.items.length === 1 ? "item" : "itens"}`}
       style={shadows.card}
       className={[
-        "rounded-2xl bg-white p-4",
+        "rounded-2xl bg-white p-4 active:opacity-70",
         isReview ? "border-[1.5px] border-warning-500" : "",
       ].join(" ")}
     >

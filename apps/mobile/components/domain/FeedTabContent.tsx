@@ -20,7 +20,7 @@ export function FeedTabContent() {
           accessibilityRole="button"
           accessibilityLabel="Feed"
           accessibilityState={{ selected: subTab === "posts" }}
-          className={`min-h-[44px] flex-1 items-center justify-center rounded-full ${subTab === "posts" ? "bg-white" : ""}`}
+          className={`min-h-[44px] flex-1 items-center justify-center rounded-full active:opacity-70 ${subTab === "posts" ? "bg-white" : ""}`}
         >
           <Text
             className={
@@ -37,7 +37,7 @@ export function FeedTabContent() {
           accessibilityRole="button"
           accessibilityLabel="Amigos"
           accessibilityState={{ selected: subTab === "friends" }}
-          className={`min-h-[44px] flex-1 items-center justify-center rounded-full ${subTab === "friends" ? "bg-white" : ""}`}
+          className={`min-h-[44px] flex-1 items-center justify-center rounded-full active:opacity-70 ${subTab === "friends" ? "bg-white" : ""}`}
         >
           <Text
             className={

@@ -55,7 +55,7 @@ function GuardedStack() {
     <View className="flex-1 md:flex-row">
       <Sidebar />
       <View className="flex-1">
-        <Stack screenOptions={{ headerShown: false }}>
+        <Stack screenOptions={{ headerShown: false, animation: "fade" }}>
           <Stack.Screen name="meal/[id]/edit" options={{ presentation: "modal" }} />
           <Stack.Screen
             name="history/[day]/new"

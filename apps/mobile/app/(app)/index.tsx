@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import Animated, {
   Easing,
+  FadeInDown,
   LinearTransition,
   useAnimatedStyle,
   useSharedValue,
@@ -247,17 +248,19 @@ export default function HomeScreen() {
 
   const renderItem = useMemo(
     () =>
-      function MealListItem({ item }: { item: OptimisticMeal }) {
+      function MealListItem({ item, index }: { item: OptimisticMeal; index: number }) {
         if (item.__status === "processing") return <MealCardSkeleton />;
         return (
-          <MealCardSwipeable
-            meal={item}
-            onPress={() =>
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              router.push({ pathname: "/(app)/meal/[id]" as any, params: { id: item.id } })
-            }
-            onDelete={() => handleDelete(item.id)}
-          />
+          <Animated.View entering={FadeInDown.duration(250).delay(Math.min(index, 9) * 40)}>
+            <MealCardSwipeable
+              meal={item}
+              onPress={() =>
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                router.push({ pathname: "/(app)/meal/[id]" as any, params: { id: item.id } })
+              }
+              onDelete={() => handleDelete(item.id)}
+            />
+          </Animated.View>
         );
       },
     // `handleDelete` captures `day`; including it ensures renderItem is

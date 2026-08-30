@@ -86,7 +86,7 @@ export function HomeHeader({
               accessibilityRole="button"
               accessibilityLabel={label}
               accessibilityState={{ selected: active }}
-              className={`min-h-[44px] flex-1 flex-row items-center justify-center gap-1.5 rounded-full ${
+              className={`min-h-[44px] flex-1 flex-row items-center justify-center gap-1.5 rounded-full active:opacity-70 ${
                 active ? "bg-primary-400" : ""
               }`}
             >

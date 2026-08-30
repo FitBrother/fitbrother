@@ -7,6 +7,7 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
+import Animated, { FadeInDown } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ChevronLeft } from "lucide-react-native";
 import { useRouter } from "expo-router";
@@ -99,14 +100,17 @@ export default function HistoryScreen() {
             data={entries}
             numColumns={numColumns}
             keyExtractor={(e) => e.day}
-            renderItem={({ item }) => (
-              <View className="flex-1">
+            renderItem={({ item, index }) => (
+              <Animated.View
+                className="flex-1"
+                entering={FadeInDown.duration(250).delay(Math.min(index, 9) * 40)}
+              >
                 {item.type === "filled" ? (
                   <HistoryDayCard summary={item.summary} softMode={profile.soft_mode} />
                 ) : (
                   <HistoryEmptyDayCard day={item.day} />
                 )}
-              </View>
+              </Animated.View>
             )}
             contentContainerStyle={{ paddingBottom: 24 }}
             onEndReached={() => {
