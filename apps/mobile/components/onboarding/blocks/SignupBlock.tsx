@@ -1,5 +1,7 @@
+import { router } from "expo-router";
 import { useRef, useState } from "react";
 import { type TextInput, Text, View } from "react-native";
+import { Button } from "@/components/Button";
 import { Input } from "@/components/Input";
 import { OnboardingChapterShell } from "@/components/onboarding/OnboardingChapterShell";
 import { PasswordInput, passwordStrength } from "@/components/PasswordInput";
@@ -16,6 +18,7 @@ export function SignupBlock({ onNext, onBack, chapter }: OnboardingBlockProps) {
   const [emailTouched, setEmailTouched] = useState(false);
   const [confirmTouched, setConfirmTouched] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [emailExists, setEmailExists] = useState(false);
   const [loading, setLoading] = useState(false);
   const passwordRef = useRef<TextInput>(null);
   const confirmPasswordRef = useRef<TextInput>(null);
@@ -30,12 +33,28 @@ export function SignupBlock({ onNext, onBack, chapter }: OnboardingBlockProps) {
     if (!canSubmit) return;
     setLoading(true);
     setError(null);
+    setEmailExists(false);
     try {
       const { error } = await supabase.auth.updateUser({
         email: normalizedEmail,
         password,
       });
       if (error) {
+        // A sessão anônima já ficou com esse e-mail/senha numa tentativa
+        // anterior (app fechado no meio do onboarding, retomado depois no
+        // mesmo passo) — não é um erro de verdade, só segue o fluxo.
+        if (error.code === "same_password") {
+          onNext();
+          return;
+        }
+        // Esse e-mail já é de outra conta (ou virou conta de verdade numa
+        // tentativa anterior) — orienta a fazer login em vez de mostrar o
+        // erro técnico do Supabase.
+        if (error.code === "email_exists") {
+          setEmailExists(true);
+          setError("Esse e-mail já tem uma conta cadastrada.");
+          return;
+        }
         setError(error.message);
         return;
       }
@@ -107,8 +126,16 @@ export function SignupBlock({ onNext, onBack, chapter }: OnboardingBlockProps) {
           }
         />
         {error && (
-          <View className="rounded-xl border border-danger-600 bg-danger-50 p-3">
+          <View className="gap-2 rounded-xl border border-danger-600 bg-danger-50 p-3">
             <Text className="text-sm font-sans text-danger-600">{error}</Text>
+            {emailExists && (
+              <Button
+                label="Fazer login"
+                variant="ghost"
+                size="sm"
+                onPress={() => router.push("/(auth)/sign-in")}
+              />
+            )}
           </View>
         )}
       </View>
