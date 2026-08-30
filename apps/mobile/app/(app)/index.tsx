@@ -370,7 +370,7 @@ export default function HomeScreen() {
   );
 
   const macroPanel = (
-    <View className="gap-2 px-4 pb-2">
+    <View className="gap-2 px-4 pb-2 pt-3">
       <Card variant="elevated" className="relative">
         <TodaySummaryHeader summary={summaryQuery.data} softMode={profile.soft_mode} />
         <Pressable

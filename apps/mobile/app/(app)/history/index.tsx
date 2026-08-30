@@ -16,8 +16,11 @@ import { backOrHome } from "@/lib/navigation";
 import { useProfile } from "@/lib/profile/profile-context";
 import { nutritionalDay, nutritionalToday } from "@/lib/time/nutritional-day";
 import { colors } from "@/lib/colors";
+import { shadows } from "@/lib/shadows";
+import { useStreak } from "@/lib/hooks/useStreak";
 import { HistoryDayCard } from "@/components/domain/HistoryDayCard";
 import { HistoryEmptyDayCard } from "@/components/domain/HistoryEmptyDayCard";
+import { StreakCounter } from "@/components/domain/StreakCounter";
 
 type DayEntry =
   | { type: "filled"; day: string; summary: DailySummary }
@@ -51,6 +54,7 @@ export default function HistoryScreen() {
   // além disso — sem cards motivacionais infinitos antes do signup.
   const cutoff = nutritionalDay(new Date(profile.created_at), profile);
   const query = useDailySummaries(today, cutoff);
+  const { data: streakView } = useStreak();
   const { width } = useWindowDimensions();
   const numColumns = width >= 1280 ? 3 : width >= 768 ? 2 : 1;
 
@@ -74,6 +78,15 @@ export default function HistoryScreen() {
           <ChevronLeft size={24} color={colors.neutral[800]} />
         </Pressable>
         <Text className="ml-2 flex-1 text-xl font-display-bold text-neutral-800">Histórico</Text>
+        {!profile.soft_mode && streakView && (
+          <View style={shadows.floating} className="rounded-full bg-white px-2">
+            <StreakCounter
+              current={streakView.streak.current_streak}
+              atRisk={streakView.atRisk}
+              size={20}
+            />
+          </View>
+        )}
       </View>
       {query.isLoading ? (
         <View className="flex-1 items-center justify-center">

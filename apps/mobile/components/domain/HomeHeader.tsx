@@ -44,13 +44,19 @@ export function HomeHeader({
     <View className="gap-2 px-4 pt-2 pb-1 md:hidden">
       <View className="flex-row items-center justify-between">
         {!softMode && streakView ? (
-          <View style={shadows.floating} className="rounded-full bg-white px-2">
+          <Pressable
+            onPress={() => router.push("/(app)/history" as never)}
+            accessibilityRole="button"
+            accessibilityLabel="Ver histórico de ofensivas"
+            style={shadows.floating}
+            className="rounded-full bg-white px-2 active:opacity-70"
+          >
             <StreakCounter
               current={streakView.streak.current_streak}
               atRisk={streakView.atRisk}
               size={20}
             />
-          </View>
+          </Pressable>
         ) : (
           <View />
         )}
@@ -63,9 +69,9 @@ export function HomeHeader({
         >
           <View
             style={shadows.floating}
-            className="h-9 w-9 items-center justify-center rounded-full bg-primary-100"
+            className="h-11 w-11 items-center justify-center rounded-full bg-primary-100"
           >
-            <Text className="font-sans-bold text-xs text-primary-800">{initials}</Text>
+            <Text className="font-sans-bold text-sm text-primary-800">{initials}</Text>
           </View>
         </Pressable>
       </View>
