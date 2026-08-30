@@ -1,6 +1,7 @@
 import { router } from "expo-router";
 import { useEffect } from "react";
 import { ActivityIndicator, View } from "react-native";
+import { colors } from "@/lib/colors";
 import { getOnboardingProgress } from "@/lib/api";
 import { ONBOARDING_BLOCKS } from "@/lib/onboarding/blocks";
 import { useOnboardingStore } from "@/lib/stores/onboardingStore";
@@ -20,7 +21,7 @@ export default function OnboardingGate() {
 
   return (
     <View className="flex-1 items-center justify-center bg-neutral-50">
-      <ActivityIndicator size="large" />
+      <ActivityIndicator size="large" color={colors.primary[400]} />
     </View>
   );
 }
