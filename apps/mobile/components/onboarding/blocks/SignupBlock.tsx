@@ -1,10 +1,13 @@
 import { router } from "expo-router";
-import { useRef, useState } from "react";
-import { type TextInput, Text, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { ActivityIndicator, type TextInput, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Button } from "@/components/Button";
 import { Input } from "@/components/Input";
 import { OnboardingChapterShell } from "@/components/onboarding/OnboardingChapterShell";
 import { PasswordInput, passwordStrength } from "@/components/PasswordInput";
+import { colors } from "@/lib/colors";
+import { useAuthSession } from "@/lib/hooks/useAuthSession";
 import { supabase } from "@/lib/supabase";
 import type { OnboardingBlockProps } from "@/lib/onboarding/types";
 
@@ -12,6 +15,20 @@ import type { OnboardingBlockProps } from "@/lib/onboarding/types";
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export function SignupBlock({ onNext, onBack, chapter }: OnboardingBlockProps) {
+  // E-mail/senha nunca ficam salvos no progresso do onboarding (por segurança),
+  // então retomar esse bloco depois de fechar o app sempre volta com os campos
+  // em branco — mesmo que a sessão anônima já tenha sido promovida a conta
+  // real numa tentativa anterior (updateUser aplicado, app fechado antes de
+  // avançar). Detecta esse caso e pula a etapa em vez de pedir e-mail/senha
+  // de novo pra uma conta que já existe.
+  const authSession = useAuthSession();
+  const alreadyUpgraded =
+    authSession.status === "signed_in" && authSession.session.user.is_anonymous === false;
+
+  useEffect(() => {
+    if (alreadyUpgraded) onNext();
+  }, [alreadyUpgraded, onNext]);
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -64,6 +81,14 @@ export function SignupBlock({ onNext, onBack, chapter }: OnboardingBlockProps) {
     } finally {
       setLoading(false);
     }
+  }
+
+  if (authSession.status === "loading" || alreadyUpgraded) {
+    return (
+      <SafeAreaView className="flex-1 items-center justify-center bg-neutral-50">
+        <ActivityIndicator size="large" color={colors.primary[400]} />
+      </SafeAreaView>
+    );
   }
 
   return (
