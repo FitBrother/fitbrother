@@ -11,9 +11,9 @@ import { StreakCounter } from "@/components/domain/StreakCounter";
 
 export type HomeTab = "home" | "feed" | "analises";
 
-const TABS: { key: HomeTab; label: string; Icon: typeof HomeIcon }[] = [
+export const TABS: { key: HomeTab; label: string; Icon: typeof HomeIcon }[] = [
   { key: "home", label: "Home", Icon: HomeIcon },
-  { key: "feed", label: "Feed", Icon: Rss },
+  { key: "feed", label: "Social", Icon: Rss },
   { key: "analises", label: "Análises", Icon: BarChart3 },
 ];
 

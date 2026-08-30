@@ -6,8 +6,8 @@ import { FriendsPanel } from "@/components/domain/FriendsPanel";
 type FeedSubTab = "posts" | "friends";
 
 /**
- * Aba "Feed" da Home no mobile — Amigos deixou de ser destino de navegação
- * principal e virou sub-aba aqui dentro, ao lado de Publicações.
+ * Aba "Social" da Home no mobile — Amigos deixou de ser destino de navegação
+ * principal e virou sub-aba aqui dentro, ao lado do Feed.
  */
 export function FeedTabContent() {
   const [subTab, setSubTab] = useState<FeedSubTab>("posts");
@@ -18,7 +18,7 @@ export function FeedTabContent() {
         <Pressable
           onPress={() => setSubTab("posts")}
           accessibilityRole="button"
-          accessibilityLabel="Publicações"
+          accessibilityLabel="Feed"
           accessibilityState={{ selected: subTab === "posts" }}
           className={`min-h-[44px] flex-1 items-center justify-center rounded-full ${subTab === "posts" ? "bg-white" : ""}`}
         >
@@ -29,7 +29,7 @@ export function FeedTabContent() {
                 : "font-sans text-neutral-500"
             }
           >
-            Publicações
+            Feed
           </Text>
         </Pressable>
         <Pressable
