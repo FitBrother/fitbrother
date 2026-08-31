@@ -3,6 +3,7 @@ import { useRef, useState } from "react";
 import { KeyboardAvoidingView, Platform, Text, type TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Button } from "@/components/Button";
+import { GoogleIcon } from "@/components/domain/GoogleIcon";
 import { Input } from "@/components/Input";
 import { PasswordInput } from "@/components/PasswordInput";
 import { friendlyAuthError } from "@/lib/errors";
@@ -47,7 +48,7 @@ export default function SignIn() {
       router.replace("/");
     } catch (e) {
       if (e instanceof Error && e.message === "oauth_cancelled") return;
-      setError(`Não foi possível entrar com ${provider === "google" ? "Google" : "Apple"}.`);
+      setError("Não foi possível entrar com Google.");
     } finally {
       setLoading(false);
     }
@@ -118,14 +119,9 @@ export default function SignIn() {
             <Button
               label="Entrar com Google"
               variant="outline"
+              leftIcon={<GoogleIcon />}
               disabled={loading}
               onPress={() => handleOAuth("google")}
-            />
-            <Button
-              label="Entrar com Apple"
-              variant="dark"
-              disabled={loading}
-              onPress={() => handleOAuth("apple")}
             />
             <Button label="Voltar" variant="ghost" onPress={() => router.back()} />
           </View>

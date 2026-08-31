@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, type TextInput, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Button } from "@/components/Button";
+import { GoogleIcon } from "@/components/domain/GoogleIcon";
 import { Input } from "@/components/Input";
 import { OnboardingChapterShell } from "@/components/onboarding/OnboardingChapterShell";
 import { PasswordInput, passwordStrength } from "@/components/PasswordInput";
@@ -191,14 +192,9 @@ export function SignupBlock({ onNext, onBack, chapter }: OnboardingBlockProps) {
         <Button
           label="Continuar com Google"
           variant="outline"
+          leftIcon={<GoogleIcon />}
           disabled={loading}
           onPress={() => handleOAuth("google")}
-        />
-        <Button
-          label="Continuar com Apple"
-          variant="dark"
-          disabled={loading}
-          onPress={() => handleOAuth("apple")}
         />
       </View>
     </OnboardingChapterShell>
