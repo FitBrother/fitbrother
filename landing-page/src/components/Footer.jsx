@@ -71,7 +71,7 @@ const Footer = () => {
                 </a>
               </li>
               <li>
-                <a href="/app" className="footer__link">
+                <a href="https://www.fitbrother.app" className="footer__link">
                   Usar agora
                 </a>
               </li>

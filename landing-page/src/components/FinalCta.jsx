@@ -13,7 +13,7 @@ const FinalCta = () => (
     <div className="container final-cta__inner">
       <h2 className="final-cta__title">Sua primeira refeição leva oito segundos.</h2>
       <p className="final-cta__sub">Sem formulário, sem banco de alimentos, sem desculpa.</p>
-      <a href="/app" className="btn btn--outline btn--lg">
+      <a href="https://www.fitbrother.app" className="btn btn--outline btn--lg">
         Usar agora
       </a>
       <StoreBadges className="final-cta__badges" />

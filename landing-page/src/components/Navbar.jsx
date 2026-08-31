@@ -58,13 +58,20 @@ const Navbar = () => {
           ))}
 
           {/* CTA dentro do menu mobile */}
-          <a href="/app" className="btn btn--primary navbar__cta" onClick={handleNavClick}>
+          <a
+            href="https://www.fitbrother.app"
+            className="btn btn--primary navbar__cta"
+            onClick={handleNavClick}
+          >
             Usar agora
           </a>
         </div>
 
         {/* CTA no desktop */}
-        <a href="/app" className="btn btn--primary navbar__cta navbar__cta--desktop">
+        <a
+          href="https://www.fitbrother.app"
+          className="btn btn--primary navbar__cta navbar__cta--desktop"
+        >
           Usar agora
         </a>
 
