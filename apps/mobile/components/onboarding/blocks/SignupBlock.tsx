@@ -9,6 +9,7 @@ import { PasswordInput, passwordStrength } from "@/components/PasswordInput";
 import { colors } from "@/lib/colors";
 import { friendlyAuthError } from "@/lib/errors";
 import { useAuthSession } from "@/lib/hooks/useAuthSession";
+import { linkOAuthIdentity, type OAuthProvider } from "@/lib/oauth";
 import { supabase } from "@/lib/supabase";
 import type { OnboardingBlockProps } from "@/lib/onboarding/types";
 
@@ -77,6 +78,25 @@ export function SignupBlock({ onNext, onBack, chapter }: OnboardingBlockProps) {
       onNext();
     } catch {
       setError("Não foi possível criar a conta. Verifique sua conexão e tente novamente.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleOAuth(provider: OAuthProvider) {
+    setLoading(true);
+    setError(null);
+    setEmailExists(false);
+    try {
+      // Vincula à sessão anônima já ativa (não cria sessão nova) — o efeito
+      // que detecta is_anonymous:false acima já avança o onboarding sozinho
+      // assim que a vinculação for concluída.
+      await linkOAuthIdentity(provider);
+    } catch (err) {
+      if (err instanceof Error && err.message === "oauth_cancelled") return;
+      setError(
+        `Não foi possível continuar com ${provider === "google" ? "Google" : "Apple"}. Tente de novo.`,
+      );
     } finally {
       setLoading(false);
     }
@@ -162,6 +182,24 @@ export function SignupBlock({ onNext, onBack, chapter }: OnboardingBlockProps) {
             )}
           </View>
         )}
+
+        <View className="flex-row items-center gap-3 py-1">
+          <View className="h-px flex-1 bg-neutral-200" />
+          <Text className="text-xs font-sans text-neutral-400">ou continue com</Text>
+          <View className="h-px flex-1 bg-neutral-200" />
+        </View>
+        <Button
+          label="Continuar com Google"
+          variant="outline"
+          disabled={loading}
+          onPress={() => handleOAuth("google")}
+        />
+        <Button
+          label="Continuar com Apple"
+          variant="dark"
+          disabled={loading}
+          onPress={() => handleOAuth("apple")}
+        />
       </View>
     </OnboardingChapterShell>
   );

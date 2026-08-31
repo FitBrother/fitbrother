@@ -44,7 +44,11 @@ additional_redirect_urls = ["https://127.0.0.1:3000"]
 jwt_expiry = 3600
 enable_signup = true
 enable_anonymous_sign_ins = true
-enable_manual_linking = false
+
+# Necessário pro linkIdentity() (SignupBlock: vincula Google/Apple à sessão
+# anônima do onboarding, em vez de criar uma sessão nova). Precisa do mesmo
+# toggle habilitado no painel do Supabase Cloud em produção.
+enable_manual_linking = true
 
 [auth.email]
 enable_signup = true
