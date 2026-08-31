@@ -10,7 +10,7 @@ import { PasswordInput, passwordStrength } from "@/components/PasswordInput";
 import { colors } from "@/lib/colors";
 import { friendlyAuthError } from "@/lib/errors";
 import { useAuthSession } from "@/lib/hooks/useAuthSession";
-import { linkOAuthIdentity, type OAuthProvider } from "@/lib/oauth";
+import { linkOAuthIdentity, OAuthCallbackError, type OAuthProvider } from "@/lib/oauth";
 import { supabase } from "@/lib/supabase";
 import type { OnboardingBlockProps } from "@/lib/onboarding/types";
 
@@ -95,6 +95,18 @@ export function SignupBlock({ onNext, onBack, chapter }: OnboardingBlockProps) {
       await linkOAuthIdentity(provider);
     } catch (err) {
       if (err instanceof Error && err.message === "oauth_cancelled") return;
+      // Mesmo tratamento do e-mail_exists no caminho e-mail/senha: esse
+      // e-mail (o da conta Google) já é de outra conta, ou já virou conta de
+      // verdade numa tentativa anterior — orienta a fazer login em vez do
+      // erro técnico.
+      if (
+        err instanceof OAuthCallbackError &&
+        (err.code === "email_exists" || err.code === "identity_already_exists")
+      ) {
+        setEmailExists(true);
+        setError("Esse e-mail já tem uma conta cadastrada.");
+        return;
+      }
       setError(
         `Não foi possível continuar com ${provider === "google" ? "Google" : "Apple"}. Tente de novo.`,
       );

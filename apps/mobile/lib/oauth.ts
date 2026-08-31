@@ -5,6 +5,25 @@ import { supabase } from "@/lib/supabase";
 
 export type OAuthProvider = "google" | "apple";
 
+export class OAuthCallbackError extends Error {
+  code: string;
+  constructor(message: string, code: string) {
+    super(message);
+    this.code = code;
+  }
+}
+
+/**
+ * O GoTrue às vezes manda o erro na query string, às vezes no fragment
+ * (#) — espelha o parseParametersFromURL do próprio supabase-js: junta os
+ * dois, com a query tendo prioridade.
+ */
+function paramsFromCallbackUrl(url: URL): URLSearchParams {
+  const merged = new URLSearchParams(url.hash.replace(/^#/, ""));
+  url.searchParams.forEach((value, key) => merged.set(key, value));
+  return merged;
+}
+
 /**
  * Abre o navegador de autenticação do provider e devolve a sessão final pro
  * cliente local. `startSession` decide o que a chamada faz do lado do
@@ -22,7 +41,17 @@ async function runOAuthFlow(
   const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
   if (result.type !== "success") throw new Error("oauth_cancelled");
   const callback = new URL(result.url);
-  const params = new URLSearchParams(callback.hash.replace(/^#/, ""));
+  const params = paramsFromCallbackUrl(callback);
+
+  // O GoTrue só descobre o e-mail da conta do provider DEPOIS que o usuário
+  // completa o consentimento — por isso um conflito (ex.: esse e-mail já é
+  // de outra conta) só aparece aqui, como erro na URL de retorno, nunca na
+  // chamada inicial que só gera o link de autorização.
+  const errorCode = params.get("error_code") ?? params.get("error");
+  if (errorCode) {
+    throw new OAuthCallbackError(params.get("error_description") ?? errorCode, errorCode);
+  }
+
   const accessToken = params.get("access_token");
   const refreshToken = params.get("refresh_token");
   if (!accessToken || !refreshToken) throw new Error("oauth_session_missing");
