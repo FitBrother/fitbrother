@@ -46,10 +46,35 @@ export function SignupBlock({ onNext, onBack, chapter }: OnboardingBlockProps) {
     sameUser;
   const accountMismatch =
     authSession.status === "signed_in" && originalUserIdRef.current !== null && !sameUser;
+  const [conflictDetected, setConflictDetected] = useState(false);
 
   useEffect(() => {
-    if (alreadyUpgraded) onNext();
-  }, [alreadyUpgraded, onNext]);
+    if (!alreadyUpgraded) return;
+    const email = authSession.status === "signed_in" ? authSession.session.user.email : undefined;
+    if (!email) {
+      onNext();
+      return;
+    }
+    let cancelled = false;
+    // O linkIdentity/updateUser do GoTrue só barra colisão de e-mail contra
+    // outra conta já CONFIRMADA — uma conta abandonada antes de confirmar
+    // fica invisível pra esse check (ver migration 0071). Sem essa segunda
+    // checagem aqui, uma sessão anônima nova conseguiria virar conta real
+    // com o mesmo e-mail de uma conta já existente, ainda não confirmada.
+    void supabase.rpc("fitbrother_signup_conflict", { p_email: email }).then(({ data }) => {
+      if (cancelled) return;
+      if (data) {
+        setConflictDetected(true);
+        void supabase.auth.signOut().then(() => router.replace("/(auth)/sign-in"));
+        return;
+      }
+      onNext();
+    });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [alreadyUpgraded]);
 
   useEffect(() => {
     if (!accountMismatch) return;
@@ -139,7 +164,7 @@ export function SignupBlock({ onNext, onBack, chapter }: OnboardingBlockProps) {
     }
   }
 
-  if (authSession.status === "loading" || alreadyUpgraded || accountMismatch) {
+  if (authSession.status === "loading" || alreadyUpgraded || accountMismatch || conflictDetected) {
     return (
       <SafeAreaView className="flex-1 items-center justify-center bg-neutral-50">
         <ActivityIndicator size="large" color={colors.primary[400]} />
