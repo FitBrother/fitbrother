@@ -41,7 +41,12 @@ export const supabase = createClient(url, anonKey, {
     storage: Platform.OS === "web" ? WebStorageAdapter : ExpoSecureStorageAdapter,
     autoRefreshToken: true,
     persistSession: true,
-    detectSessionInUrl: false,
+    // Na web, links de confirmação (troca de e-mail, magic link) redirecionam
+    // de volta pro PWA com o token na URL (#access_token=...) — sem isso, o
+    // cliente ignora esse token e continua com a sessão antiga em cache, e
+    // nem um reload resolve (o reload só relê o storage local, que nunca foi
+    // atualizado). No nativo não existe URL de navegador pra isso importar.
+    detectSessionInUrl: Platform.OS === "web",
   },
 });
 
