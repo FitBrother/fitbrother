@@ -24,7 +24,7 @@ export function trainingTypeUsesStrength(trainingType: TrainingType): boolean {
   return trainingType === "strength" || trainingType === "mixed";
 }
 
-interface OnboardingState {
+export interface OnboardingState {
   full_name: string;
   username: string;
   avatar_url: string | undefined;
