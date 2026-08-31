@@ -56,8 +56,8 @@ export function SubmittingBlock({ onNext }: OnboardingBlockProps) {
           );
         }
         onNext();
-      } catch {
-        if (!cancelled) setError(friendlyApiError());
+      } catch (err) {
+        if (!cancelled) setError(friendlyApiError(err instanceof Error ? err.message : undefined));
       }
     })();
 

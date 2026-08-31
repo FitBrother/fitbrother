@@ -31,10 +31,26 @@ export function friendlyAuthError(error: { code?: string } | null | undefined): 
   return (code && AUTH_ERROR_MESSAGES[code]) || GENERIC_MESSAGE;
 }
 
+const API_ERROR_MESSAGES: Record<string, string> = {
+  // O único jeito de bater aqui é um payload que o próprio app monta não
+  // bater mais com o que o servidor exige — ex.: app desatualizado ainda
+  // sem um campo novo (aconteceu com o consentimento de dado de saúde,
+  // LGPD art. 11, adicionado numa migration antes de todo mundo atualizar
+  // o app). "Tentar de novo" reenvia o mesmo payload e falha do mesmo
+  // jeito — por isso a mensagem aponta pra atualizar o app, não repetir.
+  invalid_payload:
+    "Alguns dados não foram aceitos pelo servidor. Atualize o app na loja e tente concluir o cadastro de novo.",
+  request_timeout: "A conexão demorou demais. Verifique sua internet e tente de novo.",
+};
+
 /**
  * Rede de segurança final pra erro de API própria — nunca mostra o texto cru
- * do servidor (pode vazar detalhe interno de banco/storage).
+ * do servidor (pode vazar detalhe interno de banco/storage). `code` é o
+ * `err.message` que authedFetch/postOnboarding já lançam com o campo
+ * `error` da resposta — só reconhece um punhado de códigos conhecidos e
+ * seguros de mostrar; qualquer coisa fora disso (incluindo "internal_error",
+ * de propósito) cai no genérico.
  */
-export function friendlyApiError(): string {
-  return GENERIC_MESSAGE;
+export function friendlyApiError(code?: string): string {
+  return (code && API_ERROR_MESSAGES[code]) || GENERIC_MESSAGE;
 }

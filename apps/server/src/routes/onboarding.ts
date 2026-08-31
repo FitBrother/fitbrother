@@ -51,6 +51,14 @@ export async function onboardingRoutes(app: FastifyInstance) {
       if (error.code === "23505") {
         return reply.code(409).send({ error: "onboarding_already_completed" });
       }
+      // fitbrother_assert_required_consents (RPC) recusou o payload — mesma
+      // causa que o Zod acima já deveria ter pego (payload sem um consent
+      // obrigatório, ex.: client desatualizado sem o campo mais novo). Trata
+      // como invalid_payload, não internal_error: o cliente já sabe mostrar
+      // "atualize o app" pra esse código, em vez de uma falha opaca.
+      if (error.code === "P0001" && error.message === "REQUIRED_CONSENT_MISSING") {
+        return reply.code(400).send({ error: "invalid_payload" });
+      }
       return internalError(reply, req.log, error);
     }
 
