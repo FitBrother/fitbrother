@@ -6,8 +6,9 @@ import {
 } from "@fitbrother/shared";
 import { Info, TriangleAlert } from "lucide-react-native";
 import { router } from "expo-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Text, View } from "react-native";
+import { useReducedMotion } from "react-native-reanimated";
 import { Button } from "@/components/Button";
 import { SliderInput } from "@/components/SliderInput";
 import { GoalsDisclaimer } from "@/components/domain/GoalsDisclaimer";
@@ -21,11 +22,46 @@ function fmtInt(n: number): string {
   return Math.round(n).toLocaleString("pt-BR");
 }
 
+const COUNT_UP_MS = 900;
+
+/**
+ * Sobe de 0 até `target` uma única vez (o alvo do primeiro render fica
+ * congelado num ref — não reinicia se `target` mudar depois, ex.: o slider
+ * de proteína recalculando o kcal). `active=false` (reduced motion, ou sem
+ * alvo ainda) já entrega o valor final direto, sem animar.
+ */
+function useCountUp(target: number, active: boolean): number {
+  const targetRef = useRef(target);
+  const [value, setValue] = useState(active ? 0 : target);
+
+  useEffect(() => {
+    if (!active) {
+      setValue(targetRef.current);
+      return;
+    }
+    let raf: number;
+    const start = Date.now();
+    function tick() {
+      const t = Math.min(1, (Date.now() - start) / COUNT_UP_MS);
+      const eased = 1 - Math.pow(1 - t, 3); // ease-out cúbico
+      setValue(targetRef.current * eased);
+      if (t < 1) raf = requestAnimationFrame(tick);
+    }
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active]);
+
+  return value;
+}
+
 export function RevealBlock({ onNext, chapter }: OnboardingBlockProps) {
   const result = useOnboardingResultStore((s) => s.result);
   const targetsInput = useOnboardingResultStore((s) => s.targetsInput);
   const setField = useOnboardingStore((s) => s.setField);
   const [proteinOverride, setProteinOverride] = useState<number | undefined>(undefined);
+  const reducedMotion = useReducedMotion();
+  const kcalIntro = useCountUp(result?.kcal ?? 0, !reducedMotion && Boolean(result));
 
   const live = useMemo(() => {
     if (!targetsInput || !result) return null;
@@ -83,7 +119,7 @@ export function RevealBlock({ onNext, chapter }: OnboardingBlockProps) {
             className="text-5xl font-display-bold text-primary-500"
             style={{ fontVariant: ["tabular-nums"] }}
           >
-            {fmtInt(live.kcal)} kcal
+            {fmtInt(proteinOverride !== undefined ? live.kcal : kcalIntro)} kcal
           </Text>
           <View className="flex-row gap-6">
             {!proteinAdjustable && (

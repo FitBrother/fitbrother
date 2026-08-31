@@ -8,6 +8,7 @@ export default function OnboardingLayout() {
         headerShown: false,
         contentStyle: { backgroundColor: colors.neutral[50] },
         gestureEnabled: false,
+        animation: "slide_from_right",
       }}
     />
   );

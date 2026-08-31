@@ -1,9 +1,16 @@
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import { ChevronLeft } from "lucide-react-native";
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from "react-native";
+import Animated, {
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Button } from "@/components/Button";
 import { colors } from "@/lib/colors";
+import { Motion } from "@/lib/motion";
 import { shadows } from "@/lib/shadows";
 import { CHAPTER_NAMES, CHAPTER_TOTAL } from "@/lib/onboarding/types";
 
@@ -37,69 +44,95 @@ export function OnboardingChapterShell({
   showNav = true,
   scrollable = true,
 }: OnboardingChapterShellProps) {
+  // Entrada suave a cada troca de etapa — cada bloco é uma tela nova
+  // montada, então isso dispara de novo automaticamente a cada "Continuar".
+  const reducedMotion = useReducedMotion();
+  const entrance = useSharedValue(reducedMotion ? 1 : 0);
+
+  useEffect(() => {
+    entrance.value = withTiming(1, {
+      duration: Motion.duration.base,
+      easing: Motion.easing.decelerate,
+    });
+    // dispara só na montagem — não deve reiniciar por causa de re-renders
+    // do conteúdo (troca de aba, digitação, etc.)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const entranceStyle = useAnimatedStyle(() => ({
+    opacity: entrance.value,
+    transform: [{ translateY: (1 - entrance.value) * 12 }],
+  }));
+
+  // Estilo animado vai num Animated.View próprio, sem className — o
+  // NativeWind não processa className em componentes do Reanimated (mesmo
+  // padrão já usado em LoadingDots/HomeHeader). O View de dentro mantém
+  // todas as classes originais intactas.
   const card = (
-    <View
-      className="mx-auto w-full max-w-[560px] flex-1 px-5 py-6 sm:my-8 sm:flex-none sm:rounded-2xl sm:bg-white sm:p-10"
-      style={shadows.card}
-    >
-      {chapter && (
-        <>
-          <View className="mb-3 flex-row gap-2.5">
-            {[1, 2, 3].map((n) => (
-              <View key={n} className="h-1 flex-1 overflow-hidden rounded-full bg-neutral-100">
-                {n <= chapter.num && <View className="h-full w-full bg-primary-400" />}
-              </View>
-            ))}
-          </View>
-          <Text className="text-xs font-sans-medium text-neutral-500">
-            Capítulo {chapter.num} de {CHAPTER_TOTAL} · {chapter.name}
-          </Text>
-        </>
-      )}
-
-      <View className="mt-7">
-        <Text className="mb-2 text-3xl font-display-bold text-neutral-800">{title}</Text>
-        {subtitle && <Text className="text-base font-sans text-neutral-600">{subtitle}</Text>}
-      </View>
-
-      <View className="mt-7 flex-1">{children}</View>
-
-      {showNav && (
-        <View className="mt-8 flex-row items-center gap-4">
-          <Pressable
-            onPress={onBack}
-            disabled={!onBack}
-            accessibilityRole="button"
-            accessibilityLabel="Voltar"
-            className="h-[52px] w-[52px] items-center justify-center rounded-full bg-white active:bg-neutral-50"
-            style={shadows.card}
-          >
-            <ChevronLeft size={20} color={colors.neutral[800]} />
-          </Pressable>
-          {onNext && (
-            <View className="flex-1">
-              <Button
-                label="Continuar"
-                variant="primary"
-                size="lg"
-                disabled={nextDisabled}
-                onPress={onNext}
-              />
+    <Animated.View style={[{ flex: 1, width: "100%" }, entranceStyle]}>
+      <View
+        className="mx-auto w-full max-w-[560px] flex-1 px-5 py-6 sm:my-8 sm:flex-none sm:rounded-2xl sm:bg-white sm:p-10"
+        style={shadows.card}
+      >
+        {chapter && (
+          <>
+            <View className="mb-3 flex-row gap-2.5">
+              {[1, 2, 3].map((n) => (
+                <View key={n} className="h-1 flex-1 overflow-hidden rounded-full bg-neutral-100">
+                  {n <= chapter.num && <View className="h-full w-full bg-primary-400" />}
+                </View>
+              ))}
             </View>
-          )}
-        </View>
-      )}
+            <Text className="text-xs font-sans-medium text-neutral-500">
+              Capítulo {chapter.num} de {CHAPTER_TOTAL} · {chapter.name}
+            </Text>
+          </>
+        )}
 
-      {onSkip && (
-        <Text
-          onPress={onSkip}
-          accessibilityRole="button"
-          className="mt-4 text-center text-sm font-sans-medium text-neutral-500"
-        >
-          Pular esse passo
-        </Text>
-      )}
-    </View>
+        <View className="mt-7">
+          <Text className="mb-2 text-3xl font-display-bold text-neutral-800">{title}</Text>
+          {subtitle && <Text className="text-base font-sans text-neutral-600">{subtitle}</Text>}
+        </View>
+
+        <View className="mt-7 flex-1">{children}</View>
+
+        {showNav && (
+          <View className="mt-8 flex-row items-center gap-4">
+            <Pressable
+              onPress={onBack}
+              disabled={!onBack}
+              accessibilityRole="button"
+              accessibilityLabel="Voltar"
+              className="h-[52px] w-[52px] items-center justify-center rounded-full bg-white active:bg-neutral-50"
+              style={shadows.card}
+            >
+              <ChevronLeft size={20} color={colors.neutral[800]} />
+            </Pressable>
+            {onNext && (
+              <View className="flex-1">
+                <Button
+                  label="Continuar"
+                  variant="primary"
+                  size="lg"
+                  disabled={nextDisabled}
+                  onPress={onNext}
+                />
+              </View>
+            )}
+          </View>
+        )}
+
+        {onSkip && (
+          <Text
+            onPress={onSkip}
+            accessibilityRole="button"
+            className="mt-4 text-center text-sm font-sans-medium text-neutral-500"
+          >
+            Pular esse passo
+          </Text>
+        )}
+      </View>
+    </Animated.View>
   );
 
   return (
