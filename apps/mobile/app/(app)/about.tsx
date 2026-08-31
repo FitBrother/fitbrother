@@ -4,10 +4,7 @@ import { ExternalLink } from "lucide-react-native";
 import { Pressable, Text } from "react-native";
 import { AccountCard, AccountScreen } from "@/components/account/AccountScreen";
 import { colors } from "@/lib/colors";
-
-const legal = Constants.expoConfig?.extra?.legal as
-  | { termsUrl?: string; privacyUrl?: string }
-  | undefined;
+import { legalUrls } from "@/lib/legal";
 
 export default function AboutScreen() {
   return (
@@ -19,8 +16,11 @@ export default function AboutScreen() {
         </Text>
       </AccountCard>
       <AccountCard>
-        <LegalLink label="Termos de Uso" url={legal?.termsUrl} />
-        <LegalLink label="Política de Privacidade" url={legal?.privacyUrl} />
+        <LegalLink label="Termos de Uso" url={legalUrls.termsUrl} />
+        <LegalLink label="Política de Privacidade" url={legalUrls.privacyUrl} />
+        <LegalLink label="Aviso sobre Saúde e IA" url={legalUrls.healthUrl} />
+        <LegalLink label="Exclusão de conta e dados" url={legalUrls.deletionUrl} />
+        <LegalLink label="Política de Cookies" url={legalUrls.cookiesUrl} />
       </AccountCard>
     </AccountScreen>
   );

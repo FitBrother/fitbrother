@@ -40,7 +40,10 @@
       },
       "legal": {
         "termsUrl": "https://fitbrother.app/termos",
-        "privacyUrl": "https://fitbrother.app/privacidade"
+        "privacyUrl": "https://fitbrother.app/privacidade",
+        "deletionUrl": "https://fitbrother.app/exclusao-de-dados",
+        "healthUrl": "https://fitbrother.app/aviso-de-saude",
+        "cookiesUrl": "https://fitbrother.app/cookies"
       },
       "eas": {
         "projectId": "fda12d37-23d7-4599-a65f-ed1c2995d60a"

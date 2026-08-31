@@ -23,9 +23,19 @@ const CONSENT_SCOPES = [
   "marketing",
   "ai_processing",
   "data_export",
+  "health_data",
 ] as const satisfies readonly ConsentScope[];
 
-const NON_REVOKABLE_SCOPES = new Set<ConsentScope>(["terms", "privacy", "ai_processing"]);
+// `health_data` é indispensável como os demais: sem dado corporal não há
+// estimativa nutricional, que é o produto inteiro. Revogar equivale a encerrar
+// a conta, e o caminho para isso é a exclusão — que preserva o direito de
+// eliminação do art. 18, VI sem deixar a conta num estado inoperante.
+const NON_REVOKABLE_SCOPES = new Set<ConsentScope>([
+  "terms",
+  "privacy",
+  "ai_processing",
+  "health_data",
+]);
 
 type ConsentLogRow = {
   scope: ConsentScope;

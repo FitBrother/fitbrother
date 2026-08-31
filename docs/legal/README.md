@@ -45,17 +45,32 @@ direitos: além do frontmatter, **bumpe `POLICY_VERSION`** em
 `apps/mobile/lib/constants.ts`. Isso faz o app recoletar o consentimento e
 registrar a nova versão em `consent_log`.
 
-## Pendência conhecida
+## Consentimento de dado de saúde
 
-O art. 11 da LGPD exige consentimento **específico e destacado** para dado
-sensível. Hoje os dados de saúde (peso, altura, % de gordura, diabetes tipo 1,
-doença renal, gestação/lactação, uso de GLP-1, rastreio de transtorno alimentar)
-são consentidos sob o escopo genérico `privacy`.
+O art. 11, I da LGPD exige consentimento **específico e destacado** para dado
+sensível. O escopo `health_data` cobre isso, separado do genérico `privacy`:
 
-Corrigir exige um escopo `health_data` próprio: migration no enum
-`consent_scope`, ajuste no servidor, no `ConsentBlock` e no `onboardingStore`.
-Registrado em
-[`docs/superpowers/specs/2026-08-31-documentos-legais-design.md`](../superpowers/specs/2026-08-31-documentos-legais-design.md).
+- Enum em `0072_health_data_consent_enum.sql` (migration isolada — valor de enum
+  não pode ser usado na mesma transação em que é criado)
+- Trava obrigatória e backfill em `0073_health_data_consent.sql`
+- Bloco visualmente destacado em `ConsentBlock.tsx` — borda, ícone e a lista
+  explícita do que é coletado, deliberadamente diferente dos outros checkboxes
+
+### Quem ainda precisa reconsentir
+
+Contas criadas antes da migration receberam o escopo derivado do consentimento
+de `privacy`, marcadas com `policy_version = 'v1.0-migrado'` em vez de `'v1.0'`.
+Elas nunca viram o consentimento destacado, e a marca preserva essa distinção na
+trilha de auditoria:
+
+```sql
+SELECT user_id FROM public.consent_log
+WHERE scope = 'health_data' AND policy_version = 'v1.0-migrado'
+  AND revoked_at IS NULL;
+```
+
+Se um dia essas contas passarem a ser de usuários reais, e não de teste, vale
+interceptá-las com uma tela de reconsentimento antes de seguir.
 
 ## Ressalva
 

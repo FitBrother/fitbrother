@@ -42,6 +42,7 @@ interface OnboardingState {
     terms: boolean;
     privacy: boolean;
     ai_processing: boolean;
+    health_data: boolean;
   };
   target_weight_kg: number | undefined;
   rate_kg_per_week: number | undefined;
@@ -103,7 +104,7 @@ const INITIAL: Omit<
   timezone: detectTimezone(),
   day_start_hour: 0,
   locale: "pt-BR",
-  consents: { terms: false, privacy: false, ai_processing: false },
+  consents: { terms: false, privacy: false, ai_processing: false, health_data: false },
   target_weight_kg: undefined,
   rate_kg_per_week: undefined,
   body_fat_pct: undefined,
@@ -196,7 +197,8 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
       !s.goal ||
       !s.consents.terms ||
       !s.consents.privacy ||
-      !s.consents.ai_processing
+      !s.consents.ai_processing ||
+      !s.consents.health_data
     ) {
       return null;
     }
@@ -218,6 +220,7 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
         terms: true,
         privacy: true,
         ai_processing: true,
+        health_data: true,
         policy_version: POLICY_VERSION,
       },
       body_fat_pct: s.body_fat_pct,

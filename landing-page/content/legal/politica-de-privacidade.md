@@ -69,6 +69,8 @@ Ao usar o app, você pode informar:
 
 Os itens em negrito, junto com todo o histórico corporal, são **dados pessoais sensíveis** na definição do art. 5º, II da LGPD, por serem dados referentes à saúde.
 
+Por isso, esses dados têm **consentimento próprio e destacado** no cadastro, separado do aceite dos Termos e desta Política — como exige o art. 11, I. Você autoriza o tratamento de dados de saúde de forma específica, sabendo exatamente o que está autorizando, e esse consentimento fica registrado em separado.
+
 Coletamos esses dados por uma razão específica: eles alteram o cálculo das suas estimativas nutricionais e acionam travas de segurança. O rastreio de transtorno alimentar, por exemplo, existe para que o app possa suavizar ou suprimir metas agressivas — não para classificar você.
 
 **Nenhum desses dados é obrigatório para usar o app.** Deixar em branco reduz a precisão das estimativas, e nada mais.
@@ -198,7 +200,7 @@ Para o que não estiver no app, escreva para **pedro@fitbrother.app**. Respondem
 
 ### Sobre revogar consentimentos essenciais
 
-Os consentimentos de termos de uso, privacidade e processamento por IA são indispensáveis ao funcionamento do serviço — sem eles, o app não tem como operar. Revogá-los equivale a encerrar a conta, e o caminho para isso é a exclusão, que preserva seu direito de eliminação integralmente.
+Os consentimentos de termos de uso, privacidade, processamento por IA e dados de saúde são indispensáveis ao funcionamento do serviço — sem eles, o app não tem como operar. Revogá-los equivale a encerrar a conta, e o caminho para isso é a exclusão, que preserva seu direito de eliminação integralmente.
 
 O consentimento para comunicação promocional é independente e pode ser revogado sem qualquer efeito sobre o uso do app.
 
