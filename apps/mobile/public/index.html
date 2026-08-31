@@ -3,9 +3,12 @@
   <head>
     <meta charset="utf-8" />
     <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
+    <!-- maximum-scale=1 + user-scalable=no tiram o pinch-zoom do navegador —
+         o app é um layout fixo tipo nativo, não conteúdo de leitura; um
+         pinch acidental (comum rolando listas) quebra o layout inteiro. -->
     <meta
       name="viewport"
-      content="width=device-width, initial-scale=1, shrink-to-fit=no, viewport-fit=cover"
+      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, shrink-to-fit=no, viewport-fit=cover"
     />
     <title>%WEB_TITLE%</title>
 
@@ -41,6 +44,10 @@
       html,
       body {
         height: 100%;
+        /* Backstop pro maximum-scale/user-scalable do viewport acima —
+           alguns navegadores ignoram esses dois pro gesto de double-tap
+           (só pinch), então isso também corta o double-tap-zoom. */
+        touch-action: pan-x pan-y;
       }
       /* These styles disable body scrolling if you are using <ScrollView> */
       body {
