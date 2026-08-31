@@ -55,6 +55,27 @@ function isIosDevice(): boolean {
   return /iphone|ipad|ipod/.test(ua) || isTouchMac(ua);
 }
 
+export type IosGuideInfo = {
+  /** iPad tem a barra do navegador em cima; iPhone/iPod, embaixo. */
+  device: "phone" | "pad";
+  /** Só Safari e Chrome iOS têm menu suficientemente diferente pra valer um
+   * texto próprio — Firefox/Edge/outros caem no genérico "menu do navegador". */
+  browser: "safari" | "chrome" | "other";
+};
+
+/** Detalhe pro guia visual de "Adicionar à Tela de Início" — só chamar quando `installable-ios`. */
+export function iosGuideInfo(): IosGuideInfo {
+  if (typeof navigator === "undefined") return { device: "phone", browser: "other" };
+  const ua = navigator.userAgent.toLowerCase();
+  const device: IosGuideInfo["device"] = /ipad/.test(ua) || isTouchMac(ua) ? "pad" : "phone";
+  const browser: IosGuideInfo["browser"] = /crios/.test(ua)
+    ? "chrome"
+    : /safari/.test(ua) && !/crios|fxios|edgios/.test(ua)
+      ? "safari"
+      : "other";
+  return { device, browser };
+}
+
 /**
  * Safari no macOS não dispara beforeinstallprompt e não segue o fluxo do
  * iOS (é "Adicionar ao Dock", não "à Tela de Início") — merece um guia
