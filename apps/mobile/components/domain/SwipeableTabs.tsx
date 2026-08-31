@@ -124,7 +124,15 @@ export function SwipeableTabs({
   const style = useAnimatedStyle(() => ({ transform: [{ translateX: translateX.value }] }));
 
   return (
-    <GestureDetector gesture={pan}>
+    // touchAction="pan-y" (web only, no-op no nativo): sem isso o
+    // GestureDetector aplica touch-action:none por padrão no DOM — o
+    // navegador bloqueia TODO scroll nativo ali, antes até do JS decidir
+    // (activeOffsetX/failOffsetY acima são reconhecimento do RNGH, rodam
+    // depois; não reabilitam um scroll que o browser já vetou). "pan-y"
+    // deixa o navegador tratar o arrasto vertical como scroll nativo
+    // sempre, e o RNGH ainda reconhece o horizontal por cima — mesmo
+    // padrão que o próprio Swipeable/ReanimatedSwipeable da lib usa.
+    <GestureDetector gesture={pan} touchAction="pan-y">
       {/* Layout vai em `style`, não em className: o NativeWind não processa
           className em componentes do Reanimated — a classe cai na default do
           RNW e o flex-row é perdido, empilhando as cenas verticalmente. */}
