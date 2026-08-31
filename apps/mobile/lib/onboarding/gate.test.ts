@@ -32,7 +32,7 @@ describe("firstIncompleteGateIndex", () => {
     expect(firstIncompleteGateIndex(onlyBirthDate)).toBe(1); // basics
   });
 
-  test("all seven physical-data fields filled clears every gate", () => {
+  test("all seven physical-data fields filled clears every gate, for any block ahead", () => {
     const state = {
       ...useOnboardingStore.getState(),
       full_name: "Juan",
@@ -45,6 +45,14 @@ describe("firstIncompleteGateIndex", () => {
       goal: "lose" as const,
     };
 
-    expect(firstIncompleteGateIndex(state)).toBe(7);
+    const gate = firstIncompleteGateIndex(state);
+    // Regressão real: um valor fixo (ex. 7, o tamanho da lista de checks)
+    // só libera até esse índice — o bloco seguinte (calculating, índice 8)
+    // caía como bloqueado de novo, e [block].tsx redirecionava pro health
+    // pra sempre. Precisa ser Infinity pra "index <= gate" valer pra
+    // qualquer bloco depois do último com pré-requisito próprio.
+    expect(gate).toBe(Number.POSITIVE_INFINITY);
+    expect(8 <= gate).toBe(true); // calculating
+    expect(16 <= gate).toBe(true); // first_meal, o último bloco da lista
   });
 });

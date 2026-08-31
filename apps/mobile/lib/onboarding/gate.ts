@@ -27,9 +27,17 @@ const GATE_CHECKS: Array<(s: OnboardingState) => boolean> = [
   (s) => Boolean(s.goal), // goal
 ];
 
-/** Primeiro índice em ONBOARDING_BLOCKS cujo pré-requisito ainda falta —
- * GATE_CHECKS.length (7) se os blocos 0-6 já estão todos preenchidos. */
+/**
+ * Primeiro índice em ONBOARDING_BLOCKS cujo pré-requisito ainda falta —
+ * Infinity se os blocos 0-6 já estão todos preenchidos, pra "nenhum bloco
+ * mais à frente fica bloqueado" valer pra QUALQUER índice depois do 6
+ * (health, calculating, reveal, ...), não só pra GATE_CHECKS.length (7).
+ * Retornar 7 fixo já causou loop infinito: com `index <= gate` no
+ * [block].tsx, isso liberava só até o índice 7 (health) — o índice 8
+ * (calculating) caía como bloqueado de novo, redirecionando de volta pro
+ * health pra sempre.
+ */
 export function firstIncompleteGateIndex(state: OnboardingState): number {
   const i = GATE_CHECKS.findIndex((check) => !check(state));
-  return i === -1 ? GATE_CHECKS.length : i;
+  return i === -1 ? Number.POSITIVE_INFINITY : i;
 }
