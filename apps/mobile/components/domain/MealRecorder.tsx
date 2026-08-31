@@ -13,6 +13,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { X } from "lucide-react-native";
 import { colors } from "@/lib/colors";
+import { radii } from "@/lib/radii";
 import { shadows } from "@/lib/shadows";
 import { RecorderWaveform } from "./RecorderWaveform";
 
@@ -71,13 +72,31 @@ function PulsingDot() {
   );
 }
 
+/**
+ * Equivalente a `min-h-[48px] flex-1 flex-row items-center justify-between
+ * rounded-[22px] bg-white px-4`. O raio é o mesmo do pill do input, para os
+ * dois estados do composer terem a mesma silhueta.
+ */
+const recorderPillStyle = {
+  minHeight: 48,
+  flex: 1,
+  flexDirection: "row",
+  alignItems: "center",
+  justifyContent: "space-between",
+  borderRadius: radii.card,
+  backgroundColor: colors.white,
+  paddingHorizontal: 16,
+} as const;
+
 export function MealRecorder({ state, durationMs, meterLevel, onCancel }: Props) {
   return (
     <Animated.View
       entering={FadeIn.duration(160)}
       exiting={FadeOut.duration(120)}
-      style={shadows.floating}
-      className="min-h-[48px] flex-1 flex-row items-center justify-between rounded-[24px] bg-white px-4"
+      // Estilo inline, não className: o NativeWind não processa className em
+      // componentes do Reanimated. O pill da gravação ficava sem fundo branco,
+      // sem altura mínima e sem padding.
+      style={[shadows.floating, recorderPillStyle]}
     >
       <View className="flex-row items-center gap-3">
         <PulsingDot />

@@ -20,6 +20,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { queryClient } from "@/lib/query-client";
+import { installKeyboardScrollGuard } from "@/lib/pwa/keyboard-scroll-guard";
 import { registerServiceWorker } from "@/lib/pwa/register-service-worker";
 import { ToastProvider } from "@/lib/toast/toast-context";
 import "../global.css";
@@ -47,6 +48,8 @@ export default function RootLayout() {
   useEffect(() => {
     registerServiceWorker();
   }, []);
+
+  useEffect(() => installKeyboardScrollGuard(), []);
 
   if (!fontsLoaded) return null;
 

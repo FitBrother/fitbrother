@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { FollowRequestSchema, PublicProfileSchema, UsernameSchema } from "@fitbrother/shared";
+import { signAvatarUrls, withSignedAvatars } from "../lib/avatars.js";
 import { authRequired } from "../lib/auth.js";
 import { internalError } from "../lib/errors.js";
 import { supabaseService } from "../lib/supabase.js";
@@ -33,7 +34,11 @@ export async function usersRoutes(app: FastifyInstance) {
       return internalError(reply, req.log, error, { where: "user_search" });
     }
 
-    return reply.send({ users: (data ?? []).map((u) => PublicProfileSchema.parse(u)) });
+    const perfis = data ?? [];
+    const assinadas = await signAvatarUrls(perfis.map((u) => u.avatar_url));
+    return reply.send({
+      users: withSignedAvatars(perfis, assinadas).map((u) => PublicProfileSchema.parse(u)),
+    });
   });
 
   app.get("/users/username-available", { preHandler: [authRequired] }, async (req, reply) => {

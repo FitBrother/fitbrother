@@ -5,7 +5,9 @@ import { ChevronLeft } from "lucide-react-native";
 import { useMemo, useState } from "react";
 import { FlatList, Pressable, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Avatar } from "@/components/Avatar";
 import { Input } from "@/components/Input";
+import { profileInitials } from "@/lib/account-utils";
 import { followUser, unfollowUser } from "@/lib/api/users";
 import { colors } from "@/lib/colors";
 import { followingKey, useFollowing } from "@/lib/hooks/useFollowing";
@@ -28,6 +30,15 @@ type UnfollowMutationContext = {
 
 function displayName(user: PublicProfile): string {
   return user.display_name?.trim() || (user.username ? `@${user.username}` : "Fitbrother");
+}
+
+/**
+ * Iniciais para o fallback do avatar. `profileInitials` espera nome e e-mail,
+ * mas o perfil público não expõe e-mail — o username é o segundo melhor
+ * identificador legível.
+ */
+function initialsFor(user: PublicProfile): string {
+  return profileInitials(user.display_name, user.username);
 }
 
 export default function UserSearch() {
@@ -143,7 +154,12 @@ export default function UserSearch() {
           const isBusy = isPendingThisUser || isPendingUnfollow;
           return (
             <View className="min-h-[68px] flex-row items-center justify-between border-b border-neutral-100 py-3">
-              <View className="flex-1 pr-3">
+              <Avatar
+                uri={item.avatar_url}
+                initials={initialsFor(item)}
+                accessibilityLabel={`Foto de ${displayName(item)}`}
+              />
+              <View className="flex-1 px-3">
                 <Text className="text-base font-sans-semibold text-neutral-800">
                   {displayName(item)}
                 </Text>

@@ -21,10 +21,13 @@ export function InstallPrompt() {
             Acesse o Fitbrother direto da tela inicial do seu celular.
           </Text>
         </View>
+        {/* Ícone em neutral-900, a mesma cor do label do botão primary
+            (`text-neutral-900`). Estava `#fff`: ícone claro ao lado de texto
+            escuro, os dois sobre o mesmo fundo menta. */}
         <Button
           label="Instalar"
           size="sm"
-          leftIcon={<Download size={18} color="#fff" />}
+          leftIcon={<Download size={18} color={colors.neutral[900]} />}
           onPress={async () => {
             await install.promptEvent.prompt();
             await install.promptEvent.userChoice;

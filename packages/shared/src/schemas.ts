@@ -466,6 +466,9 @@ export const PublicProfileSchema = z.object({
   user_id: z.string().uuid(),
   username: z.string().nullable(),
   display_name: z.string().nullable(),
+  // URL assinada e pronta para renderizar, NÃO o caminho no Storage. O bucket
+  // `post-images` é privado e só libera a própria pasta, então quem assina o
+  // avatar de terceiros é o servidor (ver `lib/avatars.ts`).
   avatar_url: z.string().nullable(),
 });
 export type PublicProfile = z.infer<typeof PublicProfileSchema>;

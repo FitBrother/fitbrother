@@ -10,6 +10,7 @@ import {
   LikeResponseSchema,
   PostSchema,
 } from "@fitbrother/shared";
+import { signAvatarUrls, withSignedAvatars } from "../lib/avatars.js";
 import { authRequired } from "../lib/auth.js";
 import { internalError } from "../lib/errors.js";
 import { supabaseService } from "../lib/supabase.js";
@@ -374,7 +375,8 @@ async function attachCommentAuthors(admin: SupabaseClient, rows: CommentRow[]) {
     .select("user_id, username, display_name, avatar_url")
     .in("user_id", ids);
   if (error) throw new Error(error.message);
-  const authors = new Map((data ?? []).map((a) => [a.user_id, a]));
+  const assinadas = await signAvatarUrls((data ?? []).map((a) => a.avatar_url));
+  const authors = new Map(withSignedAvatars(data ?? [], assinadas).map((a) => [a.user_id, a]));
   return rows.map((row) =>
     CommentSchema.parse({
       ...row,
@@ -401,7 +403,10 @@ async function attachAuthors(rows: PostRow[], likedPostIds: Set<string> = new Se
     .select("user_id, username, display_name, avatar_url")
     .in("user_id", ids);
   if (error) throw new Error(error.message);
-  const authors = new Map((data ?? []).map((author) => [author.user_id, author]));
+  const assinadas = await signAvatarUrls((data ?? []).map((author) => author.avatar_url));
+  const authors = new Map(
+    withSignedAvatars(data ?? [], assinadas).map((author) => [author.user_id, author]),
+  );
   const achievementIds = Array.from(
     new Set(rows.map((row) => row.achievement_id).filter((id): id is string => Boolean(id))),
   );

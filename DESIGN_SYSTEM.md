@@ -262,7 +262,7 @@ Base: **4px** (Tailwind padrão).
 
 Tokens semânticos extras em `tailwind.config.ts`:
 - `safe-horizontal` (20px) — padding lateral de tela
-- `input-height` (52px), `button-height` (52px), `button-height-sm` (40px), `button-height-lg` (60px)
+- `input-height` (52px), `button-height` (52px), `button-height-sm` (44px), `button-height-lg` (60px)
 
 ---
 
@@ -274,7 +274,7 @@ Tokens semânticos extras em `tailwind.config.ts`:
 |---|---|---|
 | Botões (primário, dark) | 9999px | `rounded-full` |
 | Inputs | 12px | `rounded-xl` |
-| Cards | 16px | `rounded-2xl` |
+| Cards | 22px | `rounded-[22px]` |
 | Badges/chips | 9999px | `rounded-full` |
 | Ícones circulares (avatar) | 50% | `rounded-full` |
 | Banner de feedback | 12px | `rounded-xl` |
@@ -420,7 +420,7 @@ NativeWind v4 já suporta `dark:` nativamente, mas a paleta dark do Fitbrother a
 | `ghost` | transparent | `primary-400` | — |
 | `disabled` (variante × disabled) | `primary-200` (pri), `neutral-400` (dark), translúcido | — | — |
 
-**Tamanhos:** `sm` (40px / `text-sm` / `px-4`), `md` (52px / `text-base` / `px-6`) — padrão, `lg` (60px / `text-lg` / `px-8`).
+**Tamanhos:** `sm` (44px / `text-sm` / `px-4`), `md` (52px / `text-base` / `px-6`) — padrão, `lg` (60px / `text-lg` / `px-8`).
 
 **Estados:** `loading` mostra `ActivityIndicator`; `pressed` aplica variante de cor mais escura.
 
@@ -450,7 +450,7 @@ Estados: `default`, `focused`, `filled`, `error`.
 | `outlined` | white | `neutral-200` | — |
 | `flat` | `neutral-50` | — | — |
 
-Padding padrão `p-4`, raio `rounded-2xl`. Quando recebe `onPress`, vira `Pressable` com feedback de cor (flat/outlined) ou de sombra (elevated → Nível 2 ao pressionar).
+Padding padrão `p-4`, raio `rounded-[22px]` (a curva exata dos pills de 44pt: `rounded-full` ÷ 2). Quando recebe `onPress`, vira `Pressable` com feedback de cor (flat/outlined) ou de sombra (elevated → Nível 2 ao pressionar).
 
 ### 11.4 Onboarding Nav Buttons
 

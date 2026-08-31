@@ -109,15 +109,18 @@ export function FriendsPanel() {
 
   return (
     <ScrollView contentContainerClassName="px-5 pb-10 gap-5 pt-2" className="flex-1">
-      <Pressable
+      {/* Botão do DS ocupando a largura toda, em vez do link discreto alinhado
+          à direita que havia aqui. `outline` e não `primary`: buscar pessoas é
+          ação secundária e não deve gritar mais alto que o ranking abaixo. */}
+      <Button
+        label="Buscar pessoas"
+        variant="outline"
+        size="sm"
         onPress={() => router.push("/(app)/users/search" as never)}
         accessibilityLabel="Buscar pessoas"
         accessibilityRole="button"
-        className="min-h-[44px] flex-row items-center justify-end gap-2"
-      >
-        <Search size={18} color={colors.neutral[600]} />
-        <Text className="font-sans-medium text-sm text-neutral-600">Buscar pessoas</Text>
-      </Pressable>
+        leftIcon={<Search size={18} color={colors.neutral[800]} />}
+      />
 
       <View className="gap-3">
         <Text className="font-sans-bold text-base text-neutral-800">Ranking semanal</Text>
@@ -151,7 +154,10 @@ export function FriendsPanel() {
           (following.data ?? []).map((f) => (
             <View
               key={f.user_id}
-              className="min-h-[44px] flex-row items-center justify-between rounded-xl border border-neutral-200 bg-white px-3 py-2"
+              // 22px pelo mesmo motivo do LeaderboardRow: a linha fecha em
+              // ~60px (o botão interno já tem 44, mais o `py-2`), então
+              // `rounded-full` daria 30 em vez dos 22 da barra de abas.
+              className="min-h-[44px] flex-row items-center justify-between rounded-[22px] border border-neutral-200 bg-white px-3 py-2"
             >
               <Text className="flex-1 pr-3 font-sans text-sm text-neutral-700">
                 {f.full_name ?? "Amigo"}

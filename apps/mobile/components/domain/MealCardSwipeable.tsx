@@ -14,6 +14,13 @@ import type { MealResponse } from "@fitbrother/shared";
 import { colors } from "@/lib/colors";
 import { MealCard } from "./MealCard";
 
+/**
+ * Espaço entre cards da lista, em px. É o mesmo passo do header da Home (o
+ * `gap-2` entre o pill de ofensivas e a barra de abas, e o `pt-2` até o
+ * dashboard) — a lista e o header andam na mesma régua.
+ */
+export const MEAL_CARD_GAP = 8;
+
 const ACTION_WIDTH = 96;
 const OPEN_THRESHOLD = ACTION_WIDTH * 0.5;
 // Stiffer than the default — fast snap, almost no oscillation, ~150ms settle.
@@ -70,7 +77,7 @@ export function MealCardSwipeable({ meal, onPress, onDelete }: Props) {
 
   return (
     <Animated.View
-      style={{ marginHorizontal: 16, marginTop: 12 }}
+      style={{ marginHorizontal: 16, marginTop: MEAL_CARD_GAP }}
       entering={FadeIn.duration(180)}
       exiting={SlideOutLeft.springify().damping(20).stiffness(180)}
     >

@@ -16,7 +16,13 @@ jest.mock("expo-haptics", () => ({
   notificationAsync: jest.fn(() => Promise.resolve()),
 }));
 
-import { actionAfterRecordingStarts, classifyAudioGesture, MealComposer } from "./MealComposer";
+import {
+  actionAfterRecordingStarts,
+  classifyAudioGesture,
+  composerBottomPad,
+  COMPOSER_BACKDROP_HEIGHT,
+  MealComposer,
+} from "./MealComposer";
 import { cancelRecording, startRecording, stopRecording } from "@/lib/audio/recorder";
 
 const originalPlatform = Platform.OS;
@@ -60,7 +66,7 @@ describe("MealComposer web audio controls", () => {
     fireEvent.press(screen.getByLabelText("Gravar áudio"));
     await waitFor(() => expect(startRecording).toHaveBeenCalledTimes(1));
 
-    fireEvent.press(await screen.findByLabelText("Parar gravação"));
+    fireEvent.press(await screen.findByLabelText("Enviar gravação"));
     await waitFor(() => {
       expect(onAudioReady).toHaveBeenCalledWith({
         fileUri: "blob:recording",
@@ -68,6 +74,19 @@ describe("MealComposer web audio controls", () => {
         ext: "webm",
       });
     });
+  });
+
+  // O botão travado mostrava um quadrado ("parar"), mas chama `finishAndSend`
+  // — parar e enviar sempre foram a mesma ação, e o ícone escondia isso.
+  test("durante a gravação o botão é de enviar, não de parar", async () => {
+    const screen = renderComposer(jest.fn());
+
+    fireEvent.press(screen.getByLabelText("Gravar áudio"));
+
+    expect(await screen.findByLabelText("Enviar gravação")).toBeTruthy();
+    expect(screen.queryByLabelText("Parar gravação")).toBeNull();
+    // Enviar não pode ser a única saída: cancelar continua ao lado.
+    expect(screen.getByLabelText("Cancelar gravação")).toBeTruthy();
   });
 
   test("cancels an active recording without sending it", async () => {
@@ -165,5 +184,22 @@ describe("classifyAudioGesture", () => {
         isWeb: false,
       }),
     ).toBe("cancel");
+  });
+});
+
+// Backdrop próprio do composer, usado nas telas onde ele não é sobreposto a
+// uma lista (a Home usa o ComposerBackdrop, que se emenda ao bloco sólido).
+describe("altura ocupada pelo composer", () => {
+  test("o gradiente é mais alto que a linha do input", () => {
+    expect(COMPOSER_BACKDROP_HEIGHT).toBeGreaterThan(48);
+  });
+
+  test("o padding acompanha o safe area inset, descontando o respiro do input", () => {
+    expect(composerBottomPad(34)).toBe(24);
+  });
+
+  test("em tela sem safe area cai no passo de 8 da régua da Home", () => {
+    expect(composerBottomPad(0)).toBe(8);
+    expect(composerBottomPad(10)).toBe(8);
   });
 });

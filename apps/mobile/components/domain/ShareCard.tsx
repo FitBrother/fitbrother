@@ -35,7 +35,7 @@ function Watermark() {
 /** Quadro 9:16 fixo. A tela de preview o envolve num View com ref p/ captura. */
 export function ShareCard({ data }: { data: ShareCardData }) {
   return (
-    <View style={{ width: 360, aspectRatio: 9 / 16 }} className="overflow-hidden rounded-3xl">
+    <View style={{ width: 360, aspectRatio: 9 / 16 }} className="overflow-hidden rounded-[22px]">
       <LinearGradient
         colors={[colors.primary[600], colors.primary[400]]}
         start={{ x: 0, y: 0 }}

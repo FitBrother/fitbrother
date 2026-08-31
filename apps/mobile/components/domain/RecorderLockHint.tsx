@@ -10,6 +10,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { ChevronUp, Lock } from "lucide-react-native";
 import { colors } from "@/lib/colors";
+import { radii } from "@/lib/radii";
 import { shadows } from "@/lib/shadows";
 
 type Props = {
@@ -47,7 +48,7 @@ export function RecorderLockHint({ visible }: Props) {
           alignItems: "center",
           gap: 4,
           padding: 8,
-          borderRadius: 24,
+          borderRadius: radii.card,
           backgroundColor: colors.white,
         },
         shadows.floating,

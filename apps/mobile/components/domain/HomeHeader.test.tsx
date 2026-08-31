@@ -10,8 +10,19 @@ jest.mock("expo-router", () => ({ useRouter: () => ({ push: mockPush }) }));
 jest.mock("@/lib/hooks/useStreak", () => ({
   useStreak: () => ({ data: { streak: { current_streak: 5 }, atRisk: false } }),
 }));
+const mockProfile: { full_name: string; soft_mode: boolean; avatar_url: string | null } = {
+  full_name: "Ana Silva",
+  soft_mode: false,
+  avatar_url: null,
+};
 jest.mock("@/lib/profile/profile-context", () => ({
-  useProfile: () => ({ full_name: "Ana Silva", soft_mode: false }),
+  useProfile: () => mockProfile,
+}));
+// useAvatarUrl assina o caminho via lib/storage → lib/supabase, a mesma cadeia
+// que os outros mocks cortam. Mockar aqui também é o que permite exercitar os
+// dois estados do botão de perfil sem rede.
+jest.mock("@/lib/hooks/useAvatarUrl", () => ({
+  useAvatarUrl: (path: string | null | undefined) => (path ? `https://signed.test/${path}` : null),
 }));
 jest.mock("@/lib/hooks/useAuthSession", () => ({
   useAuthSession: () => ({
@@ -20,7 +31,7 @@ jest.mock("@/lib/hooks/useAuthSession", () => ({
   }),
 }));
 
-import { HomeHeader, tabSlotWidth, TABS } from "./HomeHeader";
+import { AVATAR_SIZE, HomeHeader, tabBarHeight, tabSlotWidth, TABS } from "./HomeHeader";
 
 describe("abas da Home", () => {
   test("a aba social é rotulada 'Social'", () => {
@@ -36,6 +47,15 @@ describe("abas da Home", () => {
 // Com o conteúdo deslizando em 250ms, o salto da pílula ficava evidente —
 // agora ela é um indicador posicionado, e a largura do slot é o que define
 // para onde ele desliza.
+// A barra fechava em 50 (aba de 44 + 3 de padding de cada lado) e ficava mais
+// alta que o avatar e o pill de ofensivas, ambos de 44. A altura da aba passou
+// a ser derivada do avatar para os três não saírem de sintonia.
+describe("altura da barra de abas", () => {
+  test("fecha na mesma altura do avatar e do pill", () => {
+    expect(tabBarHeight()).toBe(AVATAR_SIZE);
+  });
+});
+
 describe("tabSlotWidth", () => {
   const PADDING = 3;
 
@@ -58,6 +78,30 @@ describe("tabSlotWidth", () => {
     const slot = tabSlotWidth(barra, 3, PADDING);
     const deslocamentoFinal = slot * 2;
     expect(deslocamentoFinal + slot).toBeLessThanOrEqual(barra - PADDING * 2);
+  });
+});
+
+// O botão de perfil renderizava só as iniciais — nunca teve <Image>. Trocar a
+// foto no perfil não mudava nada na Home.
+describe("botão de perfil", () => {
+  test("mostra a foto quando o perfil tem avatar", () => {
+    mockProfile.avatar_url = "user-1/avatar.jpg";
+
+    const { queryByTestId } = render(<HomeHeader activeTab="home" onChangeTab={jest.fn()} />);
+
+    expect(queryByTestId("avatar-image")).not.toBeNull();
+    expect(queryByTestId("avatar-initials")).toBeNull();
+  });
+
+  test("cai nas iniciais quando não há avatar", () => {
+    mockProfile.avatar_url = null;
+
+    const { getByTestId, queryByTestId } = render(
+      <HomeHeader activeTab="home" onChangeTab={jest.fn()} />,
+    );
+
+    expect(queryByTestId("avatar-image")).toBeNull();
+    expect(getByTestId("avatar-initials")).toHaveTextContent("AS");
   });
 });
 

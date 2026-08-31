@@ -1,9 +1,15 @@
 import { useState } from "react";
-import { Pressable, Text, View } from "react-native";
+import { View } from "react-native";
 import { FeedPostsPanel } from "@/components/domain/FeedPostsPanel";
 import { FriendsPanel } from "@/components/domain/FriendsPanel";
+import { SubTabs } from "@/components/domain/SubTabs";
 
 type FeedSubTab = "posts" | "friends";
+
+const SUB_TABS = [
+  { key: "posts", label: "Feed" },
+  { key: "friends", label: "Amigos" },
+] as const satisfies readonly { key: FeedSubTab; label: string }[];
 
 /**
  * Aba "Social" da Home no mobile — Amigos deixou de ser destino de navegação
@@ -14,42 +20,7 @@ export function FeedTabContent() {
 
   return (
     <View className="flex-1">
-      <View className="mx-4 mb-2 mt-2 flex-row rounded-full bg-neutral-100 p-1">
-        <Pressable
-          onPress={() => setSubTab("posts")}
-          accessibilityRole="button"
-          accessibilityLabel="Feed"
-          accessibilityState={{ selected: subTab === "posts" }}
-          className={`min-h-[44px] flex-1 items-center justify-center rounded-full active:opacity-70 ${subTab === "posts" ? "bg-white" : ""}`}
-        >
-          <Text
-            className={
-              subTab === "posts"
-                ? "font-sans-semibold text-neutral-800"
-                : "font-sans text-neutral-500"
-            }
-          >
-            Feed
-          </Text>
-        </Pressable>
-        <Pressable
-          onPress={() => setSubTab("friends")}
-          accessibilityRole="button"
-          accessibilityLabel="Amigos"
-          accessibilityState={{ selected: subTab === "friends" }}
-          className={`min-h-[44px] flex-1 items-center justify-center rounded-full active:opacity-70 ${subTab === "friends" ? "bg-white" : ""}`}
-        >
-          <Text
-            className={
-              subTab === "friends"
-                ? "font-sans-semibold text-neutral-800"
-                : "font-sans text-neutral-500"
-            }
-          >
-            Amigos
-          </Text>
-        </Pressable>
-      </View>
+      <SubTabs tabs={SUB_TABS} active={subTab} onChange={setSubTab} />
       {subTab === "posts" ? <FeedPostsPanel /> : <FriendsPanel />}
     </View>
   );

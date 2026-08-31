@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { ActivityIndicator, FlatList, Pressable, Text, View } from "react-native";
+import { ActivityIndicator, FlatList, Text, View } from "react-native";
 import type { Insight } from "@fitbrother/shared";
 import { InsightCard } from "@/components/domain/InsightCard";
+import { SubTabs } from "@/components/domain/SubTabs";
 import { colors } from "@/lib/colors";
 import { useInsights } from "@/lib/hooks/useInsights";
 
@@ -22,27 +23,7 @@ export function AnalisesPanel() {
 
   return (
     <View className="flex-1">
-      <View className="mx-4 mb-2 mt-2 flex-row rounded-full bg-neutral-100 p-1">
-        {PERIODS.map((p) => (
-          <Pressable
-            key={p.key}
-            onPress={() => setPeriod(p.key)}
-            accessibilityRole="button"
-            accessibilityLabel={p.label}
-            className={`min-h-[44px] flex-1 items-center justify-center rounded-full ${period === p.key ? "bg-white" : ""}`}
-          >
-            <Text
-              className={
-                period === p.key
-                  ? "font-sans-semibold text-neutral-800"
-                  : "font-sans text-neutral-500"
-              }
-            >
-              {p.label}
-            </Text>
-          </Pressable>
-        ))}
-      </View>
+      <SubTabs tabs={PERIODS} active={period} onChange={setPeriod} />
 
       {q.isLoading ? (
         <View className="flex-1 items-center justify-center">

@@ -50,12 +50,29 @@ import { SwipeableTabs } from "@/components/domain/SwipeableTabs";
 import { MealCardSwipeable } from "@/components/domain/MealCardSwipeable";
 import { MealCardSkeleton } from "@/components/domain/MealCardSkeleton";
 import { MealComposer } from "@/components/domain/MealComposer";
+import { ComposerBackdrop, COMPOSER_FADE_HEIGHT } from "@/components/domain/ComposerBackdrop";
 import { EmptyMealsState } from "@/components/domain/EmptyMealsState";
 import { ErrorBanner, type ErrorBannerVariant } from "@/components/domain/ErrorBanner";
 import { TodaySummaryHeader } from "@/components/domain/TodaySummaryHeader";
 import { GoalsDisclaimer } from "@/components/domain/GoalsDisclaimer";
 import { StreakCounter } from "@/components/domain/StreakCounter";
 import { useStreak } from "@/lib/hooks/useStreak";
+
+/** Sobra entre o último card e o começo do degradê do composer. */
+const LIST_BREATHING_ROOM = 28;
+
+/**
+ * Espaço livre no fim da lista de refeições, em px.
+ *
+ * O composer flutua sobre a lista (position absolute, fora do fluxo), então
+ * nada empurra o último card para cima — sem esta folga ele fica embaixo do
+ * bloco sólido ou do degradê. A altura do bloco vem do `onLayout` em vez de
+ * ser estimada: ela muda com o safe area e cresce quando o input vira
+ * multilinha.
+ */
+function listBottomSpace(composerHeight: number): number {
+  return composerHeight + COMPOSER_FADE_HEIGHT + LIST_BREATHING_ROOM;
+}
 
 function detectLocale(): string {
   const tag = Localization.getLocales()[0]?.languageTag;
@@ -81,6 +98,7 @@ export default function HomeScreen() {
   const [activeTab, setActiveTab] = useState<HomeTab>("home");
   const { width } = useWindowDimensions();
   const isDesktop = width >= 1024;
+  const [composerHeight, setComposerHeight] = useState(0);
   const { data: streakView } = useStreak();
   const firstName = profile.full_name.split(" ")[0] ?? profile.full_name;
 
@@ -363,7 +381,10 @@ export default function HomeScreen() {
   }
 
   const listHeader = (
-    <View className="px-4 pb-2">
+    // Sem padding inferior: o respiro até o primeiro card vem da margem do
+    // próprio card, então o rótulo fica mais perto da lista que ele nomeia do
+    // que do dashboard acima — proximidade é o que agrupa os dois.
+    <View className="px-4">
       <View className="flex-row items-baseline justify-between gap-4">
         <Text className="text-xl font-display-bold text-neutral-800">Refeições</Text>
         <Text className="text-[13px] text-neutral-500" style={{ fontVariant: ["tabular-nums"] }}>
@@ -374,7 +395,7 @@ export default function HomeScreen() {
   );
 
   const macroPanel = (
-    <View className="gap-2 px-4 pb-2 pt-3">
+    <View className="gap-2 px-4 pb-4 pt-2">
       <Card variant="elevated" className="relative">
         <TodaySummaryHeader summary={summaryQuery.data} softMode={profile.soft_mode} />
         <Pressable
@@ -390,7 +411,9 @@ export default function HomeScreen() {
         </Pressable>
       </Card>
       {disclaimerOpen && (
-        <View className="flex-row items-start gap-2 rounded-2xl bg-neutral-100 p-3">
+        // 22 como o card acima: o disclaimer abre colado nele e é conteúdo
+        // inline, não uma superfície flutuante como o ErrorBanner.
+        <View className="flex-row items-start gap-2 rounded-[22px] bg-neutral-100 p-3">
           <Info size={16} color={colors.neutral[500]} />
           <Text className="flex-1 text-xs font-sans text-neutral-600">{GOALS_DISCLAIMER_TEXT}</Text>
         </View>
@@ -409,35 +432,39 @@ export default function HomeScreen() {
         <>
           {macroPanel}
           {listHeader}
-          {mealsQuery.isLoading ? (
-            <Pressable className="flex-1" onPress={Keyboard.dismiss} />
-          ) : items.length === 0 ? (
-            <Pressable className="flex-1" onPress={Keyboard.dismiss}>
-              <Card variant="flat" className="mx-4">
-                <EmptyMealsState />
-              </Card>
-            </Pressable>
-          ) : (
-            <Animated.FlatList
-              data={items}
-              keyExtractor={(m) => (m as OptimisticMeal).id}
-              renderItem={renderItem as never}
-              contentContainerStyle={{ paddingBottom: 140 }}
-              keyboardDismissMode="on-drag"
-              keyboardShouldPersistTaps="handled"
-              itemLayoutAnimation={LinearTransition.springify().damping(20).stiffness(180)}
-              refreshControl={
-                <RefreshControl
-                  refreshing={mealsQuery.isRefetching || summaryQuery.isRefetching}
-                  onRefresh={() => {
-                    void mealsQuery.refetch();
-                    void summaryQuery.refetch();
-                  }}
-                  tintColor={colors.primary[400]}
-                />
-              }
-            />
-          )}
+          {/* A lista é renderizada sempre, inclusive vazia: antes o estado
+              vazio era um Pressable solto, sem container rolável, e a tela
+              ficava morta — nem o bounce do iOS acontecia. O estado vazio virou
+              ListEmptyComponent para manter um único container de rolagem. */}
+          <Animated.FlatList
+            data={items}
+            keyExtractor={(m) => (m as OptimisticMeal).id}
+            renderItem={renderItem as never}
+            ListEmptyComponent={
+              mealsQuery.isLoading ? null : (
+                <Pressable onPress={Keyboard.dismiss}>
+                  <Card variant="flat" className="mx-4">
+                    <EmptyMealsState />
+                  </Card>
+                </Pressable>
+              )
+            }
+            alwaysBounceVertical
+            contentContainerStyle={{ paddingBottom: listBottomSpace(composerHeight), flexGrow: 1 }}
+            keyboardDismissMode="on-drag"
+            keyboardShouldPersistTaps="handled"
+            itemLayoutAnimation={LinearTransition.springify().damping(20).stiffness(180)}
+            refreshControl={
+              <RefreshControl
+                refreshing={mealsQuery.isRefetching || summaryQuery.isRefetching}
+                onRefresh={() => {
+                  void mealsQuery.refetch();
+                  void summaryQuery.refetch();
+                }}
+                tintColor={colors.primary[400]}
+              />
+            }
+          />
         </>
         <FeedTabContent />
         <AnalisesPanel />
@@ -446,15 +473,25 @@ export default function HomeScreen() {
           useAnimatedKeyboard instead of KeyboardAvoidingView because absolute
           children inside KAV don't observe the padding it adds. */}
       <Animated.View
+        onLayout={(e) => setComposerHeight(e.nativeEvent.layout.height)}
         style={[{ position: "absolute", left: 0, right: 0, bottom: 0 }, composerStyle]}
       >
-        <View className="bg-neutral-50 pb-2 pt-3">
+        {/* O degradê fica aqui, irmão do bloco sólido e ancorado logo acima
+            dele — e não dentro do MealComposer, onde se sobrepunha ao sólido e
+            cruzava o topo dele ainda translúcido. */}
+        <ComposerBackdrop />
+        {/* Sem padding próprio: o bloco sólido termina exatamente onde o
+            MealComposer termina. O `pt-3`/`pb-2` que havia aqui duplicava o
+            respiro que o composer já aplica internamente (e o de baixo é
+            derivado do safe area), e só rendia faixa opaca sobrando. */}
+        <View className="bg-neutral-50">
           <MealComposer
             onSend={handleSend}
             onAudioReady={handleAudioReady}
             onPhotoPress={handlePhotoPress}
             onScanPress={() => router.push("/(app)/scan" as never)}
             disabled={banner === "quota_exceeded"}
+            showBackdropFade={false}
             processing={
               createMeal.isPending || createMealAudio.isPending || createMealPhoto.isPending
             }

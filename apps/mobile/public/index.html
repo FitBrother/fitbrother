@@ -32,6 +32,15 @@
       body {
         overflow: hidden;
       }
+      /* A margem padrão de 8px do body deixava o documento 8px mais alto que a
+         viewport. Como o `overflow: hidden` acima proíbe o scroll do usuário
+         mas não o programático, o navegador rolava esses 8px sozinho ao abrir
+         o teclado (para revelar o input) e não voltava ao fechá-lo — o topo da
+         tela ficava cortado sem forma de recuperar. Sem margem não há o que
+         rolar. */
+      body {
+        margin: 0;
+      }
       /* These styles make the root element full-height */
       #root {
         display: flex;

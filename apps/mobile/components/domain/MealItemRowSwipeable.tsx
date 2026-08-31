@@ -12,7 +12,15 @@ import * as Haptics from "expo-haptics";
 import { Trash2 } from "lucide-react-native";
 import type { MealResponse } from "@fitbrother/shared";
 import { colors } from "@/lib/colors";
+import { radii } from "@/lib/radii";
 import { shadows } from "@/lib/shadows";
+
+/** Equivalente a `rounded-[22px] bg-white p-4`, que o Reanimated descartaria. */
+const rowCardStyle = {
+  borderRadius: radii.card,
+  backgroundColor: colors.white,
+  padding: 16,
+} as const;
 
 type MealItem = MealResponse["items"][number];
 
@@ -89,7 +97,10 @@ export function MealItemRowSwipeable({ item, onDelete }: Props) {
         </View>
 
         <GestureDetector gesture={pan}>
-          <Animated.View style={[cardStyle, shadows.card]} className="rounded-2xl bg-white p-4">
+          {/* Estilo inline, não className: o NativeWind não processa className
+              em componentes do Reanimated. As classes daqui eram descartadas
+              em silêncio, e a linha ficava sem fundo, sem raio e sem padding. */}
+          <Animated.View style={[cardStyle, shadows.card, rowCardStyle]}>
             <Text className="text-base font-sans-medium text-neutral-800">{item.description}</Text>
             <Text style={NUM} className="mt-1 text-sm font-sans text-neutral-500">
               {item.quantity} {item.unit} · {Math.round(item.kcal)} kcal

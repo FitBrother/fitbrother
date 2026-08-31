@@ -26,7 +26,11 @@ export function LeaderboardRow({
 }: LeaderboardRowProps) {
   return (
     <View
-      className={`flex-row items-center rounded-2xl p-3 ${
+      // 22px = o raio EFETIVO da barra de abas, que é `rounded-full` sobre 44px
+      // de altura. `rounded-full` aqui daria 32, porque a linha tem ~64px por
+      // causa do avatar — mesma classe, curva diferente. O valor fixo é o que
+      // faz as duas curvas baterem de fato.
+      className={`flex-row items-center rounded-[22px] p-3 ${
         isMe ? "bg-primary-50" : "border border-neutral-200 bg-white"
       }`}
       accessibilityRole="text"

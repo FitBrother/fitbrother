@@ -45,7 +45,10 @@ const labelStyles: Record<ButtonVariant, string> = {
 };
 
 const sizeContainerStyles: Record<ButtonSize, string> = {
-  sm: "h-[40px] px-4",
+  // 44 e não 40: 40 ficava abaixo do alvo de toque mínimo de 44pt exigido pela
+  // CLAUDE.md, e 44 é a altura de controle do app (barra de abas, avatar, pill
+  // de ofensivas).
+  sm: "h-[44px] px-4",
   md: "h-[52px] px-6",
   lg: "h-[60px] px-8",
 };

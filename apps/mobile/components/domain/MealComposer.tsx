@@ -12,8 +12,9 @@ import Animated, {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
-import { Camera, Loader2, Mic, Plus, Send, Square, ScanLine } from "lucide-react-native";
+import { Camera, Loader2, Mic, Plus, Send, ScanLine } from "lucide-react-native";
 import { colors } from "@/lib/colors";
+import { radii } from "@/lib/radii";
 import { shadows } from "@/lib/shadows";
 import {
   cancelRecording,
@@ -46,6 +47,34 @@ type ComposerMode =
 
 type GestureIntent = "pressing" | "cancel" | "lock";
 type PendingAction = "send" | "cancel" | "lock" | null;
+
+/**
+ * Altura do gradiente que o composer projeta sobre o conteúdo atrás dele.
+ * A metade de baixo é opaca, então este é o trecho da tela em que um card de
+ * refeição fica ilegível — quem rola a lista precisa reservar esta folga.
+ */
+export const COMPOSER_BACKDROP_HEIGHT = 120;
+
+/** Equivalente a `h-12 w-12 items-center justify-center rounded-full`. */
+const micButtonStyle = {
+  width: 48,
+  height: 48,
+  alignItems: "center",
+  justifyContent: "center",
+  borderRadius: radii.full,
+} as const;
+
+/**
+ * Piso do respiro abaixo do composer, em px. É o mesmo passo de 8 da régua da
+ * Home — em tela sem safe area (web, Android sem barra de gestos) é este valor
+ * que vale.
+ */
+const COMPOSER_MIN_BOTTOM_PAD = 8;
+
+/** Padding inferior do composer, derivado do safe area inset de baixo. */
+export function composerBottomPad(insetBottom: number): number {
+  return Math.max(insetBottom - 10, COMPOSER_MIN_BOTTOM_PAD);
+}
 
 const MULTILINE_THRESHOLD = 40;
 const CANCEL_PX = 80;
@@ -476,7 +505,7 @@ export function MealComposer({
     onSend(value);
   };
 
-  const bottomPad = Math.max(insets.bottom - 10, 6);
+  const bottomPad = composerBottomPad(insets.bottom);
   const recState = recorderStateOf(mode);
   const isRecording = recState !== null;
 
@@ -485,7 +514,7 @@ export function MealComposer({
   //   idle + text     → Send
   //   processing      → spinner
   //   pressing/hint   → Mic (held)
-  //   locked          → Square (tap to stop)
+  //   locked          → Send (tap to finish and send)
   const micIcon = (() => {
     if (processing)
       return (
@@ -493,8 +522,9 @@ export function MealComposer({
           <Loader2 size={20} color={colors.white} />
         </Animated.View>
       );
-    if (mode.kind === "recording-locked")
-      return <Square size={18} color={colors.white} fill={colors.white} />;
+    // Send, e não Square: o botão chama `finishAndSend` — parar e enviar são a
+    // mesma ação. O quadrado prometia só "parar" e escondia o envio.
+    if (mode.kind === "recording-locked") return <Send size={20} color={colors.white} />;
     if (hasText && !isRecording) return <Send size={20} color={colors.white} />;
     return <Mic size={20} color={colors.white} />;
   })();
@@ -503,7 +533,7 @@ export function MealComposer({
     if (mode.kind === "recording-starting") return "Soltar para enviar gravação";
     if (mode.kind === "recording-pressing") return "Soltar para enviar gravação";
     if (mode.kind === "cancel-hint") return "Soltar para cancelar gravação";
-    if (mode.kind === "recording-locked") return "Parar gravação";
+    if (mode.kind === "recording-locked") return "Enviar gravação";
     if (hasText) return "Enviar refeição";
     return Platform.OS === "web" ? "Gravar áudio" : "Gravar áudio — segure";
   })();
@@ -520,7 +550,7 @@ export function MealComposer({
             left: 0,
             right: 0,
             bottom: 0,
-            height: 120 + bottomPad,
+            height: COMPOSER_BACKDROP_HEIGHT + bottomPad,
           }}
         />
       )}
@@ -546,7 +576,7 @@ export function MealComposer({
             <View
               style={shadows.floating}
               className={[
-                "min-h-[48px] flex-1 justify-center rounded-[24px] bg-white px-4",
+                "min-h-[48px] flex-1 justify-center rounded-[22px] bg-white px-4",
                 isMultiline ? "py-2" : "",
               ].join(" ")}
             >
@@ -653,12 +683,15 @@ export function MealComposer({
               {micIcon}
             </Pressable>
           ) : mode.kind === "recording-locked" ? (
+            // Primary, não danger: aqui o botão envia, e enviar texto (acima)
+            // já é primary — mesma ação, mesma cor. O vermelho passa a marcar
+            // só a gravação ao vivo no nativo, onde soltar ainda pode cancelar.
             <Pressable
               onPress={finishAndSend}
               accessibilityLabel={micAccessibilityLabel}
               accessibilityRole="button"
               style={shadows.floating}
-              className="h-12 w-12 items-center justify-center rounded-full bg-danger-500 active:bg-danger-600"
+              className="h-12 w-12 items-center justify-center rounded-full bg-primary-400 active:bg-primary-500"
             >
               {micIcon}
             </Pressable>
@@ -678,15 +711,19 @@ export function MealComposer({
             </Pressable>
           ) : (
             <GestureDetector gesture={pan}>
+              {/* Estilo inline, não className: o NativeWind não processa
+                  className em componentes do Reanimated. Este é o botão de
+                  microfone do nativo (no web é o Pressable acima) e as classes
+                  eram descartadas — ficava sem tamanho e sem fundo. */}
               <Animated.View
                 accessible
                 accessibilityLabel={micAccessibilityLabel}
                 accessibilityRole="button"
-                style={shadows.floating}
-                className={[
-                  "h-12 w-12 items-center justify-center rounded-full",
-                  isRecording ? "bg-danger-500" : "bg-primary-400 active:bg-primary-500",
-                ].join(" ")}
+                style={[
+                  shadows.floating,
+                  micButtonStyle,
+                  { backgroundColor: isRecording ? colors.danger[500] : colors.primary[400] },
+                ]}
               >
                 {micIcon}
               </Animated.View>

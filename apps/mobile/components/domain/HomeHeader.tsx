@@ -12,10 +12,12 @@ import { colors } from "@/lib/colors";
 import { Motion } from "@/lib/motion";
 import { shadows } from "@/lib/shadows";
 import { profileInitials } from "@/lib/account-utils";
+import { useAvatarUrl } from "@/lib/hooks/useAvatarUrl";
 import { useAuthSession } from "@/lib/hooks/useAuthSession";
 import { useStreak } from "@/lib/hooks/useStreak";
 import { useProfile } from "@/lib/profile/profile-context";
 import { StreakCounter } from "@/components/domain/StreakCounter";
+import { Avatar } from "@/components/Avatar";
 
 export type HomeTab = "home" | "feed" | "analises";
 
@@ -27,6 +29,21 @@ export const TABS: { key: HomeTab; label: string; Icon: typeof HomeIcon }[] = [
 
 /** Padding interno da barra de abas, em px (equivale ao `p-[3px]`). */
 const TAB_BAR_PADDING = 3;
+
+/** Diâmetro do botão de perfil — casado com a altura do pill de ofensivas. */
+export const AVATAR_SIZE = 44;
+
+/**
+ * Altura de cada aba, em px. Derivada do avatar em vez de fixa: somada ao
+ * padding das duas pontas, a barra fecha nos mesmos 44 dos vizinhos. Antes a
+ * aba tinha 44 e a barra fechava em 50, mais alta que o avatar e o pill.
+ */
+const TAB_HEIGHT = AVATAR_SIZE - TAB_BAR_PADDING * 2;
+
+/** Altura total da barra de abas, incluindo o padding das duas pontas. */
+export function tabBarHeight(): number {
+  return TAB_HEIGHT + TAB_BAR_PADDING * 2;
+}
 
 /**
  * Largura de cada aba dentro da barra, descontado o padding das duas pontas.
@@ -59,6 +76,7 @@ export function HomeHeader({
   const session = useAuthSession();
   const email = session.status === "signed_in" ? (session.session.user.email ?? null) : null;
   const initials = profileInitials(profile.full_name, email);
+  const avatarUrl = useAvatarUrl(profile.avatar_url);
 
   // Indicador deslizante da aba ativa. A largura da barra só é conhecida depois
   // do layout, então o indicador só é renderizado a partir daí.
@@ -86,7 +104,9 @@ export function HomeHeader({
   }));
 
   return (
-    <View className="gap-2 px-4 pt-2 pb-1 md:hidden">
+    // Sem padding inferior: quem define o respiro até o dashboard é o `pt-2`
+    // do painel de macros, para o gap não sair da soma de dois paddings.
+    <View className="gap-2 px-4 pt-2 md:hidden">
       <View className="flex-row items-center justify-between">
         {!softMode && streakView ? (
           <Pressable
@@ -112,11 +132,10 @@ export function HomeHeader({
           accessibilityRole="button"
           className="min-h-[44px] min-w-[44px] items-center justify-center"
         >
-          <View
-            style={shadows.floating}
-            className="h-11 w-11 items-center justify-center rounded-full bg-primary-100"
-          >
-            <Text className="font-sans-bold text-sm text-primary-800">{initials}</Text>
+          {/* O wrapper carrega a sombra e repete o fundo do Avatar porque o
+              `elevation` do Android não desenha sombra em View transparente. */}
+          <View style={shadows.floating} className="rounded-full bg-primary-100">
+            <Avatar uri={avatarUrl} initials={initials} size={AVATAR_SIZE} />
           </View>
         </Pressable>
       </View>
@@ -154,7 +173,12 @@ export function HomeHeader({
               accessibilityRole="button"
               accessibilityLabel={label}
               accessibilityState={{ selected: active }}
-              className="min-h-[44px] flex-1 flex-row items-center justify-center gap-1.5 rounded-full active:opacity-70"
+              // O hitSlop recompõe os 44pt de alvo de toque que a altura menor
+              // tira: 38 de altura + 3 de folga de cada lado (o mesmo
+              // TAB_BAR_PADDING da barra) chega de novo em 44.
+              hitSlop={{ top: TAB_BAR_PADDING, bottom: TAB_BAR_PADDING }}
+              style={{ minHeight: TAB_HEIGHT }}
+              className="flex-1 flex-row items-center justify-center gap-1.5 rounded-full active:opacity-70"
             >
               <Icon size={15} color={active ? colors.neutral[900] : colors.neutral[400]} />
               <Text
