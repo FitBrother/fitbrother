@@ -21,6 +21,20 @@
     <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16.png" />
 
+    <!-- Captura o beforeinstallprompt o mais cedo possível, fora do React —
+         o Chrome pode disparar esse evento antes do bundle (5+MB) terminar
+         de carregar e montar, e o evento só dispara uma vez por carregamento
+         de página. Um listener só dentro de um useEffect perderia esse
+         disparo sempre que ele chegar antes da montagem; guardamos aqui pra
+         useInstallPrompt.ts ler depois, sempre que montar. -->
+    <script>
+      window.__fbInstallPromptEvent = null;
+      window.addEventListener("beforeinstallprompt", function (event) {
+        event.preventDefault();
+        window.__fbInstallPromptEvent = event;
+      });
+    </script>
+
     <!-- The `react-native-web` recommended style reset: https://necolas.github.io/react-native-web/docs/setup/#root-element -->
     <style id="expo-reset">
       /* These styles make the body full-height */

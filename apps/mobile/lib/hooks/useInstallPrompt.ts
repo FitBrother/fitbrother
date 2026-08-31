@@ -6,11 +6,18 @@ type BeforeInstallPromptEvent = Event & {
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 };
 
+declare global {
+  interface Window {
+    __fbInstallPromptEvent?: BeforeInstallPromptEvent | null;
+  }
+}
+
 type InstallPromptState =
   | { status: "native" }
   | { status: "installed" }
   | { status: "installable-chrome"; promptEvent: BeforeInstallPromptEvent }
   | { status: "installable-ios" }
+  | { status: "installable-mac-safari" }
   | { status: "unsupported" };
 
 function isStandalone(): boolean {
@@ -24,22 +31,60 @@ function isStandalone(): boolean {
   return Boolean(displayModeStandalone || iosStandalone);
 }
 
-function isIosSafari(): boolean {
+// iPadOS 13+ se anuncia como "Macintosh" por padrão (modo desktop) — só o
+// touch de múltiplos pontos denuncia que é um iPad, não um Mac de verdade.
+function isTouchMac(ua: string): boolean {
+  return (
+    /macintosh/.test(ua) &&
+    typeof navigator !== "undefined" &&
+    typeof navigator.maxTouchPoints === "number" &&
+    navigator.maxTouchPoints > 1
+  );
+}
+
+/**
+ * Todo navegador em iOS/iPadOS roda sobre o motor WebKit da Apple (é
+ * exigência da própria loja) — Chrome, Firefox e Edge no iOS têm o MESMO
+ * botão "Adicionar à Tela de Início" dentro do MESMO menu de compartilhar
+ * do sistema, não é exclusivo do Safari. Checar só Safari deixava usuário
+ * de qualquer outro navegador no iPhone sem instrução nenhuma.
+ */
+function isIosDevice(): boolean {
   if (typeof navigator === "undefined") return false;
   const ua = navigator.userAgent.toLowerCase();
-  const isIos = /iphone|ipad|ipod/.test(ua);
-  const isOtherIosBrowser = /crios|fxios|edgios/.test(ua);
-  return isIos && !isOtherIosBrowser;
+  return /iphone|ipad|ipod/.test(ua) || isTouchMac(ua);
+}
+
+/**
+ * Safari no macOS não dispara beforeinstallprompt e não segue o fluxo do
+ * iOS (é "Adicionar ao Dock", não "à Tela de Início") — merece um guia
+ * próprio em vez de cair em "não suportado".
+ */
+function isMacSafari(): boolean {
+  if (typeof navigator === "undefined") return false;
+  const ua = navigator.userAgent.toLowerCase();
+  const isRealMac = /macintosh/.test(ua) && !isTouchMac(ua);
+  const isSafariEngine =
+    /safari/.test(ua) && !/chrome|chromium|crios|edg|opr|firefox|fxios/.test(ua);
+  return isRealMac && isSafariEngine;
+}
+
+function initialState(): InstallPromptState {
+  if (Platform.OS !== "web") return { status: "native" };
+  if (isStandalone()) return { status: "installed" };
+  // O Chrome pode ter disparado beforeinstallprompt antes deste hook montar
+  // — o listener em public/index.html já capturou e guardou o evento.
+  if (typeof window !== "undefined" && window.__fbInstallPromptEvent) {
+    return { status: "installable-chrome", promptEvent: window.__fbInstallPromptEvent };
+  }
+  if (isIosDevice()) return { status: "installable-ios" };
+  if (isMacSafari()) return { status: "installable-mac-safari" };
+  return { status: "unsupported" };
 }
 
 /** Estado do fluxo de "Adicionar à Tela de Início" — no-op fora da web. */
 export function useInstallPrompt(): InstallPromptState {
-  const [state, setState] = useState<InstallPromptState>(() => {
-    if (Platform.OS !== "web") return { status: "native" };
-    if (isStandalone()) return { status: "installed" };
-    if (isIosSafari()) return { status: "installable-ios" };
-    return { status: "unsupported" };
-  });
+  const [state, setState] = useState<InstallPromptState>(initialState);
 
   useEffect(() => {
     if (Platform.OS !== "web" || isStandalone()) return;
