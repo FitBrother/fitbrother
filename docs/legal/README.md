@@ -50,9 +50,9 @@ registrar a nova versão em `consent_log`.
 O art. 11, I da LGPD exige consentimento **específico e destacado** para dado
 sensível. O escopo `health_data` cobre isso, separado do genérico `privacy`:
 
-- Enum em `0072_health_data_consent_enum.sql` (migration isolada — valor de enum
+- Enum em `0073_health_data_consent_enum.sql` (migration isolada — valor de enum
   não pode ser usado na mesma transação em que é criado)
-- Trava obrigatória e backfill em `0073_health_data_consent.sql`
+- Trava obrigatória e backfill em `0074_health_data_consent.sql`
 - Bloco visualmente destacado em `ConsentBlock.tsx` — borda, ícone e a lista
   explícita do que é coletado, deliberadamente diferente dos outros checkboxes
 
