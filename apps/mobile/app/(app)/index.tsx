@@ -18,7 +18,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import * as Localization from "expo-localization";
 import { pickImage } from "@/lib/media/image-picker";
 import { Info } from "lucide-react-native";
@@ -40,6 +40,7 @@ import { useCreateMealAudio } from "@/lib/hooks/useCreateMealAudio";
 import { useCreateMealPhoto } from "@/lib/hooks/useCreateMealPhoto";
 import { QuotaExceededError, getErrorStatus } from "@/lib/api/meals";
 import { colors } from "@/lib/colors";
+import { Motion } from "@/lib/motion";
 import { uploadMealAudio, uploadMealPhoto } from "@/lib/storage";
 import type { AudioExtension } from "@/lib/audio/recorder";
 import { Card } from "@/components/Card";
@@ -101,6 +102,40 @@ export default function HomeScreen() {
   const [composerHeight, setComposerHeight] = useState(0);
   const { data: streakView } = useStreak();
   const firstName = profile.full_name.split(" ")[0] ?? profile.full_name;
+
+  // `entering` do Reanimated só dispara na primeira montagem do componente —
+  // a Home é a tela-base da stack e não desmonta ao navegar pra outra tela e
+  // voltar, então a animação nunca repetia. Também não roda no target web
+  // (limitação conhecida das layout animations do Reanimated 4 lá). Por isso
+  // animamos manualmente e refazemos toda vez que a tela ganha foco.
+  //
+  // Mesmo motivo pelo qual o preenchimento dos anéis/barras de macro (dentro
+  // de TodaySummaryHeader) não replay ao voltar pra Home: eles animam via
+  // `useEffect` disparado quando o valor muda, mas o valor já vem do cache do
+  // React Query e não muda — então trocamos a `key` a cada foco pra forçar o
+  // remount e o replay da animação de preenchimento deles.
+  const summaryOpacity = useSharedValue(0);
+  const summaryTranslateY = useSharedValue(12);
+  const [summaryFocusKey, setSummaryFocusKey] = useState(0);
+  useFocusEffect(
+    useCallback(() => {
+      setSummaryFocusKey((k) => k + 1);
+      summaryOpacity.value = 0;
+      summaryTranslateY.value = 12;
+      summaryOpacity.value = withTiming(1, {
+        duration: Motion.duration.base,
+        easing: Motion.easing.standard,
+      });
+      summaryTranslateY.value = withTiming(0, {
+        duration: Motion.duration.base,
+        easing: Motion.easing.standard,
+      });
+    }, [summaryOpacity, summaryTranslateY]),
+  );
+  const summaryCardStyle = useAnimatedStyle(() => ({
+    opacity: summaryOpacity.value,
+    transform: [{ translateY: summaryTranslateY.value }],
+  }));
 
   const items = (mealsQuery.data ?? []) as OptimisticMeal[];
 
@@ -313,9 +348,15 @@ export default function HomeScreen() {
 
         <View className="mx-auto w-full max-w-[1120px] flex-1 flex-row items-start gap-8">
           <View className="sticky top-[124px] w-[320px] shrink-0 gap-5 xl:w-[400px]">
-            <Card variant="elevated">
-              <TodaySummaryHeader summary={summaryQuery.data} softMode={profile.soft_mode} />
-            </Card>
+            <Animated.View style={summaryCardStyle}>
+              <Card variant="elevated">
+                <TodaySummaryHeader
+                  key={summaryFocusKey}
+                  summary={summaryQuery.data}
+                  softMode={profile.soft_mode}
+                />
+              </Card>
+            </Animated.View>
             <GoalsDisclaimer />
           </View>
 
@@ -396,20 +437,26 @@ export default function HomeScreen() {
 
   const macroPanel = (
     <View className="gap-2 px-4 pb-4 pt-2">
-      <Card variant="elevated" className="relative">
-        <TodaySummaryHeader summary={summaryQuery.data} softMode={profile.soft_mode} />
-        <Pressable
-          onPress={() => setDisclaimerOpen((v) => !v)}
-          accessibilityLabel={
-            disclaimerOpen ? "Esconder aviso sobre as metas" : "Sobre estas metas"
-          }
-          accessibilityRole="button"
-          hitSlop={8}
-          className="absolute bottom-2 right-2 h-8 w-8 items-center justify-center rounded-full"
-        >
-          <Info size={16} color={colors.neutral[400]} />
-        </Pressable>
-      </Card>
+      <Animated.View style={summaryCardStyle}>
+        <Card variant="elevated" className="relative">
+          <TodaySummaryHeader
+            key={summaryFocusKey}
+            summary={summaryQuery.data}
+            softMode={profile.soft_mode}
+          />
+          <Pressable
+            onPress={() => setDisclaimerOpen((v) => !v)}
+            accessibilityLabel={
+              disclaimerOpen ? "Esconder aviso sobre as metas" : "Sobre estas metas"
+            }
+            accessibilityRole="button"
+            hitSlop={8}
+            className="absolute bottom-2 right-2 h-8 w-8 items-center justify-center rounded-full"
+          >
+            <Info size={16} color={colors.neutral[400]} />
+          </Pressable>
+        </Card>
+      </Animated.View>
       {disclaimerOpen && (
         // 22 como o card acima: o disclaimer abre colado nele e é conteúdo
         // inline, não uma superfície flutuante como o ErrorBanner.
