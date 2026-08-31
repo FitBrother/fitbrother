@@ -88,10 +88,29 @@ const Footer = () => {
             <h4 className="footer__column-title">Legal</h4>
             <ul className="footer__links">
               <li>
-                <span className="footer__link">Termos de Uso</span>
+                <a href="/termos" className="footer__link">
+                  Termos de Uso
+                </a>
               </li>
               <li>
-                <span className="footer__link">Privacidade</span>
+                <a href="/privacidade" className="footer__link">
+                  Privacidade
+                </a>
+              </li>
+              <li>
+                <a href="/exclusao-de-dados" className="footer__link">
+                  Exclusão de dados
+                </a>
+              </li>
+              <li>
+                <a href="/aviso-de-saude" className="footer__link">
+                  Saúde e IA
+                </a>
+              </li>
+              <li>
+                <a href="/cookies" className="footer__link">
+                  Cookies
+                </a>
               </li>
             </ul>
           </div>
