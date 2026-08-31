@@ -46,6 +46,7 @@ export function MealCardSwipeable({ meal, onPress, onDelete }: Props) {
 
   const pan = Gesture.Pan()
     .activeOffsetX([-12, 12])
+    .failOffsetY([-12, 12])
     .onStart(() => {
       startX.value = translateX.value;
     })
@@ -102,8 +103,13 @@ export function MealCardSwipeable({ meal, onPress, onDelete }: Props) {
         </View>
 
         {/* Foreground card. The Pan gesture lives on this layer so taps still
-            propagate to MealCard's Pressable. */}
-        <GestureDetector gesture={pan}>
+            propagate to MealCard's Pressable. touchAction="pan-y" (web
+            only): without it this GestureDetector defaults to
+            touch-action:none on its DOM node, blocking the FlatList's
+            native vertical scroll under almost the whole row — same fix
+            as SwipeableTabs (5930b23), needed on every nested
+            GestureDetector, not just the outer pager. */}
+        <GestureDetector gesture={pan} touchAction="pan-y">
           <Animated.View style={cardStyle}>
             <MealCard meal={meal} onPress={onPress} />
           </Animated.View>

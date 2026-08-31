@@ -46,6 +46,7 @@ export function MealItemRowSwipeable({ item, onDelete }: Props) {
 
   const pan = Gesture.Pan()
     .activeOffsetX([-12, 12])
+    .failOffsetY([-12, 12])
     .onStart(() => {
       startX.value = translateX.value;
     })
@@ -96,7 +97,11 @@ export function MealItemRowSwipeable({ item, onDelete }: Props) {
           </Animated.View>
         </View>
 
-        <GestureDetector gesture={pan}>
+        {/* touchAction="pan-y" (web only): sem isso este GestureDetector cai
+            no touch-action:none padrão, bloqueando o scroll nativo da lista
+            de itens embaixo dele — mesmo bug já corrigido em
+            SwipeableTabs/MealCardSwipeable. */}
+        <GestureDetector gesture={pan} touchAction="pan-y">
           {/* Estilo inline, não className: o NativeWind não processa className
               em componentes do Reanimated. As classes daqui eram descartadas
               em silêncio, e a linha ficava sem fundo, sem raio e sem padding. */}
