@@ -7,6 +7,7 @@ import { GoogleIcon } from "@/components/domain/GoogleIcon";
 import { Input } from "@/components/Input";
 import { OnboardingChapterShell } from "@/components/onboarding/OnboardingChapterShell";
 import { PasswordInput, passwordStrength } from "@/components/PasswordInput";
+import { resolveSignupConflict } from "@/lib/api";
 import { colors } from "@/lib/colors";
 import { friendlyAuthError } from "@/lib/errors";
 import { useAuthSession } from "@/lib/hooks/useAuthSession";
@@ -58,18 +59,25 @@ export function SignupBlock({ onNext, onBack, chapter }: OnboardingBlockProps) {
     let cancelled = false;
     // O linkIdentity/updateUser do GoTrue só barra colisão de e-mail contra
     // outra conta já CONFIRMADA — uma conta abandonada antes de confirmar
-    // fica invisível pra esse check (ver migration 0071). Sem essa segunda
-    // checagem aqui, uma sessão anônima nova conseguiria virar conta real
-    // com o mesmo e-mail de uma conta já existente, ainda não confirmada.
-    void supabase.rpc("fitbrother_signup_conflict", { p_email: email }).then(({ data }) => {
-      if (cancelled) return;
-      if (data) {
-        setConflictDetected(true);
-        void supabase.auth.signOut().then(() => router.replace("/(auth)/sign-in"));
-        return;
-      }
-      onNext();
-    });
+    // fica invisível pra esse check. O server decide (via
+    // fitbrother_find_signup_conflict, migration 0072): se a conta
+    // conflitante estiver claramente abandonada, ele apaga e libera; senão,
+    // devolve resolved:false e a gente trata como conflito de verdade.
+    void resolveSignupConflict()
+      .then(({ resolved }) => {
+        if (cancelled) return;
+        if (!resolved) {
+          setConflictDetected(true);
+          void supabase.auth.signOut().then(() => router.replace("/(auth)/sign-in"));
+          return;
+        }
+        onNext();
+      })
+      .catch(() => {
+        // Falha de rede/servidor não deve travar quem nunca teve conflito
+        // nenhum — segue o fluxo normalmente.
+        if (!cancelled) onNext();
+      });
     return () => {
       cancelled = true;
     };

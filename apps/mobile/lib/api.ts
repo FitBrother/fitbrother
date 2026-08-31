@@ -108,6 +108,19 @@ export async function patchOnboardingProgress(body: {
   if (!res.ok) throw new Error(`onboarding_progress_patch_failed_${res.status}`);
 }
 
+/**
+ * Chamado assim que a sessão anônima vira conta real (e-mail confirmado, seja
+ * pelo caminho e-mail/senha ou por linkar um provider). O server checa se já
+ * existe OUTRA conta com esse e-mail travada num cadastro nunca confirmado —
+ * se achar e parecer abandonada de vez, apaga e libera; senão, `resolved:
+ * false` e a UI trata como conflito de verdade.
+ */
+export async function resolveSignupConflict(): Promise<{ resolved: boolean }> {
+  const res = await authedFetch("/onboarding/resolve-signup-conflict", { method: "POST" });
+  if (!res.ok) throw new Error(`resolve_signup_conflict_failed_${res.status}`);
+  return res.json();
+}
+
 export async function getMe() {
   const res = await authedFetch("/me");
   if (!res.ok) {
