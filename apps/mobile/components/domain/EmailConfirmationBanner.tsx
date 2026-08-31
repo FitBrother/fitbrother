@@ -11,7 +11,7 @@ import { useAuthSession } from "@/lib/hooks/useAuthSession";
  * à conta pra sempre. Esse banner é o único aviso visível disso (o e-mail de
  * confirmação em si é fácil de perder/ignorar).
  */
-export function EmailConfirmationBanner() {
+export function EmailConfirmationBanner({ className = "" }: { className?: string }) {
   const authSession = useAuthSession();
   if (authSession.status !== "signed_in") return null;
 
@@ -20,7 +20,9 @@ export function EmailConfirmationBanner() {
   if (!pendingEmail) return null;
 
   return (
-    <View className="flex-row items-start gap-3 rounded-2xl border border-warning-400 bg-warning-50 p-4">
+    <View
+      className={`flex-row items-start gap-3 rounded-2xl border border-warning-400 bg-warning-50 p-4 ${className}`}
+    >
       <AlertTriangle size={20} color={colors.warning[500]} />
       <View className="flex-1 gap-1">
         <Text className="font-sans-semibold text-sm text-neutral-800">Confirme seu e-mail</Text>

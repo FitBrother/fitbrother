@@ -155,6 +155,7 @@ export default function ProfileScreen() {
       </View>
       <ScrollView contentContainerClassName="gap-6 px-5 pb-10 pt-3">
         <EmailConfirmationBanner />
+        <InstallPrompt />
         <View className="items-center">
           <Pressable
             onPress={() => setAvatarModal("actions")}
@@ -220,7 +221,6 @@ export default function ProfileScreen() {
           />
           <MenuItem icon={Info} label="Sobre" onPress={() => router.push("/about" as never)} last />
         </MenuSection>
-        <InstallPrompt />
         <Pressable
           onPress={() => supabase.auth.signOut()}
           accessibilityRole="button"

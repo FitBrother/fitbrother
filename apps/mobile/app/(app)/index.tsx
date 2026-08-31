@@ -52,6 +52,7 @@ import { MealCardSwipeable } from "@/components/domain/MealCardSwipeable";
 import { MealCardSkeleton } from "@/components/domain/MealCardSkeleton";
 import { MealComposer } from "@/components/domain/MealComposer";
 import { ComposerBackdrop, COMPOSER_FADE_HEIGHT } from "@/components/domain/ComposerBackdrop";
+import { EmailConfirmationBanner } from "@/components/domain/EmailConfirmationBanner";
 import { EmptyMealsState } from "@/components/domain/EmptyMealsState";
 import { ErrorBanner, type ErrorBannerVariant } from "@/components/domain/ErrorBanner";
 import { TodaySummaryHeader } from "@/components/domain/TodaySummaryHeader";
@@ -471,6 +472,7 @@ export default function HomeScreen() {
   return (
     <SafeAreaView className="flex-1 bg-neutral-50" edges={["top", "left", "right"]}>
       <HomeHeader softMode={profile.soft_mode} activeTab={activeTab} onChangeTab={setActiveTab} />
+      <EmailConfirmationBanner className="mx-4 mt-2" />
       {banner && <ErrorBanner variant={banner} onDismiss={() => setBanner(null)} />}
       <SwipeableTabs
         index={TABS.findIndex((t) => t.key === activeTab)}
