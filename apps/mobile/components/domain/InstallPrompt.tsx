@@ -1,36 +1,22 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { Modal, Pressable, Text, View } from "react-native";
-import Animated, {
-  useAnimatedStyle,
-  useReducedMotion,
-  useSharedValue,
-  withRepeat,
-  withSequence,
-  withTiming,
-} from "react-native-reanimated";
-import {
-  ChevronDown,
-  ChevronUp,
-  Download,
-  MoreHorizontal,
-  Share,
-  SquarePlus,
-  X,
-} from "lucide-react-native";
+import { Download, MoreHorizontal, Share, SquarePlus, X } from "lucide-react-native";
 import { Button } from "@/components/Button";
 import { colors } from "@/lib/colors";
-import { Motion } from "@/lib/motion";
-import { iosGuideInfo, useInstallPrompt } from "@/lib/hooks/useInstallPrompt";
+import { iosGuideBrowser, useInstallPrompt } from "@/lib/hooks/useInstallPrompt";
 
 type GuideStepData = { icon: ReactNode; text: string };
 
 // Chrome iOS põe "Adicionar à Tela de Início" direto no menu (⋯) — sem
-// passar por Compartilhar. Safari usa o ícone de Compartilhar. Qualquer
-// outro navegador (Firefox/Edge iOS, minoria residual) cai num roteiro
-// genérico de 3 passos que cobre os dois casos.
-function stepsFor(browser: "safari" | "chrome" | "other"): GuideStepData[] {
-  const shareIcon = <Share size={20} color={colors.primary[400]} />;
-  const menuIcon = <MoreHorizontal size={20} color={colors.primary[400]} />;
+// passar por Compartilhar, e isso não muda com versão/configuração
+// (comportamento fixo do app). Safari e os demais navegadores variam
+// demais pra apostar num layout: o ícone de Compartilhar às vezes some
+// atrás de um menu (⋯/☰), e desde o iOS 15 dá pra trocar a posição da
+// barra inteira nos Ajustes — por isso o passo cobre as duas
+// possibilidades no próprio texto em vez de fingir uma aparência fixa.
+function stepsFor(browser: "chrome" | "other"): GuideStepData[] {
+  const shareIcon = <Share size={18} color={colors.primary[400]} />;
+  const menuIcon = <MoreHorizontal size={18} color={colors.primary[400]} />;
   const addIcon = <SquarePlus size={20} color={colors.primary[400]} />;
   if (browser === "chrome") {
     return [
@@ -38,62 +24,21 @@ function stepsFor(browser: "safari" | "chrome" | "other"): GuideStepData[] {
       { icon: addIcon, text: "Toque em “Adicionar à Tela de Início”" },
     ];
   }
-  if (browser === "safari") {
-    return [
-      { icon: shareIcon, text: "Toque no ícone de Compartilhar" },
-      { icon: addIcon, text: "Toque em “Adicionar à Tela de Início”" },
-    ];
-  }
   return [
-    { icon: menuIcon, text: "Toque no menu do navegador" },
-    { icon: shareIcon, text: "Toque em “Compartilhar”" },
-    { icon: addIcon, text: "Toque em “Adicionar à Tela de Início”" },
-  ];
-}
-
-/** Seta pulsando na direção da barra de ferramentas real do navegador —
- * o guia não sabe o pixel exato (varia por navegador/versão), mas apontar
- * "é ali embaixo"/"é ali em cima" já reduz a procura. */
-function ToolbarHint({ direction }: { direction: "down" | "up" }) {
-  const reducedMotion = useReducedMotion();
-  const offset = useSharedValue(0);
-
-  useEffect(() => {
-    if (reducedMotion) return;
-    const distance = direction === "down" ? 5 : -5;
-    offset.value = withRepeat(
-      withSequence(
-        withTiming(distance, { duration: 500, easing: Motion.easing.standard }),
-        withTiming(0, { duration: 500, easing: Motion.easing.standard }),
+    {
+      icon: (
+        <View className="flex-row gap-1">
+          {shareIcon}
+          {menuIcon}
+        </View>
       ),
-      -1,
-      false,
-    );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [reducedMotion, direction]);
-
-  const style = useAnimatedStyle(() => ({ transform: [{ translateY: offset.value }] }));
-  const Icon = direction === "down" ? ChevronDown : ChevronUp;
-
-  // Fora do cartão branco, sobre o fundo escurecido — dentro do cartão a
-  // seta lia como "aponta pro botão Entendi logo abaixo", não "olha pra
-  // fora deste cartão, pra sua barra de ferramentas de verdade".
-  const label = "Sua barra de ferramentas fica por aqui";
-  return (
-    <View className="items-center gap-1">
-      {direction === "up" && (
-        <Animated.View style={style}>
-          <Icon size={20} color={colors.primary[300]} />
-        </Animated.View>
-      )}
-      <Text className="font-sans-medium text-xs text-white/90">{label}</Text>
-      {direction === "down" && (
-        <Animated.View style={style}>
-          <Icon size={20} color={colors.primary[300]} />
-        </Animated.View>
-      )}
-    </View>
-  );
+      text: "Toque no ícone de Compartilhar — se não aparecer direto, toque no menu do navegador primeiro",
+    },
+    {
+      icon: addIcon,
+      text: "Toque em “Adicionar à Tela de Início” (dentro de Compartilhar, se for o caso)",
+    },
+  ];
 }
 
 function GuideStepRow({
@@ -130,8 +75,8 @@ export function InstallPrompt() {
   const install = useInstallPrompt();
   const [showGuide, setShowGuide] = useState(false);
 
-  const guideInfo = useMemo(
-    () => (install.status === "installable-ios" ? iosGuideInfo() : null),
+  const browser = useMemo(
+    () => (install.status === "installable-ios" ? iosGuideBrowser() : "other"),
     [install.status],
   );
 
@@ -171,7 +116,7 @@ export function InstallPrompt() {
   const steps: GuideStepData[] = isMacSafari
     ? [
         {
-          icon: <Share size={20} color={colors.primary[400]} />,
+          icon: <Share size={18} color={colors.primary[400]} />,
           text: "Clique no ícone de Compartilhar na barra de endereço",
         },
         {
@@ -179,11 +124,7 @@ export function InstallPrompt() {
           text: "Escolha “Adicionar ao Dock”",
         },
       ]
-    : stepsFor(guideInfo?.browser ?? "other");
-  // No Mac o menu de compartilhar fica na barra de endereço, no topo — sem
-  // ambiguidade, então o ponteiro só entra pro fluxo do iOS (varia por
-  // iPhone/iPad).
-  const hintDirection = !isMacSafari && guideInfo?.device === "pad" ? "up" : "down";
+    : stepsFor(browser);
 
   return (
     <>
@@ -206,9 +147,7 @@ export function InstallPrompt() {
         animationType="fade"
         onRequestClose={() => setShowGuide(false)}
       >
-        <View className="flex-1 items-center justify-center gap-4 bg-black/40 px-6">
-          {!isMacSafari && hintDirection === "up" && <ToolbarHint direction="up" />}
-
+        <View className="flex-1 items-center justify-center bg-black/40 px-6">
           <View className="w-full max-w-sm gap-4 rounded-2xl bg-white p-6">
             <View className="flex-row items-start justify-between">
               <Text className="flex-1 font-sans-bold text-lg text-neutral-800">{title}</Text>
@@ -230,8 +169,6 @@ export function InstallPrompt() {
 
             <Button label="Entendi" variant="outline" onPress={() => setShowGuide(false)} />
           </View>
-
-          {!isMacSafari && hintDirection === "down" && <ToolbarHint direction="down" />}
         </View>
       </Modal>
     </>

@@ -55,25 +55,24 @@ function isIosDevice(): boolean {
   return /iphone|ipad|ipod/.test(ua) || isTouchMac(ua);
 }
 
-export type IosGuideInfo = {
-  /** iPad tem a barra do navegador em cima; iPhone/iPod, embaixo. */
-  device: "phone" | "pad";
-  /** Só Safari e Chrome iOS têm menu suficientemente diferente pra valer um
-   * texto próprio — Firefox/Edge/outros caem no genérico "menu do navegador". */
-  browser: "safari" | "chrome" | "other";
-};
+/**
+ * Só o Chrome iOS tem posição confiável o bastante pra valer um texto
+ * próprio: "Adicionar à Tela de Início" é item direto do menu (⋯) dele,
+ * sem passar por Compartilhar — comportamento fixo do app, não muda com
+ * versão/config do usuário.
+ *
+ * Safari é o oposto: desde o iOS 15 dá pra trocar a barra entre topo e
+ * base nos Ajustes, e o ícone de Compartilhar às vezes fica atrás de um
+ * menu (⋯ ou ☰) em vez de aparecer direto — não dá pra apostar num layout
+ * fixo. Por isso Safari cai no mesmo texto genérico de "other", que já
+ * cobre as duas possibilidades no próprio enunciado do passo.
+ */
+export type IosGuideBrowser = "chrome" | "other";
 
-/** Detalhe pro guia visual de "Adicionar à Tela de Início" — só chamar quando `installable-ios`. */
-export function iosGuideInfo(): IosGuideInfo {
-  if (typeof navigator === "undefined") return { device: "phone", browser: "other" };
+export function iosGuideBrowser(): IosGuideBrowser {
+  if (typeof navigator === "undefined") return "other";
   const ua = navigator.userAgent.toLowerCase();
-  const device: IosGuideInfo["device"] = /ipad/.test(ua) || isTouchMac(ua) ? "pad" : "phone";
-  const browser: IosGuideInfo["browser"] = /crios/.test(ua)
-    ? "chrome"
-    : /safari/.test(ua) && !/crios|fxios|edgios/.test(ua)
-      ? "safari"
-      : "other";
-  return { device, browser };
+  return /crios/.test(ua) ? "chrome" : "other";
 }
 
 /**
