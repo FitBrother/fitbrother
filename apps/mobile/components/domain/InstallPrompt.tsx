@@ -75,10 +75,24 @@ function ToolbarHint({ direction }: { direction: "down" | "up" }) {
   const style = useAnimatedStyle(() => ({ transform: [{ translateY: offset.value }] }));
   const Icon = direction === "down" ? ChevronDown : ChevronUp;
 
+  // Fora do cartão branco, sobre o fundo escurecido — dentro do cartão a
+  // seta lia como "aponta pro botão Entendi logo abaixo", não "olha pra
+  // fora deste cartão, pra sua barra de ferramentas de verdade".
+  const label = "Sua barra de ferramentas fica por aqui";
   return (
-    <Animated.View style={style}>
-      <Icon size={18} color={colors.primary[300]} />
-    </Animated.View>
+    <View className="items-center gap-1">
+      {direction === "up" && (
+        <Animated.View style={style}>
+          <Icon size={20} color={colors.primary[300]} />
+        </Animated.View>
+      )}
+      <Text className="font-sans-medium text-xs text-white/90">{label}</Text>
+      {direction === "down" && (
+        <Animated.View style={style}>
+          <Icon size={20} color={colors.primary[300]} />
+        </Animated.View>
+      )}
+    </View>
   );
 }
 
@@ -192,7 +206,9 @@ export function InstallPrompt() {
         animationType="fade"
         onRequestClose={() => setShowGuide(false)}
       >
-        <View className="flex-1 items-center justify-center bg-black/40 px-6">
+        <View className="flex-1 items-center justify-center gap-4 bg-black/40 px-6">
+          {!isMacSafari && hintDirection === "up" && <ToolbarHint direction="up" />}
+
           <View className="w-full max-w-sm gap-4 rounded-2xl bg-white p-6">
             <View className="flex-row items-start justify-between">
               <Text className="flex-1 font-sans-bold text-lg text-neutral-800">{title}</Text>
@@ -206,26 +222,16 @@ export function InstallPrompt() {
               </Pressable>
             </View>
 
-            {!isMacSafari && hintDirection === "up" && (
-              <View className="items-center">
-                <ToolbarHint direction="up" />
-              </View>
-            )}
-
             <View>
               {steps.map((step, i) => (
                 <GuideStepRow key={i} number={i + 1} step={step} isLast={i === steps.length - 1} />
               ))}
             </View>
 
-            {!isMacSafari && hintDirection === "down" && (
-              <View className="items-center">
-                <ToolbarHint direction="down" />
-              </View>
-            )}
-
             <Button label="Entendi" variant="outline" onPress={() => setShowGuide(false)} />
           </View>
+
+          {!isMacSafari && hintDirection === "down" && <ToolbarHint direction="down" />}
         </View>
       </Modal>
     </>
