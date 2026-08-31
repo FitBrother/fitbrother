@@ -1404,7 +1404,13 @@ export type Database = {
     };
     Enums: {
       activity_level: "sedentary" | "light" | "moderate" | "active" | "very_active";
-      consent_scope: "terms" | "privacy" | "marketing" | "ai_processing" | "data_export";
+      consent_scope:
+        | "terms"
+        | "privacy"
+        | "marketing"
+        | "ai_processing"
+        | "data_export"
+        | "health_data";
       device_platform: "ios" | "android";
       food_source: "taco" | "usda" | "openfoodfacts" | "ai" | "user";
       friendship_status: "pending" | "accepted" | "blocked";
@@ -1564,7 +1570,14 @@ export const Constants = {
   public: {
     Enums: {
       activity_level: ["sedentary", "light", "moderate", "active", "very_active"],
-      consent_scope: ["terms", "privacy", "marketing", "ai_processing", "data_export"],
+      consent_scope: [
+        "terms",
+        "privacy",
+        "marketing",
+        "ai_processing",
+        "data_export",
+        "health_data",
+      ],
       device_platform: ["ios", "android"],
       food_source: ["taco", "usda", "openfoodfacts", "ai", "user"],
       friendship_status: ["pending", "accepted", "blocked"],

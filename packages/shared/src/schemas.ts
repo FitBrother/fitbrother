@@ -19,6 +19,9 @@ export const ConsentScopeSchema = z.enum([
   "marketing",
   "ai_processing",
   "data_export",
+  // Consentimento destacado para dado sensível de saúde (LGPD art. 11, I).
+  // Separado de `privacy` de propósito: a lei exige que seja específico.
+  "health_data",
 ]);
 export type ConsentScope = z.infer<typeof ConsentScopeSchema>;
 
@@ -298,6 +301,7 @@ export const OnboardingPayloadSchema = z.object({
     terms: z.literal(true),
     privacy: z.literal(true),
     ai_processing: z.literal(true),
+    health_data: z.literal(true),
     policy_version: z.string().default("v1.0"),
   }),
   target_weight_kg: z.number().positive().max(500).optional(),

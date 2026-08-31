@@ -9,6 +9,7 @@ import type {
 } from "@fitbrother/shared";
 import { authedFetch } from "@/lib/api";
 import { exportFilename } from "@/lib/account-utils";
+import { POLICY_VERSION } from "@/lib/constants";
 
 async function json<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await authedFetch(path, init);
@@ -34,7 +35,7 @@ export const patchAccountAvatar = (avatarUrl: string | null) =>
 export const setMarketingConsent = (granted: boolean) =>
   json<AccountConsentResponse>("/account/consent", {
     method: "POST",
-    body: JSON.stringify({ scope: "marketing", granted, policy_version: "v1.0" }),
+    body: JSON.stringify({ scope: "marketing", granted, policy_version: POLICY_VERSION }),
   });
 
 export async function getAccountExport(): Promise<{ bytes: Uint8Array; filename: string }> {
