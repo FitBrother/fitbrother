@@ -25,12 +25,36 @@ export function SignupBlock({ onNext, onBack, chapter }: OnboardingBlockProps) {
   // avançar). Detecta esse caso e pula a etapa em vez de pedir e-mail/senha
   // de novo pra uma conta que já existe.
   const authSession = useAuthSession();
+
+  // Guarda o user_id da sessão anônima assim que ela aparece — referência
+  // pra distinguir "minha sessão virou real" (mesmo id) de "acabei
+  // autenticado numa conta EXISTENTE diferente" (id mudou). linkIdentity()
+  // deveria só anexar uma identidade à sessão atual, nunca trocar de user_id
+  // — mas se o e-mail do provider já for de outra conta, o GoTrue pode optar
+  // por autenticar como essa conta existente em vez de recusar o link, sem
+  // mandar nenhum erro na volta (o que o handleOAuth abaixo já trata não
+  // cobre esse caso, já que não há erro nenhum pra capturar).
+  const originalUserIdRef = useRef<string | null>(null);
+  if (originalUserIdRef.current === null && authSession.status === "signed_in") {
+    originalUserIdRef.current = authSession.session.user.id;
+  }
+  const sameUser =
+    authSession.status === "signed_in" && authSession.session.user.id === originalUserIdRef.current;
   const alreadyUpgraded =
-    authSession.status === "signed_in" && authSession.session.user.is_anonymous === false;
+    authSession.status === "signed_in" &&
+    authSession.session.user.is_anonymous === false &&
+    sameUser;
+  const accountMismatch =
+    authSession.status === "signed_in" && originalUserIdRef.current !== null && !sameUser;
 
   useEffect(() => {
     if (alreadyUpgraded) onNext();
   }, [alreadyUpgraded, onNext]);
+
+  useEffect(() => {
+    if (!accountMismatch) return;
+    void supabase.auth.signOut().then(() => router.replace("/(auth)/sign-in"));
+  }, [accountMismatch]);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -115,7 +139,7 @@ export function SignupBlock({ onNext, onBack, chapter }: OnboardingBlockProps) {
     }
   }
 
-  if (authSession.status === "loading" || alreadyUpgraded) {
+  if (authSession.status === "loading" || alreadyUpgraded || accountMismatch) {
     return (
       <SafeAreaView className="flex-1 items-center justify-center bg-neutral-50">
         <ActivityIndicator size="large" color={colors.primary[400]} />
