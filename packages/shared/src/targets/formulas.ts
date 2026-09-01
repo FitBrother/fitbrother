@@ -74,6 +74,15 @@ const MAX_BMI_FOR_TARGET_WEIGHT = 33;
 // oferece valores que o próprio sistema recusa depois, no RevealBlock.
 const MIN_BMI_FOR_TARGET_WEIGHT = 18.6;
 
+/** Teto de ritmo como % do peso corporal por semana, por direção. Exportado
+ * porque o slider de ritmo do onboarding precisa do mesmo número que
+ * `computeTargets` aplica — se divergirem, o slider promete o que o cálculo
+ * não entrega. */
+export const RATE_CAP_PCT: Record<"lose" | "gain", number> = { lose: 1.0, gain: 0.5 };
+/** Teto de déficit/superávit como % do GET, por direção. Na prática é este
+ * que trava, não o RATE_CAP_PCT — ver computeRateBounds. */
+export const DEFICIT_CAP_PCT: Record<"lose" | "gain", number> = { lose: 25, gain: 15 };
+
 export type TargetWeightBounds = { min: number; max: number };
 
 /**
