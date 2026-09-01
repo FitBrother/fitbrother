@@ -6,7 +6,7 @@
  * - Título impactante com destaque em menta
  * - Subtítulo descritivo do app
  * - Badges das lojas (App Store / Google Play)
- * - Chips de destaque (IA · App+WhatsApp · Streaks)
+ * - Chips de destaque (IA · Voz/Foto · Streaks)
  * - Telefone construído em CSS com anel de calorias + macros
  *   (o slot data-screenshot="dashboard" recebe print real na Task 12)
  *
@@ -32,8 +32,8 @@ const Hero = () => (
         </h1>
 
         <p className="hero__description">
-          Fale ou escreva o que comeu — no app ou no WhatsApp — e a IA calcula tudo: calorias,
-          proteínas, carboidratos e gorduras. Com gamificação estilo Duolingo pra te manter no ritmo.
+          Fale, escreva ou fotografe o que comeu — e a IA calcula tudo: calorias, proteínas,
+          carboidratos e gorduras. Com gamificação estilo Duolingo pra te manter no ritmo.
         </p>
 
         <div className="hero__cta-row">
@@ -50,8 +50,8 @@ const Hero = () => (
             <span className="hero__metric-label">Nutricional</span>
           </div>
           <div className="hero__metric">
-            <span className="hero__metric-value">App + Zap</span>
-            <span className="hero__metric-label">Sincronizado</span>
+            <span className="hero__metric-value">Voz · Foto</span>
+            <span className="hero__metric-label">ou texto</span>
           </div>
           <div className="hero__metric">
             <span className="hero__metric-value">Streaks</span>

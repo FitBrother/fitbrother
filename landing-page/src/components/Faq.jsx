@@ -15,8 +15,12 @@ const faqs = [
     a: 'Não. Descreva do jeito que você fala — "dois ovos e uma fatia de pão" — e a IA estima as porções. Se quiser precisão, dá pra ajustar a quantidade depois.',
   },
   {
+    q: 'Dá pra registrar por foto?',
+    a: 'Dá. Fotografe o prato e a IA identifica os alimentos e estima os macros. Se o produto for embalado, dá pra escanear o código de barras.',
+  },
+  {
     q: 'Funciona pelo WhatsApp?',
-    a: 'Sim. Manda texto ou áudio pro número do Fitbrother e a refeição aparece no app em tempo real.',
+    a: 'Ainda não — está em desenvolvimento. Por enquanto você registra por voz, texto ou foto direto no app, inclusive pelo navegador.',
   },
   {
     q: 'Meus dados são meus?',
