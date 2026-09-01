@@ -50,8 +50,11 @@ export const SUMMARY = {
     valueFont: 18,
     valueFontCollapsed: 12,
     subFont: 12,
+    subFontCollapsed: 11,
     valueY: [33, 10],
     subY: [50, 10],
+    /** Folga entre o número e a meta quando ficam lado a lado. */
+    gap: 3,
   },
   /** Espaço entre o bloco de calorias e a linha de macros. */
   groupGap: [24, 12],
@@ -87,7 +90,6 @@ type MorphTextProps = {
   y: [number, number];
   /** Corpo da fonte: [expandido, colapsado]. O encolhimento vira `scale`. */
   font: [number, number];
-  fadeOut?: boolean;
   /**
    * Família e cor vão por `style`, não por `className`: o NativeWind não
    * processa className em componentes do Reanimated — a prop é aceita e
@@ -112,7 +114,6 @@ function MorphText({
   x,
   y,
   font,
-  fadeOut = false,
   fontFamily,
   color,
   onMeasure,
@@ -133,7 +134,6 @@ function MorphText({
         { translateX: lerp(x[0], x[1], t) - size.w / 2 },
         { translateY: lerp(y[0], y[1], t) - size.h / 2 },
       ],
-      opacity: fadeOut ? Math.max(0, 1 - t * 2.4) : 1,
     };
   });
 
@@ -188,6 +188,20 @@ function MacroMetric({
   const m = SUMMARY.macro;
   const centro = width / 2;
 
+  // Mesma medição do bloco de calorias: no colapsado o número e a meta ficam
+  // lado a lado, então é preciso saber a largura de cada um já com a fonte
+  // encolhida. A métrica escala junto com a fonte, daí a razão entre corpos.
+  const [valueWidth, setValueWidth] = useState(0);
+  const [subWidth, setSubWidth] = useState(0);
+  const larguraValor = valueWidth * (m.valueFontCollapsed / m.valueFont);
+  const larguraMeta = subWidth * (m.subFontCollapsed / m.subFont);
+
+  // O par vira um bloco só, centrado na coluna — senão "166g/160g" nasceria
+  // torto, com o número no meio e a meta transbordando pra direita.
+  const larguraPar = larguraValor + m.gap + larguraMeta;
+  const valorX = max ? centro - larguraPar / 2 + larguraValor / 2 : centro;
+  const metaX = centro + larguraPar / 2 - larguraMeta / 2;
+
   return (
     <View style={{ width }}>
       <View>
@@ -207,27 +221,28 @@ function MacroMetric({
         />
         <MorphText
           collapse={collapse}
-          x={[centro, centro]}
+          x={[centro, valorX]}
           y={[m.valueY[0], m.valueY[1]]}
           font={[m.valueFont, m.valueFontCollapsed]}
+          onMeasure={setValueWidth}
           fontFamily={FONT.display}
           color={colors.neutral[900]}
         >
           {fmtGrams(value)}
         </MorphText>
-        {/* A meta some no colapsado: a proporção preenchida da barra já diz o
-            mesmo, e três "/ 120g" numa faixa de 30px viram ruído. */}
+        {/* No colapsado a meta encosta no número ("166g/160g") em vez de
+            sumir: a barra sozinha mostra a proporção, mas não de quanto. */}
         {max ? (
           <MorphText
             collapse={collapse}
-            x={[centro, centro]}
+            x={[centro, metaX]}
             y={[m.subY[0], m.subY[1]]}
-            font={[m.subFont, m.subFont]}
-            fadeOut
+            font={[m.subFont, m.subFontCollapsed]}
+            onMeasure={setSubWidth}
             fontFamily={FONT.body}
             color={colors.neutral[500]}
           >
-            {`/ ${fmtGrams(max)}`}
+            {`/${fmtGrams(max)}`}
           </MorphText>
         ) : null}
       </View>
