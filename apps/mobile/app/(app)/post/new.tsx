@@ -2,7 +2,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { ChevronLeft, ImagePlus, X } from "lucide-react-native";
 import { randomUUID } from "expo-crypto";
 import { useState } from "react";
-import { Alert, Image, Keyboard, Pressable, Text, TextInput, View } from "react-native";
+import { Alert, Image, Pressable, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/Button";
@@ -83,11 +83,15 @@ export default function NewPostScreen() {
         <Text className="ml-2 text-xl font-display-bold text-neutral-800">Novo post</Text>
       </View>
 
-      <Pressable
-        onPress={() => Keyboard.dismiss()}
-        accessible={false}
-        className="flex-1 gap-4 px-4 pt-4"
-      >
+      {/* Era um Pressable com onPress={() => Keyboard.dismiss()} — na web,
+          Keyboard.dismiss() do react-native-web tira o foco do campo ativo
+          (TextInputState.blurTextInput), e o clique dentro do próprio
+          TextInput borbulhava pro Pressable pai: focava e perdia o foco no
+          mesmo toque, tornando impossível digitar a legenda. Nenhuma outra
+          tela do app (nem o MealComposer, o TextInput mais usado) usa esse
+          padrão — trocado por View simples, sem a conveniência de fechar o
+          teclado tocando fora. */}
+      <View className="flex-1 gap-4 px-4 pt-4">
         <TextInput
           value={caption}
           onChangeText={setCaption}
@@ -144,7 +148,7 @@ export default function NewPostScreen() {
             <Text className="mt-3 font-sans text-neutral-500">Carregando refeição...</Text>
           )}
         </View>
-      </Pressable>
+      </View>
 
       <View className="px-4 pb-4">
         <Button
