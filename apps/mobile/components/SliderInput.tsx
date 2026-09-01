@@ -106,7 +106,7 @@ export function SliderInput({
             <Minus size={16} color={colors.neutral[600]} />
           </Pressable>
 
-          <View className="h-11 min-w-[88px] flex-row items-center justify-center border-y border-neutral-200 bg-white px-2">
+          <View className="h-11 flex-row items-center justify-center border-y border-neutral-200 bg-white px-2">
             <TextInput
               value={text}
               onChangeText={handleChangeText}
@@ -117,7 +117,11 @@ export function SliderInput({
               }}
               onSubmitEditing={() => commit(text)}
               keyboardType="decimal-pad"
-              className="text-center text-base font-sans-semibold text-neutral-800"
+              // Largura explícita: na web o TextInput vira <input>, que assume
+              // a largura intrínseca padrão do navegador (~253px) e estoura a
+              // linha, espremendo o label. 56px cobre "220" e "0.55" com
+              // tabular-nums.
+              className="w-14 text-center text-base font-sans-semibold text-neutral-800"
               style={{ fontVariant: ["tabular-nums"] }}
               accessibilityLabel={`${label} — valor exato`}
             />

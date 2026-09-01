@@ -56,22 +56,32 @@ export function useEnterToContinue({
       if (!current.enabled || !current.onNext) return;
       if (!shouldAdvanceOnEnter(event)) return;
 
+      if (current.disabled) return;
+
       event.preventDefault();
       // O campo numérico do SliderInput faz o commit (parse + clamp) no
       // onBlur. Sem esse blur, digitar 185 e apertar Enter avançaria com o
       // valor antigo ainda no store.
+      //
+      // Síncrono de propósito, sem esperar um frame: `blur()` despacha o
+      // evento na hora, o commit escreve no store do zustand na hora, e o
+      // `onNext` lê via getState() — nada aqui depende de o React ter
+      // reconciliado. Uma versão anterior deferia com requestAnimationFrame
+      // e nunca avançava em aba em segundo plano, onde rAF fica suspenso.
       const active = document.activeElement as { blur?: () => void } | null;
       active?.blur?.();
 
-      // Um frame pro React reconciliar o commit antes de reler `disabled` —
-      // ler no mesmo tick pegaria o valor pré-blur.
-      requestAnimationFrame(() => {
-        const latest = state.current;
-        if (latest.enabled && latest.onNext && !latest.disabled) latest.onNext();
-      });
+      current.onNext();
     }
 
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    // Fase de CAPTURA, não bolha: o TextInput do React Native Web chama
+    // stopPropagation no Enter pra implementar onSubmitEditing, então um
+    // listener de bolha no window nunca veria a tecla vinda de um campo —
+    // que é justamente o caso principal (digitar 185 e apertar Enter).
+    // Ver o evento primeiro não atropela ninguém: a exclusão por seletor
+    // acima continua devolvendo o Enter pros elementos que o tratam
+    // sozinhos, e preventDefault não impede o handler do próprio campo.
+    window.addEventListener("keydown", handleKeyDown, true);
+    return () => window.removeEventListener("keydown", handleKeyDown, true);
   }, []);
 }
