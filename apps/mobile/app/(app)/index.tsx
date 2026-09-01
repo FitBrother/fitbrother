@@ -23,6 +23,7 @@ import * as Localization from "expo-localization";
 import { pickImage } from "@/lib/media/image-picker";
 import { Info } from "lucide-react-native";
 import { GOALS_DISCLAIMER_TEXT } from "@fitbrother/shared";
+import { reloadApp } from "@/lib/reload-app";
 import { useProfile } from "@/lib/profile/profile-context";
 import { nutritionalToday } from "@/lib/time/nutritional-day";
 import { useMealsForDay } from "@/lib/hooks/useMealsForDay";
@@ -94,6 +95,17 @@ export default function HomeScreen() {
   const summaryQuery = useDailySummary(day);
   useDailySummaryRealtime(userId, day);
   useMealsRealtime(userId, day);
+  // Puxar pra atualizar na Home recarrega o app inteiro na web (pega
+  // código novo do PWA instalado, ver lib/reload-app.ts) — no nativo não
+  // existe esse problema, então mantém só o refetch de dados de sempre.
+  function handleRefresh() {
+    if (Platform.OS === "web") {
+      reloadApp();
+      return;
+    }
+    void mealsQuery.refetch();
+    void summaryQuery.refetch();
+  }
   const deleteMeal = useDeleteMeal();
   const [banner, setBanner] = useState<ErrorBannerVariant | null>(null);
   const [disclaimerOpen, setDisclaimerOpen] = useState(false);
@@ -389,10 +401,7 @@ export default function HomeScreen() {
                 refreshControl={
                   <RefreshControl
                     refreshing={mealsQuery.isRefetching || summaryQuery.isRefetching}
-                    onRefresh={() => {
-                      void mealsQuery.refetch();
-                      void summaryQuery.refetch();
-                    }}
+                    onRefresh={handleRefresh}
                     tintColor={colors.primary[400]}
                   />
                 }
@@ -506,10 +515,7 @@ export default function HomeScreen() {
             refreshControl={
               <RefreshControl
                 refreshing={mealsQuery.isRefetching || summaryQuery.isRefetching}
-                onRefresh={() => {
-                  void mealsQuery.refetch();
-                  void summaryQuery.refetch();
-                }}
+                onRefresh={handleRefresh}
                 tintColor={colors.primary[400]}
               />
             }

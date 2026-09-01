@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { ActivityIndicator, FlatList, Text, View } from "react-native";
+import { ActivityIndicator, FlatList, Platform, Text, View } from "react-native";
 import type { Insight } from "@fitbrother/shared";
 import { InsightCard } from "@/components/domain/InsightCard";
 import { SubTabs } from "@/components/domain/SubTabs";
 import { colors } from "@/lib/colors";
 import { useInsights } from "@/lib/hooks/useInsights";
+import { reloadApp } from "@/lib/reload-app";
 
 const PERIODS = [
   { key: "day", label: "Dia" },
@@ -35,7 +36,10 @@ export function AnalisesPanel() {
           keyExtractor={(i: Insight) => i.id}
           contentContainerClassName="gap-4 px-4 pb-8"
           refreshing={q.isRefetching}
-          onRefresh={() => void q.refetch()}
+          // Puxar pra atualizar recarrega o app inteiro na web (pega código
+          // novo do PWA instalado, ver lib/reload-app.ts) — no nativo não
+          // existe esse problema, mantém o refetch escopado de sempre.
+          onRefresh={() => (Platform.OS === "web" ? reloadApp() : void q.refetch())}
           ListEmptyComponent={
             <View className="mt-16 items-center px-6">
               <Text className="text-center text-lg font-sans-bold text-neutral-800">

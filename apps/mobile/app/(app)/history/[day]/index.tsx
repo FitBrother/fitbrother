@@ -11,6 +11,7 @@ import { useProfile } from "@/lib/profile/profile-context";
 import { colors } from "@/lib/colors";
 import { TodaySummaryHeader } from "@/components/domain/TodaySummaryHeader";
 import { MealCard } from "@/components/domain/MealCard";
+import { reloadApp } from "@/lib/reload-app";
 
 function formatDayHeader(day: string): string {
   const d = new Date(day + "T12:00:00Z");
@@ -100,6 +101,11 @@ export default function HistoryDayScreen() {
             </View>
           )}
           contentContainerStyle={{ paddingBottom: 24 }}
+          // Reload global (recarrega o app inteiro na web, ver
+          // lib/reload-app.ts) — essa tela não tinha nenhum
+          // puxar-pra-atualizar antes.
+          refreshing={false}
+          onRefresh={reloadApp}
           ListEmptyComponent={
             <View className="mx-4 mt-8 items-center">
               <Text className="text-sm font-sans text-neutral-500">

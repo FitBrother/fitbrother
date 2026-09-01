@@ -4,6 +4,7 @@ import {
   Alert,
   Platform,
   Pressable,
+  RefreshControl,
   ScrollView,
   Text,
   TextInput,
@@ -108,7 +109,24 @@ export function FriendsPanel() {
   }
 
   return (
-    <ScrollView contentContainerClassName="px-5 pb-10 gap-5 pt-2" className="flex-1">
+    <ScrollView
+      contentContainerClassName="px-5 pb-10 gap-5 pt-2"
+      className="flex-1"
+      refreshControl={
+        // Escopado de propósito (ao contrário do reload global de Home/
+        // Análises/Histórico/Perfil): puxar pra atualizar aqui só recarrega
+        // os dados de Amigos, sem levar a página inteira junto.
+        <RefreshControl
+          refreshing={following.isRefetching || leaderboard.isRefetching || streak.isRefetching}
+          onRefresh={() => {
+            void following.refetch();
+            void leaderboard.refetch();
+            void streak.refetch();
+          }}
+          tintColor={colors.primary[400]}
+        />
+      }
+    >
       {/* Botão do DS ocupando a largura toda, em vez do link discreto alinhado
           à direita que havia aqui. `outline` e não `primary`: buscar pessoas é
           ação secundária e não deve gritar mais alto que o ranking abaixo. */}

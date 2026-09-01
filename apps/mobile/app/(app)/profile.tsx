@@ -22,6 +22,7 @@ import {
   Modal,
   Platform,
   Pressable,
+  RefreshControl,
   ScrollView,
   Text,
   View,
@@ -36,6 +37,7 @@ import { accountProfileKey, useAccountProfile } from "@/lib/hooks/useAccountProf
 import { backOrHome } from "@/lib/navigation";
 import { useProfileActions } from "@/lib/profile/profile-context";
 import { shadows } from "@/lib/shadows";
+import { reloadApp } from "@/lib/reload-app";
 import { getPostImageSignedUrl, uploadAvatar } from "@/lib/storage";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/lib/toast/toast-context";
@@ -153,7 +155,13 @@ export default function ProfileScreen() {
         </Pressable>
         <Text className="ml-2 font-display-bold text-xl text-neutral-900">Perfil</Text>
       </View>
-      <ScrollView contentContainerClassName="gap-6 px-5 pb-10 pt-3">
+      <ScrollView
+        contentContainerClassName="gap-6 px-5 pb-10 pt-3"
+        // Reload global (recarrega o app inteiro na web, ver
+        // lib/reload-app.ts) — essa tela não tinha nenhum
+        // puxar-pra-atualizar antes.
+        refreshControl={<RefreshControl refreshing={false} onRefresh={reloadApp} />}
+      >
         <EmailConfirmationBanner />
         <InstallPrompt />
         <View className="items-center">

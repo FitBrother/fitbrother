@@ -19,6 +19,7 @@ import { nutritionalDay, nutritionalToday } from "@/lib/time/nutritional-day";
 import { colors } from "@/lib/colors";
 import { shadows } from "@/lib/shadows";
 import { useStreak } from "@/lib/hooks/useStreak";
+import { reloadApp } from "@/lib/reload-app";
 import { HistoryDayCard } from "@/components/domain/HistoryDayCard";
 import { HistoryEmptyDayCard } from "@/components/domain/HistoryEmptyDayCard";
 import { StreakCounter } from "@/components/domain/StreakCounter";
@@ -113,6 +114,11 @@ export default function HistoryScreen() {
               </Animated.View>
             )}
             contentContainerStyle={{ paddingBottom: 24 }}
+            // Reload global (recarrega o app inteiro na web, ver
+            // lib/reload-app.ts) — essa tela não tinha nenhum
+            // puxar-pra-atualizar antes.
+            refreshing={false}
+            onRefresh={reloadApp}
             onEndReached={() => {
               if (query.hasNextPage && !query.isFetchingNextPage) {
                 void query.fetchNextPage();
