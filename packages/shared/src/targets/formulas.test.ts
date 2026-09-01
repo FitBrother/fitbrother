@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
+import { computeTargets } from "./compute-targets.js";
 import {
   calculateBmr,
   calculateTdee,
+  computeRateBounds,
   computeTargetWeightBounds,
   deficitKcalPerDayToRateKgPerWeek,
   fiberTargetG,
@@ -71,7 +73,7 @@ describe("fiberTargetG", () => {
 
 describe("computeTargetWeightBounds", () => {
   it("'perder gordura': teto é o peso atual, piso é a massa magra sobre o % saudável mínimo", () => {
-    // massa magra = 90*(1-0.30) = 63; piso = 63/(1-0.10) = 70
+    // massa magra = 90*(1-0.30) = 63; piso = 63/(1-0.08) = 68.478 -> 68.5
     const bounds = computeTargetWeightBounds({
       goal: "lose",
       weight_kg: 90,
@@ -79,13 +81,13 @@ describe("computeTargetWeightBounds", () => {
       body_fat_pct: 30,
       sex: "male",
     });
-    expect(bounds).toEqual({ min: 70, max: 90 });
+    expect(bounds).toEqual({ min: 68.5, max: 90 });
   });
 
   it("'perder gordura': piso trava em peso-0.5 quando já abaixo do % saudável mínimo", () => {
-    // 60kg a 9% (abaixo do piso saudável de 10% pra homem) faria o piso por
-    // massa magra passar do próprio peso atual — trava em 59.5 pra manter
-    // min < max.
+    // 60kg a 9% ainda fica acima do piso de 8%, mas o piso por massa magra
+    // (59.348) chega tão perto do peso atual que o guard de peso-0.5 é quem
+    // decide — mantém min < max pro slider não inverter.
     const bounds = computeTargetWeightBounds({
       goal: "lose",
       weight_kg: 60,
@@ -93,11 +95,26 @@ describe("computeTargetWeightBounds", () => {
       body_fat_pct: 9,
       sex: "male",
     });
-    expect(bounds).toEqual({ min: 59.5, max: 60 });
+    expect(bounds).toEqual({ min: 59.4, max: 60 });
   });
 
-  it("'ganhar massa': piso é o peso atual, teto é o IMC de obesidade pra altura", () => {
-    // 1,60m: teto = 30 * 1.6² = 76.8 — não deixa mirar 110kg.
+  it("'perder gordura': o piso de IMC 18,6 vence quando é mais alto que o piso por massa magra", () => {
+    // 70kg a 1,90m com 12% de gordura: piso por massa magra = 61.6/0.92 =
+    // 66.96; piso por IMC = 18.6*1.9² = 67.15. Vence o IMC — é o caso que
+    // impede o slider de oferecer um alvo que o gate bloqueia depois.
+    const bounds = computeTargetWeightBounds({
+      goal: "lose",
+      weight_kg: 70,
+      height_cm: 190,
+      body_fat_pct: 12,
+      sex: "male",
+    });
+    expect(bounds.min).toBeCloseTo(67.2, 1);
+    expect(bounds.max).toBe(70);
+  });
+
+  it("'ganhar massa': piso é o peso atual, teto é o IMC 33 pra altura", () => {
+    // 1,60m: teto = 33 * 1.6² = 84.48 -> arredonda pra dentro = 84.4
     const bounds = computeTargetWeightBounds({
       goal: "gain",
       weight_kg: 65,
@@ -105,12 +122,12 @@ describe("computeTargetWeightBounds", () => {
       body_fat_pct: 25,
       sex: "female",
     });
-    expect(bounds).toEqual({ min: 65, max: 76.8 });
+    expect(bounds).toEqual({ min: 65, max: 84.4 });
   });
 
-  it("'ganhar massa': teto trava em peso+0.5 quando já acima do IMC de obesidade", () => {
-    // 95kg a 1,70m já passa do IMC 30 (86.7) — trava em 95.5 pra manter
-    // min < max.
+  it("'ganhar massa': teto trava em peso+0.5 quando já acima do IMC 33", () => {
+    // 95kg a 1,70m: teto por IMC = 95.37, peso+0.5 = 95.5 — vence o maior
+    // pra manter min < max.
     const bounds = computeTargetWeightBounds({
       goal: "gain",
       weight_kg: 95,
@@ -119,5 +136,105 @@ describe("computeTargetWeightBounds", () => {
       sex: "male",
     });
     expect(bounds).toEqual({ min: 95, max: 95.5 });
+  });
+});
+
+describe("computeRateBounds", () => {
+  const PERFIS = [
+    {
+      goal: "lose",
+      sex: "female",
+      age_years: 30,
+      weight_kg: 60,
+      height_cm: 165,
+      activity_level: "moderate",
+    },
+    {
+      goal: "lose",
+      sex: "male",
+      age_years: 30,
+      weight_kg: 80,
+      height_cm: 180,
+      activity_level: "moderate",
+    },
+    {
+      goal: "lose",
+      sex: "male",
+      age_years: 40,
+      weight_kg: 110,
+      height_cm: 180,
+      activity_level: "sedentary",
+    },
+    {
+      goal: "lose",
+      sex: "other",
+      age_years: 55,
+      weight_kg: 95,
+      height_cm: 172,
+      activity_level: "very_active",
+    },
+    {
+      goal: "gain",
+      sex: "male",
+      age_years: 25,
+      weight_kg: 70,
+      height_cm: 178,
+      activity_level: "active",
+    },
+    {
+      goal: "gain",
+      sex: "female",
+      age_years: 22,
+      weight_kg: 52,
+      height_cm: 160,
+      activity_level: "light",
+    },
+  ] as const;
+
+  // O invariante que motiva a função existir: hoje o slider é fixo em
+  // 0.1-1.0 kg/semana enquanto o cap real de déficit trava bem antes disso,
+  // e o backend clampa em silêncio. O teto do slider tem que ser um valor
+  // que passa pelo cálculo sem ser clampado.
+  it.each(PERFIS)(
+    "o teto passa por computeTargets sem clamp ($goal $weight_kg kg $activity_level)",
+    (perfil) => {
+      const bounds = computeRateBounds(perfil);
+      const result = computeTargets({ ...perfil, body_fat_pct: 20, rate_kg_per_week: bounds.max });
+      expect(result.warnings.map((w) => w.code)).not.toContain("rate_clamped");
+      expect(result.warnings.map((w) => w.code)).not.toContain("deficit_clamped");
+      expect(result.warnings.map((w) => w.code)).not.toContain("surplus_clamped");
+    },
+  );
+
+  it.each(PERFIS)("o teto nunca fica abaixo do piso ($goal $weight_kg kg)", (perfil) => {
+    const bounds = computeRateBounds(perfil);
+    expect(bounds.min).toBe(0.1);
+    expect(bounds.max).toBeGreaterThanOrEqual(bounds.min);
+  });
+
+  it("o teto é o cap de déficit, não o de percentual do peso, num caso típico de perda", () => {
+    // 80kg 1,80m 30a moderado: cap por peso = 1,25% * 80 = 1,0 kg/semana,
+    // cap por déficit = 30% de 2759 kcal = 0,75 kg/semana. Vence o menor.
+    const bounds = computeRateBounds({
+      goal: "lose",
+      sex: "male",
+      age_years: 30,
+      weight_kg: 80,
+      height_cm: 180,
+      activity_level: "moderate",
+    });
+    expect(bounds.max).toBeCloseTo(0.75, 2);
+  });
+
+  it("garante o piso de 0,1 mesmo num perfil com GET muito baixo", () => {
+    const bounds = computeRateBounds({
+      goal: "lose",
+      sex: "female",
+      age_years: 80,
+      weight_kg: 38,
+      height_cm: 145,
+      activity_level: "sedentary",
+    });
+    expect(bounds.max).toBeGreaterThanOrEqual(0.1);
   });
 });

@@ -2,8 +2,10 @@ import {
   calculateBmr,
   calculateTdee,
   deficitKcalPerDayToRateKgPerWeek,
+  DEFICIT_CAP_PCT,
   fiberTargetG,
   percentOfWeightPerWeekToRateKgPerWeek,
+  RATE_CAP_PCT,
   rateToDeficitKcalPerDay,
 } from "./formulas.js";
 import { evaluateSafetyGates } from "./gates.js";
@@ -13,9 +15,7 @@ function round2(value: number): number {
   return Math.round(value * 100) / 100;
 }
 
-const RATE_CAP_PCT: Record<"lose" | "gain", number> = { lose: 1.0, gain: 0.5 };
 const RATE_DEFAULT_PCT: Record<"lose" | "gain", number> = { lose: 0.625, gain: 0.375 };
-const DEFICIT_CAP_PCT: Record<"lose" | "gain", number> = { lose: 25, gain: 15 };
 const HARD_FLOOR_KCAL: Record<Sex, number> = { female: 1200, male: 1500, other: 1350 };
 
 export function computeTargets(input: TargetsInput): Targets {

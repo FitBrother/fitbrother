@@ -57,14 +57,31 @@ export function fiberTargetG(kcal: number): number {
   return Math.min(40, (14 * kcal) / 1000);
 }
 
-// % de gordura corporal mínimo saudável por sexo — mesmos valores do bucket
-// 1 (mais magro) das ilustrações de onboarding, reaproveitados como piso em
-// vez de inventar um novo corte clínico.
-const MIN_HEALTHY_BODY_FAT_PCT: Record<Sex, number> = { male: 10, female: 17, other: 13 };
-// Teto de IMC pro peso-alvo em "ganhar massa" — usa o corte de obesidade da
-// OMS (mesmo padrão do BMI_UNDERWEIGHT_THRESHOLD em gates.ts), alto o
-// suficiente pra não travar builds atléticos legítimos.
-const MAX_BMI_FOR_TARGET_WEIGHT = 30;
+// % de gordura corporal mínimo saudável por sexo — piso do peso-alvo em
+// "perder gordura". Abaixo do bucket mais magro das ilustrações de
+// onboarding, deliberadamente: o corte das ilustrações é conservador demais
+// pra servir de limite duro, e o gate de IMC <= 18,5 continua sendo a trava
+// de segurança de verdade.
+const MIN_HEALTHY_BODY_FAT_PCT: Record<Sex, number> = { male: 8, female: 14, other: 11 };
+// Teto de IMC pro peso-alvo em "ganhar massa". Acima do corte de obesidade
+// da OMS (30) porque o peso-alvo aqui é uma meta declarada, não um
+// diagnóstico — 33 dá espaço pra builds atléticos sem virar terra de
+// ninguém.
+const MAX_BMI_FOR_TARGET_WEIGHT = 33;
+// Piso de IMC pro peso-alvo em "perder gordura". 18,6 e não 18,5 porque o
+// gate `target_weight_underweight` compara com `bmiRounded1`: um alvo em
+// IMC 18,54 arredondaria pra 18,5 e bloquearia. Sem esse piso, o slider
+// oferece valores que o próprio sistema recusa depois, no RevealBlock.
+const MIN_BMI_FOR_TARGET_WEIGHT = 18.6;
+
+/** Teto de ritmo como % do peso corporal por semana, por direção. Exportado
+ * porque o slider de ritmo do onboarding precisa do mesmo número que
+ * `computeTargets` aplica — se divergirem, o slider promete o que o cálculo
+ * não entrega. */
+export const RATE_CAP_PCT: Record<"lose" | "gain", number> = { lose: 1.25, gain: 0.75 };
+/** Teto de déficit/superávit como % do GET, por direção. Na prática é este
+ * que trava, não o RATE_CAP_PCT — ver computeRateBounds. */
+export const DEFICIT_CAP_PCT: Record<"lose" | "gain", number> = { lose: 30, gain: 20 };
 
 export type TargetWeightBounds = { min: number; max: number };
 
@@ -72,13 +89,15 @@ export type TargetWeightBounds = { min: number; max: number };
  * Limites do slider de peso-alvo no onboarding, por objetivo.
  *
  * "Perder gordura": teto = peso atual (não faz sentido mirar um peso maior
- * perdendo gordura); piso = peso mínimo em que a massa magra atual ainda
- * corresponde a um % de gordura saudável — abaixo disso, o peso-alvo só é
- * alcançável perdendo massa magra, não só gordura.
+ * perdendo gordura); piso = o maior entre (a) o peso mínimo em que a massa
+ * magra atual ainda corresponde a um % de gordura saudável — abaixo disso o
+ * alvo só é alcançável perdendo massa magra — e (b) o peso de IMC 18,6, que
+ * mantém o slider fora da faixa que o gate `target_weight_underweight`
+ * bloqueia.
  *
  * "Ganhar massa": piso = peso atual (espelha o teto de "perder"); teto =
- * peso que resulta num IMC de obesidade pra altura do usuário — barra
- * pedidos como 110kg a 1,60m sem travar fisiculturistas legítimos.
+ * peso que resulta em IMC 33 pra altura do usuário — barra pedidos como
+ * 110kg a 1,60m sem travar builds atléticos legítimos.
  */
 export function computeTargetWeightBounds(input: {
   goal: "lose" | "gain";
@@ -87,18 +106,61 @@ export function computeTargetWeightBounds(input: {
   body_fat_pct: number;
   sex: Sex;
 }): TargetWeightBounds {
-  const round1 = (n: number) => Math.round(n * 10) / 10;
+  // Arredondamento pra DENTRO do intervalo: `Math.round` empurraria um
+  // limite pra fora do valor real por até 0,05kg, que reaparece como um
+  // clamp logo depois de o usuário arrastar até a ponta.
+  const ceil1 = (n: number) => Math.ceil(n * 10) / 10;
+  const floor1 = (n: number) => Math.floor(n * 10) / 10;
+  const heightM = input.height_cm / 100;
 
   if (input.goal === "lose") {
     const leanMass_kg = input.weight_kg * (1 - input.body_fat_pct / 100);
     const minHealthyFatPct = MIN_HEALTHY_BODY_FAT_PCT[input.sex];
     const minByLeanMass = leanMass_kg / (1 - minHealthyFatPct / 100);
-    const min = Math.min(minByLeanMass, input.weight_kg - 0.5);
-    return { min: round1(Math.max(min, 1)), max: round1(input.weight_kg) };
+    const minByBmi = MIN_BMI_FOR_TARGET_WEIGHT * heightM * heightM;
+    // O maior dos dois pisos manda. O `Math.min` com peso-0.5 depois é o
+    // guard que mantém min < max pra quem já está no limite — esse usuário
+    // é barrado pelo gate `current_bmi_underweight` de qualquer jeito.
+    const floor = Math.max(minByLeanMass, minByBmi);
+    const min = Math.min(floor, input.weight_kg - 0.5);
+    return { min: ceil1(Math.max(min, 1)), max: floor1(input.weight_kg) };
   }
 
-  const heightM = input.height_cm / 100;
   const maxByBmi = MAX_BMI_FOR_TARGET_WEIGHT * heightM * heightM;
   const max = Math.max(maxByBmi, input.weight_kg + 0.5);
-  return { min: round1(input.weight_kg), max: round1(max) };
+  return { min: ceil1(input.weight_kg), max: floor1(max) };
+}
+
+export type RateBounds = { min: number; max: number };
+
+/**
+ * Limites do slider de ritmo no onboarding.
+ *
+ * `computeTargets` aplica dois tetos: um percentual do peso corporal
+ * (`RATE_CAP_PCT`) e um percentual do GET (`DEFICIT_CAP_PCT`). Na prática é
+ * o segundo que trava em quase todo caso de "perder" — o primeiro raramente
+ * chega a valer. Um slider com faixa fixa deixa o usuário escolher acima do
+ * efetivo e o cálculo clampa em silêncio, com um warning que a UI não
+ * mostra. Aqui o teto é o menor dos dois, então o que o slider oferece é o
+ * que o cálculo entrega.
+ */
+export function computeRateBounds(input: {
+  goal: "lose" | "gain";
+  sex: Sex;
+  age_years: number;
+  weight_kg: number;
+  height_cm: number;
+  activity_level: ActivityLevel;
+}): RateBounds {
+  const min = 0.1;
+  const tdee = calculateTdee(calculateBmr(input), input.activity_level);
+  const capByWeight = percentOfWeightPerWeekToRateKgPerWeek(
+    RATE_CAP_PCT[input.goal],
+    input.weight_kg,
+  );
+  const capByDeficit = deficitKcalPerDayToRateKgPerWeek((DEFICIT_CAP_PCT[input.goal] / 100) * tdee);
+  // Arredonda pra baixo: pra cima devolveria um teto que o próprio
+  // computeTargets clamparia de volta.
+  const max = Math.floor(Math.min(capByWeight, capByDeficit) * 100) / 100;
+  return { min, max: Math.max(min, max) };
 }

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { computeTargets } from "./compute-targets.js";
 import type { TargetsInput } from "./types.js";
 
-describe("computeTargets — Caso 1 (clamp de ritmo + piso de gordura interagindo)", () => {
+describe("computeTargets — Caso 1 (dentro dos caps, piso de gordura ativo)", () => {
   const input: TargetsInput = {
     sex: "female",
     age_years: 32,
@@ -20,9 +20,9 @@ describe("computeTargets — Caso 1 (clamp de ritmo + piso de gordura interagind
     expect(result.tdee_kcal).toBeCloseTo(2049.09, 2);
   });
 
-  it("déficit clampado em 25% -> kcal ≈ 1536.82", () => {
-    expect(result.kcal).toBeCloseTo(1536.82, 2);
-    expect(result.warnings.some((w) => w.code === "deficit_clamped")).toBe(true);
+  it("0,5 kg/semana = 26,8% do GET: dentro do cap de 30%, sem clamp nenhum", () => {
+    expect(result.kcal).toBeCloseTo(1499.09, 2);
+    expect(result.warnings.some((w) => w.code === "deficit_clamped")).toBe(false);
     expect(result.warnings.some((w) => w.code === "rate_clamped")).toBe(false);
   });
 
@@ -34,21 +34,47 @@ describe("computeTargets — Caso 1 (clamp de ritmo + piso de gordura interagind
     expect(result.fat_g).toBeCloseTo(46.8, 2);
   });
 
-  it("carboidrato ≈ 158,79 g", () => {
-    expect(result.carbs_g).toBeCloseTo(158.79, 2);
+  it("carboidrato ≈ 149,35 g", () => {
+    expect(result.carbs_g).toBeCloseTo(149.35, 2);
   });
 
-  it("fibra ≈ 21,52 g", () => {
-    expect(result.fiber_g).toBeCloseTo(21.52, 2);
+  it("fibra ≈ 20,99 g", () => {
+    expect(result.fiber_g).toBeCloseTo(20.99, 2);
   });
 
-  it("ritmo projetado ≈ 0,47 kg/semana", () => {
-    expect(result.projected_rate_kg_per_week).toBeCloseTo(0.47, 2);
+  it("ritmo projetado = o pedido, já que nada foi clampado", () => {
+    expect(result.projected_rate_kg_per_week).toBeCloseTo(0.5, 2);
   });
 
   it("não está bloqueado", () => {
     expect(result.blocked).toBe(false);
     expect(result.block_reason).toBeNull();
+  });
+});
+
+describe("computeTargets — Caso 1b (déficit clampado no teto de 30%)", () => {
+  // Mesma pessoa do Caso 1 pedindo 0,8 kg/semana: 42,9% do GET, acima do
+  // teto de 30%. Fica abaixo do cap de ritmo (1,25% * 78 = 0,975), então
+  // isola o clamp de déficit.
+  const result = computeTargets({
+    sex: "female",
+    age_years: 32,
+    weight_kg: 78,
+    height_cm: 165,
+    activity_level: "light",
+    goal: "lose",
+    rate_kg_per_week: 0.8,
+    body_fat_pct: 30,
+  });
+
+  it("emite deficit_clamped e não rate_clamped", () => {
+    expect(result.warnings.some((w) => w.code === "deficit_clamped")).toBe(true);
+    expect(result.warnings.some((w) => w.code === "rate_clamped")).toBe(false);
+  });
+
+  it("o clamp de 30% derruba kcal abaixo da TMB, então a TMB vira o piso", () => {
+    expect(result.kcal).toBeCloseTo(1490.25, 2);
+    expect(result.warnings.some((w) => w.code === "below_bmr")).toBe(true);
   });
 });
 
@@ -165,7 +191,7 @@ describe("computeTargets — protein_g_override", () => {
 });
 
 describe("computeTargets — direção ganho", () => {
-  it("clampa ritmo de ganho acima do teto (0.5%/semana)", () => {
+  it("clampa ritmo de ganho acima do teto (0.75%/semana)", () => {
     const result = computeTargets({
       sex: "male",
       age_years: 25,
@@ -173,13 +199,15 @@ describe("computeTargets — direção ganho", () => {
       height_cm: 180,
       activity_level: "moderate",
       goal: "gain",
-      rate_kg_per_week: 1.0, // acima do teto de 0.5% * 80kg = 0.4kg/semana
+      rate_kg_per_week: 1.0, // acima do teto de 0.75% * 80kg = 0.6kg/semana
       body_fat_pct: 15,
     });
     expect(result.warnings.some((w) => w.code === "rate_clamped")).toBe(true);
   });
 
-  it("clampa superávit acima de 15% do TDEE", () => {
+  it("clampa superávit acima de 20% do TDEE", () => {
+    // 0.5 kg/semana = 550 kcal/dia = 25,4% do GET de 2166. Fica abaixo do
+    // cap de ritmo (0.6), então isola o clamp de superávit.
     const result = computeTargets({
       sex: "male",
       age_years: 25,
@@ -187,10 +215,11 @@ describe("computeTargets — direção ganho", () => {
       height_cm: 180,
       activity_level: "sedentary",
       goal: "gain",
-      rate_kg_per_week: 0.3,
+      rate_kg_per_week: 0.5,
       body_fat_pct: 15,
     });
     expect(result.warnings.some((w) => w.code === "surplus_clamped")).toBe(true);
+    expect(result.warnings.some((w) => w.code === "rate_clamped")).toBe(false);
   });
 });
 

@@ -1,4 +1,4 @@
-import { computeTargetWeightBounds, computeTargets } from "@fitbrother/shared";
+import { computeRateBounds, computeTargetWeightBounds, computeTargets } from "@fitbrother/shared";
 import * as Haptics from "expo-haptics";
 import { Calendar } from "lucide-react-native";
 import { useEffect } from "react";
@@ -65,11 +65,40 @@ export function GoalBlock({ onNext, onBack, chapter }: OnboardingBlockProps) {
     if (clamped !== target_weight_kg) setField("target_weight_kg", clamped);
   }, [target_weight_kg, targetBounds.min, targetBounds.max, setField]);
 
+  // Idade fixa aqui pelo mesmo motivo do computeTargets abaixo: ela entra na
+  // TMB, mas o efeito no teto de ritmo é de segunda ordem e o valor
+  // definitivo é recalculado no servidor. O fallback cobre a retomada de um
+  // onboarding salvo, quando o bloco pode renderizar antes de todos os
+  // campos estarem preenchidos.
+  const rateBounds =
+    (goal === "lose" || goal === "gain") && sex && height_cm && activity_level
+      ? computeRateBounds({
+          goal,
+          sex,
+          age_years: 30,
+          weight_kg: currentWeight,
+          height_cm,
+          activity_level,
+        })
+      : { min: 0.1, max: 1.0 };
+
   const defaultRate =
     goal === "lose" || goal === "gain"
       ? Math.round((DEFAULT_RATE_PCT[goal] / 100) * currentWeight * 10) / 10
       : 0.5;
-  const selectedRate = rate_kg_per_week ?? Math.max(0.1, defaultRate);
+  const selectedRate = Math.min(
+    rateBounds.max,
+    Math.max(rateBounds.min, rate_kg_per_week ?? defaultRate),
+  );
+
+  // Mesmo motivo do efeito acima: trocar de objetivo muda o teto de ritmo, e
+  // um valor salvo fora da faixa nova seria submetido intacto se o usuário
+  // não tocasse no slider.
+  useEffect(() => {
+    if (rate_kg_per_week === undefined) return;
+    const clamped = Math.min(rateBounds.max, Math.max(rateBounds.min, rate_kg_per_week));
+    if (clamped !== rate_kg_per_week) setField("rate_kg_per_week", clamped);
+  }, [rate_kg_per_week, rateBounds.min, rateBounds.max, setField]);
 
   let projectedDateLabel: string | null = null;
   if (showRateInputs && sex && height_cm && activity_level && body_fat_pct !== undefined) {
@@ -139,9 +168,9 @@ export function GoalBlock({ onNext, onBack, chapter }: OnboardingBlockProps) {
             />
             <SliderInput
               label="Ritmo"
-              min={0.1}
-              max={1.0}
-              step={0.1}
+              min={rateBounds.min}
+              max={rateBounds.max}
+              step={0.05}
               value={selectedRate}
               unit="kg/semana"
               onChange={(v) => setField("rate_kg_per_week", v)}
