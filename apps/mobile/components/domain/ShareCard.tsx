@@ -1,6 +1,6 @@
 import { Image, Text, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { Leaf } from "lucide-react-native";
+import { Logo } from "@/components/Logo";
 import { colors } from "@/lib/colors";
 
 const NUM: { fontVariant: ["tabular-nums"] } = { fontVariant: ["tabular-nums"] };
@@ -24,12 +24,8 @@ export type ShareCardData =
     };
 
 function Watermark() {
-  return (
-    <View className="flex-row items-center gap-2">
-      <Leaf size={28} color={colors.primary[400]} />
-      <Text className="text-2xl font-sans-extrabold text-white">Fitbrother</Text>
-    </View>
-  );
+  // Variante branca: o lockup menta não teria contraste sobre o gradiente.
+  return <Logo height={28} variant="white" />;
 }
 
 /** Quadro 9:16 fixo. A tela de preview o envolve num View com ref p/ captura. */

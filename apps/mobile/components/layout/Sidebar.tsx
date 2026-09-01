@@ -1,7 +1,7 @@
 import { useRouter, usePathname } from "expo-router";
 import { Calendar, Home as HomeIcon, Rss, Search, Sparkles, Users } from "lucide-react-native";
-import { Image, Pressable, Text, View } from "react-native";
-import logoHorizontal from "@/assets/brand/logo-horizontal-menta.png";
+import { Pressable, Text, View } from "react-native";
+import { Logo } from "@/components/Logo";
 import { profileInitials } from "@/lib/account-utils";
 import { colors } from "@/lib/colors";
 import { shadows } from "@/lib/shadows";
@@ -37,13 +37,7 @@ export function Sidebar() {
       className="sticky top-0 hidden h-screen w-[248px] shrink-0 bg-white p-4 md:flex"
       style={shadows.rail}
     >
-      <Image
-        source={logoHorizontal}
-        style={{ height: 28, width: 173 }}
-        resizeMode="contain"
-        accessibilityLabel="Fitbrother"
-        className="mb-6 ml-2"
-      />
+      <Logo height={28} className="mb-6 ml-2" />
 
       {NAV_ITEMS.map((item) => {
         const active = isActive(pathname, item.href);

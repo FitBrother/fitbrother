@@ -38,6 +38,7 @@
       "router": {
         "origin": false
       },
+      "landingUrl": "https://fitbrother.app",
       "legal": {
         "termsUrl": "https://fitbrother.app/termos",
         "privacyUrl": "https://fitbrother.app/privacidade",

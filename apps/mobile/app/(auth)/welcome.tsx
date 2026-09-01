@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Button } from "@/components/Button";
+import { LogoHomeLink } from "@/components/LogoHomeLink";
 import { colors } from "@/lib/colors";
 import { supabase } from "@/lib/supabase";
 
@@ -31,7 +32,7 @@ export default function Welcome() {
     <SafeAreaView className="flex-1 bg-neutral-50">
       <View className="flex-1 lg:flex-row lg:items-center lg:justify-center">
         <View className="flex-1 justify-center px-8 pt-12 lg:flex-none lg:w-[480px] lg:justify-center lg:px-0 lg:pt-0">
-          <Text className="mb-4 text-5xl font-display-bold text-primary-400">Fitbrother</Text>
+          <LogoHomeLink height={40} className="mb-4" />
           <Text className="mb-8 text-lg font-sans text-neutral-600">
             Nutrição com IA que entende como você já fala.
           </Text>

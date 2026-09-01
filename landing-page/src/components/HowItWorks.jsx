@@ -2,7 +2,7 @@
  * HowItWorks.jsx — Seção "Como Funciona"
  *
  * Mostra os 3 passos para usar o FitBrother:
- * 1. Fale ou Escreva — entrada por voz/texto/WhatsApp
+ * 1. Fale, Escreva ou Fotografe — entrada por voz/texto/foto
  * 2. A IA Faz o Trabalho — transcrição + cálculo de macros
  * 3. Acompanhe e Compita — dashboard + gamificação
  *
@@ -14,6 +14,7 @@
  * Classes CSS na seção 10 do index.css.
  */
 
+import Icon from './Icon'
 import CalorieRing from './brand/CalorieRing'
 import MacroChips from './brand/MacroChips'
 import LeaderboardRow from './brand/LeaderboardRow'
@@ -22,11 +23,11 @@ import DottedChart from './brand/DottedChart'
 const stepsData = [
   {
     number: '01',
-    shot: 'whatsapp',
-    title: 'Diga o que comeu',
+    shot: 'capture',
+    title: 'Diga — ou mostre — o que comeu',
     description:
-      'Um áudio de oito segundos ou uma frase digitada. No app ou no WhatsApp — o que estiver mais perto.',
-    imageAlt: 'Conversa de WhatsApp registrando uma refeição',
+      'Um áudio de oito segundos, uma frase digitada ou uma foto do prato. O que for mais rápido na hora.',
+    imageAlt: 'Foto de um prato com os alimentos identificados pela IA',
   },
   {
     number: '02',
@@ -48,12 +49,23 @@ const stepsData = [
 
 /** Conteúdo de fallback por passo — substituído por print real na Task 12. */
 const StepVisual = ({ shot }) => {
-  if (shot === 'whatsapp') {
+  if (shot === 'capture') {
     return (
-      <div className="wa-chat">
-        <div className="wa-bubble wa-bubble--out">Comi 2 ovos e um café com leite ☕</div>
-        <div className="wa-bubble wa-bubble--in">
-          Anotado! <strong>210 kcal</strong> · 15g proteína · 8g carbo · 12g gordura
+      <div className="capture">
+        {/* Moldura do prato — placeholder gráfico, não foto real */}
+        <div className="capture__frame">
+          <div className="capture__shutter">
+            <Icon name="camera" size={26} />
+          </div>
+        </div>
+        <div className="capture__caption">Identificado na foto</div>
+        <div className="capture__items">
+          <span className="capture__item">Frango grelhado</span>
+          <span className="capture__item">Arroz integral</span>
+          <span className="capture__item">Brócolis</span>
+        </div>
+        <div className="capture__result">
+          <strong>538 kcal</strong> · 42g proteína · 54g carbo · 14g gordura
         </div>
       </div>
     )

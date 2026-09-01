@@ -1,15 +1,16 @@
 /**
  * Features.jsx — Seção "Por que o FitBrother?"
  * 
- * Exibe 4 cards com as funcionalidades principais do app:
+ * Exibe 5 cards com as funcionalidades principais do app:
  * 1. Registro por Voz e Texto
- * 2. IA que Calcula Macros
- * 3. WhatsApp Integrado
+ * 2. Registro por Foto
+ * 3. IA que Calcula Macros
  * 4. Gamificação Social
- * 
+ * 5. WhatsApp Integrado (ainda não lançado — leva selo "Em breve")
+ *
  * Cada card possui:
- * - Ícone emoji em círculo com gradiente
- * - Título descritivo
+ * - Ícone SVG em círculo menta
+ * - Título descritivo, com selo opcional (`badge`)
  * - Descrição curta
  * - Animação de scroll-reveal com delay escalonado (cascata)
  * - Efeito hover: card sobe + sombra aumenta
@@ -32,19 +33,25 @@ const featuresData = [
     description: 'Fale ou escreva o que comeu em linguagem natural. Sem formulários, sem busca manual.',
   },
   {
+    icon: 'camera',
+    title: 'Registro por foto',
+    description: 'Fotografe o prato e a IA identifica os alimentos. Produto embalado? Escaneie o código de barras.',
+  },
+  {
     icon: 'bot',
     title: 'IA que calcula macros',
     description: 'A IA identifica os alimentos e calcula calorias, proteínas, carboidratos e gorduras.',
   },
   {
-    icon: 'whatsapp',
-    title: 'WhatsApp integrado',
-    description: 'Registre direto pelo WhatsApp. Tudo sincroniza em tempo real com o app.',
-  },
-  {
     icon: 'flame',
     title: 'Gamificação social',
     description: 'Streaks diários, conquistas e ranking semanal com amigos. Estilo Duolingo para nutrição.',
+  },
+  {
+    icon: 'whatsapp',
+    title: 'WhatsApp integrado',
+    badge: 'Em breve',
+    description: 'Estamos construindo o registro direto pelo WhatsApp, sincronizando em tempo real com o app.',
   },
 ]
 
@@ -83,8 +90,11 @@ const Features = () => {
                 <Icon name={feature.icon} size={26} />
               </div>
 
-              {/* Título da funcionalidade */}
-              <h3 className="feature-card__title">{feature.title}</h3>
+              {/* Título — com selo quando a funcionalidade ainda não está no ar */}
+              <h3 className="feature-card__title">
+                {feature.title}
+                {feature.badge && <span className="feature-card__badge">{feature.badge}</span>}
+              </h3>
 
               {/* Descrição curta da funcionalidade */}
               <p className="feature-card__description">{feature.description}</p>

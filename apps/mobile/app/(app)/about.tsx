@@ -3,6 +3,7 @@ import * as Linking from "expo-linking";
 import { ExternalLink } from "lucide-react-native";
 import { Pressable, Text } from "react-native";
 import { AccountCard, AccountScreen } from "@/components/account/AccountScreen";
+import { Logo } from "@/components/Logo";
 import { colors } from "@/lib/colors";
 import { legalUrls } from "@/lib/legal";
 
@@ -10,8 +11,8 @@ export default function AboutScreen() {
   return (
     <AccountScreen title="Sobre">
       <AccountCard>
-        <Text className="font-display-bold text-2xl text-neutral-900">FitBrother</Text>
-        <Text className="mt-1 font-sans text-sm text-neutral-600">
+        <Logo height={26} />
+        <Text className="mt-2 font-sans text-sm text-neutral-600">
           Versão {Constants.expoConfig?.version ?? "—"}
         </Text>
       </AccountCard>

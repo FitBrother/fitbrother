@@ -5,6 +5,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Button } from "@/components/Button";
 import { GoogleIcon } from "@/components/domain/GoogleIcon";
 import { Input } from "@/components/Input";
+import { LogoHomeLink } from "@/components/LogoHomeLink";
 import { PasswordInput } from "@/components/PasswordInput";
 import { friendlyAuthError } from "@/lib/errors";
 import { supabase } from "@/lib/supabase";
@@ -61,6 +62,7 @@ export default function SignIn() {
         className="flex-1"
       >
         <View className="w-full flex-1 p-5 pt-12 md:mx-auto md:max-w-[440px]">
+          <LogoHomeLink height={28} className="mb-8" />
           <Text className="mb-2 text-3xl font-display-bold text-neutral-800">
             Bem-vindo de volta
           </Text>
@@ -123,7 +125,15 @@ export default function SignIn() {
               disabled={loading}
               onPress={() => handleOAuth("google")}
             />
-            <Button label="Voltar" variant="ghost" onPress={() => router.back()} />
+            {/* `router.back()` não funcionava para quem abre /sign-in direto
+                pela URL na web — não há histórico para voltar. `replace` leva
+                sempre para o welcome, sem empilhar welcome → sign-in → welcome. */}
+            <Button
+              label="Ainda não tenho conta"
+              variant="ghost"
+              disabled={loading}
+              onPress={() => router.replace("/(auth)/welcome")}
+            />
           </View>
         </View>
       </KeyboardAvoidingView>
