@@ -5,6 +5,16 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      deploy_server:
+        description: "Forçar deploy do Lambda (SAM)"
+        type: boolean
+        default: false
+      deploy_migrations:
+        description: "Forçar aplicação das migrations em produção"
+        type: boolean
+        default: false
 
 jobs:
   lint-and-typecheck:
@@ -44,7 +54,7 @@ jobs:
 
   detect-changes:
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
     outputs:
       server: ${{ steps.diff.outputs.server }}
       migrations: ${{ steps.diff.outputs.migrations }}
@@ -56,6 +66,14 @@ jobs:
       - name: Detect which deploy targets changed
         id: diff
         run: |
+          # Disparo manual: usa os inputs escolhidos, não tem "diff" pra
+          # comparar (não existe github.event.before nesse evento).
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "server=${{ inputs.deploy_server }}" >> "$GITHUB_OUTPUT"
+            echo "migrations=${{ inputs.deploy_migrations }}" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
           before="${{ github.event.before }}"
           # Primeiro push numa branch nova (ou force-push): before vem zerado.
           # Trata como "mudou tudo" — nunca pula deploy por falta de base de
@@ -84,7 +102,7 @@ jobs:
   deploy-server:
     runs-on: ubuntu-latest
     needs: [lint-and-typecheck, detect-changes]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.detect-changes.outputs.server == 'true'
+    if: ((github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch') && needs.detect-changes.outputs.server == 'true'
     environment: production
     concurrency:
       group: deploy-server
@@ -150,7 +168,7 @@ jobs:
   deploy-migrations:
     runs-on: ubuntu-latest
     needs: [validate-migrations, detect-changes]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.detect-changes.outputs.migrations == 'true'
+    if: ((github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch') && needs.detect-changes.outputs.migrations == 'true'
     environment: production
     concurrency:
       group: deploy-migrations
