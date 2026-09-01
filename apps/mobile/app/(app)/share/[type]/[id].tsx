@@ -6,7 +6,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { ChevronLeft, Download, Share2 } from "lucide-react-native";
 import { useQuery } from "@tanstack/react-query";
 import { ShareCard, type ShareCardData } from "@/components/domain/ShareCard";
-import { captureCard, saveCardToGallery, shareCard } from "@/lib/share-card";
+import { captureCard, saveCardToGallery, shareCard, toDisplayableImageUri } from "@/lib/share-card";
 import { getMeal } from "@/lib/api/meals";
 import { fetchPost } from "@/lib/api/posts";
 import { fetchInsight } from "@/lib/api/insights";
@@ -29,8 +29,11 @@ async function loadCardData(type: string, id: string): Promise<ShareCardData> {
   }
   if (type === "post") {
     const p = await fetchPost(id);
-    const imageUrl = p.image_path
+    const signedUrl = p.image_path
       ? await getPostImageSignedUrl(p.image_path).catch(() => null)
+      : null;
+    const imageUrl = signedUrl
+      ? await toDisplayableImageUri(signedUrl).catch(() => signedUrl)
       : null;
     return {
       kind: "meal",

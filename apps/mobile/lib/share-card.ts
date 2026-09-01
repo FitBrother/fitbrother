@@ -10,6 +10,26 @@ export async function captureCard(ref: RefObject<View | null>): Promise<string> 
   return captureRef(ref, { format: "png", quality: 1, result: "tmpfile" });
 }
 
+/**
+ * Na web, a captura do card usa html2canvas, que "tainta" o canvas ao
+ * desenhar uma <img> cross-origin (ex.: signed URL do Supabase Storage) sem
+ * modo CORS — depois disso, toDataURL() lança SecurityError. Buscar a imagem
+ * via fetch (mesma origem lógica, resposta lida em memória) e convertê-la
+ * pra data URI evita esse cross-origin por completo antes de chegar no
+ * <Image>. No nativo isso não se aplica (RNViewShot não usa canvas).
+ */
+export async function toDisplayableImageUri(url: string): Promise<string> {
+  if (Platform.OS !== "web") return url;
+  const res = await fetch(url);
+  const blob = await res.blob();
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result as string);
+    reader.onerror = () => reject(reader.error ?? new Error("file_reader_failed"));
+    reader.readAsDataURL(blob);
+  });
+}
+
 /** Converte uma data URI base64 num File, pra Web Share API / download. */
 function dataUriToFile(dataUri: string, filename: string): File {
   const commaIndex = dataUri.indexOf(",");
