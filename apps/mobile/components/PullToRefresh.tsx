@@ -30,11 +30,15 @@ export function PullToRefresh({ onRefresh, children }: Props) {
         await onRefresh();
       }}
       // Default da lib (67px) disparava fácil demais — quase qualquer
-      // arrasto acidental já soltava o refresh. maxPullDownDistance sobe
-      // junto: se ficasse igual/menor que o threshold, o gesto nunca
-      // alcançaria visualmente o ponto de disparo.
-      pullDownThreshold={120}
-      maxPullDownDistance={140}
+      // arrasto acidental já soltava o refresh. Depois de subir pra 120 e
+      // ainda achar fácil, foi pra 200: precisa mesmo puxar de propósito.
+      // maxPullDownDistance sobe junto (senão o gesto nunca alcançaria
+      // visualmente o novo ponto de disparo). resistance > 1 aumenta o
+      // esforço físico por pixel de progresso — não só um número maior,
+      // o puxão em si fica mais "pesado".
+      pullDownThreshold={200}
+      maxPullDownDistance={240}
+      resistance={1.4}
       pullingContent={
         <View className="items-center py-3">
           <Text className="font-sans-medium text-sm text-neutral-500">Solte para atualizar</Text>
