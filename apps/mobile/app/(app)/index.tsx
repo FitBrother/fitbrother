@@ -403,62 +403,73 @@ export default function HomeScreen() {
           </Card>
         </View>
 
-        <View className="mx-auto w-full max-w-[1120px] flex-1 flex-row items-start gap-8">
-          <View className="sticky top-[124px] w-[320px] shrink-0 gap-5 xl:w-[400px]">
-            <Animated.View style={summaryCardStyle}>
-              <Card variant="elevated">
-                {/* No desktop o resumo mora numa coluna lateral própria e não
-                    disputa espaço com a lista — fica sempre expandido. Por isso
-                    `collapse` é omitido em vez de repassado: a lista daqui não
-                    tem `onScroll`, então o valor compartilhado nunca voltaria a
-                    zero. Quem colapsasse no mobile e alargasse a janela até o
-                    desktop via a coluna lateral presa em barras. */}
-                <TodaySummaryHeader
-                  key={summaryFocusKey}
-                  summary={summaryQuery.data}
-                  softMode={profile.soft_mode}
-                />
-              </Card>
-            </Animated.View>
-            <GoalsDisclaimer />
-          </View>
-
-          <View className="flex-1">
-            <View className="mb-4 flex-row items-baseline justify-between gap-4">
-              <Text className="text-2xl font-display-bold text-neutral-800">Refeições</Text>
-              <Text
-                className="text-[13px] text-neutral-500"
-                style={{ fontVariant: ["tabular-nums"] }}
-              >
-                {items.length} de hoje
-              </Text>
+        {/* O `px-6` mora no wrapper, e não no container de 1120, para espelhar
+            exatamente a saudação acima e o composer abaixo: os três se alinham
+            porque medem 1120 no MÁXIMO, dentro da mesma faixa já recuada. Sem
+            este wrapper, a linha era a única a encostar na sidebar (e na borda
+            direita) sempre que a janela era estreita demais para o `mx-auto`
+            sobrar margem — o que acontece em toda a faixa de 1024 a 1168. */}
+        <View className="flex-1 px-6">
+          <View className="mx-auto w-full max-w-[1120px] flex-1 flex-row items-start gap-8">
+            <View className="sticky top-[124px] w-[320px] shrink-0 gap-5 xl:w-[400px]">
+              <Animated.View style={summaryCardStyle}>
+                <Card variant="elevated">
+                  {/* No desktop o resumo mora numa coluna lateral própria e não
+                      disputa espaço com a lista — fica sempre expandido. Por
+                      isso `collapse` é omitido em vez de repassado: a lista
+                      daqui não tem `onScroll`, então o valor compartilhado nunca
+                      voltaria a zero. Quem colapsasse no mobile e alargasse a
+                      janela até o desktop via a coluna lateral presa em barras. */}
+                  <TodaySummaryHeader
+                    key={summaryFocusKey}
+                    summary={summaryQuery.data}
+                    softMode={profile.soft_mode}
+                  />
+                </Card>
+              </Animated.View>
+              <GoalsDisclaimer />
             </View>
-            {mealsQuery.isLoading ? (
-              <View className="flex-1 items-center justify-center">
-                <ActivityIndicator color={colors.primary[400]} />
+
+            <View className="flex-1">
+              {/* `px-4` pelo mesmo motivo do cabeçalho da lista no mobile: os
+                  cards carregam `marginHorizontal: 16` próprio, então sem este
+                  recuo o título e a contagem ficavam 16px à esquerda deles. */}
+              <View className="mb-4 flex-row items-baseline justify-between gap-4 px-4">
+                <Text className="text-2xl font-display-bold text-neutral-800">Refeições</Text>
+                <Text
+                  className="text-[13px] text-neutral-500"
+                  style={{ fontVariant: ["tabular-nums"] }}
+                >
+                  {items.length} de hoje
+                </Text>
               </View>
-            ) : items.length === 0 ? (
-              <Card variant="flat">
-                <EmptyMealsState />
-              </Card>
-            ) : (
-              <PullToRefresh onRefresh={handleRefresh}>
-                <Animated.FlatList
-                  data={items}
-                  keyExtractor={(m) => (m as OptimisticMeal).id}
-                  renderItem={renderItem as never}
-                  contentContainerStyle={{ paddingBottom: 180 }}
-                  itemLayoutAnimation={LinearTransition.springify().damping(20).stiffness(180)}
-                  refreshControl={
-                    <RefreshControl
-                      refreshing={mealsQuery.isRefetching || summaryQuery.isRefetching}
-                      onRefresh={handleRefresh}
-                      tintColor={colors.primary[400]}
-                    />
-                  }
-                />
-              </PullToRefresh>
-            )}
+              {mealsQuery.isLoading ? (
+                <View className="flex-1 items-center justify-center">
+                  <ActivityIndicator color={colors.primary[400]} />
+                </View>
+              ) : items.length === 0 ? (
+                <Card variant="flat">
+                  <EmptyMealsState />
+                </Card>
+              ) : (
+                <PullToRefresh onRefresh={handleRefresh}>
+                  <Animated.FlatList
+                    data={items}
+                    keyExtractor={(m) => (m as OptimisticMeal).id}
+                    renderItem={renderItem as never}
+                    contentContainerStyle={{ paddingBottom: 180 }}
+                    itemLayoutAnimation={LinearTransition.springify().damping(20).stiffness(180)}
+                    refreshControl={
+                      <RefreshControl
+                        refreshing={mealsQuery.isRefetching || summaryQuery.isRefetching}
+                        onRefresh={handleRefresh}
+                        tintColor={colors.primary[400]}
+                      />
+                    }
+                  />
+                </PullToRefresh>
+              )}
+            </View>
           </View>
         </View>
 
