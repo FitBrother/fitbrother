@@ -84,7 +84,7 @@ errava nos dois:
 O handler ignora o evento quando o alvo casa com:
 
 ```
-[role="button"], [role="link"], [role="checkbox"], [role="radio"], a, button, textarea
+[role="button"], [role="link"], [role="checkbox"], a, button, textarea
 ```
 
 Motivos concretos:
@@ -94,6 +94,19 @@ Motivos concretos:
   botão "Voltar" voltaria **e** avançaria.
 - O `MealComposer` do `FirstMealBlock` usa `TextInput` multiline, que vira
   `<textarea>`. Enter ali é quebra de linha.
+- `[role="checkbox"]` fica de fora porque alternar **não** é idempotente: no
+  `ConsentBlock`, Enter com foco num checkbox desmarcaria o consentimento e
+  avançaria com ele desmarcado.
+
+`[role="radio"]` **não** entra na lista, de propósito. Três dos oito blocos de
+dados são radiogroups (gordura corporal, atividade, objetivo): o usuário clica
+na opção e o foco fica no radio. Excluí-lo mataria o Enter em quase metade do
+fluxo — o oposto do que a feature promete. Re-disparar a seleção de um radio
+já selecionado é idempotente, então os dois handlers podem rodar juntos.
+
+Essa distinção só apareceu percorrendo o onboarding inteiro no navegador; a
+primeira versão excluía radio junto com checkbox e quebrava esses três blocos
+em silêncio.
 
 ### Blocos que optam por fora
 
