@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Platform, Pressable, Text, View } from "react-native";
 import type { View as RNView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -73,14 +73,50 @@ export default function ShareScreen() {
     enabled: Boolean(type && id),
   });
 
+  const [cardUri, setCardUri] = useState<string | null>(null);
+
+  // Pré-captura assim que o card está pronto. Na web, navigator.share()
+  // exige ser chamado dentro da janela de ativação do clique do usuário —
+  // esperar o captureCard (html2canvas) rodar DEPOIS do clique consome essa
+  // janela e faz o share falhar em silêncio. Capturando com antecedência,
+  // o clique só consulta o uri já pronto.
+  useEffect(() => {
+    if (!q.data || cardUri) return;
+    let active = true;
+    const raf = requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        captureCard(cardRef)
+          .then((uri) => {
+            if (active) setCardUri(uri);
+          })
+          .catch(() => {
+            // Falha na pré-captura não é fatal — onShare/onSave tentam de
+            // novo e aí sim mostram o erro real pro usuário.
+          });
+      });
+    });
+    return () => {
+      active = false;
+      cancelAnimationFrame(raf);
+    };
+  }, [q.data, cardUri]);
+
+  async function ensureCardUri(): Promise<string> {
+    if (cardUri) return cardUri;
+    const uri = await captureCard(cardRef);
+    setCardUri(uri);
+    return uri;
+  }
+
   async function onShare() {
     try {
-      const uri = await captureCard(cardRef);
+      const uri = await ensureCardUri();
       await shareCard(uri);
     } catch (err) {
       // Cancelar o share sheet nativo (ou da Web Share API) rejeita com
       // AbortError — não é uma falha, o usuário só desistiu.
       if (err instanceof Error && err.name === "AbortError") return;
+      console.error("[share-card] onShare falhou:", err);
       Sentry.captureException(err);
       toast({ variant: "error", message: "Não foi possível compartilhar a imagem." });
     }
@@ -88,11 +124,12 @@ export default function ShareScreen() {
 
   async function onSave() {
     try {
-      const uri = await captureCard(cardRef);
+      const uri = await ensureCardUri();
       await saveCardToGallery(uri);
       toast({ variant: "success", message: "Salvo na galeria!" });
     } catch (err) {
       if (err instanceof Error && err.message !== "gallery_permission_denied") {
+        console.error("[share-card] onSave falhou:", err);
         Sentry.captureException(err);
       }
       const msg =
