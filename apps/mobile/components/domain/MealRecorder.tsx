@@ -74,7 +74,7 @@ function PulsingDot() {
 
 /**
  * Equivalente a `min-h-[48px] flex-1 flex-row items-center justify-between
- * rounded-[22px] bg-white px-4`. O raio é o mesmo do pill do input, para os
+ * rounded-[25px] bg-white px-4`. O raio é o mesmo do pill do input, para os
  * dois estados do composer terem a mesma silhueta.
  */
 const recorderPillStyle = {

@@ -31,7 +31,14 @@ jest.mock("@/lib/hooks/useAuthSession", () => ({
   }),
 }));
 
-import { AVATAR_SIZE, HomeHeader, tabBarHeight, tabSlotWidth, TABS } from "./HomeHeader";
+import {
+  activeTabWidth,
+  AVATAR_SIZE,
+  HomeHeader,
+  tabBarHeight,
+  tabOffset,
+  TABS,
+} from "./HomeHeader";
 
 describe("abas da Home", () => {
   test("a aba social é rotulada 'Social'", () => {
@@ -43,41 +50,77 @@ describe("abas da Home", () => {
   });
 });
 
-// O destaque da aba ativa era uma classe condicional, que troca de uma vez.
-// Com o conteúdo deslizando em 250ms, o salto da pílula ficava evidente —
-// agora ela é um indicador posicionado, e a largura do slot é o que define
-// para onde ele desliza.
-// A barra fechava em 50 (aba de 44 + 3 de padding de cada lado) e ficava mais
-// alta que o avatar e o pill de ofensivas, ambos de 44. A altura da aba passou
-// a ser derivada do avatar para os três não saírem de sintonia.
+// A altura da aba é derivada do avatar para os três elementos da linha —
+// ofensiva, abas e perfil — nunca saírem de sintonia.
 describe("altura da barra de abas", () => {
   test("fecha na mesma altura do avatar e do pill", () => {
     expect(tabBarHeight()).toBe(AVATAR_SIZE);
   });
 });
 
-describe("tabSlotWidth", () => {
+// Com o menu na mesma linha da ofensiva e do perfil não cabem três rótulos:
+// num aparelho de 360px sobram ~200px para a barra, e "Análises" com ícone e
+// rótulo pede mais que o terço disponível. Só a ativa mostra rótulo e fica com
+// toda a sobra; as inativas são quadrados de 44 (o alvo de toque mínimo).
+describe("larguras das abas", () => {
   const PADDING = 3;
+  const INATIVA = AVATAR_SIZE - PADDING * 2;
 
-  test("divide a largura útil entre as abas", () => {
-    // 300 de barra - 6 de padding = 294 úteis / 3 abas = 98
-    expect(tabSlotWidth(300, 3, PADDING)).toBeCloseTo(98);
+  test("a ativa fica com o que sobra depois das inativas", () => {
+    // 300 de barra - 6 de padding - 2 inativas de 44 = 206
+    expect(activeTabWidth(300, 3, PADDING)).toBe(300 - 6 - INATIVA * 2);
   });
 
-  test("desconta o padding das duas pontas", () => {
-    expect(tabSlotWidth(106, 2, PADDING)).toBeCloseTo(50);
+  test("a ativa é bem mais larga que uma inativa no aperto de 360px", () => {
+    // Numa tela de 360: 328 de conteúdo - 62 do pill - 50 do avatar - 16 dos
+    // gaps = 200 de barra.
+    expect(activeTabWidth(200, 3, PADDING)).toBeGreaterThan(INATIVA);
   });
 
   test("não devolve valor negativo antes da medição do layout", () => {
-    expect(tabSlotWidth(0, 3, PADDING)).toBe(0);
-    expect(tabSlotWidth(4, 3, PADDING)).toBe(0);
+    expect(activeTabWidth(0, 3, PADDING)).toBe(0);
+    expect(activeTabWidth(50, 3, PADDING)).toBe(0);
   });
 
-  test("o deslocamento da última aba mantém o indicador dentro da barra", () => {
+  test("o indicador na última aba não passa da borda da barra", () => {
     const barra = 300;
-    const slot = tabSlotWidth(barra, 3, PADDING);
-    const deslocamentoFinal = slot * 2;
-    expect(deslocamentoFinal + slot).toBeLessThanOrEqual(barra - PADDING * 2);
+    const ultima = TABS.length - 1;
+    expect(tabOffset(ultima, PADDING) + activeTabWidth(barra, TABS.length, PADDING)).toBe(
+      barra - PADDING,
+    );
+  });
+
+  test("o deslocamento é constante porque as abas anteriores são todas inativas", () => {
+    expect(tabOffset(0, PADDING)).toBe(PADDING);
+    expect(tabOffset(1, PADDING)).toBe(PADDING + INATIVA);
+    expect(tabOffset(2, PADDING)).toBe(PADDING + INATIVA * 2);
+  });
+});
+
+// Com as três abas na mesma linha da ofensiva e do perfil não há largura para
+// três rótulos. O nome continua disponível para leitores de tela pelo
+// accessibilityLabel do Pressable — o que some é só o texto visível.
+describe("rótulo das abas", () => {
+  test("apenas a aba ativa mostra o rótulo", () => {
+    const { queryByText } = render(<HomeHeader activeTab="feed" onChangeTab={jest.fn()} />);
+
+    expect(queryByText("Social")).not.toBeNull();
+    expect(queryByText("Home")).toBeNull();
+    expect(queryByText("Análises")).toBeNull();
+  });
+
+  test("o rótulo acompanha a troca de aba", () => {
+    const { queryByText } = render(<HomeHeader activeTab="analises" onChangeTab={jest.fn()} />);
+
+    expect(queryByText("Análises")).not.toBeNull();
+    expect(queryByText("Social")).toBeNull();
+  });
+
+  test("as inativas continuam nomeadas para leitores de tela", () => {
+    const { getByLabelText } = render(<HomeHeader activeTab="home" onChangeTab={jest.fn()} />);
+
+    expect(getByLabelText("Social")).toBeTruthy();
+    expect(getByLabelText("Análises")).toBeTruthy();
   });
 });
 

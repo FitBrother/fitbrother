@@ -20,9 +20,9 @@ interface CardProps {
 // nenhum passo dela cai em 22 — e aproximar para 24 deixava duas curvas quase
 // iguais, que é pior que uma só.
 const variantContainerClass: Record<CardVariant, string> = {
-  elevated: "bg-white rounded-[22px] p-4",
-  outlined: "bg-white rounded-[22px] p-4 border border-neutral-200",
-  flat: "bg-neutral-50 rounded-[22px] p-4",
+  elevated: "bg-white rounded-[25px] p-4",
+  outlined: "bg-white rounded-[25px] p-4 border border-neutral-200",
+  flat: "bg-neutral-50 rounded-[25px] p-4",
 };
 
 // ─── Component ────────────────────────────────────────────────────────────────

@@ -43,7 +43,7 @@ export function PostCard({ post }: { post: Post }) {
   }, [post.image_path]);
 
   return (
-    <View style={shadows.card} className="rounded-[22px] bg-white p-4">
+    <View style={shadows.card} className="rounded-[25px] bg-white p-4">
       <View className="flex-row items-center">
         <View className="h-11 w-11 items-center justify-center rounded-full bg-primary-50">
           <Text className="font-sans-bold text-primary-700">{name.slice(0, 1).toUpperCase()}</Text>

@@ -576,7 +576,7 @@ export function MealComposer({
             <View
               style={shadows.floating}
               className={[
-                "min-h-[48px] flex-1 justify-center rounded-[22px] bg-white px-4",
+                "min-h-[48px] flex-1 justify-center rounded-[25px] bg-white px-4",
                 isMultiline ? "py-2" : "",
               ].join(" ")}
             >

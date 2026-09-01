@@ -11,7 +11,7 @@ export function InsightCard({ insight }: { insight: Insight }) {
   const router = useRouter();
   const p = insight.payload;
   return (
-    <View style={shadows.card} className="rounded-[22px] bg-white p-4">
+    <View style={shadows.card} className="rounded-[25px] bg-white p-4">
       <View className="flex-row items-center justify-between">
         <Text className="flex-1 text-lg font-display-bold text-neutral-800">{p.title}</Text>
         {p.score !== null ? (

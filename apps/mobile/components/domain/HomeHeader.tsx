@@ -31,14 +31,16 @@ export const TABS: { key: HomeTab; label: string; Icon: typeof HomeIcon }[] = [
 const TAB_BAR_PADDING = 3;
 
 /** Diâmetro do botão de perfil — casado com a altura do pill de ofensivas. */
-export const AVATAR_SIZE = 44;
+export const AVATAR_SIZE = 50;
+
+/** Altura de cada aba. Somada ao padding das pontas, fecha nos 50 dos vizinhos. */
+const TAB_HEIGHT = AVATAR_SIZE - TAB_BAR_PADDING * 2;
 
 /**
- * Altura de cada aba, em px. Derivada do avatar em vez de fixa: somada ao
- * padding das duas pontas, a barra fecha nos mesmos 44 dos vizinhos. Antes a
- * aba tinha 44 e a barra fechava em 50, mais alta que o avatar e o pill.
+ * Largura de uma aba inativa. Quadrada, igual à altura: só o ícone cabe nela,
+ * e 44×44 é exatamente o alvo de toque mínimo — sem precisar de hitSlop.
  */
-const TAB_HEIGHT = AVATAR_SIZE - TAB_BAR_PADDING * 2;
+const TAB_INACTIVE_WIDTH = TAB_HEIGHT;
 
 /** Altura total da barra de abas, incluindo o padding das duas pontas. */
 export function tabBarHeight(): number {
@@ -46,12 +48,26 @@ export function tabBarHeight(): number {
 }
 
 /**
- * Largura de cada aba dentro da barra, descontado o padding das duas pontas.
- * É o passo do indicador deslizante — o deslocamento da aba i é `i * slot`.
+ * Largura da aba ativa: o que sobra da barra depois do padding das pontas e
+ * das inativas. As três abas deixaram de ter largura igual porque com o menu
+ * na mesma linha da ofensiva e do perfil não cabem três rótulos — "Análises"
+ * sozinho pede mais que o slot disponível num aparelho de 360px. Só a ativa
+ * mostra rótulo, e ela fica com toda a sobra.
+ *
  * Devolve 0 antes do primeiro onLayout, quando a largura ainda é desconhecida.
  */
-export function tabSlotWidth(barWidth: number, count: number, padding: number): number {
-  return Math.max(0, (barWidth - padding * 2) / count);
+export function activeTabWidth(barWidth: number, count: number, padding: number): number {
+  const livre = barWidth - padding * 2 - TAB_INACTIVE_WIDTH * (count - 1);
+  return Math.max(0, livre);
+}
+
+/**
+ * Deslocamento horizontal da aba de índice `index`. Todas as abas antes da
+ * ativa são inativas, então o passo é constante — o indicador só precisa
+ * saber quantas ficaram para trás.
+ */
+export function tabOffset(index: number, padding: number): number {
+  return padding + TAB_INACTIVE_WIDTH * index;
 }
 
 export function greetingFor(date: Date): string {
@@ -78,76 +94,62 @@ export function HomeHeader({
   const initials = profileInitials(profile.full_name, email);
   const avatarUrl = useAvatarUrl(profile.avatar_url);
 
-  // Indicador deslizante da aba ativa. A largura da barra só é conhecida depois
-  // do layout, então o indicador só é renderizado a partir daí.
+  // Indicador da aba ativa. Como a ativa é mais larga que as inativas, ele
+  // anima largura E posição — antes, com slots iguais, bastava o translateX.
   const [barWidth, setBarWidth] = useState(0);
-  const slot = tabSlotWidth(barWidth, TABS.length, TAB_BAR_PADDING);
+  const largura = activeTabWidth(barWidth, TABS.length, TAB_BAR_PADDING);
   const activeIndex = Math.max(
     0,
     TABS.findIndex((t) => t.key === activeTab),
   );
   const indicatorX = useSharedValue(0);
+  const indicatorW = useSharedValue(0);
   const reducedMotion = useReducedMotion();
 
   useEffect(() => {
-    const destino = activeIndex * slot;
-    indicatorX.value = reducedMotion
-      ? destino
-      : withTiming(destino, {
-          duration: Motion.duration.base,
-          easing: Motion.easing.standard,
-        });
-  }, [activeIndex, slot, indicatorX, reducedMotion]);
+    const destinoX = tabOffset(activeIndex, TAB_BAR_PADDING);
+    const opcoes = { duration: Motion.duration.base, easing: Motion.easing.standard };
+    indicatorX.value = reducedMotion ? destinoX : withTiming(destinoX, opcoes);
+    indicatorW.value = reducedMotion ? largura : withTiming(largura, opcoes);
+  }, [activeIndex, largura, indicatorX, indicatorW, reducedMotion]);
 
   const indicatorStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: indicatorX.value }],
+    width: indicatorW.value,
   }));
 
   return (
     // Sem padding inferior: quem define o respiro até o dashboard é o `pt-2`
     // do painel de macros, para o gap não sair da soma de dois paddings.
-    <View className="gap-2 px-4 pt-2 md:hidden">
-      <View className="flex-row items-center justify-between">
-        {!softMode && streakView ? (
-          <Pressable
-            onPress={() => router.push("/(app)/history" as never)}
-            accessibilityRole="button"
-            accessibilityLabel="Ver histórico de ofensivas"
-            style={shadows.floating}
-            className="rounded-full bg-white px-2 active:opacity-70"
-          >
-            <StreakCounter
-              current={streakView.streak.current_streak}
-              atRisk={streakView.atRisk}
-              size={20}
-            />
-          </Pressable>
-        ) : (
-          <View />
-        )}
-
+    <View className="flex-row items-center gap-2 px-4 pt-2 md:hidden">
+      {!softMode && streakView ? (
         <Pressable
-          onPress={() => router.push("/(app)/profile" as never)}
-          accessibilityLabel="Perfil"
+          onPress={() => router.push("/(app)/history" as never)}
           accessibilityRole="button"
-          className="min-h-[44px] min-w-[44px] items-center justify-center"
+          accessibilityLabel="Ver histórico de ofensivas"
+          style={shadows.floating}
+          className="rounded-full bg-white px-2.5 active:opacity-70"
         >
-          {/* O wrapper carrega a sombra e repete o fundo do Avatar porque o
-              `elevation` do Android não desenha sombra em View transparente. */}
-          <View style={shadows.floating} className="rounded-full bg-primary-100">
-            <Avatar uri={avatarUrl} initials={initials} size={AVATAR_SIZE} />
-          </View>
+          {/* Chama e número no mesmo corpo (18): o número maior que o ícone
+              criava uma hierarquia de número-herói que competia com o avatar
+              e com a barra ao lado. */}
+          <StreakCounter
+            current={streakView.streak.current_streak}
+            atRisk={streakView.atRisk}
+            size={18}
+            height={AVATAR_SIZE}
+          />
         </Pressable>
-      </View>
+      ) : null}
 
       <View
         onLayout={(e) => setBarWidth(e.nativeEvent.layout.width)}
         style={shadows.floating}
-        className="flex-row rounded-full bg-white p-[3px]"
+        className="flex-1 flex-row rounded-full bg-white p-[3px]"
       >
         {/* Estilo inline: o NativeWind não processa className em componentes
             do Reanimated. */}
-        {slot > 0 && (
+        {largura > 0 && (
           <Animated.View
             pointerEvents="none"
             style={[
@@ -155,8 +157,7 @@ export function HomeHeader({
                 position: "absolute",
                 top: TAB_BAR_PADDING,
                 bottom: TAB_BAR_PADDING,
-                left: TAB_BAR_PADDING,
-                width: slot,
+                left: 0,
                 borderRadius: 9999,
                 backgroundColor: colors.primary[400],
               },
@@ -173,27 +174,36 @@ export function HomeHeader({
               accessibilityRole="button"
               accessibilityLabel={label}
               accessibilityState={{ selected: active }}
-              // O hitSlop recompõe os 44pt de alvo de toque que a altura menor
-              // tira: 38 de altura + 3 de folga de cada lado (o mesmo
-              // TAB_BAR_PADDING da barra) chega de novo em 44.
-              hitSlop={{ top: TAB_BAR_PADDING, bottom: TAB_BAR_PADDING }}
-              style={{ minHeight: TAB_HEIGHT }}
-              className="flex-1 flex-row items-center justify-center gap-1.5 rounded-full active:opacity-70"
+              style={{
+                height: TAB_HEIGHT,
+                width: active ? undefined : TAB_INACTIVE_WIDTH,
+                flex: active ? 1 : undefined,
+              }}
+              className="flex-row items-center justify-center gap-1.5 rounded-full active:opacity-70"
             >
-              <Icon size={15} color={active ? colors.neutral[900] : colors.neutral[400]} />
-              <Text
-                className={
-                  active
-                    ? "font-sans-bold text-xs text-neutral-900"
-                    : "font-sans-medium text-xs text-neutral-400"
-                }
-              >
-                {label}
-              </Text>
+              <Icon
+                size={active ? 16 : 18}
+                color={active ? colors.neutral[900] : colors.neutral[400]}
+              />
+              {/* Só a ativa mostra rótulo. O accessibilityLabel do Pressable
+                  mantém o nome disponível para leitores de tela nas inativas. */}
+              {active && <Text className="font-sans-bold text-xs text-neutral-900">{label}</Text>}
             </Pressable>
           );
         })}
       </View>
+
+      <Pressable
+        onPress={() => router.push("/(app)/profile" as never)}
+        accessibilityLabel="Perfil"
+        accessibilityRole="button"
+      >
+        {/* O wrapper carrega a sombra e repete o fundo do Avatar porque o
+            `elevation` do Android não desenha sombra em View transparente. */}
+        <View style={shadows.floating} className="rounded-full bg-primary-100">
+          <Avatar uri={avatarUrl} initials={initials} size={AVATAR_SIZE} />
+        </View>
+      </Pressable>
     </View>
   );
 }

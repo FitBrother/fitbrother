@@ -52,7 +52,7 @@ export function HistoryDayCard({ summary, softMode = false }: Props) {
           router.push({ pathname: "/(app)/history/[day]" as any, params: { day: summary.day } })
         }
         style={shadows.card}
-        className="rounded-[22px] bg-white p-4 active:opacity-80"
+        className="rounded-[25px] bg-white p-4 active:opacity-80"
       >
         <View className="flex-row items-center justify-between">
           {softMode ? (

@@ -36,7 +36,7 @@ export function HistoryEmptyDayCard({ day }: Props) {
         accessibilityLabel={`Ver dia ${formatDayHeader(day)} (sem refeições registradas)`}
         accessibilityRole="button"
         style={[shadows.card, { opacity: 0.65 }]}
-        className="items-center rounded-[22px] bg-white p-4"
+        className="items-center rounded-[25px] bg-white p-4"
       >
         <MoonStar size={20} color={colors.neutral[400]} />
         <Text className="mt-2 text-sm font-sans-medium text-neutral-600">
