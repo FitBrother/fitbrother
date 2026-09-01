@@ -16,22 +16,20 @@ Manter o markdown dentro do root de build elimina essa fragilidade.
 
 | Arquivo | URL publicada |
 |---|---|
-| `politica-de-privacidade.md` | https://lp.fitbrother.app/privacidade |
-| `termos-de-uso.md` | https://lp.fitbrother.app/termos |
-| `exclusao-de-dados.md` | https://lp.fitbrother.app/exclusao-de-dados |
-| `aviso-de-saude.md` | https://lp.fitbrother.app/aviso-de-saude |
-| `politica-de-cookies.md` | https://lp.fitbrother.app/cookies |
+| `politica-de-privacidade.md` | https://fitbrother.app/privacidade |
+| `termos-de-uso.md` | https://fitbrother.app/termos |
+| `exclusao-de-dados.md` | https://fitbrother.app/exclusao-de-dados |
+| `aviso-de-saude.md` | https://fitbrother.app/aviso-de-saude |
+| `politica-de-cookies.md` | https://fitbrother.app/cookies |
 
 Todas as cinco são as URLs referenciadas em `apps/mobile/app.json` → `extra.legal`.
 
-**Por que `lp.` e não o domínio principal:** o combinado original era `fitbrother.app`
-(sem `www`) servir a landing/documentos legais e `www.fitbrother.app` servir o app. Na
-Vercel, hoje `fitbrother.app` só redireciona (308) para `www.fitbrother.app`, que está
-atribuído ao projeto do app (PWA) — então qualquer link pra `fitbrother.app/termos`
-cai no rewrite catch-all do app e nunca chega na landing. `lp.fitbrother.app` é onde o
-projeto da landing está de fato publicado, e funciona hoje. Se a atribuição de domínio
-for corrigida na Vercel (fitbrother.app → projeto da landing, sem esse redirect), as
-URLs em `apps/mobile/app.json` podem voltar a apontar pro domínio principal.
+**Atribuição de domínio (corrigida):** `fitbrother.app` (redireciona pra `www.fitbrother.app`,
+que serve o conteúdo de fato) é o projeto da landing/documentos legais; o app (PWA) mudou
+pra `app.fitbrother.app`. Isso resolveu o desencontro que existia antes — quando
+`fitbrother.app`/`www.fitbrother.app` apontavam pro projeto do app e qualquer link de
+termos/privacidade caía no rewrite catch-all do PWA em vez de chegar na landing (esse
+domínio provisório, `lp.fitbrother.app`, não é mais usado).
 
 ## Como funciona a publicação
 

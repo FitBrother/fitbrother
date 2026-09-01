@@ -37,7 +37,7 @@ const Hero = () => (
         </p>
 
         <div className="hero__cta-row">
-          <a href="https://www.fitbrother.app" className="btn btn--primary btn--lg">
+          <a href="https://app.fitbrother.app" className="btn btn--primary btn--lg">
             Usar agora
           </a>
         </div>

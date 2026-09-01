@@ -56,7 +56,7 @@ export async function buildApp(): Promise<FastifyInstance> {
 
   await app.register(sensible);
   // Web/Expo Go bundles served from a different origin (e.g. localhost:8081 →
-  // localhost:3000, ou o PWA em www.fitbrother.app) precisam de CORS. Em dev
+  // localhost:3000, ou o PWA em app.fitbrother.app) precisam de CORS. Em dev
   // espelha a origem da request; em prod só libera o(s) domínio(s) listados
   // em CORS_ORIGIN (vazio = nenhuma origem liberada).
   const allowedOrigins = env.CORS_ORIGIN.split(",")

@@ -7,7 +7,7 @@
     "content-length": "0",
     "x-forwarded-proto": "https",
     "host": "abc123.lambda-url.sa-east-1.on.aws",
-    "origin": "https://www.fitbrother.app",
+    "origin": "https://app.fitbrother.app",
     "access-control-request-method": "GET",
     "user-agent": "Mozilla/5.0"
   },

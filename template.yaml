@@ -55,7 +55,7 @@ Parameters:
   CorsOrigin:
     Type: String
     Description: Origens do PWA web liberadas pra chamar a API (separadas por vírgula).
-    Default: "https://www.fitbrother.app,https://fitbrother.app"
+    Default: "https://app.fitbrother.app"
   ResendApiKey:
     Type: String
     NoEcho: true
@@ -65,7 +65,7 @@ Parameters:
     Default: "Fitbrother <onboarding@fitbrother.app>"
   AppUrl:
     Type: String
-    Default: "https://www.fitbrother.app"
+    Default: "https://app.fitbrother.app"
 
 Globals:
   Function:

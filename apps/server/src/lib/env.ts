@@ -50,5 +50,5 @@ export const env = cleanEnv(process.env, {
   // Lembrete de cadastro abandonado (M17) — Resend.
   RESEND_API_KEY: str({ default: "" }),
   EMAIL_FROM: str({ default: "Fitbrother <onboarding@fitbrother.app>" }),
-  APP_URL: str({ default: "https://www.fitbrother.app" }),
+  APP_URL: str({ default: "https://app.fitbrother.app" }),
 });
