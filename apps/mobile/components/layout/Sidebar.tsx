@@ -33,8 +33,12 @@ export function Sidebar() {
   const profile = useProfile();
 
   return (
+    // `lg`, não `md`: a sidebar só entra junto com o layout de duas colunas da
+    // Home (`isDesktop = width >= 1024`). Em `md` ela aparecia sozinha, e o
+    // tablet ficava sem sidebar utilizável e sem o cabeçalho de abas do mobile,
+    // que se escondia no mesmo breakpoint.
     <View
-      className="sticky top-0 hidden h-screen w-[248px] shrink-0 bg-white p-4 md:flex"
+      className="sticky top-0 hidden h-screen w-[248px] shrink-0 bg-white p-4 lg:flex"
       style={shadows.rail}
     >
       <Logo height={28} className="mb-6 ml-2" />

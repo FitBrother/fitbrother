@@ -43,7 +43,9 @@ describe("régua vertical da Home", () => {
     // ele já ganhou `flex-row items-center` quando o menu de navegação entrou
     // na mesma linha da ofensiva e do perfil, e travar o literal fazia o guard
     // falhar por um motivo que não é o que ele vigia.
-    const raiz = header.match(/className="([^"]*md:hidden[^"]*)"/)?.[1];
+    // `lg:hidden` (não `md:`): o header acompanha o mobile até 1024, que é
+    // onde a Sidebar e o layout de duas colunas assumem.
+    const raiz = header.match(/className="([^"]*lg:hidden[^"]*)"/)?.[1];
     expect(raiz).toBeDefined();
     expect(raiz).toContain("px-4");
     expect(raiz).toContain("pt-2");

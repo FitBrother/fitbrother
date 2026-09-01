@@ -121,7 +121,7 @@ export function HomeHeader({
   return (
     // Sem padding inferior: quem define o respiro até o dashboard é o `pt-2`
     // do painel de macros, para o gap não sair da soma de dois paddings.
-    <View className="flex-row items-center gap-2 px-4 pt-2 md:hidden">
+    <View className="flex-row items-center gap-2 px-4 pt-2 lg:hidden">
       {!softMode && streakView ? (
         <Pressable
           onPress={() => router.push("/(app)/history" as never)}
