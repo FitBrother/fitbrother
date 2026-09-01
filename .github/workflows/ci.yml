@@ -26,7 +26,7 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
-  supabase-migrations:
+  validate-migrations:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -37,7 +37,137 @@ jobs:
           # made while resolving the moving "latest" release.
           version: 2.98.2
 
-      - name: Validate migrations (dry run)
+      - name: Apply all migrations from scratch (local, ephemeral Postgres)
         run: |
-          supabase db lint --schema public || true
-          # Once migrations are real, swap for `supabase db push --dry-run` against a CI DB.
+          supabase start
+          supabase db reset
+
+  detect-changes:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    outputs:
+      server: ${{ steps.diff.outputs.server }}
+      migrations: ${{ steps.diff.outputs.migrations }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Detect which deploy targets changed
+        id: diff
+        run: |
+          before="${{ github.event.before }}"
+          # Primeiro push numa branch nova (ou force-push): before vem zerado.
+          # Trata como "mudou tudo" — nunca pula deploy por falta de base de
+          # comparação.
+          if [ -z "$before" ] || [ "$before" = "0000000000000000000000000000000000000000" ]; then
+            echo "server=true" >> "$GITHUB_OUTPUT"
+            echo "migrations=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if git diff --quiet "$before" "${{ github.sha }}" -- \
+            apps/server packages/shared packages/db-types \
+            template.yaml scripts/sam-stage.sh scripts/lambda-package-json.mjs Makefile \
+            package.json package-lock.json tsconfig.base.json; then
+            echo "server=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "server=true" >> "$GITHUB_OUTPUT"
+          fi
+
+          if git diff --quiet "$before" "${{ github.sha }}" -- supabase/migrations; then
+            echo "migrations=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "migrations=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  deploy-server:
+    runs-on: ubuntu-latest
+    needs: [lint-and-typecheck, detect-changes]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.detect-changes.outputs.server == 'true'
+    environment: production
+    concurrency:
+      group: deploy-server
+      cancel-in-progress: false
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: sa-east-1
+
+      - uses: aws-actions/setup-sam@v2
+
+      - name: Stage build source
+        run: npm run sam:stage
+
+      - name: SAM build
+        run: sam build
+
+      - name: SAM deploy
+        run: |
+          sam deploy \
+            --stack-name fitbrother-server \
+            --resolve-s3 \
+            --s3-prefix fitbrother-server \
+            --region sa-east-1 \
+            --capabilities CAPABILITY_IAM \
+            --no-confirm-changeset \
+            --no-fail-on-empty-changeset \
+            --parameter-overrides \
+              SupabaseUrl="${{ vars.SAM_SUPABASE_URL }}" \
+              SupabaseAnonKey="${{ secrets.SAM_SUPABASE_ANON_KEY }}" \
+              SupabaseServiceRoleKey="${{ secrets.SAM_SUPABASE_SERVICE_ROLE_KEY }}" \
+              DatabaseUrl="${{ secrets.SAM_DATABASE_URL }}" \
+              WhatsappAppSecret="${{ secrets.SAM_WHATSAPP_APP_SECRET }}" \
+              WhatsappVerifyToken="${{ secrets.SAM_WHATSAPP_VERIFY_TOKEN }}" \
+              WhatsappPhoneNumberId="${{ vars.SAM_WHATSAPP_PHONE_NUMBER_ID }}" \
+              WhatsappAccessToken="${{ secrets.SAM_WHATSAPP_ACCESS_TOKEN }}" \
+              GeminiApiKey="${{ secrets.SAM_GEMINI_API_KEY }}" \
+              OpenaiApiKey="${{ secrets.SAM_OPENAI_API_KEY }}" \
+              SentryDsn="${{ secrets.SAM_SENTRY_DSN }}" \
+              CorsOrigin="${{ vars.SAM_CORS_ORIGIN }}" \
+              ResendApiKey="${{ secrets.SAM_RESEND_API_KEY }}" \
+              EmailFrom="${{ vars.SAM_EMAIL_FROM }}" \
+              AppUrl="${{ vars.SAM_APP_URL }}"
+
+      - name: Smoke test
+        run: |
+          url=$(aws cloudformation describe-stacks \
+            --stack-name fitbrother-server \
+            --query "Stacks[0].Outputs[?OutputKey=='ApiFunctionUrl'].OutputValue" \
+            --output text)
+          curl -f "${url}health"
+
+  deploy-migrations:
+    runs-on: ubuntu-latest
+    needs: [validate-migrations, detect-changes]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.detect-changes.outputs.migrations == 'true'
+    environment: production
+    concurrency:
+      group: deploy-migrations
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: supabase/setup-cli@v2
+        with:
+          version: 2.98.2
+
+      - name: Link project
+        run: supabase link --project-ref "${{ vars.SUPABASE_PROJECT_REF }}"
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+      - name: Push migrations
+        run: supabase db push --password "${{ secrets.SUPABASE_DB_PASSWORD }}" --yes
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
