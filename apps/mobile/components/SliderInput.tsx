@@ -1,6 +1,8 @@
 import Slider from "@react-native-community/slider";
+import * as Haptics from "expo-haptics";
+import { Minus, Plus } from "lucide-react-native";
 import { useEffect, useState } from "react";
-import { Text, TextInput, View } from "react-native";
+import { Pressable, Text, TextInput, View } from "react-native";
 import { colors } from "@/lib/colors";
 
 interface SliderInputProps {
@@ -41,8 +43,14 @@ export function SliderInput({
   const [focused, setFocused] = useState(false);
   const [clampMessage, setClampMessage] = useState<string | null>(null);
 
-  // Sincroniza o texto quando o valor muda por fora (slider, ou outro
-  // campo reagindo) — mas não enquanto o usuário está digitando.
+  // O Slider snapa em min + n*step, e os limites calculados (peso-alvo,
+  // ritmo) raramente caem nessa grade. Sem alinhar, o usuário arrasta até o
+  // fim e para antes do máximo. O campo de texto continua aceitando o `max`
+  // exato — quem quiser o valor de ponta digita.
+  const gridMax = min + Math.floor((max - min) / step) * step;
+
+  // Sincroniza o texto quando o valor muda por fora (slider, stepper, ou
+  // outro campo reagindo) — mas não enquanto o usuário está digitando.
   useEffect(() => {
     if (!focused) setText(value.toFixed(decimals));
   }, [value, decimals, focused]);
@@ -66,6 +74,17 @@ export function SliderInput({
     setText(next.toFixed(decimals));
   }
 
+  const canDecrement = value > min;
+  const canIncrement = value < gridMax;
+
+  function nudge(direction: 1 | -1) {
+    const next = Math.min(gridMax, Math.max(min, value + direction * step));
+    if (next === value) return;
+    void Haptics.selectionAsync();
+    setClampMessage(null);
+    onChange(Number(next.toFixed(decimals)));
+  }
+
   const markerPct =
     markerValue !== undefined ? ((markerValue - min) / (max - min)) * 100 : undefined;
 
@@ -73,22 +92,50 @@ export function SliderInput({
     <View className="gap-2">
       <View className="flex-row items-center justify-between">
         <Text className="text-sm font-sans-medium text-neutral-700">{label}</Text>
-        <View className="flex-row items-center gap-2">
-          <TextInput
-            value={text}
-            onChangeText={handleChangeText}
-            onFocus={() => setFocused(true)}
-            onBlur={() => {
-              setFocused(false);
-              commit(text);
-            }}
-            onSubmitEditing={() => commit(text)}
-            keyboardType="decimal-pad"
-            className="min-w-[52px] rounded-lg border border-neutral-200 bg-white px-2 py-1 text-right text-sm font-sans-semibold text-neutral-800"
-            style={{ fontVariant: ["tabular-nums"] }}
-            accessibilityLabel={`${label} — valor exato`}
-          />
-          {unit && <Text className="text-sm font-sans text-neutral-500">{unit}</Text>}
+        <View className="flex-row items-center">
+          <Pressable
+            onPress={canDecrement ? () => nudge(-1) : undefined}
+            disabled={!canDecrement}
+            accessibilityRole="button"
+            accessibilityLabel={`Diminuir ${label.toLowerCase()}`}
+            accessibilityState={{ disabled: !canDecrement }}
+            className={`h-11 w-11 items-center justify-center rounded-l-full border border-neutral-200 bg-white active:bg-neutral-50 ${
+              canDecrement ? "" : "opacity-40"
+            }`}
+          >
+            <Minus size={16} color={colors.neutral[600]} />
+          </Pressable>
+
+          <View className="h-11 min-w-[88px] flex-row items-center justify-center border-y border-neutral-200 bg-white px-2">
+            <TextInput
+              value={text}
+              onChangeText={handleChangeText}
+              onFocus={() => setFocused(true)}
+              onBlur={() => {
+                setFocused(false);
+                commit(text);
+              }}
+              onSubmitEditing={() => commit(text)}
+              keyboardType="decimal-pad"
+              className="text-center text-base font-sans-semibold text-neutral-800"
+              style={{ fontVariant: ["tabular-nums"] }}
+              accessibilityLabel={`${label} — valor exato`}
+            />
+            {unit && <Text className="ml-1 text-sm font-sans text-neutral-500">{unit}</Text>}
+          </View>
+
+          <Pressable
+            onPress={canIncrement ? () => nudge(1) : undefined}
+            disabled={!canIncrement}
+            accessibilityRole="button"
+            accessibilityLabel={`Aumentar ${label.toLowerCase()}`}
+            accessibilityState={{ disabled: !canIncrement }}
+            className={`h-11 w-11 items-center justify-center rounded-r-full border border-neutral-200 bg-white active:bg-neutral-50 ${
+              canIncrement ? "" : "opacity-40"
+            }`}
+          >
+            <Plus size={16} color={colors.neutral[600]} />
+          </Pressable>
         </View>
       </View>
       <View className="justify-center">
@@ -101,7 +148,7 @@ export function SliderInput({
         )}
         <Slider
           minimumValue={min}
-          maximumValue={max}
+          maximumValue={gridMax}
           step={step}
           value={value}
           onValueChange={(v) => {
