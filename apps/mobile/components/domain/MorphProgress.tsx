@@ -62,7 +62,16 @@ export function MorphProgress({
   strokeCollapsed,
   accessibilityLabel,
 }: Props) {
-  const endpoints = useMemo(() => morphEndpoints(radius, width, width), [radius, width]);
+  // A barra é meia espessura mais curta que a caixa em cada ponta. Com
+  // `strokeLinecap="round"` o traço se estende `sw/2` além do último ponto, e
+  // indo de 0 até `width` as duas pontas caíam fora do viewport do SVG — o
+  // arredondamento era cortado e a barra parecia quadrada. Encolher o extremo
+  // da barra deixa as pontas inteiras dentro da caixa. Não mexe no anel: o
+  // recuo só existe no `bar`, que só vale em t=1.
+  const endpoints = useMemo(
+    () => morphEndpoints(radius, width - strokeCollapsed, width),
+    [radius, width, strokeCollapsed],
+  );
   const boxHeight = 2 * radius + strokeExpanded;
 
   // Mesma regra do ProgressRing: sem meta, só o trilho.
