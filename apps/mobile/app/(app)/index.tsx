@@ -408,12 +408,15 @@ export default function HomeScreen() {
             <Animated.View style={summaryCardStyle}>
               <Card variant="elevated">
                 {/* No desktop o resumo mora numa coluna lateral própria e não
-                    disputa espaço com a lista — fica sempre expandido. */}
+                    disputa espaço com a lista — fica sempre expandido. Por isso
+                    `collapse` é omitido em vez de repassado: a lista daqui não
+                    tem `onScroll`, então o valor compartilhado nunca voltaria a
+                    zero. Quem colapsasse no mobile e alargasse a janela até o
+                    desktop via a coluna lateral presa em barras. */}
                 <TodaySummaryHeader
                   key={summaryFocusKey}
                   summary={summaryQuery.data}
                   softMode={profile.soft_mode}
-                  collapse={collapse}
                 />
               </Card>
             </Animated.View>
