@@ -31,13 +31,26 @@ jest.mock("@/lib/hooks/useAuthSession", () => ({
   }),
 }));
 
+// A largura da janela decide entre `compact` e `wide`. Fixar aqui em vez de
+// herdar o default do ambiente de teste: sem isso, os testes de rótulo passam
+// por acidente (o default é menor que o breakpoint) e quebrariam em silêncio
+// se o preset do jest mudasse de tamanho.
+let mockLarguraJanela = 375;
+jest.mock("react-native/Libraries/Utilities/useWindowDimensions", () => ({
+  __esModule: true,
+  default: () => ({ width: mockLarguraJanela, height: 812, scale: 2, fontScale: 1 }),
+}));
+
 import {
   activeTabWidth,
   AVATAR_SIZE,
+  evenTabWidth,
   HomeHeader,
   tabBarHeight,
+  tabLayoutFor,
   tabOffset,
   TABS,
+  WIDE_TABS_MIN_WIDTH,
 } from "./HomeHeader";
 
 describe("abas da Home", () => {
@@ -97,10 +110,47 @@ describe("larguras das abas", () => {
   });
 });
 
+// No tablet sobra largura para os três rótulos, então as abas passam a ter o
+// mesmo tamanho — não faz sentido a ativa roubar espaço quando todas se nomeiam.
+describe("layout largo das abas", () => {
+  const PADDING = 3;
+
+  test("o modo vira `wide` a partir do breakpoint e não antes", () => {
+    expect(tabLayoutFor(WIDE_TABS_MIN_WIDTH - 1)).toBe("compact");
+    expect(tabLayoutFor(WIDE_TABS_MIN_WIDTH)).toBe("wide");
+  });
+
+  test("o celular continua em `compact` e o tablet em `wide`", () => {
+    expect(tabLayoutFor(360)).toBe("compact");
+    expect(tabLayoutFor(375)).toBe("compact");
+    expect(tabLayoutFor(768)).toBe("wide");
+    expect(tabLayoutFor(1023)).toBe("wide");
+  });
+
+  test("as abas dividem a barra em partes iguais", () => {
+    expect(evenTabWidth(300, 3, PADDING)).toBe((300 - 6) / 3);
+  });
+
+  test("não devolve valor negativo antes da medição do layout", () => {
+    expect(evenTabWidth(0, 3, PADDING)).toBe(0);
+  });
+
+  test("o indicador na última aba não passa da borda da barra", () => {
+    const barra = 300;
+    const largura = evenTabWidth(barra, TABS.length, PADDING);
+    const ultima = TABS.length - 1;
+    expect(tabOffset(ultima, PADDING, largura) + largura).toBeCloseTo(barra - PADDING);
+  });
+});
+
 // Com as três abas na mesma linha da ofensiva e do perfil não há largura para
 // três rótulos. O nome continua disponível para leitores de tela pelo
 // accessibilityLabel do Pressable — o que some é só o texto visível.
 describe("rótulo das abas", () => {
+  beforeEach(() => {
+    mockLarguraJanela = 375;
+  });
+
   test("apenas a aba ativa mostra o rótulo", () => {
     const { queryByText } = render(<HomeHeader activeTab="feed" onChangeTab={jest.fn()} />);
 
@@ -121,6 +171,26 @@ describe("rótulo das abas", () => {
 
     expect(getByLabelText("Social")).toBeTruthy();
     expect(getByLabelText("Análises")).toBeTruthy();
+  });
+
+  test("no tablet as três abas mostram o rótulo, inclusive as inativas", () => {
+    mockLarguraJanela = 768;
+
+    const { queryByText } = render(<HomeHeader activeTab="home" onChangeTab={jest.fn()} />);
+
+    expect(queryByText("Home")).not.toBeNull();
+    expect(queryByText("Social")).not.toBeNull();
+    expect(queryByText("Análises")).not.toBeNull();
+  });
+
+  test("logo abaixo do breakpoint só a ativa mostra o rótulo", () => {
+    mockLarguraJanela = WIDE_TABS_MIN_WIDTH - 1;
+
+    const { queryByText } = render(<HomeHeader activeTab="home" onChangeTab={jest.fn()} />);
+
+    expect(queryByText("Home")).not.toBeNull();
+    expect(queryByText("Social")).toBeNull();
+    expect(queryByText("Análises")).toBeNull();
   });
 });
 

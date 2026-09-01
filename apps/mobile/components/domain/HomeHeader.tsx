@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Pressable, Text, View } from "react-native";
+import { Pressable, Text, useWindowDimensions, View } from "react-native";
 import Animated, {
   useAnimatedStyle,
   useReducedMotion,
@@ -48,11 +48,32 @@ export function tabBarHeight(): number {
 }
 
 /**
- * Largura da aba ativa: o que sobra da barra depois do padding das pontas e
- * das inativas. As três abas deixaram de ter largura igual porque com o menu
- * na mesma linha da ofensiva e do perfil não cabem três rótulos — "Análises"
- * sozinho pede mais que o slot disponível num aparelho de 360px. Só a ativa
- * mostra rótulo, e ela fica com toda a sobra.
+ * A partir desta largura de janela a barra comporta os três rótulos ao mesmo
+ * tempo. É o breakpoint `md` do Tailwind — o mesmo ponto em que as telas já
+ * passam a centralizar conteúdo.
+ */
+export const WIDE_TABS_MIN_WIDTH = 768;
+
+/**
+ * Como as abas se distribuem na barra.
+ *
+ * `compact` — só a ativa mostra rótulo e fica com toda a sobra; as inativas
+ * viram quadrados de 44 (o alvo de toque mínimo). É o aperto do celular: com o
+ * menu na mesma linha da ofensiva e do perfil, "Análises" sozinho já pede mais
+ * que o terço disponível num aparelho de 360px.
+ *
+ * `wide` — sobra largura, então as três abas têm o mesmo tamanho e todas
+ * mostram o rótulo.
+ */
+export type TabLayout = "compact" | "wide";
+
+export function tabLayoutFor(windowWidth: number): TabLayout {
+  return windowWidth >= WIDE_TABS_MIN_WIDTH ? "wide" : "compact";
+}
+
+/**
+ * Largura da aba ativa no layout `compact`: o que sobra da barra depois do
+ * padding das pontas e das inativas.
  *
  * Devolve 0 antes do primeiro onLayout, quando a largura ainda é desconhecida.
  */
@@ -62,12 +83,25 @@ export function activeTabWidth(barWidth: number, count: number, padding: number)
 }
 
 /**
- * Deslocamento horizontal da aba de índice `index`. Todas as abas antes da
- * ativa são inativas, então o passo é constante — o indicador só precisa
- * saber quantas ficaram para trás.
+ * Largura de cada aba no layout `wide`: a barra dividida em partes iguais.
+ * Como todas mostram rótulo, nenhuma tem motivo para ser mais estreita.
  */
-export function tabOffset(index: number, padding: number): number {
-  return padding + TAB_INACTIVE_WIDTH * index;
+export function evenTabWidth(barWidth: number, count: number, padding: number): number {
+  return Math.max(0, (barWidth - padding * 2) / count);
+}
+
+/**
+ * Deslocamento horizontal da aba de índice `index`. O passo é constante — o
+ * indicador só precisa saber quantas abas ficaram para trás e quanto cada uma
+ * ocupa. Em `compact` todas as anteriores são inativas (o padrão); em `wide`
+ * todas medem o mesmo, e o chamador passa essa largura.
+ */
+export function tabOffset(
+  index: number,
+  padding: number,
+  stepWidth: number = TAB_INACTIVE_WIDTH,
+): number {
+  return padding + stepWidth * index;
 }
 
 export function greetingFor(date: Date): string {
@@ -94,10 +128,17 @@ export function HomeHeader({
   const initials = profileInitials(profile.full_name, email);
   const avatarUrl = useAvatarUrl(profile.avatar_url);
 
-  // Indicador da aba ativa. Como a ativa é mais larga que as inativas, ele
-  // anima largura E posição — antes, com slots iguais, bastava o translateX.
+  // Indicador da aba ativa. Em `compact` a ativa é mais larga que as inativas,
+  // então ele anima largura E posição — com slots iguais bastaria o translateX.
   const [barWidth, setBarWidth] = useState(0);
-  const largura = activeTabWidth(barWidth, TABS.length, TAB_BAR_PADDING);
+  const { width: windowWidth } = useWindowDimensions();
+  const wide = tabLayoutFor(windowWidth) === "wide";
+  const largura = wide
+    ? evenTabWidth(barWidth, TABS.length, TAB_BAR_PADDING)
+    : activeTabWidth(barWidth, TABS.length, TAB_BAR_PADDING);
+  // Passo do indicador: em `wide` todas as abas medem `largura`; em `compact`
+  // as anteriores à ativa são sempre inativas (o padrão de `tabOffset`).
+  const passo = wide ? largura : undefined;
   const activeIndex = Math.max(
     0,
     TABS.findIndex((t) => t.key === activeTab),
@@ -107,11 +148,11 @@ export function HomeHeader({
   const reducedMotion = useReducedMotion();
 
   useEffect(() => {
-    const destinoX = tabOffset(activeIndex, TAB_BAR_PADDING);
+    const destinoX = tabOffset(activeIndex, TAB_BAR_PADDING, passo);
     const opcoes = { duration: Motion.duration.base, easing: Motion.easing.standard };
     indicatorX.value = reducedMotion ? destinoX : withTiming(destinoX, opcoes);
     indicatorW.value = reducedMotion ? largura : withTiming(largura, opcoes);
-  }, [activeIndex, largura, indicatorX, indicatorW, reducedMotion]);
+  }, [activeIndex, largura, passo, indicatorX, indicatorW, reducedMotion]);
 
   const indicatorStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: indicatorX.value }],
@@ -176,18 +217,32 @@ export function HomeHeader({
               accessibilityState={{ selected: active }}
               style={{
                 height: TAB_HEIGHT,
-                width: active ? undefined : TAB_INACTIVE_WIDTH,
-                flex: active ? 1 : undefined,
+                // Em `wide` as três dividem a barra por igual (flex 1 em todas);
+                // em `compact` só a ativa cresce e as outras ficam quadradas.
+                width: wide || active ? undefined : TAB_INACTIVE_WIDTH,
+                flex: wide || active ? 1 : undefined,
               }}
               className="flex-row items-center justify-center gap-1.5 rounded-full active:opacity-70"
             >
               <Icon
-                size={active ? 16 : 18}
+                size={wide || active ? 16 : 18}
                 color={active ? colors.neutral[900] : colors.neutral[400]}
               />
-              {/* Só a ativa mostra rótulo. O accessibilityLabel do Pressable
-                  mantém o nome disponível para leitores de tela nas inativas. */}
-              {active && <Text className="font-sans-bold text-xs text-neutral-900">{label}</Text>}
+              {/* Em `compact` só a ativa mostra rótulo — o accessibilityLabel do
+                  Pressable mantém o nome para leitores de tela nas inativas. Em
+                  `wide` todas mostram, e a inativa segue a cor do próprio ícone
+                  para o indicador continuar sendo quem marca a seleção. */}
+              {(wide || active) && (
+                <Text
+                  className={
+                    active
+                      ? "font-sans-bold text-xs text-neutral-900"
+                      : "font-sans-medium text-xs text-neutral-400"
+                  }
+                >
+                  {label}
+                </Text>
+              )}
             </Pressable>
           );
         })}
