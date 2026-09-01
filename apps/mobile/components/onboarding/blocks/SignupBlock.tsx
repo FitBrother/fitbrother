@@ -188,6 +188,11 @@ export function SignupBlock({ onNext, onBack, chapter }: OnboardingBlockProps) {
       onBack={onBack}
       onNext={handleSubmit}
       nextDisabled={!canSubmit}
+      // Este bloco já encadeia e-mail -> senha -> confirmar -> submit com
+      // returnKeyType/onSubmitEditing. O Enter global do shell substituiria
+      // isso por "submete de qualquer campo", que é pior num form de 3
+      // campos.
+      enterToContinue={false}
     >
       <View className="gap-3">
         <Input

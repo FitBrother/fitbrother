@@ -12,6 +12,7 @@ import { Button } from "@/components/Button";
 import { Logo } from "@/components/Logo";
 import { colors } from "@/lib/colors";
 import { Motion } from "@/lib/motion";
+import { useEnterToContinue } from "@/lib/onboarding/enterToContinue";
 import { shadows } from "@/lib/shadows";
 import { CHAPTER_NAMES, CHAPTER_TOTAL } from "@/lib/onboarding/types";
 
@@ -31,6 +32,10 @@ interface OnboardingChapterShellProps {
   /** false quando o conteúdo é um WheelPicker (mesma ressalva do OnboardingStepShell
    * original: FlatList dentro de ScrollView quebra o windowing no RN). */
   scrollable?: boolean;
+  /** false pros blocos que já tratam Enter melhor por conta própria — hoje
+   * só o SignupBlock, que encadeia e-mail -> senha -> confirmar -> submit
+   * com returnKeyType. */
+  enterToContinue?: boolean;
 }
 
 export function OnboardingChapterShell({
@@ -44,7 +49,18 @@ export function OnboardingChapterShell({
   onSkip,
   showNav = true,
   scrollable = true,
+  enterToContinue = true,
 }: OnboardingChapterShellProps) {
+  // Enter avança a etapa. Fica aqui e não em cada bloco porque o shell já é
+  // dono de onNext/nextDisabled — um ponto cobre os 17. O `&& showNav` tira
+  // de cena os blocos de payoff (calculating/reveal/submitting), que não têm
+  // botão "Continuar" pra Enter espelhar.
+  useEnterToContinue({
+    onNext,
+    disabled: nextDisabled,
+    enabled: enterToContinue && showNav,
+  });
+
   // Entrada suave a cada troca de etapa — cada bloco é uma tela nova
   // montada, então isso dispara de novo automaticamente a cada "Continuar".
   const reducedMotion = useReducedMotion();
