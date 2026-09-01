@@ -1,5 +1,6 @@
 import { ActivityIndicator, FlatList, Text, View, useWindowDimensions } from "react-native";
 import { PostCard } from "@/components/domain/PostCard";
+import { PullToRefresh } from "@/components/PullToRefresh";
 import { colors } from "@/lib/colors";
 import { useAuthSession } from "@/lib/hooks/useAuthSession";
 import { useFeed } from "@/lib/hooks/useFeed";
@@ -28,31 +29,33 @@ export function FeedPostsPanel() {
 
   return (
     <View className="mx-auto w-full flex-1 md:max-w-[900px]">
-      <FlatList
-        key={numColumns}
-        data={feed.data ?? []}
-        numColumns={numColumns}
-        keyExtractor={(post) => post.id}
-        contentContainerClassName="gap-4 px-4 pb-8"
-        columnWrapperStyle={numColumns > 1 ? { gap: 16 } : undefined}
-        refreshing={feed.isRefetching}
-        onRefresh={() => void feed.refetch()}
-        ListEmptyComponent={
-          <View className="mt-16 items-center px-6">
-            <Text className="text-center text-lg font-sans-bold text-neutral-800">
-              Seu feed ainda está vazio
-            </Text>
-            <Text className="mt-2 text-center text-sm font-sans text-neutral-500">
-              Siga pessoas e compartilhe uma refeição para ver posts aqui.
-            </Text>
-          </View>
-        }
-        renderItem={({ item }) => (
-          <View className="flex-1">
-            <PostCard post={item} />
-          </View>
-        )}
-      />
+      <PullToRefresh onRefresh={() => feed.refetch()}>
+        <FlatList
+          key={numColumns}
+          data={feed.data ?? []}
+          numColumns={numColumns}
+          keyExtractor={(post) => post.id}
+          contentContainerClassName="gap-4 px-4 pb-8"
+          columnWrapperStyle={numColumns > 1 ? { gap: 16 } : undefined}
+          refreshing={feed.isRefetching}
+          onRefresh={() => void feed.refetch()}
+          ListEmptyComponent={
+            <View className="mt-16 items-center px-6">
+              <Text className="text-center text-lg font-sans-bold text-neutral-800">
+                Seu feed ainda está vazio
+              </Text>
+              <Text className="mt-2 text-center text-sm font-sans text-neutral-500">
+                Siga pessoas e compartilhe uma refeição para ver posts aqui.
+              </Text>
+            </View>
+          }
+          renderItem={({ item }) => (
+            <View className="flex-1">
+              <PostCard post={item} />
+            </View>
+          )}
+        />
+      </PullToRefresh>
     </View>
   );
 }

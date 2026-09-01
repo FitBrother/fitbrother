@@ -11,6 +11,7 @@ import { useProfile } from "@/lib/profile/profile-context";
 import { colors } from "@/lib/colors";
 import { TodaySummaryHeader } from "@/components/domain/TodaySummaryHeader";
 import { MealCard } from "@/components/domain/MealCard";
+import { PullToRefresh } from "@/components/PullToRefresh";
 import { reloadApp } from "@/lib/reload-app";
 
 function formatDayHeader(day: string): string {
@@ -80,40 +81,37 @@ export default function HistoryDayScreen() {
           <ActivityIndicator size="large" color={colors.primary[400]} />
         </View>
       ) : (
-        <FlatList<MealResponse>
-          ListHeaderComponent={
-            <TodaySummaryHeader summary={summaryQuery.data} softMode={profile.soft_mode} />
-          }
-          data={mealsQuery.data ?? []}
-          keyExtractor={(m) => m.id}
-          renderItem={({ item }) => (
-            <View className="mx-4 mt-3">
-              <MealCard
-                meal={item}
-                onPress={() =>
-                  router.push({
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    pathname: "/(app)/meal/[id]" as any,
-                    params: { id: item.id },
-                  })
-                }
-              />
-            </View>
-          )}
-          contentContainerStyle={{ paddingBottom: 24 }}
-          // Reload global (recarrega o app inteiro na web, ver
-          // lib/reload-app.ts) — essa tela não tinha nenhum
-          // puxar-pra-atualizar antes.
-          refreshing={false}
-          onRefresh={reloadApp}
-          ListEmptyComponent={
-            <View className="mx-4 mt-8 items-center">
-              <Text className="text-sm font-sans text-neutral-500">
-                Nenhuma refeição neste dia.
-              </Text>
-            </View>
-          }
-        />
+        <PullToRefresh onRefresh={reloadApp}>
+          <FlatList<MealResponse>
+            ListHeaderComponent={
+              <TodaySummaryHeader summary={summaryQuery.data} softMode={profile.soft_mode} />
+            }
+            data={mealsQuery.data ?? []}
+            keyExtractor={(m) => m.id}
+            renderItem={({ item }) => (
+              <View className="mx-4 mt-3">
+                <MealCard
+                  meal={item}
+                  onPress={() =>
+                    router.push({
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                      pathname: "/(app)/meal/[id]" as any,
+                      params: { id: item.id },
+                    })
+                  }
+                />
+              </View>
+            )}
+            contentContainerStyle={{ paddingBottom: 24 }}
+            ListEmptyComponent={
+              <View className="mx-4 mt-8 items-center">
+                <Text className="text-sm font-sans text-neutral-500">
+                  Nenhuma refeição neste dia.
+                </Text>
+              </View>
+            }
+          />
+        </PullToRefresh>
       )}
     </SafeAreaView>
   );

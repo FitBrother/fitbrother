@@ -22,13 +22,13 @@ import {
   Modal,
   Platform,
   Pressable,
-  RefreshControl,
   ScrollView,
   Text,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { EmailConfirmationBanner } from "@/components/domain/EmailConfirmationBanner";
+import { PullToRefresh } from "@/components/PullToRefresh";
 import { InstallPrompt } from "@/components/domain/InstallPrompt";
 import { patchAccountAvatar } from "@/lib/api/account";
 import { profileInitials } from "@/lib/account-utils";
@@ -155,89 +155,94 @@ export default function ProfileScreen() {
         </Pressable>
         <Text className="ml-2 font-display-bold text-xl text-neutral-900">Perfil</Text>
       </View>
-      <ScrollView
-        contentContainerClassName="gap-6 px-5 pb-10 pt-3"
-        // Reload global (recarrega o app inteiro na web, ver
-        // lib/reload-app.ts) — essa tela não tinha nenhum
-        // puxar-pra-atualizar antes.
-        refreshControl={<RefreshControl refreshing={false} onRefresh={reloadApp} />}
-      >
-        <EmailConfirmationBanner />
-        <InstallPrompt />
-        <View className="items-center">
-          <Pressable
-            onPress={() => setAvatarModal("actions")}
-            disabled={avatarBusy}
-            accessibilityRole="button"
-            accessibilityLabel="Opções da foto do perfil"
-            className="relative h-24 w-24"
-          >
-            <View className="h-24 w-24 items-center justify-center overflow-hidden rounded-full bg-primary-100">
-              {avatarUri ? (
-                <Image
-                  source={{ uri: avatarUri }}
-                  className="h-24 w-24"
-                  accessibilityLabel="Foto do perfil"
-                />
-              ) : (
-                <Text className="font-display-bold text-3xl text-primary-800">{initials}</Text>
-              )}
-              {avatarBusy ? (
-                <View className="absolute inset-0 items-center justify-center bg-neutral-900/40">
-                  <ActivityIndicator color={colors.neutral[50]} />
-                </View>
-              ) : null}
-            </View>
-            <View className="absolute bottom-0 right-0 h-9 w-9 items-center justify-center rounded-full bg-primary-400">
-              <Camera size={18} color={colors.neutral[50]} />
-            </View>
-          </Pressable>
-          <Text className="mt-3 font-display-bold text-2xl text-neutral-900">
-            {profile.full_name || "FitBrother"}
-          </Text>
-          {profile.username ? (
-            <Text className="font-sans-medium text-sm text-primary-700">@{profile.username}</Text>
-          ) : null}
-          <Text className="mt-1 font-sans text-sm text-neutral-500">{user.email}</Text>
-        </View>
+      <PullToRefresh onRefresh={reloadApp}>
+        <ScrollView contentContainerClassName="gap-6 px-5 pb-10 pt-3">
+          <EmailConfirmationBanner />
+          <InstallPrompt />
+          <View className="items-center">
+            <Pressable
+              onPress={() => setAvatarModal("actions")}
+              disabled={avatarBusy}
+              accessibilityRole="button"
+              accessibilityLabel="Opções da foto do perfil"
+              className="relative h-24 w-24"
+            >
+              <View className="h-24 w-24 items-center justify-center overflow-hidden rounded-full bg-primary-100">
+                {avatarUri ? (
+                  <Image
+                    source={{ uri: avatarUri }}
+                    className="h-24 w-24"
+                    accessibilityLabel="Foto do perfil"
+                  />
+                ) : (
+                  <Text className="font-display-bold text-3xl text-primary-800">{initials}</Text>
+                )}
+                {avatarBusy ? (
+                  <View className="absolute inset-0 items-center justify-center bg-neutral-900/40">
+                    <ActivityIndicator color={colors.neutral[50]} />
+                  </View>
+                ) : null}
+              </View>
+              <View className="absolute bottom-0 right-0 h-9 w-9 items-center justify-center rounded-full bg-primary-400">
+                <Camera size={18} color={colors.neutral[50]} />
+              </View>
+            </Pressable>
+            <Text className="mt-3 font-display-bold text-2xl text-neutral-900">
+              {profile.full_name || "FitBrother"}
+            </Text>
+            {profile.username ? (
+              <Text className="font-sans-medium text-sm text-primary-700">@{profile.username}</Text>
+            ) : null}
+            <Text className="mt-1 font-sans text-sm text-neutral-500">{user.email}</Text>
+          </View>
 
-        <MenuSection>
-          <MenuItem icon={Clock3} label="Histórico" onPress={() => router.push("/(app)/history")} />
-          <MenuItem
-            icon={Award}
-            label="Conquistas"
-            onPress={() => router.push("/(app)/achievements")}
-          />
-          <MenuItem icon={Users} label="Amigos" onPress={() => router.push("/(app)/friends")} />
-          <MenuItem
-            icon={BarChart3}
-            label="Insights"
-            onPress={() => router.push("/(app)/insights")}
-            last
-          />
-        </MenuSection>
-        <MenuSection>
-          <MenuItem
-            icon={Settings}
-            label="Configurações"
-            onPress={() => router.push("/settings" as never)}
-          />
-          <MenuItem
-            icon={ShieldCheck}
-            label="Privacidade e dados"
-            onPress={() => router.push("/privacy" as never)}
-          />
-          <MenuItem icon={Info} label="Sobre" onPress={() => router.push("/about" as never)} last />
-        </MenuSection>
-        <Pressable
-          onPress={() => supabase.auth.signOut()}
-          accessibilityRole="button"
-          className="min-h-[52px] flex-row items-center justify-center gap-2 rounded-full border border-neutral-200 bg-white"
-        >
-          <LogOut size={19} color={colors.danger[600]} />
-          <Text className="font-sans-semibold text-base text-danger-600">Sair</Text>
-        </Pressable>
-      </ScrollView>
+          <MenuSection>
+            <MenuItem
+              icon={Clock3}
+              label="Histórico"
+              onPress={() => router.push("/(app)/history")}
+            />
+            <MenuItem
+              icon={Award}
+              label="Conquistas"
+              onPress={() => router.push("/(app)/achievements")}
+            />
+            <MenuItem icon={Users} label="Amigos" onPress={() => router.push("/(app)/friends")} />
+            <MenuItem
+              icon={BarChart3}
+              label="Insights"
+              onPress={() => router.push("/(app)/insights")}
+              last
+            />
+          </MenuSection>
+          <MenuSection>
+            <MenuItem
+              icon={Settings}
+              label="Configurações"
+              onPress={() => router.push("/settings" as never)}
+            />
+            <MenuItem
+              icon={ShieldCheck}
+              label="Privacidade e dados"
+              onPress={() => router.push("/privacy" as never)}
+            />
+            <MenuItem
+              icon={Info}
+              label="Sobre"
+              onPress={() => router.push("/about" as never)}
+              last
+            />
+          </MenuSection>
+          <Pressable
+            onPress={() => supabase.auth.signOut()}
+            accessibilityRole="button"
+            className="min-h-[52px] flex-row items-center justify-center gap-2 rounded-full border border-neutral-200 bg-white"
+          >
+            <LogOut size={19} color={colors.danger[600]} />
+            <Text className="font-sans-semibold text-base text-danger-600">Sair</Text>
+          </Pressable>
+        </ScrollView>
+      </PullToRefresh>
       <Modal
         visible={avatarModal !== null}
         transparent

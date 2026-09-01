@@ -45,6 +45,7 @@ import { Motion } from "@/lib/motion";
 import { uploadMealAudio, uploadMealPhoto } from "@/lib/storage";
 import type { AudioExtension } from "@/lib/audio/recorder";
 import { Card } from "@/components/Card";
+import { PullToRefresh } from "@/components/PullToRefresh";
 import { AnalisesPanel } from "@/components/domain/AnalisesPanel";
 import { FeedTabContent } from "@/components/domain/FeedTabContent";
 import { HomeHeader, greetingFor, TABS, type HomeTab } from "@/components/domain/HomeHeader";
@@ -393,20 +394,22 @@ export default function HomeScreen() {
                 <EmptyMealsState />
               </Card>
             ) : (
-              <Animated.FlatList
-                data={items}
-                keyExtractor={(m) => (m as OptimisticMeal).id}
-                renderItem={renderItem as never}
-                contentContainerStyle={{ paddingBottom: 180 }}
-                itemLayoutAnimation={LinearTransition.springify().damping(20).stiffness(180)}
-                refreshControl={
-                  <RefreshControl
-                    refreshing={mealsQuery.isRefetching || summaryQuery.isRefetching}
-                    onRefresh={handleRefresh}
-                    tintColor={colors.primary[400]}
-                  />
-                }
-              />
+              <PullToRefresh onRefresh={handleRefresh}>
+                <Animated.FlatList
+                  data={items}
+                  keyExtractor={(m) => (m as OptimisticMeal).id}
+                  renderItem={renderItem as never}
+                  contentContainerStyle={{ paddingBottom: 180 }}
+                  itemLayoutAnimation={LinearTransition.springify().damping(20).stiffness(180)}
+                  refreshControl={
+                    <RefreshControl
+                      refreshing={mealsQuery.isRefetching || summaryQuery.isRefetching}
+                      onRefresh={handleRefresh}
+                      tintColor={colors.primary[400]}
+                    />
+                  }
+                />
+              </PullToRefresh>
             )}
           </View>
         </View>
@@ -496,32 +499,37 @@ export default function HomeScreen() {
               vazio era um Pressable solto, sem container rolável, e a tela
               ficava morta — nem o bounce do iOS acontecia. O estado vazio virou
               ListEmptyComponent para manter um único container de rolagem. */}
-          <Animated.FlatList
-            data={items}
-            keyExtractor={(m) => (m as OptimisticMeal).id}
-            renderItem={renderItem as never}
-            ListEmptyComponent={
-              mealsQuery.isLoading ? null : (
-                <Pressable onPress={Keyboard.dismiss}>
-                  <Card variant="flat" className="mx-4">
-                    <EmptyMealsState />
-                  </Card>
-                </Pressable>
-              )
-            }
-            alwaysBounceVertical
-            contentContainerStyle={{ paddingBottom: listBottomSpace(composerHeight), flexGrow: 1 }}
-            keyboardDismissMode="on-drag"
-            keyboardShouldPersistTaps="handled"
-            itemLayoutAnimation={LinearTransition.springify().damping(20).stiffness(180)}
-            refreshControl={
-              <RefreshControl
-                refreshing={mealsQuery.isRefetching || summaryQuery.isRefetching}
-                onRefresh={handleRefresh}
-                tintColor={colors.primary[400]}
-              />
-            }
-          />
+          <PullToRefresh onRefresh={handleRefresh}>
+            <Animated.FlatList
+              data={items}
+              keyExtractor={(m) => (m as OptimisticMeal).id}
+              renderItem={renderItem as never}
+              ListEmptyComponent={
+                mealsQuery.isLoading ? null : (
+                  <Pressable onPress={Keyboard.dismiss}>
+                    <Card variant="flat" className="mx-4">
+                      <EmptyMealsState />
+                    </Card>
+                  </Pressable>
+                )
+              }
+              alwaysBounceVertical
+              contentContainerStyle={{
+                paddingBottom: listBottomSpace(composerHeight),
+                flexGrow: 1,
+              }}
+              keyboardDismissMode="on-drag"
+              keyboardShouldPersistTaps="handled"
+              itemLayoutAnimation={LinearTransition.springify().damping(20).stiffness(180)}
+              refreshControl={
+                <RefreshControl
+                  refreshing={mealsQuery.isRefetching || summaryQuery.isRefetching}
+                  onRefresh={handleRefresh}
+                  tintColor={colors.primary[400]}
+                />
+              }
+            />
+          </PullToRefresh>
         </>
         <FeedTabContent />
         <AnalisesPanel />

@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { ActivityIndicator, FlatList, Platform, Text, View } from "react-native";
+import { ActivityIndicator, FlatList, Text, View } from "react-native";
 import type { Insight } from "@fitbrother/shared";
 import { InsightCard } from "@/components/domain/InsightCard";
 import { SubTabs } from "@/components/domain/SubTabs";
+import { PullToRefresh } from "@/components/PullToRefresh";
 import { colors } from "@/lib/colors";
 import { useInsights } from "@/lib/hooks/useInsights";
 import { reloadApp } from "@/lib/reload-app";
@@ -31,27 +32,26 @@ export function AnalisesPanel() {
           <ActivityIndicator color={colors.primary[400]} />
         </View>
       ) : (
-        <FlatList
-          data={q.data ?? []}
-          keyExtractor={(i: Insight) => i.id}
-          contentContainerClassName="gap-4 px-4 pb-8"
-          refreshing={q.isRefetching}
-          // Puxar pra atualizar recarrega o app inteiro na web (pega código
-          // novo do PWA instalado, ver lib/reload-app.ts) — no nativo não
-          // existe esse problema, mantém o refetch escopado de sempre.
-          onRefresh={() => (Platform.OS === "web" ? reloadApp() : void q.refetch())}
-          ListEmptyComponent={
-            <View className="mt-16 items-center px-6">
-              <Text className="text-center text-lg font-sans-bold text-neutral-800">
-                Sem análises ainda
-              </Text>
-              <Text className="mt-2 text-center text-sm font-sans text-neutral-500">
-                Registre alguns dias pra desbloquear sua análise deste período.
-              </Text>
-            </View>
-          }
-          renderItem={({ item }) => <InsightCard insight={item} />}
-        />
+        <PullToRefresh onRefresh={reloadApp}>
+          <FlatList
+            data={q.data ?? []}
+            keyExtractor={(i: Insight) => i.id}
+            contentContainerClassName="gap-4 px-4 pb-8"
+            refreshing={q.isRefetching}
+            onRefresh={() => void q.refetch()}
+            ListEmptyComponent={
+              <View className="mt-16 items-center px-6">
+                <Text className="text-center text-lg font-sans-bold text-neutral-800">
+                  Sem análises ainda
+                </Text>
+                <Text className="mt-2 text-center text-sm font-sans text-neutral-500">
+                  Registre alguns dias pra desbloquear sua análise deste período.
+                </Text>
+              </View>
+            }
+            renderItem={({ item }) => <InsightCard insight={item} />}
+          />
+        </PullToRefresh>
       )}
     </View>
   );

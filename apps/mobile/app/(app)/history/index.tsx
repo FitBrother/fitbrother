@@ -23,6 +23,7 @@ import { reloadApp } from "@/lib/reload-app";
 import { HistoryDayCard } from "@/components/domain/HistoryDayCard";
 import { HistoryEmptyDayCard } from "@/components/domain/HistoryEmptyDayCard";
 import { StreakCounter } from "@/components/domain/StreakCounter";
+import { PullToRefresh } from "@/components/PullToRefresh";
 
 type DayEntry =
   | { type: "filled"; day: string; summary: DailySummary }
@@ -96,43 +97,40 @@ export default function HistoryScreen() {
         </View>
       ) : (
         <View className="mx-auto w-full flex-1 md:max-w-[1100px]">
-          <FlatList
-            key={numColumns}
-            data={entries}
-            numColumns={numColumns}
-            keyExtractor={(e) => e.day}
-            renderItem={({ item, index }) => (
-              <Animated.View
-                style={{ flex: 1 }}
-                entering={FadeInDown.duration(250).delay(Math.min(index, 9) * 40)}
-              >
-                {item.type === "filled" ? (
-                  <HistoryDayCard summary={item.summary} softMode={profile.soft_mode} />
-                ) : (
-                  <HistoryEmptyDayCard day={item.day} />
-                )}
-              </Animated.View>
-            )}
-            contentContainerStyle={{ paddingBottom: 24 }}
-            // Reload global (recarrega o app inteiro na web, ver
-            // lib/reload-app.ts) — essa tela não tinha nenhum
-            // puxar-pra-atualizar antes.
-            refreshing={false}
-            onRefresh={reloadApp}
-            onEndReached={() => {
-              if (query.hasNextPage && !query.isFetchingNextPage) {
-                void query.fetchNextPage();
+          <PullToRefresh onRefresh={reloadApp}>
+            <FlatList
+              key={numColumns}
+              data={entries}
+              numColumns={numColumns}
+              keyExtractor={(e) => e.day}
+              renderItem={({ item, index }) => (
+                <Animated.View
+                  style={{ flex: 1 }}
+                  entering={FadeInDown.duration(250).delay(Math.min(index, 9) * 40)}
+                >
+                  {item.type === "filled" ? (
+                    <HistoryDayCard summary={item.summary} softMode={profile.soft_mode} />
+                  ) : (
+                    <HistoryEmptyDayCard day={item.day} />
+                  )}
+                </Animated.View>
+              )}
+              contentContainerStyle={{ paddingBottom: 24 }}
+              onEndReached={() => {
+                if (query.hasNextPage && !query.isFetchingNextPage) {
+                  void query.fetchNextPage();
+                }
+              }}
+              onEndReachedThreshold={0.5}
+              ListFooterComponent={
+                query.isFetchingNextPage ? (
+                  <View className="py-4">
+                    <ActivityIndicator color={colors.primary[400]} />
+                  </View>
+                ) : null
               }
-            }}
-            onEndReachedThreshold={0.5}
-            ListFooterComponent={
-              query.isFetchingNextPage ? (
-                <View className="py-4">
-                  <ActivityIndicator color={colors.primary[400]} />
-                </View>
-              ) : null
-            }
-          />
+            />
+          </PullToRefresh>
         </View>
       )}
     </SafeAreaView>
