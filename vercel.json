@@ -2,5 +2,6 @@
   "installCommand": "npm install",
   "buildCommand": "npm run build:web --workspace apps/mobile",
   "outputDirectory": "apps/mobile/dist",
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }],
+  "ignoreCommand": "git diff --quiet HEAD^ HEAD -- apps/mobile packages/shared packages/db-types package.json package-lock.json vercel.json"
 }
