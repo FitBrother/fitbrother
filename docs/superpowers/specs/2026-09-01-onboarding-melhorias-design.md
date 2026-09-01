@@ -47,20 +47,37 @@ useEnterToContinue({ onNext, disabled, enabled });
 
 Comportamento:
 
-- Só na web (`Platform.OS === "web"`). Em nativo o hook retorna sem registrar
-  nada.
-- Listener de `keydown` no `window`, registrado uma vez. `onNext` e `disabled`
-  entram por `useRef` atualizado a cada render, pra não re-registrar o listener
-  a cada tecla digitada.
+- Só onde existe DOM (`typeof document === "undefined"` → retorna sem
+  registrar nada). É a checagem honesta: o que o hook precisa é de DOM, não de
+  uma plataforma específica — e é testável, já que o ambiente de teste do app
+  não tem `document`.
+- Listener de `keydown` no `window`, registrado uma vez, **na fase de
+  captura**. `onNext` e `disabled` entram por `useRef` atualizado a cada
+  render, pra não re-registrar o listener a cada tecla digitada.
 - Dispara em `Enter` sem `shiftKey`/`metaKey`/`ctrlKey`/`altKey`.
 - Sequência ao disparar: `preventDefault()` → `document.activeElement.blur()` →
-  `requestAnimationFrame(...)` → se `!disabled`, chama `onNext()`.
+  `onNext()`, tudo síncrono.
 
 O `blur()` antes do avanço existe porque o campo numérico do `SliderInput`
 faz o commit (parse + clamp) no `onBlur`. Sem ele, digitar `185` e apertar
-Enter avançaria com o valor antigo ainda no store. O `requestAnimationFrame`
-dá um frame pro React reconciliar o commit antes de reler `disabled` — ler o
-ref no mesmo tick pegaria o valor pré-commit.
+Enter avançaria com o valor antigo ainda no store.
+
+Dois detalhes que só apareceram rodando no navegador — o desenho original
+errava nos dois:
+
+- **Captura, não bolha.** O `TextInput` do React Native Web chama
+  `stopPropagation` no Enter pra implementar `onSubmitEditing`. Um listener de
+  bolha no `window` nunca vê a tecla vinda de um campo — que é justamente o
+  caso principal. Ver o evento primeiro não atropela ninguém: a exclusão por
+  seletor continua devolvendo o Enter pros elementos que o tratam sozinhos, e
+  `preventDefault` não impede o handler do próprio campo.
+- **Síncrono, sem `requestAnimationFrame`.** A ideia original era esperar um
+  frame pro React reconciliar o commit antes de reler `disabled`. Mas em aba
+  de segundo plano o rAF fica suspenso e o Enter nunca avançava. A espera era
+  desnecessária: `blur()` despacha o evento na hora, o commit escreve no store
+  do zustand na hora, e `onNext` lê via `getState()` — nada no caminho depende
+  de reconciliação. E nenhum bloco tem `nextDisabled` dependente de um valor
+  de slider, então ler o ref pré-blur está correto.
 
 ### Exclusões
 
@@ -119,9 +136,13 @@ Anatomia:
   pontas externas. Ícones `Minus` e `Plus` do `lucide-react-native`, size 16,
   `colors.neutral[600]`.
 - Centro: `TextInput` editável, `h-11`, bordas superior e inferior
-  `neutral-200`, `bg-white`, `min-w-[88px]`. Número em `font-sans-semibold`,
-  `text-neutral-800`, `style={{ fontVariant: ["tabular-nums"] }}`. Unidade
-  logo depois em `text-sm font-sans text-neutral-500`, dentro do campo.
+  `neutral-200`, `bg-white`, largura explícita de `56px`. Número em
+  `font-sans-semibold`, `text-neutral-800`,
+  `style={{ fontVariant: ["tabular-nums"] }}`. Unidade logo depois em
+  `text-sm font-sans text-neutral-500`, dentro do campo.
+  A largura explícita não é escolha estética: na web o `TextInput` vira
+  `<input>`, que assume a largura intrínseca padrão do navegador (~253px),
+  estoura a linha e espreme o label. Descoberto rodando a app.
 - Passo dos botões = a prop `step`. Resultado clampado em `[min, max]`.
 - `Haptics.selectionAsync()` no toque, mesmo padrão do `GoalBlock`.
 - No limite: botão fica `opacity-40` e sem `onPress`, com
