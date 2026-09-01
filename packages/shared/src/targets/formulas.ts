@@ -130,3 +130,37 @@ export function computeTargetWeightBounds(input: {
   const max = Math.max(maxByBmi, input.weight_kg + 0.5);
   return { min: ceil1(input.weight_kg), max: floor1(max) };
 }
+
+export type RateBounds = { min: number; max: number };
+
+/**
+ * Limites do slider de ritmo no onboarding.
+ *
+ * `computeTargets` aplica dois tetos: um percentual do peso corporal
+ * (`RATE_CAP_PCT`) e um percentual do GET (`DEFICIT_CAP_PCT`). Na prática é
+ * o segundo que trava em quase todo caso de "perder" — o primeiro raramente
+ * chega a valer. Um slider com faixa fixa deixa o usuário escolher acima do
+ * efetivo e o cálculo clampa em silêncio, com um warning que a UI não
+ * mostra. Aqui o teto é o menor dos dois, então o que o slider oferece é o
+ * que o cálculo entrega.
+ */
+export function computeRateBounds(input: {
+  goal: "lose" | "gain";
+  sex: Sex;
+  age_years: number;
+  weight_kg: number;
+  height_cm: number;
+  activity_level: ActivityLevel;
+}): RateBounds {
+  const min = 0.1;
+  const tdee = calculateTdee(calculateBmr(input), input.activity_level);
+  const capByWeight = percentOfWeightPerWeekToRateKgPerWeek(
+    RATE_CAP_PCT[input.goal],
+    input.weight_kg,
+  );
+  const capByDeficit = deficitKcalPerDayToRateKgPerWeek((DEFICIT_CAP_PCT[input.goal] / 100) * tdee);
+  // Arredonda pra baixo: pra cima devolveria um teto que o próprio
+  // computeTargets clamparia de volta.
+  const max = Math.floor(Math.min(capByWeight, capByDeficit) * 100) / 100;
+  return { min, max: Math.max(min, max) };
+}

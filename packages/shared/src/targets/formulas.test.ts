@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
+import { computeTargets } from "./compute-targets.js";
 import {
   calculateBmr,
   calculateTdee,
+  computeRateBounds,
   computeTargetWeightBounds,
   deficitKcalPerDayToRateKgPerWeek,
   fiberTargetG,
@@ -134,5 +136,105 @@ describe("computeTargetWeightBounds", () => {
       sex: "male",
     });
     expect(bounds).toEqual({ min: 95, max: 95.5 });
+  });
+});
+
+describe("computeRateBounds", () => {
+  const PERFIS = [
+    {
+      goal: "lose",
+      sex: "female",
+      age_years: 30,
+      weight_kg: 60,
+      height_cm: 165,
+      activity_level: "moderate",
+    },
+    {
+      goal: "lose",
+      sex: "male",
+      age_years: 30,
+      weight_kg: 80,
+      height_cm: 180,
+      activity_level: "moderate",
+    },
+    {
+      goal: "lose",
+      sex: "male",
+      age_years: 40,
+      weight_kg: 110,
+      height_cm: 180,
+      activity_level: "sedentary",
+    },
+    {
+      goal: "lose",
+      sex: "other",
+      age_years: 55,
+      weight_kg: 95,
+      height_cm: 172,
+      activity_level: "very_active",
+    },
+    {
+      goal: "gain",
+      sex: "male",
+      age_years: 25,
+      weight_kg: 70,
+      height_cm: 178,
+      activity_level: "active",
+    },
+    {
+      goal: "gain",
+      sex: "female",
+      age_years: 22,
+      weight_kg: 52,
+      height_cm: 160,
+      activity_level: "light",
+    },
+  ] as const;
+
+  // O invariante que motiva a função existir: hoje o slider é fixo em
+  // 0.1-1.0 kg/semana enquanto o cap real de déficit trava bem antes disso,
+  // e o backend clampa em silêncio. O teto do slider tem que ser um valor
+  // que passa pelo cálculo sem ser clampado.
+  it.each(PERFIS)(
+    "o teto passa por computeTargets sem clamp ($goal $weight_kg kg $activity_level)",
+    (perfil) => {
+      const bounds = computeRateBounds(perfil);
+      const result = computeTargets({ ...perfil, body_fat_pct: 20, rate_kg_per_week: bounds.max });
+      expect(result.warnings.map((w) => w.code)).not.toContain("rate_clamped");
+      expect(result.warnings.map((w) => w.code)).not.toContain("deficit_clamped");
+      expect(result.warnings.map((w) => w.code)).not.toContain("surplus_clamped");
+    },
+  );
+
+  it.each(PERFIS)("o teto nunca fica abaixo do piso ($goal $weight_kg kg)", (perfil) => {
+    const bounds = computeRateBounds(perfil);
+    expect(bounds.min).toBe(0.1);
+    expect(bounds.max).toBeGreaterThanOrEqual(bounds.min);
+  });
+
+  it("o teto é o cap de déficit, não o de percentual do peso, num caso típico de perda", () => {
+    // 80kg 1,80m 30a moderado: cap por peso = 1,25% * 80 = 1,0 kg/semana,
+    // cap por déficit = 30% de 2759 kcal = 0,75 kg/semana. Vence o menor.
+    const bounds = computeRateBounds({
+      goal: "lose",
+      sex: "male",
+      age_years: 30,
+      weight_kg: 80,
+      height_cm: 180,
+      activity_level: "moderate",
+    });
+    expect(bounds.max).toBeCloseTo(0.75, 2);
+  });
+
+  it("garante o piso de 0,1 mesmo num perfil com GET muito baixo", () => {
+    const bounds = computeRateBounds({
+      goal: "lose",
+      sex: "female",
+      age_years: 80,
+      weight_kg: 38,
+      height_cm: 145,
+      activity_level: "sedentary",
+    });
+    expect(bounds.max).toBeGreaterThanOrEqual(0.1);
   });
 });
