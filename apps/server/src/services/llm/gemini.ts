@@ -3,6 +3,7 @@ import {
   GoogleGenerativeAI,
   SchemaType,
   type FunctionDeclaration,
+  type GenerationConfig,
 } from "@google/generative-ai";
 import {
   coachContextToneInstruction,
@@ -12,6 +13,15 @@ import {
   type LLMProvider,
 } from "@fitbrother/shared";
 import { env } from "../../lib/env.js";
+
+// @google/generative-ai (legado, sem atualização de tipos) não modela
+// thinkingConfig — o campo existe de verdade na API REST do 2.5 Flash, e o
+// SDK repassa generationConfig sem filtrar chaves desconhecidas. Estende o
+// tipo aqui em vez de castar por cima do GenerationConfig oficial (que não
+// tem NENHUM campo em comum com { thinkingConfig }, o que o TS recusa).
+type GenerationConfigWithThinking = GenerationConfig & {
+  thinkingConfig?: { thinkingBudget: number };
+};
 
 /**
  * Gemini 1.5 Flash implementation of LLMProvider.
@@ -134,6 +144,16 @@ async function extractFromGeminiContent(
         allowedFunctionNames: ["extract_meal"],
       },
     },
+    // thinkingBudget: 0 desliga o passo de "raciocínio" que o 2.5 Flash faz
+    // por padrão (a 1.5 Flash, descontinuada, não tinha isso) — extração via
+    // function-calling é uma tarefa estruturada, não precisa de raciocínio
+    // livre. Nos logs de produção essa etapa variava de ~3s a ~19s pela
+    // MESMA extração simples; esse é o suspeito principal. O SDK
+    // @google/generative-ai (legado, sem sucessor de tipos atualizado) não
+    // modela thinkingConfig no TS — o campo existe de verdade na API REST do
+    // Gemini e o SDK repassa generationConfig sem filtrar chaves
+    // desconhecidas, então o cast abaixo é seguro em runtime.
+    generationConfig: { thinkingConfig: { thinkingBudget: 0 } } as GenerationConfigWithThinking,
   });
 
   const result = await model.generateContent(parts);
@@ -231,6 +251,9 @@ async function generateInsightWithGemini(input: {
         allowedFunctionNames: ["emit_insight"],
       },
     },
+    // Mesmo motivo de extractFromGeminiContent acima — insight também é
+    // saída estruturada via function-calling, não precisa de thinking.
+    generationConfig: { thinkingConfig: { thinkingBudget: 0 } } as GenerationConfigWithThinking,
   });
 
   const result = await model.generateContent([
