@@ -9,6 +9,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Button } from "@/components/Button";
+import { Logo } from "@/components/Logo";
 import { colors } from "@/lib/colors";
 import { Motion } from "@/lib/motion";
 import { shadows } from "@/lib/shadows";
@@ -144,7 +145,8 @@ export function OnboardingChapterShell({
             style={shadows.rail}
           >
             <View className="gap-8">
-              <Text className="text-xl font-display-bold text-primary-400">Fitbrother</Text>
+              {/* Estático de propósito: sair no meio do onboarding perde o progresso. */}
+              <Logo height={24} />
               <View>
                 <Text className="font-display-bold text-2xl leading-tight text-neutral-800">
                   Vamos montar suas metas.
@@ -187,7 +189,7 @@ export function OnboardingChapterShell({
         <View className="flex-1">
           {!chapter && (
             <View className="items-center px-5 pb-2 pt-4 lg:hidden">
-              <Text className="text-lg font-display-bold text-neutral-800">Fitbrother</Text>
+              <Logo height={22} />
             </View>
           )}
 
