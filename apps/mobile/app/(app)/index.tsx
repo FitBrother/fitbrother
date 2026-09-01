@@ -482,6 +482,21 @@ export default function HomeScreen() {
     </View>
   );
 
+  // isPending (não isLoading): true só enquanto NUNCA houve dado pra essa
+  // query (primeiro carregamento do dia) — uma vez que os macros/refeições
+  // chegam uma vez, refetches em segundo plano (foco, pull-to-refresh) não
+  // reacendem esse spinner de tela cheia de novo. Sem isso, o loading
+  // inicial do app (GuardedStack) escondia assim que o profile ficava
+  // pronto, e a Home aparecia de relance com macros/refeições zerados antes
+  // dos dados do dia chegarem.
+  if (mealsQuery.isPending || summaryQuery.isPending) {
+    return (
+      <SafeAreaView className="flex-1 items-center justify-center bg-neutral-50">
+        <ActivityIndicator size="large" color={colors.primary[400]} />
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView className="flex-1 bg-neutral-50" edges={["top", "left", "right"]}>
       <HomeHeader softMode={profile.soft_mode} activeTab={activeTab} onChangeTab={setActiveTab} />
