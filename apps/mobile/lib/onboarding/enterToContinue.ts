@@ -4,9 +4,18 @@ import { useEffect, useRef } from "react";
  * vira `<div role="button" tabindex="0">` e dispara onPress no Enter — sem
  * essa exclusão, Enter com foco no botão "Voltar" voltaria e avançaria na
  * mesma tecla. `textarea` é o TextInput multiline do MealComposer, onde
- * Enter é quebra de linha. */
+ * Enter é quebra de linha.
+ *
+ * `role="radio"` NÃO entra aqui, de propósito. Três dos oito blocos de dados
+ * são radiogroups (gordura corporal, atividade, objetivo): o usuário clica na
+ * opção, o foco fica no radio, e excluí-lo mataria o Enter justamente onde
+ * ele é mais útil. Re-disparar a seleção do radio já selecionado é
+ * idempotente, então deixar os dois handlers rodarem é seguro.
+ *
+ * `role="checkbox"` continua excluído porque alternar não é idempotente —
+ * no ConsentBlock, Enter desmarcaria um consentimento e avançaria. */
 const SELF_HANDLED_SELECTOR =
-  '[role="button"], [role="link"], [role="checkbox"], [role="radio"], a, button, textarea';
+  '[role="button"], [role="link"], [role="checkbox"], a, button, textarea';
 
 export interface EnterCandidate {
   key: string;

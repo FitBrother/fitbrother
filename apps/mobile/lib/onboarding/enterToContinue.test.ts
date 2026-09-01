@@ -32,12 +32,21 @@ describe("shouldAdvanceOnEnter", () => {
   // O Pressable do React Native Web vira <div role="button" tabindex="0"> e
   // já dispara onPress no Enter sozinho. Sem essa exclusão, Enter com foco
   // no "Voltar" voltaria E avançaria.
-  test.each(['role="button"', 'role="link"', 'role="checkbox"', 'role="radio"', "button", "a"])(
+  test.each(['role="button"', 'role="link"', 'role="checkbox"', "button", "a"])(
     "ignora Enter quando o alvo está dentro de %s",
     (selector) => {
       expect(shouldAdvanceOnEnter({ key: "Enter", target: target([selector]) })).toBe(false);
     },
   );
+
+  // Três dos oito blocos de dados são radiogroups (gordura corporal,
+  // atividade, objetivo). Clicar numa opção deixa o foco no radio — excluir
+  // esse papel mataria o Enter justamente onde ele é mais útil. Re-disparar
+  // a seleção do radio já selecionado é idempotente, diferente de um
+  // checkbox, que alternaria um consentimento.
+  test("avança com Enter sobre um radio já selecionado", () => {
+    expect(shouldAdvanceOnEnter({ key: "Enter", target: target(['role="radio"']) })).toBe(true);
+  });
 
   // O MealComposer usa TextInput multiline, que vira <textarea>. Enter ali
   // é quebra de linha.
