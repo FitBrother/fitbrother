@@ -493,42 +493,48 @@ export default function HomeScreen() {
         onIndexChange={(i) => setActiveTab(TABS[i]!.key)}
       >
         <>
-          {macroPanel}
-          {listHeader}
-          {/* A lista é renderizada sempre, inclusive vazia: antes o estado
-              vazio era um Pressable solto, sem container rolável, e a tela
-              ficava morta — nem o bounce do iOS acontecia. O estado vazio virou
-              ListEmptyComponent para manter um único container de rolagem. */}
+          {/* PullToRefresh embrulha o painel de macros + cabeçalho da lista
+              junto com o FlatList (não só o FlatList sozinho) — puxar pra
+              atualizar precisa funcionar assim que sai do header fixo da
+              Home, não só depois de já estar dentro da lista de refeições. */}
           <PullToRefresh onRefresh={handleRefresh}>
-            <Animated.FlatList
-              data={items}
-              keyExtractor={(m) => (m as OptimisticMeal).id}
-              renderItem={renderItem as never}
-              ListEmptyComponent={
-                mealsQuery.isLoading ? null : (
-                  <Pressable onPress={Keyboard.dismiss}>
-                    <Card variant="flat" className="mx-4">
-                      <EmptyMealsState />
-                    </Card>
-                  </Pressable>
-                )
-              }
-              alwaysBounceVertical
-              contentContainerStyle={{
-                paddingBottom: listBottomSpace(composerHeight),
-                flexGrow: 1,
-              }}
-              keyboardDismissMode="on-drag"
-              keyboardShouldPersistTaps="handled"
-              itemLayoutAnimation={LinearTransition.springify().damping(20).stiffness(180)}
-              refreshControl={
-                <RefreshControl
-                  refreshing={mealsQuery.isRefetching || summaryQuery.isRefetching}
-                  onRefresh={handleRefresh}
-                  tintColor={colors.primary[400]}
-                />
-              }
-            />
+            <View className="flex-1">
+              {macroPanel}
+              {listHeader}
+              {/* A lista é renderizada sempre, inclusive vazia: antes o estado
+                  vazio era um Pressable solto, sem container rolável, e a tela
+                  ficava morta — nem o bounce do iOS acontecia. O estado vazio virou
+                  ListEmptyComponent para manter um único container de rolagem. */}
+              <Animated.FlatList
+                data={items}
+                keyExtractor={(m) => (m as OptimisticMeal).id}
+                renderItem={renderItem as never}
+                ListEmptyComponent={
+                  mealsQuery.isLoading ? null : (
+                    <Pressable onPress={Keyboard.dismiss}>
+                      <Card variant="flat" className="mx-4">
+                        <EmptyMealsState />
+                      </Card>
+                    </Pressable>
+                  )
+                }
+                alwaysBounceVertical
+                contentContainerStyle={{
+                  paddingBottom: listBottomSpace(composerHeight),
+                  flexGrow: 1,
+                }}
+                keyboardDismissMode="on-drag"
+                keyboardShouldPersistTaps="handled"
+                itemLayoutAnimation={LinearTransition.springify().damping(20).stiffness(180)}
+                refreshControl={
+                  <RefreshControl
+                    refreshing={mealsQuery.isRefetching || summaryQuery.isRefetching}
+                    onRefresh={handleRefresh}
+                    tintColor={colors.primary[400]}
+                  />
+                }
+              />
+            </View>
           </PullToRefresh>
         </>
         <FeedTabContent />

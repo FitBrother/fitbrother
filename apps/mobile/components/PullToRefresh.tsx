@@ -29,6 +29,12 @@ export function PullToRefresh({ onRefresh, children }: Props) {
       onRefresh={async () => {
         await onRefresh();
       }}
+      // Default da lib (67px) disparava fácil demais — quase qualquer
+      // arrasto acidental já soltava o refresh. maxPullDownDistance sobe
+      // junto: se ficasse igual/menor que o threshold, o gesto nunca
+      // alcançaria visualmente o ponto de disparo.
+      pullDownThreshold={120}
+      maxPullDownDistance={140}
       pullingContent={
         <View className="items-center py-3">
           <Text className="font-sans-medium text-sm text-neutral-500">Solte para atualizar</Text>
