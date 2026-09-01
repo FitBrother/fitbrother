@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { ActivityIndicator, Pressable, Text, View } from "react-native";
+import { ActivityIndicator, Platform, Pressable, Text, View } from "react-native";
 import type { View as RNView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -13,6 +13,7 @@ import { fetchInsight } from "@/lib/api/insights";
 import { useToast } from "@/lib/toast/toast-context";
 import { getPostImageSignedUrl } from "@/lib/storage";
 import { colors } from "@/lib/colors";
+import { Sentry } from "@/lib/sentry";
 
 async function loadCardData(type: string, id: string): Promise<ShareCardData> {
   if (type === "meal") {
@@ -32,8 +33,13 @@ async function loadCardData(type: string, id: string): Promise<ShareCardData> {
     const signedUrl = p.image_path
       ? await getPostImageSignedUrl(p.image_path).catch(() => null)
       : null;
+    // Na web, se não der pra converter pra data URI, cair de volta pra
+    // signedUrl reintroduziria o cross-origin que tainta o canvas na
+    // captura — melhor renderizar sem foto do que quebrar share/save.
     const imageUrl = signedUrl
-      ? await toDisplayableImageUri(signedUrl).catch(() => signedUrl)
+      ? await toDisplayableImageUri(signedUrl).catch(() =>
+          Platform.OS === "web" ? null : signedUrl,
+        )
       : null;
     return {
       kind: "meal",
@@ -71,7 +77,11 @@ export default function ShareScreen() {
     try {
       const uri = await captureCard(cardRef);
       await shareCard(uri);
-    } catch {
+    } catch (err) {
+      // Cancelar o share sheet nativo (ou da Web Share API) rejeita com
+      // AbortError — não é uma falha, o usuário só desistiu.
+      if (err instanceof Error && err.name === "AbortError") return;
+      Sentry.captureException(err);
       toast({ variant: "error", message: "Não foi possível compartilhar a imagem." });
     }
   }
@@ -82,6 +92,9 @@ export default function ShareScreen() {
       await saveCardToGallery(uri);
       toast({ variant: "success", message: "Salvo na galeria!" });
     } catch (err) {
+      if (err instanceof Error && err.message !== "gallery_permission_denied") {
+        Sentry.captureException(err);
+      }
       const msg =
         err instanceof Error && err.message === "gallery_permission_denied"
           ? "Permita o acesso às fotos pra salvar."

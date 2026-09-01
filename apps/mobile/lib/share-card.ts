@@ -21,6 +21,7 @@ export async function captureCard(ref: RefObject<View | null>): Promise<string> 
 export async function toDisplayableImageUri(url: string): Promise<string> {
   if (Platform.OS !== "web") return url;
   const res = await fetch(url);
+  if (!res.ok) throw new Error(`image_fetch_failed_${res.status}`);
   const blob = await res.blob();
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
