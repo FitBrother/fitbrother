@@ -47,6 +47,8 @@ import {
   evenTabWidth,
   HomeHeader,
   tabBarHeight,
+  tabIconScale,
+  tabIconShift,
   tabLayoutFor,
   tabOffset,
   TABS,
@@ -142,9 +144,50 @@ describe("layout largo das abas", () => {
   });
 });
 
+// A transição entre os dois estados é só transform sobre um layout que não
+// muda: o rótulo fica montado em largura natural e vai a `scale` 0, e o ícone
+// anda para ocupar o centro que ele desocupou. Testar aqui a geometria pura
+// evita depender de inspecionar estilo animado no render.
+describe("animação da aba", () => {
+  const RÓTULO = 40;
+
+  test("o ícone cresce ao ficar inativo e encolhe ao ficar ativo", () => {
+    expect(tabIconScale(0)).toBe(1);
+    expect(tabIconScale(1)).toBeCloseTo(16 / 18);
+    // 18 é o corpo desenhado; a escala só reduz. Crescer além dele deixaria o
+    // ícone borrado, porque não há pixel de sobra para ampliar.
+    expect(tabIconScale(1)).toBeLessThan(tabIconScale(0));
+  });
+
+  test("a escala é monótona entre os dois estados", () => {
+    const amostras = [0, 0.25, 0.5, 0.75, 1].map(tabIconScale);
+    const decrescentes = amostras.every((v, i) => i === 0 || v < (amostras[i - 1] as number));
+
+    expect(decrescentes).toBe(true);
+  });
+
+  test("inativo, o ícone anda meio rótulo para a direita e cai no centro", () => {
+    // Conteúdo centralizado: sem o rótulo, o centro visual do que sobra está
+    // deslocado à esquerda por metade de (respiro + rótulo).
+    expect(tabIconShift(0, RÓTULO)).toBe((6 + RÓTULO) / 2);
+  });
+
+  test("ativo, o ícone fica onde o layout o colocou", () => {
+    expect(tabIconShift(1, RÓTULO)).toBe(0);
+  });
+
+  test("antes de medir o rótulo o deslocamento não estoura", () => {
+    // `labelWidth` começa em 0 até o primeiro onLayout.
+    expect(tabIconShift(0, 0)).toBe(3);
+    expect(Number.isFinite(tabIconShift(0.5, 0))).toBe(true);
+  });
+});
+
 // Com as três abas na mesma linha da ofensiva e do perfil não há largura para
-// três rótulos. O nome continua disponível para leitores de tela pelo
-// accessibilityLabel do Pressable — o que some é só o texto visível.
+// três rótulos. O rótulo inativo não desmonta mais — ele fica em `scale` 0 —,
+// então sai da árvore de acessibilidade enquanto está invisível, e é isso que
+// as buscas abaixo enxergam. O nome da aba segue no accessibilityLabel do
+// Pressable.
 describe("rótulo das abas", () => {
   beforeEach(() => {
     mockLarguraJanela = 375;

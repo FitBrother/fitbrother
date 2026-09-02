@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Pressable, Text, useWindowDimensions, View } from "react-native";
+import { Pressable, useWindowDimensions, View } from "react-native";
 import Animated, {
   useAnimatedStyle,
   useReducedMotion,
@@ -110,6 +110,168 @@ export function tabOffset(
   return padding + stepWidth * index;
 }
 
+/** Corpo do ícone em cada estado. O inativo é maior porque perde o rótulo. */
+const TAB_ICON_INACTIVE = 18;
+const TAB_ICON_ACTIVE = 16;
+/**
+ * O ícone é desenhado uma vez no corpo maior e encolhe por `scale`. Animar a
+ * prop `size` remontaria o SVG a cada frame; `scale` só compõe.
+ */
+const TAB_ICON_SCALE = TAB_ICON_ACTIVE / TAB_ICON_INACTIVE;
+
+/** Respiro entre ícone e rótulo, em px (o antigo `gap-1.5`). */
+const TAB_GAP = 6;
+
+/**
+ * Escala do ícone em função do progresso (0 = inativa, 1 = ativa).
+ *
+ * Vai de 1 (corpo cheio, 18) a 16/18. A aba inativa perde o rótulo, então o
+ * ícone cresce para não ficar pequeno sozinho no quadrado.
+ */
+export function tabIconScale(progress: number): number {
+  "worklet";
+  return 1 - progress * (1 - TAB_ICON_SCALE);
+}
+
+/**
+ * Quanto o ícone anda para a direita, em px.
+ *
+ * O conteúdo (ícone + respiro + rótulo) é centralizado na aba. Quando o rótulo
+ * some, o centro visual do que sobra fica deslocado à esquerda por metade do
+ * que o rótulo ocupava — este valor devolve o ícone ao centro da aba.
+ */
+export function tabIconShift(progress: number, labelWidth: number): number {
+  "worklet";
+  return ((1 - progress) * (TAB_GAP + labelWidth)) / 2;
+}
+
+/**
+ * Estilo do rótulo por `style`, não por className: o NativeWind não processa
+ * className em componentes do Reanimated — a prop é aceita e ignorada, e o
+ * texto sairia sem fonte nem cor. `flexShrink: 0` porque a aba inativa é mais
+ * estreita que ícone + rótulo: sem isso o texto seria espremido em vez de
+ * transbordar, e o recorte deixaria de ser previsível.
+ */
+const TAB_LABEL_BASE = {
+  fontSize: 12,
+  lineHeight: 16,
+  marginLeft: TAB_GAP,
+  flexShrink: 0,
+} as const;
+
+const TAB_LABEL_ACTIVE = { fontFamily: "Inter_700Bold", color: colors.neutral[900] } as const;
+const TAB_LABEL_INACTIVE = { fontFamily: "Inter_500Medium", color: colors.neutral[400] } as const;
+
+/**
+ * Uma aba da barra de navegação.
+ *
+ * O conteúdo fica SEMPRE montado na configuração ativa — ícone, respiro e
+ * rótulo em largura natural — e os dois estados são só transform sobre esse
+ * layout fixo. Isso é o que permite animar sem relayout por frame:
+ *
+ * - inativa: o rótulo vai a `scale` 0 (some) e o ícone anda para a direita,
+ *   ocupando o centro que o rótulo desocupou;
+ * - ativa: o inverso, e o ícone encolhe para abrir espaço ao texto.
+ *
+ * O deslocamento do ícone é metade de `respiro + largura do rótulo` porque o
+ * conteúdo é centralizado: tirar o rótulo do desenho move o centro visual
+ * exatamente essa distância. A largura vem do `onLayout` do próprio texto, que
+ * mede a largura natural em qualquer estado — `scale` não mexe no layout.
+ *
+ * A largura da aba também anima. Sem isso o indicador deslizaria enquanto a
+ * caixa por baixo dele salta, e o ícone perseguiria um centro que muda de
+ * lugar de um frame para o outro.
+ */
+function Tab({
+  label,
+  Icon,
+  active,
+  wide,
+  width,
+  onPress,
+}: {
+  label: string;
+  Icon: typeof HomeIcon;
+  active: boolean;
+  wide: boolean;
+  width: number;
+  onPress: () => void;
+}) {
+  const reducedMotion = useReducedMotion();
+  const [labelWidth, setLabelWidth] = useState(0);
+  // 1 = ativa. No modo `wide` todas mostram rótulo e ícone pequeno, então não
+  // há o que animar — o valor fica fixo em 1 e as abas só trocam de cor.
+  const progresso = useSharedValue(active || wide ? 1 : 0);
+  const largura = useSharedValue(width);
+
+  useEffect(() => {
+    const destino = active || wide ? 1 : 0;
+    progresso.value = reducedMotion
+      ? destino
+      : withTiming(destino, {
+          duration: Motion.duration.base,
+          easing: Motion.easing.standard,
+        });
+  }, [active, wide, progresso, reducedMotion]);
+
+  useEffect(() => {
+    largura.value = reducedMotion
+      ? width
+      : withTiming(width, { duration: Motion.duration.base, easing: Motion.easing.standard });
+  }, [width, largura, reducedMotion]);
+
+  const containerStyle = useAnimatedStyle(() => ({ width: largura.value }));
+
+  const iconStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: tabIconShift(progresso.value, labelWidth) },
+      { scale: tabIconScale(progresso.value) },
+    ],
+  }));
+
+  const labelStyle = useAnimatedStyle(() => ({
+    opacity: progresso.value,
+    transform: [{ scale: progresso.value }],
+  }));
+
+  /** Estado em que o rótulo não aparece na tela: `compact` e aba inativa. */
+  const oculto = !wide && !active;
+
+  return (
+    <Animated.View style={[{ height: TAB_HEIGHT, overflow: "hidden" }, containerStyle]}>
+      <Pressable
+        onPress={onPress}
+        accessibilityRole="button"
+        accessibilityLabel={label}
+        accessibilityState={{ selected: active }}
+        className="flex-1 flex-row items-center justify-center rounded-full active:opacity-70"
+      >
+        <Animated.View style={iconStyle}>
+          <Icon
+            size={TAB_ICON_INACTIVE}
+            color={active ? colors.neutral[900] : colors.neutral[400]}
+          />
+        </Animated.View>
+        {/* Montado sempre, inclusive na aba inativa: é a largura natural dele
+            que diz ao ícone quanto andar, e ela só é mensurável em layout.
+            Como não desmonta mais, precisa sair da árvore de acessibilidade
+            justamente quando some da tela — texto invisível que continua
+            anunciável é pior que texto ausente. O nome da aba não se perde: o
+            Pressable carrega o `accessibilityLabel`. */}
+        <Animated.Text
+          onLayout={(e) => setLabelWidth(e.nativeEvent.layout.width)}
+          accessibilityElementsHidden={oculto}
+          importantForAccessibility={oculto ? "no-hide-descendants" : "auto"}
+          numberOfLines={1}
+          style={[TAB_LABEL_BASE, active ? TAB_LABEL_ACTIVE : TAB_LABEL_INACTIVE, labelStyle]}
+        >
+          {label}
+        </Animated.Text>
+      </Pressable>
+    </Animated.View>
+  );
+}
+
 export function greetingFor(date: Date): string {
   const h = date.getHours();
   if (h < 12) return "Bom dia";
@@ -215,41 +377,17 @@ export function HomeHeader({
         {TABS.map(({ key, label, Icon }) => {
           const active = key === activeTab;
           return (
-            <Pressable
+            <Tab
               key={key}
+              label={label}
+              Icon={Icon}
+              active={active}
+              wide={wide}
+              // Em `wide` as três dividem a barra por igual; em `compact` só a
+              // ativa cresce e as outras ficam quadradas.
+              width={wide || active ? largura : TAB_INACTIVE_WIDTH}
               onPress={() => onChangeTab(key)}
-              accessibilityRole="button"
-              accessibilityLabel={label}
-              accessibilityState={{ selected: active }}
-              style={{
-                height: TAB_HEIGHT,
-                // Em `wide` as três dividem a barra por igual (flex 1 em todas);
-                // em `compact` só a ativa cresce e as outras ficam quadradas.
-                width: wide || active ? undefined : TAB_INACTIVE_WIDTH,
-                flex: wide || active ? 1 : undefined,
-              }}
-              className="flex-row items-center justify-center gap-1.5 rounded-full active:opacity-70"
-            >
-              <Icon
-                size={wide || active ? 16 : 18}
-                color={active ? colors.neutral[900] : colors.neutral[400]}
-              />
-              {/* Em `compact` só a ativa mostra rótulo — o accessibilityLabel do
-                  Pressable mantém o nome para leitores de tela nas inativas. Em
-                  `wide` todas mostram, e a inativa segue a cor do próprio ícone
-                  para o indicador continuar sendo quem marca a seleção. */}
-              {(wide || active) && (
-                <Text
-                  className={
-                    active
-                      ? "font-sans-bold text-xs text-neutral-900"
-                      : "font-sans-medium text-xs text-neutral-400"
-                  }
-                >
-                  {label}
-                </Text>
-              )}
-            </Pressable>
+            />
           );
         })}
       </View>
