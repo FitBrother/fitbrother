@@ -4,8 +4,13 @@ import { Image, Text, View } from "react-native";
  * Proporção entre o diâmetro do avatar e o tamanho das iniciais do fallback.
  * Mantém as iniciais legíveis e centradas em qualquer tamanho sem precisar de
  * uma classe de tipografia por medida.
+ *
+ * 0.32, não 0.38: o fallback é um substituto da foto, não um elemento por
+ * conta própria. Em 0.38 as iniciais no header saíam com 20px em peso bold —
+ * maior que o número da ofensiva (18) na mesma linha, o que dava ao canto do
+ * perfil um peso que ele não deve ter.
  */
-const INITIALS_RATIO = 0.38;
+const INITIALS_RATIO = 0.32;
 
 /**
  * Foto de perfil circular com fallback para as iniciais.

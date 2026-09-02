@@ -31,7 +31,29 @@ jest.mock("@/lib/hooks/useAuthSession", () => ({
   }),
 }));
 
-import { AVATAR_SIZE, HomeHeader, tabBarHeight, tabSlotWidth, TABS } from "./HomeHeader";
+// A largura da janela decide entre `compact` e `wide`. Fixar aqui em vez de
+// herdar o default do ambiente de teste: sem isso, os testes de rótulo passam
+// por acidente (o default é menor que o breakpoint) e quebrariam em silêncio
+// se o preset do jest mudasse de tamanho.
+let mockLarguraJanela = 375;
+jest.mock("react-native/Libraries/Utilities/useWindowDimensions", () => ({
+  __esModule: true,
+  default: () => ({ width: mockLarguraJanela, height: 812, scale: 2, fontScale: 1 }),
+}));
+
+import {
+  activeTabWidth,
+  AVATAR_SIZE,
+  evenTabWidth,
+  HomeHeader,
+  tabBarHeight,
+  tabIconScale,
+  tabIconShift,
+  tabLayoutFor,
+  tabOffset,
+  TABS,
+  WIDE_TABS_MIN_WIDTH,
+} from "./HomeHeader";
 
 describe("abas da Home", () => {
   test("a aba social é rotulada 'Social'", () => {
@@ -43,41 +65,174 @@ describe("abas da Home", () => {
   });
 });
 
-// O destaque da aba ativa era uma classe condicional, que troca de uma vez.
-// Com o conteúdo deslizando em 250ms, o salto da pílula ficava evidente —
-// agora ela é um indicador posicionado, e a largura do slot é o que define
-// para onde ele desliza.
-// A barra fechava em 50 (aba de 44 + 3 de padding de cada lado) e ficava mais
-// alta que o avatar e o pill de ofensivas, ambos de 44. A altura da aba passou
-// a ser derivada do avatar para os três não saírem de sintonia.
+// A altura da aba é derivada do avatar para os três elementos da linha —
+// ofensiva, abas e perfil — nunca saírem de sintonia.
 describe("altura da barra de abas", () => {
   test("fecha na mesma altura do avatar e do pill", () => {
     expect(tabBarHeight()).toBe(AVATAR_SIZE);
   });
 });
 
-describe("tabSlotWidth", () => {
+// Com o menu na mesma linha da ofensiva e do perfil não cabem três rótulos:
+// num aparelho de 360px sobram ~200px para a barra, e "Análises" com ícone e
+// rótulo pede mais que o terço disponível. Só a ativa mostra rótulo e fica com
+// toda a sobra; as inativas viram quadrados do tamanho da altura da aba.
+describe("larguras das abas", () => {
   const PADDING = 3;
+  const INATIVA = AVATAR_SIZE - PADDING * 2;
 
-  test("divide a largura útil entre as abas", () => {
-    // 300 de barra - 6 de padding = 294 úteis / 3 abas = 98
-    expect(tabSlotWidth(300, 3, PADDING)).toBeCloseTo(98);
+  test("a ativa fica com o que sobra depois das inativas", () => {
+    expect(activeTabWidth(300, 3, PADDING)).toBe(300 - 6 - INATIVA * 2);
   });
 
-  test("desconta o padding das duas pontas", () => {
-    expect(tabSlotWidth(106, 2, PADDING)).toBeCloseTo(50);
+  test("a ativa é bem mais larga que uma inativa no aperto de 360px", () => {
+    // Numa tela de 360: 328 de conteúdo - ~60 do pill - 52 do avatar - 16 dos
+    // gaps = ~200 de barra.
+    expect(activeTabWidth(200, 3, PADDING)).toBeGreaterThan(INATIVA);
   });
 
   test("não devolve valor negativo antes da medição do layout", () => {
-    expect(tabSlotWidth(0, 3, PADDING)).toBe(0);
-    expect(tabSlotWidth(4, 3, PADDING)).toBe(0);
+    expect(activeTabWidth(0, 3, PADDING)).toBe(0);
+    expect(activeTabWidth(50, 3, PADDING)).toBe(0);
   });
 
-  test("o deslocamento da última aba mantém o indicador dentro da barra", () => {
+  test("o indicador na última aba não passa da borda da barra", () => {
     const barra = 300;
-    const slot = tabSlotWidth(barra, 3, PADDING);
-    const deslocamentoFinal = slot * 2;
-    expect(deslocamentoFinal + slot).toBeLessThanOrEqual(barra - PADDING * 2);
+    const ultima = TABS.length - 1;
+    expect(tabOffset(ultima, PADDING) + activeTabWidth(barra, TABS.length, PADDING)).toBe(
+      barra - PADDING,
+    );
+  });
+
+  test("o deslocamento é constante porque as abas anteriores são todas inativas", () => {
+    expect(tabOffset(0, PADDING)).toBe(PADDING);
+    expect(tabOffset(1, PADDING)).toBe(PADDING + INATIVA);
+    expect(tabOffset(2, PADDING)).toBe(PADDING + INATIVA * 2);
+  });
+});
+
+// No tablet sobra largura para os três rótulos, então as abas passam a ter o
+// mesmo tamanho — não faz sentido a ativa roubar espaço quando todas se nomeiam.
+describe("layout largo das abas", () => {
+  const PADDING = 3;
+
+  test("o modo vira `wide` a partir do breakpoint e não antes", () => {
+    expect(tabLayoutFor(WIDE_TABS_MIN_WIDTH - 1)).toBe("compact");
+    expect(tabLayoutFor(WIDE_TABS_MIN_WIDTH)).toBe("wide");
+  });
+
+  test("o celular continua em `compact` e o tablet em `wide`", () => {
+    expect(tabLayoutFor(360)).toBe("compact");
+    expect(tabLayoutFor(375)).toBe("compact");
+    expect(tabLayoutFor(768)).toBe("wide");
+    expect(tabLayoutFor(1023)).toBe("wide");
+  });
+
+  test("as abas dividem a barra em partes iguais", () => {
+    expect(evenTabWidth(300, 3, PADDING)).toBe((300 - 6) / 3);
+  });
+
+  test("não devolve valor negativo antes da medição do layout", () => {
+    expect(evenTabWidth(0, 3, PADDING)).toBe(0);
+  });
+
+  test("o indicador na última aba não passa da borda da barra", () => {
+    const barra = 300;
+    const largura = evenTabWidth(barra, TABS.length, PADDING);
+    const ultima = TABS.length - 1;
+    expect(tabOffset(ultima, PADDING, largura) + largura).toBeCloseTo(barra - PADDING);
+  });
+});
+
+// A transição entre os dois estados é só transform sobre um layout que não
+// muda: o rótulo fica montado em largura natural e vai a `scale` 0, e o ícone
+// anda para ocupar o centro que ele desocupou. Testar aqui a geometria pura
+// evita depender de inspecionar estilo animado no render.
+describe("animação da aba", () => {
+  const RÓTULO = 40;
+
+  test("o ícone cresce ao ficar inativo e encolhe ao ficar ativo", () => {
+    expect(tabIconScale(0)).toBe(1);
+    expect(tabIconScale(1)).toBeCloseTo(16 / 18);
+    // 18 é o corpo desenhado; a escala só reduz. Crescer além dele deixaria o
+    // ícone borrado, porque não há pixel de sobra para ampliar.
+    expect(tabIconScale(1)).toBeLessThan(tabIconScale(0));
+  });
+
+  test("a escala é monótona entre os dois estados", () => {
+    const amostras = [0, 0.25, 0.5, 0.75, 1].map(tabIconScale);
+    const decrescentes = amostras.every((v, i) => i === 0 || v < (amostras[i - 1] as number));
+
+    expect(decrescentes).toBe(true);
+  });
+
+  test("inativo, o ícone anda meio rótulo para a direita e cai no centro", () => {
+    // Conteúdo centralizado: sem o rótulo, o centro visual do que sobra está
+    // deslocado à esquerda por metade de (respiro + rótulo).
+    expect(tabIconShift(0, RÓTULO)).toBe((6 + RÓTULO) / 2);
+  });
+
+  test("ativo, o ícone fica onde o layout o colocou", () => {
+    expect(tabIconShift(1, RÓTULO)).toBe(0);
+  });
+
+  test("antes de medir o rótulo o deslocamento não estoura", () => {
+    // `labelWidth` começa em 0 até o primeiro onLayout.
+    expect(tabIconShift(0, 0)).toBe(3);
+    expect(Number.isFinite(tabIconShift(0.5, 0))).toBe(true);
+  });
+});
+
+// Com as três abas na mesma linha da ofensiva e do perfil não há largura para
+// três rótulos. O rótulo inativo não desmonta mais — ele fica em `scale` 0 —,
+// então sai da árvore de acessibilidade enquanto está invisível, e é isso que
+// as buscas abaixo enxergam. O nome da aba segue no accessibilityLabel do
+// Pressable.
+describe("rótulo das abas", () => {
+  beforeEach(() => {
+    mockLarguraJanela = 375;
+  });
+
+  test("apenas a aba ativa mostra o rótulo", () => {
+    const { queryByText } = render(<HomeHeader activeTab="feed" onChangeTab={jest.fn()} />);
+
+    expect(queryByText("Social")).not.toBeNull();
+    expect(queryByText("Home")).toBeNull();
+    expect(queryByText("Análises")).toBeNull();
+  });
+
+  test("o rótulo acompanha a troca de aba", () => {
+    const { queryByText } = render(<HomeHeader activeTab="analises" onChangeTab={jest.fn()} />);
+
+    expect(queryByText("Análises")).not.toBeNull();
+    expect(queryByText("Social")).toBeNull();
+  });
+
+  test("as inativas continuam nomeadas para leitores de tela", () => {
+    const { getByLabelText } = render(<HomeHeader activeTab="home" onChangeTab={jest.fn()} />);
+
+    expect(getByLabelText("Social")).toBeTruthy();
+    expect(getByLabelText("Análises")).toBeTruthy();
+  });
+
+  test("no tablet as três abas mostram o rótulo, inclusive as inativas", () => {
+    mockLarguraJanela = 768;
+
+    const { queryByText } = render(<HomeHeader activeTab="home" onChangeTab={jest.fn()} />);
+
+    expect(queryByText("Home")).not.toBeNull();
+    expect(queryByText("Social")).not.toBeNull();
+    expect(queryByText("Análises")).not.toBeNull();
+  });
+
+  test("logo abaixo do breakpoint só a ativa mostra o rótulo", () => {
+    mockLarguraJanela = WIDE_TABS_MIN_WIDTH - 1;
+
+    const { queryByText } = render(<HomeHeader activeTab="home" onChangeTab={jest.fn()} />);
+
+    expect(queryByText("Home")).not.toBeNull();
+    expect(queryByText("Social")).toBeNull();
+    expect(queryByText("Análises")).toBeNull();
   });
 });
 

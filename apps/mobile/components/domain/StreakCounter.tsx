@@ -25,6 +25,11 @@ type StreakCounterProps = {
   atRisk?: boolean;
   /** Flame icon size. Defaults to 24 (Home header desktop); mobile header passes a smaller value. */
   size?: number;
+  /**
+   * Altura mínima do pill. Default 44 (alvo de toque). O header da Home passa
+   * 50 para casar com o avatar e a barra de abas na mesma linha.
+   */
+  height?: number;
 };
 
 /**
@@ -36,7 +41,12 @@ type StreakCounterProps = {
  * - At risk: grayscale, neutral-400, no pulse.
  * - Broken (current = 0): FlameKindling + neutral-300, no pulse.
  */
-export function StreakCounter({ current, atRisk = false, size = 24 }: StreakCounterProps) {
+export function StreakCounter({
+  current,
+  atRisk = false,
+  size = 24,
+  height = 44,
+}: StreakCounterProps) {
   const broken = current === 0;
   const active = !broken && !atRisk;
   const reduced = useReducedMotion();
@@ -69,7 +79,8 @@ export function StreakCounter({ current, atRisk = false, size = 24 }: StreakCoun
 
   return (
     <View
-      className="min-h-[44px] flex-row items-center gap-0.5 px-1"
+      style={{ minHeight: height }}
+      className="flex-row items-center gap-0.5 px-1"
       accessibilityRole="text"
       accessibilityLabel={
         broken ? "Sem ofensiva" : `Ofensiva de ${current} ${current === 1 ? "dia" : "dias"}`
@@ -82,9 +93,17 @@ export function StreakCounter({ current, atRisk = false, size = 24 }: StreakCoun
           <Flame size={size} color={iconColor} />
         )}
       </Animated.View>
+      {/* Corpo do número derivado do ícone, não fixo: quando os dois têm o
+          mesmo tamanho o pill lê como um par ícone+valor, e não como um
+          número-herói com um enfeite ao lado. */}
       <Text
-        className="font-display-bold text-2xl"
-        style={{ color: textColor, fontVariant: ["tabular-nums"] }}
+        className="font-display-bold"
+        style={{
+          color: textColor,
+          fontSize: size,
+          lineHeight: size * 1.25,
+          fontVariant: ["tabular-nums"],
+        }}
       >
         {current}
       </Text>

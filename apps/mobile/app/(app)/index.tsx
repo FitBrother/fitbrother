@@ -13,7 +13,10 @@ import Animated, {
   Easing,
   FadeInDown,
   LinearTransition,
+  runOnJS,
+  useAnimatedScrollHandler,
   useAnimatedStyle,
+  useReducedMotion,
   useSharedValue,
   withTiming,
 } from "react-native-reanimated";
@@ -57,6 +60,7 @@ import { ComposerBackdrop, COMPOSER_FADE_HEIGHT } from "@/components/domain/Comp
 import { EmailConfirmationBanner } from "@/components/domain/EmailConfirmationBanner";
 import { NewVersionBanner } from "@/components/domain/NewVersionBanner";
 import { EmptyMealsState } from "@/components/domain/EmptyMealsState";
+import { ListTopFade } from "@/components/domain/ListTopFade";
 import { ErrorBanner, type ErrorBannerVariant } from "@/components/domain/ErrorBanner";
 import { TodaySummaryHeader } from "@/components/domain/TodaySummaryHeader";
 import { GoalsDisclaimer } from "@/components/domain/GoalsDisclaimer";
@@ -151,6 +155,44 @@ export default function HomeScreen() {
     opacity: summaryOpacity.value,
     transform: [{ translateY: summaryTranslateY.value }],
   }));
+
+  // ── Resumo colapsável ────────────────────────────────────────────────────
+  // O resumo expandido come ~320px de tela. Em vez de sumir para cima quando a
+  // lista rola (o padrão de collapsing header), ele achata no lugar: os anéis
+  // viram barras horizontais e o bloco cai para ~140px, devolvendo espaço para
+  // as refeições sem tirar os números de vista.
+  //
+  // Dois estados apenas, sem posições intermediárias paradas: o gatilho é a
+  // DIREÇÃO do gesto, não a posição do scroll. Descer colapsa, subir expande,
+  // e no topo o expandido é forçado.
+  const collapse = useSharedValue(0);
+  const collapseTarget = useSharedValue(0);
+  const lastScrollY = useSharedValue(0);
+  // Espelho em JS do estado, só para o RefreshControl — puxar-pra-atualizar
+  // fica disponível apenas no expandido, que é justamente quando a lista está
+  // no topo e o gesto faz sentido.
+  const [summaryExpanded, setSummaryExpanded] = useState(true);
+  const reducedMotion = useReducedMotion();
+
+  const handleListScroll = useAnimatedScrollHandler((event) => {
+    const y = event.contentOffset.y;
+    const delta = y - lastScrollY.value;
+    lastScrollY.value = y;
+
+    // Zona morta de 3px: sem ela, o tremor de um scroll parado fica alternando
+    // os dois estados.
+    const alvo = y <= 2 ? 0 : delta > 3 ? 1 : delta < -3 ? 0 : collapseTarget.value;
+    if (alvo === collapseTarget.value) return;
+
+    collapseTarget.value = alvo;
+    collapse.value = reducedMotion
+      ? alvo
+      : withTiming(alvo, {
+          duration: Motion.duration.base,
+          easing: Motion.easing.standard,
+        });
+    runOnJS(setSummaryExpanded)(alvo === 0);
+  });
 
   const items = (mealsQuery.data ?? []) as OptimisticMeal[];
 
@@ -361,56 +403,76 @@ export default function HomeScreen() {
           </Card>
         </View>
 
-        <View className="mx-auto w-full max-w-[1120px] flex-1 flex-row items-start gap-8">
-          <View className="sticky top-[124px] w-[320px] shrink-0 gap-5 xl:w-[400px]">
-            <Animated.View style={summaryCardStyle}>
-              <Card variant="elevated">
-                <TodaySummaryHeader
-                  key={summaryFocusKey}
-                  summary={summaryQuery.data}
-                  softMode={profile.soft_mode}
-                />
-              </Card>
-            </Animated.View>
-            <GoalsDisclaimer />
-          </View>
-
-          <View className="flex-1">
-            <View className="mb-4 flex-row items-baseline justify-between gap-4">
-              <Text className="text-2xl font-display-bold text-neutral-800">Refeições</Text>
-              <Text
-                className="text-[13px] text-neutral-500"
-                style={{ fontVariant: ["tabular-nums"] }}
-              >
-                {items.length} de hoje
-              </Text>
+        {/* O `px-6` mora no wrapper, e não no container de 1120, para espelhar
+            exatamente a saudação acima e o composer abaixo: os três se alinham
+            porque medem 1120 no MÁXIMO, dentro da mesma faixa já recuada. Sem
+            este wrapper, a linha era a única a encostar na sidebar (e na borda
+            direita) sempre que a janela era estreita demais para o `mx-auto`
+            sobrar margem — o que acontece em toda a faixa de 1024 a 1168. */}
+        <View className="flex-1 px-6">
+          <View className="mx-auto w-full max-w-[1120px] flex-1 flex-row items-start gap-8">
+            <View className="sticky top-[124px] w-[320px] shrink-0 gap-5 xl:w-[400px]">
+              <Animated.View style={summaryCardStyle}>
+                <Card variant="elevated">
+                  {/* No desktop o resumo mora numa coluna lateral própria e não
+                      disputa espaço com a lista — fica sempre expandido. Por
+                      isso `collapse` é omitido em vez de repassado: a lista
+                      daqui não tem `onScroll`, então o valor compartilhado nunca
+                      voltaria a zero. Quem colapsasse no mobile e alargasse a
+                      janela até o desktop via a coluna lateral presa em barras. */}
+                  <TodaySummaryHeader
+                    key={summaryFocusKey}
+                    summary={summaryQuery.data}
+                    softMode={profile.soft_mode}
+                  />
+                </Card>
+              </Animated.View>
+              <GoalsDisclaimer />
             </View>
-            {mealsQuery.isLoading ? (
-              <View className="flex-1 items-center justify-center">
-                <ActivityIndicator color={colors.primary[400]} />
+
+            <View className="flex-1">
+              {/* `px-4` pelo mesmo motivo do cabeçalho da lista no mobile: os
+                  cards carregam `marginHorizontal: 16` próprio, então sem este
+                  recuo o título e a contagem ficavam 16px à esquerda deles. */}
+              <View className="mb-4 flex-row items-baseline justify-between gap-4 px-4">
+                <Text className="text-2xl font-display-bold text-neutral-800">Refeições</Text>
+                <Text
+                  className="text-[13px] text-neutral-500"
+                  style={{ fontVariant: ["tabular-nums"] }}
+                >
+                  {items.length} de hoje
+                </Text>
               </View>
-            ) : items.length === 0 ? (
-              <Card variant="flat">
-                <EmptyMealsState />
-              </Card>
-            ) : (
-              <PullToRefresh onRefresh={handleRefresh}>
-                <Animated.FlatList
-                  data={items}
-                  keyExtractor={(m) => (m as OptimisticMeal).id}
-                  renderItem={renderItem as never}
-                  contentContainerStyle={{ paddingBottom: 180 }}
-                  itemLayoutAnimation={LinearTransition.springify().damping(20).stiffness(180)}
-                  refreshControl={
-                    <RefreshControl
-                      refreshing={mealsQuery.isRefetching || summaryQuery.isRefetching}
-                      onRefresh={handleRefresh}
-                      tintColor={colors.primary[400]}
-                    />
-                  }
-                />
-              </PullToRefresh>
-            )}
+              {mealsQuery.isLoading ? (
+                <View className="flex-1 items-center justify-center">
+                  <ActivityIndicator color={colors.primary[400]} />
+                </View>
+              ) : items.length === 0 ? (
+                <Card variant="flat">
+                  <EmptyMealsState />
+                </Card>
+              ) : (
+                <PullToRefresh onRefresh={handleRefresh}>
+                  <Animated.FlatList
+                    data={items}
+                    keyExtractor={(m) => (m as OptimisticMeal).id}
+                    renderItem={renderItem as never}
+                    // Os degradês nas duas pontas já sinalizam que a lista
+                    // continua; a barra por cima deles só suja a moldura.
+                    showsVerticalScrollIndicator={false}
+                    contentContainerStyle={{ paddingBottom: 180 }}
+                    itemLayoutAnimation={LinearTransition.springify().damping(20).stiffness(180)}
+                    refreshControl={
+                      <RefreshControl
+                        refreshing={mealsQuery.isRefetching || summaryQuery.isRefetching}
+                        onRefresh={handleRefresh}
+                        tintColor={colors.primary[400]}
+                      />
+                    }
+                  />
+                </PullToRefresh>
+              )}
+            </View>
           </View>
         </View>
 
@@ -435,19 +497,23 @@ export default function HomeScreen() {
     );
   }
 
-  const listHeader = (
-    // Sem padding inferior: o respiro até o primeiro card vem da margem do
-    // próprio card, então o rótulo fica mais perto da lista que ele nomeia do
-    // que do dashboard acima — proximidade é o que agrupa os dois.
-    <View className="px-4">
-      <View className="flex-row items-baseline justify-between gap-4">
-        <Text className="text-xl font-display-bold text-neutral-800">Refeições</Text>
-        <Text className="text-[13px] text-neutral-500" style={{ fontVariant: ["tabular-nums"] }}>
-          {items.length} de hoje
-        </Text>
+  // O título é fixo acima da lista, então some quando não há o que nomear:
+  // "Refeições — 0 de hoje" cravado sobre um card vazio só repete o que a
+  // ilustração do estado vazio já diz melhor.
+  const listHeader =
+    items.length === 0 ? null : (
+      // Sem padding inferior: o respiro até o primeiro card vem da margem do
+      // próprio card, então o rótulo fica mais perto da lista que ele nomeia do
+      // que do dashboard acima — proximidade é o que agrupa os dois.
+      <View className="px-4">
+        <View className="flex-row items-baseline justify-between gap-4">
+          <Text className="text-xl font-display-bold text-neutral-800">Refeições</Text>
+          <Text className="text-[13px] text-neutral-500" style={{ fontVariant: ["tabular-nums"] }}>
+            {items.length} de hoje
+          </Text>
+        </View>
       </View>
-    </View>
-  );
+    );
 
   const macroPanel = (
     <View className="gap-2 px-4 pb-4 pt-2">
@@ -457,6 +523,7 @@ export default function HomeScreen() {
             key={summaryFocusKey}
             summary={summaryQuery.data}
             softMode={profile.soft_mode}
+            collapse={collapse}
           />
           <Pressable
             onPress={() => setDisclaimerOpen((v) => !v)}
@@ -474,7 +541,7 @@ export default function HomeScreen() {
       {disclaimerOpen && (
         // 22 como o card acima: o disclaimer abre colado nele e é conteúdo
         // inline, não uma superfície flutuante como o ErrorBanner.
-        <View className="flex-row items-start gap-2 rounded-[22px] bg-neutral-100 p-3">
+        <View className="flex-row items-start gap-2 rounded-[26px] bg-neutral-100 p-3">
           <Info size={16} color={colors.neutral[500]} />
           <Text className="flex-1 text-xs font-sans text-neutral-600">{GOALS_DISCLAIMER_TEXT}</Text>
         </View>
@@ -512,7 +579,7 @@ export default function HomeScreen() {
               junto com o FlatList (não só o FlatList sozinho) — puxar pra
               atualizar precisa funcionar assim que sai do header fixo da
               Home, não só depois de já estar dentro da lista de refeições. */}
-          <PullToRefresh onRefresh={handleRefresh}>
+          <PullToRefresh onRefresh={handleRefresh} enabled={summaryExpanded}>
             <View className="flex-1">
               {macroPanel}
               {listHeader}
@@ -520,35 +587,49 @@ export default function HomeScreen() {
                   vazio era um Pressable solto, sem container rolável, e a tela
                   ficava morta — nem o bounce do iOS acontecia. O estado vazio virou
                   ListEmptyComponent para manter um único container de rolagem. */}
-              <Animated.FlatList
-                data={items}
-                keyExtractor={(m) => (m as OptimisticMeal).id}
-                renderItem={renderItem as never}
-                ListEmptyComponent={
-                  mealsQuery.isLoading ? null : (
-                    <Pressable onPress={Keyboard.dismiss}>
-                      <Card variant="flat" className="mx-4">
-                        <EmptyMealsState />
-                      </Card>
-                    </Pressable>
-                  )
-                }
-                alwaysBounceVertical
-                contentContainerStyle={{
-                  paddingBottom: listBottomSpace(composerHeight),
-                  flexGrow: 1,
-                }}
-                keyboardDismissMode="on-drag"
-                keyboardShouldPersistTaps="handled"
-                itemLayoutAnimation={LinearTransition.springify().damping(20).stiffness(180)}
-                refreshControl={
-                  <RefreshControl
-                    refreshing={mealsQuery.isRefetching || summaryQuery.isRefetching}
-                    onRefresh={handleRefresh}
-                    tintColor={colors.primary[400]}
-                  />
-                }
-              />
+              {/* `relative` ancora o degradê do topo, que dissolve os cards
+                  logo abaixo do título fixo em vez de deixá-los serem cortados
+                  na borda da lista. */}
+              <View className="relative flex-1">
+                {items.length > 0 && <ListTopFade />}
+                <Animated.FlatList
+                  data={items}
+                  keyExtractor={(m) => (m as OptimisticMeal).id}
+                  renderItem={renderItem as never}
+                  onScroll={handleListScroll}
+                  scrollEventThrottle={16}
+                  // Os degradês nas duas pontas já sinalizam que a lista
+                  // continua; a barra por cima deles só suja a moldura.
+                  showsVerticalScrollIndicator={false}
+                  ListEmptyComponent={
+                    mealsQuery.isLoading ? null : (
+                      <Pressable onPress={Keyboard.dismiss}>
+                        <Card variant="flat" className="mx-4">
+                          <EmptyMealsState />
+                        </Card>
+                      </Pressable>
+                    )
+                  }
+                  alwaysBounceVertical
+                  contentContainerStyle={{
+                    paddingBottom: listBottomSpace(composerHeight),
+                    flexGrow: 1,
+                  }}
+                  keyboardDismissMode="on-drag"
+                  keyboardShouldPersistTaps="handled"
+                  itemLayoutAnimation={LinearTransition.springify().damping(20).stiffness(180)}
+                  refreshControl={
+                    <RefreshControl
+                      // Só no expandido — que é exatamente quando a lista está
+                      // no topo e puxar para atualizar faz sentido.
+                      enabled={summaryExpanded}
+                      refreshing={mealsQuery.isRefetching || summaryQuery.isRefetching}
+                      onRefresh={handleRefresh}
+                      tintColor={colors.primary[400]}
+                    />
+                  }
+                />
+              </View>
             </View>
           </PullToRefresh>
         </>

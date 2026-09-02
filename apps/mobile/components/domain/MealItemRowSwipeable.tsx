@@ -15,7 +15,7 @@ import { colors } from "@/lib/colors";
 import { radii } from "@/lib/radii";
 import { shadows } from "@/lib/shadows";
 
-/** Equivalente a `rounded-[22px] bg-white p-4`, que o Reanimated descartaria. */
+/** Equivalente a `rounded-[26px] bg-white p-4`, que o Reanimated descartaria. */
 const rowCardStyle = {
   borderRadius: radii.card,
   backgroundColor: colors.white,

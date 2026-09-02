@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Alert, Linking, Modal, Platform, Pressable, Text, TextInput, View } from "react-native";
+import { Linking, Modal, Platform, Pressable, Text, TextInput, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   Easing,
@@ -16,6 +16,7 @@ import { Camera, Loader2, Mic, Plus, Send, ScanLine } from "lucide-react-native"
 import { colors } from "@/lib/colors";
 import { radii } from "@/lib/radii";
 import { shadows } from "@/lib/shadows";
+import { useDialog } from "@/lib/dialog/dialog-context";
 import {
   cancelRecording,
   startRecording,
@@ -55,10 +56,10 @@ type PendingAction = "send" | "cancel" | "lock" | null;
  */
 export const COMPOSER_BACKDROP_HEIGHT = 120;
 
-/** Equivalente a `h-12 w-12 items-center justify-center rounded-full`. */
+/** Equivalente a `h-[52px] w-[52px] items-center justify-center rounded-full`. */
 const micButtonStyle = {
-  width: 48,
-  height: 48,
+  width: 52,
+  height: 52,
   alignItems: "center",
   justifyContent: "center",
   borderRadius: radii.full,
@@ -187,6 +188,7 @@ export function MealComposer({
     setTimeout(autosizeWeb, 0);
   };
 
+  const dialog = useDialog();
   const insets = useSafeAreaInsets();
   const rotation = useSharedValue(0);
 
@@ -365,25 +367,27 @@ export function MealComposer({
       const code = (err as { code?: string } | null)?.code;
       if (code === "PERMISSION_DENIED") {
         if (Platform.OS === "web") {
-          Alert.alert(
-            "Microfone bloqueado",
-            "Permita o uso do microfone nas configurações deste site e recarregue a página.",
-          );
-        } else {
-          Alert.alert(
-            "Microfone bloqueado",
-            "Habilite o microfone nas configurações pra gravar refeições.",
-            [
-              { text: "Cancelar", style: "cancel" },
-              { text: "Abrir Configurações", onPress: () => Linking.openSettings() },
-            ],
-          );
+          // Instrução para ler e executar, não um aviso de passagem: um toast
+          // de 3s some antes de a pessoa chegar nas configurações do site.
+          await dialog.alert({
+            title: "Microfone bloqueado",
+            description:
+              "Permita o uso do microfone nas configurações deste site e recarregue a página.",
+          });
+        } else if (
+          await dialog.confirm({
+            title: "Microfone bloqueado",
+            description: "Habilite o microfone nas configurações pra gravar refeições.",
+            confirmLabel: "Abrir Configurações",
+          })
+        ) {
+          void Linking.openSettings();
         }
       } else if (code === "RECORDING_UNSUPPORTED") {
-        Alert.alert(
-          "Gravação indisponível",
-          "Este navegador não oferece uma opção compatível para gravar áudio.",
-        );
+        await dialog.alert({
+          title: "Gravação indisponível",
+          description: "Este navegador não oferece uma opção compatível para gravar áudio.",
+        });
       } else {
         // eslint-disable-next-line no-console
         console.warn("[MealComposer] startRecording failed:", err);
@@ -391,7 +395,7 @@ export function MealComposer({
       handleRef.current = null;
       updateMode({ kind: "idle" });
     }
-  }, [finishAndCancel, finishAndSend, meterLevel, updateMode]);
+  }, [dialog, finishAndCancel, finishAndSend, meterLevel, updateMode]);
 
   // -- All gesture callbacks must be declared BEFORE `pan` --
 
@@ -576,7 +580,11 @@ export function MealComposer({
             <View
               style={shadows.floating}
               className={[
-                "min-h-[48px] flex-1 justify-center rounded-[22px] bg-white px-4",
+                // 52/26 é a geometria da linha do header — ofensiva, barra de
+                // abas e avatar — e a altura de controle do app (Button `md`,
+                // Input). O composer é a outra barra flutuante da tela, então
+                // fecha na mesma altura e na mesma curva.
+                "min-h-[52px] flex-1 justify-center rounded-[26px] bg-white px-4",
                 isMultiline ? "py-2" : "",
               ].join(" ")}
             >
@@ -632,7 +640,7 @@ export function MealComposer({
               disabled={disabled || processing}
               style={shadows.floating}
               className={[
-                "h-12 w-12 items-center justify-center rounded-full",
+                "h-[52px] w-[52px] items-center justify-center rounded-full",
                 disabled || processing ? "bg-neutral-200" : "bg-white active:bg-neutral-100",
               ].join(" ")}
             >
@@ -646,7 +654,7 @@ export function MealComposer({
               disabled={disabled || processing}
               style={shadows.floating}
               className={[
-                "h-12 w-12 items-center justify-center rounded-full",
+                "h-[52px] w-[52px] items-center justify-center rounded-full",
                 disabled || processing ? "bg-neutral-200" : "bg-white active:bg-neutral-100",
               ].join(" ")}
             >
@@ -660,7 +668,7 @@ export function MealComposer({
               disabled={disabled || processing}
               style={shadows.floating}
               className={[
-                "h-12 w-12 items-center justify-center rounded-full",
+                "h-[52px] w-[52px] items-center justify-center rounded-full",
                 disabled || processing ? "bg-neutral-200" : "bg-white active:bg-neutral-100",
               ].join(" ")}
             >
@@ -676,7 +684,7 @@ export function MealComposer({
               disabled={disabled || processing}
               style={shadows.floating}
               className={[
-                "h-12 w-12 items-center justify-center rounded-full",
+                "h-[52px] w-[52px] items-center justify-center rounded-full",
                 disabled || processing ? "bg-neutral-200" : "bg-primary-400 active:bg-primary-500",
               ].join(" ")}
             >
@@ -691,7 +699,7 @@ export function MealComposer({
               accessibilityLabel={micAccessibilityLabel}
               accessibilityRole="button"
               style={shadows.floating}
-              className="h-12 w-12 items-center justify-center rounded-full bg-primary-400 active:bg-primary-500"
+              className="h-[52px] w-[52px] items-center justify-center rounded-full bg-primary-400 active:bg-primary-500"
             >
               {micIcon}
             </Pressable>
@@ -703,7 +711,7 @@ export function MealComposer({
               disabled={disabled || processing}
               style={shadows.floating}
               className={[
-                "h-12 w-12 items-center justify-center rounded-full",
+                "h-[52px] w-[52px] items-center justify-center rounded-full",
                 disabled || processing ? "bg-neutral-200" : "bg-primary-400 active:bg-primary-500",
               ].join(" ")}
             >

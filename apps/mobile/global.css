@@ -10,3 +10,27 @@ input,
 textarea {
   outline: none;
 }
+
+/* O react-simple-pull-to-refresh (usado só na web, ver PullToRefresh.tsx)
+   renderiza `.ptr` e `.ptr__children` como divs `display: block`. Isso quebra a
+   cadeia flex do react-native-web: o `<View className="flex-1">` lá dentro
+   perde o contexto flex, cresce até a altura do conteúdo, e a ScrollView do
+   FlatList cresce junto — nunca fica menor que o próprio conteúdo, então nunca
+   rola. O `overflow: hidden` do wrapper então corta o excedente, deixando as
+   últimas refeições inalcançáveis.
+
+   Não adianta tornar `.ptr__children` rolável: o scroller passaria a ser ele, e
+   o `onScroll` do FlatList — que dirige o colapso do resumo na Home — deixaria
+   de disparar. Devolver a cadeia flex faz a ScrollView voltar a ser quem rola.
+
+   `!important` porque a lib injeta a própria folha em runtime, depois desta. */
+.ptr,
+.ptr__children {
+  display: flex !important;
+  flex-direction: column !important;
+  min-height: 0 !important;
+}
+
+.ptr__children {
+  flex: 1 1 0% !important;
+}
