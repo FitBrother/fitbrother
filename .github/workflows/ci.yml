@@ -115,6 +115,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
+          cache: "npm"
+          # O Makefile do SAM build (chamado pelo passo "SAM build" abaixo)
+          # roda `npm ci`/`npm install` contra este mesmo lockfile — cachear
+          # aqui (~/.npm, keyed pelo hash do lockfile) evita baixar da
+          # registry tudo de novo a cada run, que era o maior custo do job
+          # (SAM build sozinho passava de 3min50s numa run sem cache).
+          cache-dependency-path: package-lock.json
 
       - uses: aws-actions/configure-aws-credentials@v4
         with:
