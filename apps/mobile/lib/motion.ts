@@ -1,6 +1,7 @@
 import { Easing } from "react-native-reanimated";
 
 export const Motion = {
+  // Durações em milissegundos.
   duration: {
     fast: 150,
     base: 250,
