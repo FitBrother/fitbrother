@@ -173,7 +173,7 @@ export default function MealDetailScreen() {
       </View>
 
       <ScrollView contentContainerStyle={{ paddingBottom: 32 }}>
-        <View style={shadows.card} className="mx-4 mt-2 rounded-[25px] bg-white p-4">
+        <View style={shadows.card} className="mx-4 mt-2 rounded-[26px] bg-white p-4">
           <Text style={NUM} className="text-3xl font-display-bold text-neutral-800">
             {Math.round(meal.total_kcal)} kcal
           </Text>

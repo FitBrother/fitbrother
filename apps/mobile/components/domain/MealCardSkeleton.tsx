@@ -26,7 +26,7 @@ function Shimmer({ width, height }: { width: DimensionValue; height: number }) {
 
 export function MealCardSkeleton() {
   return (
-    <View style={shadows.card} className="mx-4 mt-2 gap-3 rounded-[25px] bg-white p-4">
+    <View style={shadows.card} className="mx-4 mt-2 gap-3 rounded-[26px] bg-white p-4">
       <View className="flex-row items-center justify-between">
         <Shimmer width={140} height={16} />
         <Shimmer width={48} height={14} />

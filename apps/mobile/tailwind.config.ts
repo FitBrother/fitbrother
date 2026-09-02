@@ -171,7 +171,7 @@ const config: Config = {
         "safe-horizontal": "20px", // padding horizontal das telas
         "input-height": "52px", // altura dos inputs
         "button-height": "52px", // altura dos botões md
-        "button-height-sm": "44px", // = alvo de toque mínimo e altura da barra de abas
+        "button-height-sm": "44px", // = alvo de toque mínimo
         "button-height-lg": "60px",
       },
 
@@ -180,7 +180,7 @@ const config: Config = {
         // Já existem no Tailwind: rounded-xl (12px), rounded-full
         // Tokens semânticos para manter consistência:
         input: "12px", // → use rounded-xl
-        card: "22px", // → use rounded-[22px]: a curva dos pills de 44pt (full ÷ 2)
+        card: "26px", // → use rounded-[26px]: a curva dos pills de 52pt (full ÷ 2)
         button: "9999px", // → use rounded-full
         badge: "9999px", // → use rounded-full
         banner: "12px", // → use rounded-xl

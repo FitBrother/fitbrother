@@ -30,7 +30,7 @@ export function LeaderboardRow({
       // de altura. `rounded-full` aqui daria 32, porque a linha tem ~64px por
       // causa do avatar — mesma classe, curva diferente. O valor fixo é o que
       // faz as duas curvas baterem de fato.
-      className={`flex-row items-center rounded-[25px] p-3 ${
+      className={`flex-row items-center rounded-[26px] p-3 ${
         isMe ? "bg-primary-50" : "border border-neutral-200 bg-white"
       }`}
       accessibilityRole="text"

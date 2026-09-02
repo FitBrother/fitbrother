@@ -457,6 +457,9 @@ export default function HomeScreen() {
                     data={items}
                     keyExtractor={(m) => (m as OptimisticMeal).id}
                     renderItem={renderItem as never}
+                    // Os degradês nas duas pontas já sinalizam que a lista
+                    // continua; a barra por cima deles só suja a moldura.
+                    showsVerticalScrollIndicator={false}
                     contentContainerStyle={{ paddingBottom: 180 }}
                     itemLayoutAnimation={LinearTransition.springify().damping(20).stiffness(180)}
                     refreshControl={
@@ -538,7 +541,7 @@ export default function HomeScreen() {
       {disclaimerOpen && (
         // 22 como o card acima: o disclaimer abre colado nele e é conteúdo
         // inline, não uma superfície flutuante como o ErrorBanner.
-        <View className="flex-row items-start gap-2 rounded-[25px] bg-neutral-100 p-3">
+        <View className="flex-row items-start gap-2 rounded-[26px] bg-neutral-100 p-3">
           <Info size={16} color={colors.neutral[500]} />
           <Text className="flex-1 text-xs font-sans text-neutral-600">{GOALS_DISCLAIMER_TEXT}</Text>
         </View>
@@ -595,6 +598,9 @@ export default function HomeScreen() {
                   renderItem={renderItem as never}
                   onScroll={handleListScroll}
                   scrollEventThrottle={16}
+                  // Os degradês nas duas pontas já sinalizam que a lista
+                  // continua; a barra por cima deles só suja a moldura.
+                  showsVerticalScrollIndicator={false}
                   ListEmptyComponent={
                     mealsQuery.isLoading ? null : (
                       <Pressable onPress={Keyboard.dismiss}>

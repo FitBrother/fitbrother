@@ -178,7 +178,7 @@ export default function ScanConfirmScreen() {
           </View>
         )}
 
-        <View style={shadows.card} className="bg-white rounded-[25px] p-5 mb-6">
+        <View style={shadows.card} className="bg-white rounded-[26px] p-5 mb-6">
           <View className="flex-row items-center gap-4 mb-4">
             {product.image_url ? (
               <Image
@@ -266,7 +266,7 @@ export default function ScanConfirmScreen() {
           </View>
         </View>
 
-        <View style={shadows.card} className="bg-white rounded-[25px] p-5 mb-6">
+        <View style={shadows.card} className="bg-white rounded-[26px] p-5 mb-6">
           <Text className="text-base font-sans-semibold text-neutral-800 mb-4">
             Macros Estimados
           </Text>
@@ -308,7 +308,7 @@ export default function ScanConfirmScreen() {
           </View>
         </View>
 
-        <View style={shadows.card} className="bg-white rounded-[25px] p-5 mb-8">
+        <View style={shadows.card} className="bg-white rounded-[26px] p-5 mb-8">
           <Text className="text-sm font-sans-medium text-neutral-500 mb-3 ml-1">
             Tipo de Refeição
           </Text>

@@ -74,19 +74,18 @@ describe("altura da barra de abas", () => {
 // Com o menu na mesma linha da ofensiva e do perfil não cabem três rótulos:
 // num aparelho de 360px sobram ~200px para a barra, e "Análises" com ícone e
 // rótulo pede mais que o terço disponível. Só a ativa mostra rótulo e fica com
-// toda a sobra; as inativas são quadrados de 44 (o alvo de toque mínimo).
+// toda a sobra; as inativas viram quadrados do tamanho da altura da aba.
 describe("larguras das abas", () => {
   const PADDING = 3;
   const INATIVA = AVATAR_SIZE - PADDING * 2;
 
   test("a ativa fica com o que sobra depois das inativas", () => {
-    // 300 de barra - 6 de padding - 2 inativas de 44 = 206
     expect(activeTabWidth(300, 3, PADDING)).toBe(300 - 6 - INATIVA * 2);
   });
 
   test("a ativa é bem mais larga que uma inativa no aperto de 360px", () => {
-    // Numa tela de 360: 328 de conteúdo - 62 do pill - 50 do avatar - 16 dos
-    // gaps = 200 de barra.
+    // Numa tela de 360: 328 de conteúdo - ~60 do pill - 52 do avatar - 16 dos
+    // gaps = ~200 de barra.
     expect(activeTabWidth(200, 3, PADDING)).toBeGreaterThan(INATIVA);
   });
 

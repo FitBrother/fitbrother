@@ -30,15 +30,21 @@ export const TABS: { key: HomeTab; label: string; Icon: typeof HomeIcon }[] = [
 /** Padding interno da barra de abas, em px (equivale ao `p-[3px]`). */
 const TAB_BAR_PADDING = 3;
 
-/** Diâmetro do botão de perfil — casado com a altura do pill de ofensivas. */
-export const AVATAR_SIZE = 50;
+/**
+ * Diâmetro do botão de perfil — casado com a altura do pill de ofensivas.
+ * 52 é a altura de controle do app: `button-height` e `input-height` no
+ * tailwind.config, o Button `md` e o Input. A linha do header fecha nela em vez
+ * de ter um número próprio.
+ */
+export const AVATAR_SIZE = 52;
 
-/** Altura de cada aba. Somada ao padding das pontas, fecha nos 50 dos vizinhos. */
+/** Altura de cada aba. Somada ao padding das pontas, fecha nos 52 dos vizinhos. */
 const TAB_HEIGHT = AVATAR_SIZE - TAB_BAR_PADDING * 2;
 
 /**
  * Largura de uma aba inativa. Quadrada, igual à altura: só o ícone cabe nela,
- * e 44×44 é exatamente o alvo de toque mínimo — sem precisar de hitSlop.
+ * e 46×46 passa com folga do alvo de toque mínimo de 44 — sem precisar de
+ * hitSlop.
  */
 const TAB_INACTIVE_WIDTH = TAB_HEIGHT;
 

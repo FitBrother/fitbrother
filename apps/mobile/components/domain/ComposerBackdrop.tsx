@@ -1,4 +1,5 @@
 import { LinearGradient } from "expo-linear-gradient";
+import { LIST_TOP_FADE_HEIGHT } from "./ListTopFade";
 
 /**
  * Cor de fundo da tela (`neutral-50`) em canal RGB, para montar as paradas do
@@ -7,8 +8,13 @@ import { LinearGradient } from "expo-linear-gradient";
  */
 const CANVAS_RGB = "248, 250, 252";
 
-/** Altura do trecho em degradê, em px. */
-export const COMPOSER_FADE_HEIGHT = 88;
+/**
+ * Altura do trecho em degradê, em px. Derivada do fade do topo em vez de
+ * escrita à mão: os dois emolduram a mesma lista, e com 88 aqui contra 24 lá a
+ * moldura ficava visivelmente torta. Amarrar as duas pontas impede a diferença
+ * de voltar sem que alguém decida por ela.
+ */
+export const COMPOSER_FADE_HEIGHT = LIST_TOP_FADE_HEIGHT;
 
 /**
  * Paradas do degradê, do topo (transparente) até a base (opaco).

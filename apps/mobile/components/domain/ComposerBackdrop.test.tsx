@@ -1,6 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 
 import { COMPOSER_FADE_HEIGHT, FADE_STOPS } from "./ComposerBackdrop";
+import { LIST_TOP_FADE_HEIGHT } from "./ListTopFade";
 
 // O degradê antigo ficava DENTRO do composer, ancorado no fundo dele, e
 // atravessava o topo do bloco sólido `bg-neutral-50` ainda em ~59% de alfa.
@@ -39,7 +40,10 @@ describe("degradê do composer", () => {
     expect(ultimoTrecho).toBeLessThan(primeiroTrecho);
   });
 
-  test("é alto o bastante para o card não sumir de uma vez", () => {
-    expect(COMPOSER_FADE_HEIGHT).toBeGreaterThanOrEqual(64);
+  // Antes este guard exigia >= 64, de quando o rodapé tinha 88 e o topo 24. Os
+  // dois emolduram a mesma lista, então a altura agora é a mesma nas duas
+  // pontas — e é isso que o guard passa a vigiar.
+  test("tem a mesma altura do degradê do topo da lista", () => {
+    expect(COMPOSER_FADE_HEIGHT).toBe(LIST_TOP_FADE_HEIGHT);
   });
 });

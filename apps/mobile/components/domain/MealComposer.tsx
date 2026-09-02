@@ -55,10 +55,10 @@ type PendingAction = "send" | "cancel" | "lock" | null;
  */
 export const COMPOSER_BACKDROP_HEIGHT = 120;
 
-/** Equivalente a `h-12 w-12 items-center justify-center rounded-full`. */
+/** Equivalente a `h-[52px] w-[52px] items-center justify-center rounded-full`. */
 const micButtonStyle = {
-  width: 48,
-  height: 48,
+  width: 52,
+  height: 52,
   alignItems: "center",
   justifyContent: "center",
   borderRadius: radii.full,
@@ -576,7 +576,11 @@ export function MealComposer({
             <View
               style={shadows.floating}
               className={[
-                "min-h-[48px] flex-1 justify-center rounded-[25px] bg-white px-4",
+                // 52/26 é a geometria da linha do header — ofensiva, barra de
+                // abas e avatar — e a altura de controle do app (Button `md`,
+                // Input). O composer é a outra barra flutuante da tela, então
+                // fecha na mesma altura e na mesma curva.
+                "min-h-[52px] flex-1 justify-center rounded-[26px] bg-white px-4",
                 isMultiline ? "py-2" : "",
               ].join(" ")}
             >
@@ -632,7 +636,7 @@ export function MealComposer({
               disabled={disabled || processing}
               style={shadows.floating}
               className={[
-                "h-12 w-12 items-center justify-center rounded-full",
+                "h-[52px] w-[52px] items-center justify-center rounded-full",
                 disabled || processing ? "bg-neutral-200" : "bg-white active:bg-neutral-100",
               ].join(" ")}
             >
@@ -646,7 +650,7 @@ export function MealComposer({
               disabled={disabled || processing}
               style={shadows.floating}
               className={[
-                "h-12 w-12 items-center justify-center rounded-full",
+                "h-[52px] w-[52px] items-center justify-center rounded-full",
                 disabled || processing ? "bg-neutral-200" : "bg-white active:bg-neutral-100",
               ].join(" ")}
             >
@@ -660,7 +664,7 @@ export function MealComposer({
               disabled={disabled || processing}
               style={shadows.floating}
               className={[
-                "h-12 w-12 items-center justify-center rounded-full",
+                "h-[52px] w-[52px] items-center justify-center rounded-full",
                 disabled || processing ? "bg-neutral-200" : "bg-white active:bg-neutral-100",
               ].join(" ")}
             >
@@ -676,7 +680,7 @@ export function MealComposer({
               disabled={disabled || processing}
               style={shadows.floating}
               className={[
-                "h-12 w-12 items-center justify-center rounded-full",
+                "h-[52px] w-[52px] items-center justify-center rounded-full",
                 disabled || processing ? "bg-neutral-200" : "bg-primary-400 active:bg-primary-500",
               ].join(" ")}
             >
@@ -691,7 +695,7 @@ export function MealComposer({
               accessibilityLabel={micAccessibilityLabel}
               accessibilityRole="button"
               style={shadows.floating}
-              className="h-12 w-12 items-center justify-center rounded-full bg-primary-400 active:bg-primary-500"
+              className="h-[52px] w-[52px] items-center justify-center rounded-full bg-primary-400 active:bg-primary-500"
             >
               {micIcon}
             </Pressable>
@@ -703,7 +707,7 @@ export function MealComposer({
               disabled={disabled || processing}
               style={shadows.floating}
               className={[
-                "h-12 w-12 items-center justify-center rounded-full",
+                "h-[52px] w-[52px] items-center justify-center rounded-full",
                 disabled || processing ? "bg-neutral-200" : "bg-primary-400 active:bg-primary-500",
               ].join(" ")}
             >
