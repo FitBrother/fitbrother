@@ -27,6 +27,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { EmailConfirmationBanner } from "@/components/domain/EmailConfirmationBanner";
 import { PullToRefresh } from "@/components/PullToRefresh";
 import { InstallPrompt } from "@/components/domain/InstallPrompt";
@@ -53,6 +54,7 @@ export default function ProfileScreen() {
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
   const [avatarBusy, setAvatarBusy] = useState(false);
   const [avatarModal, setAvatarModal] = useState<"actions" | "confirm-remove" | null>(null);
+  const [logoutConfirm, setLogoutConfirm] = useState(false);
   const profile = account.data?.profile;
   const user = account.data?.user;
 
@@ -234,7 +236,7 @@ export default function ProfileScreen() {
             />
           </MenuSection>
           <Pressable
-            onPress={() => supabase.auth.signOut()}
+            onPress={() => setLogoutConfirm(true)}
             accessibilityRole="button"
             className="min-h-[52px] flex-row items-center justify-center gap-2 rounded-full border border-neutral-200 bg-white"
           >
@@ -244,7 +246,7 @@ export default function ProfileScreen() {
         </ScrollView>
       </PullToRefresh>
       <Modal
-        visible={avatarModal !== null}
+        visible={avatarModal === "actions"}
         transparent
         animationType="fade"
         onRequestClose={() => setAvatarModal(null)}
@@ -257,74 +259,68 @@ export default function ProfileScreen() {
             className="absolute inset-0 bg-black/40"
           />
           <View style={shadows.card} className="w-full max-w-sm rounded-2xl bg-white p-5">
-            {avatarModal === "confirm-remove" ? (
-              <>
-                <Text className="text-center font-display-bold text-xl text-neutral-900">
-                  Remover foto do perfil?
-                </Text>
-                <Text className="mt-2 text-center font-sans text-sm text-neutral-600">
-                  Suas iniciais serão exibidas no lugar da foto.
-                </Text>
-                <View className="mt-5 flex-row gap-3">
-                  <Pressable
-                    onPress={() => setAvatarModal("actions")}
-                    accessibilityRole="button"
-                    accessibilityLabel="Cancelar remoção"
-                    className="min-h-[48px] flex-1 items-center justify-center rounded-xl bg-neutral-100"
-                  >
-                    <Text className="font-sans-semibold text-neutral-700">Cancelar</Text>
-                  </Pressable>
-                  <Pressable
-                    onPress={() => void removeAvatar()}
-                    accessibilityRole="button"
-                    accessibilityLabel="Confirmar remoção da foto"
-                    className="min-h-[48px] flex-1 items-center justify-center rounded-xl bg-danger-600"
-                  >
-                    <Text className="font-sans-semibold text-white">Remover</Text>
-                  </Pressable>
-                </View>
-              </>
-            ) : (
-              <>
-                <Text className="text-center font-display-bold text-xl text-neutral-900">
-                  Foto do perfil
-                </Text>
-                <View className="mt-5 gap-3">
-                  <Pressable
-                    onPress={() => {
-                      setAvatarModal(null);
-                      void chooseAvatar();
-                    }}
-                    accessibilityRole="button"
-                    accessibilityLabel="Alterar foto do perfil"
-                    className="min-h-[48px] items-center justify-center rounded-xl bg-primary-400"
-                  >
-                    <Text className="font-sans-semibold text-neutral-900">Alterar foto</Text>
-                  </Pressable>
-                  {profile.avatar_url ? (
-                    <Pressable
-                      onPress={() => setAvatarModal("confirm-remove")}
-                      accessibilityRole="button"
-                      accessibilityLabel="Remover foto do perfil"
-                      className="min-h-[48px] items-center justify-center rounded-xl border border-danger-200 bg-danger-50"
-                    >
-                      <Text className="font-sans-semibold text-danger-600">Remover foto</Text>
-                    </Pressable>
-                  ) : null}
-                  <Pressable
-                    onPress={() => setAvatarModal(null)}
-                    accessibilityRole="button"
-                    accessibilityLabel="Cancelar"
-                    className="min-h-[48px] items-center justify-center rounded-xl bg-neutral-100"
-                  >
-                    <Text className="font-sans-semibold text-neutral-700">Cancelar</Text>
-                  </Pressable>
-                </View>
-              </>
-            )}
+            <Text className="text-center font-display-bold text-xl text-neutral-900">
+              Foto do perfil
+            </Text>
+            <View className="mt-5 gap-3">
+              <Pressable
+                onPress={() => {
+                  setAvatarModal(null);
+                  void chooseAvatar();
+                }}
+                accessibilityRole="button"
+                accessibilityLabel="Alterar foto do perfil"
+                className="min-h-[52px] items-center justify-center rounded-[26px] bg-primary-400"
+              >
+                <Text className="font-sans-semibold text-neutral-900">Alterar foto</Text>
+              </Pressable>
+              {profile.avatar_url ? (
+                <Pressable
+                  onPress={() => setAvatarModal("confirm-remove")}
+                  accessibilityRole="button"
+                  accessibilityLabel="Remover foto do perfil"
+                  className="min-h-[52px] items-center justify-center rounded-[26px] border border-danger-200 bg-danger-50"
+                >
+                  <Text className="font-sans-semibold text-danger-600">Remover foto</Text>
+                </Pressable>
+              ) : null}
+              <Pressable
+                onPress={() => setAvatarModal(null)}
+                accessibilityRole="button"
+                accessibilityLabel="Cancelar"
+                className="min-h-[52px] items-center justify-center rounded-[26px] bg-neutral-100"
+              >
+                <Text className="font-sans-semibold text-neutral-700">Cancelar</Text>
+              </Pressable>
+            </View>
           </View>
         </View>
       </Modal>
+
+      {/* Cancelar volta para a folha de opções, não fecha tudo: quem chegou
+          aqui veio de lá e provavelmente ainda quer trocar a foto. */}
+      <ConfirmDialog
+        visible={avatarModal === "confirm-remove"}
+        title="Remover foto do perfil?"
+        description="Suas iniciais serão exibidas no lugar da foto."
+        confirmLabel="Remover"
+        destructive
+        onConfirm={() => void removeAvatar()}
+        onCancel={() => setAvatarModal("actions")}
+      />
+
+      <ConfirmDialog
+        visible={logoutConfirm}
+        title="Sair da conta?"
+        description="Seus dados continuam salvos. Você vai precisar entrar de novo para registrar refeições."
+        confirmLabel="Sair"
+        destructive
+        onConfirm={() => {
+          setLogoutConfirm(false);
+          void supabase.auth.signOut();
+        }}
+        onCancel={() => setLogoutConfirm(false)}
+      />
     </SafeAreaView>
   );
 }
