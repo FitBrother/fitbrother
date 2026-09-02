@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Alert, Linking, Modal, Platform, Pressable, Text, TextInput, View } from "react-native";
+import { Linking, Modal, Platform, Pressable, Text, TextInput, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   Easing,
@@ -16,6 +16,7 @@ import { Camera, Loader2, Mic, Plus, Send, ScanLine } from "lucide-react-native"
 import { colors } from "@/lib/colors";
 import { radii } from "@/lib/radii";
 import { shadows } from "@/lib/shadows";
+import { useDialog } from "@/lib/dialog/dialog-context";
 import {
   cancelRecording,
   startRecording,
@@ -187,6 +188,7 @@ export function MealComposer({
     setTimeout(autosizeWeb, 0);
   };
 
+  const dialog = useDialog();
   const insets = useSafeAreaInsets();
   const rotation = useSharedValue(0);
 
@@ -365,25 +367,27 @@ export function MealComposer({
       const code = (err as { code?: string } | null)?.code;
       if (code === "PERMISSION_DENIED") {
         if (Platform.OS === "web") {
-          Alert.alert(
-            "Microfone bloqueado",
-            "Permita o uso do microfone nas configurações deste site e recarregue a página.",
-          );
-        } else {
-          Alert.alert(
-            "Microfone bloqueado",
-            "Habilite o microfone nas configurações pra gravar refeições.",
-            [
-              { text: "Cancelar", style: "cancel" },
-              { text: "Abrir Configurações", onPress: () => Linking.openSettings() },
-            ],
-          );
+          // Instrução para ler e executar, não um aviso de passagem: um toast
+          // de 3s some antes de a pessoa chegar nas configurações do site.
+          await dialog.alert({
+            title: "Microfone bloqueado",
+            description:
+              "Permita o uso do microfone nas configurações deste site e recarregue a página.",
+          });
+        } else if (
+          await dialog.confirm({
+            title: "Microfone bloqueado",
+            description: "Habilite o microfone nas configurações pra gravar refeições.",
+            confirmLabel: "Abrir Configurações",
+          })
+        ) {
+          void Linking.openSettings();
         }
       } else if (code === "RECORDING_UNSUPPORTED") {
-        Alert.alert(
-          "Gravação indisponível",
-          "Este navegador não oferece uma opção compatível para gravar áudio.",
-        );
+        await dialog.alert({
+          title: "Gravação indisponível",
+          description: "Este navegador não oferece uma opção compatível para gravar áudio.",
+        });
       } else {
         // eslint-disable-next-line no-console
         console.warn("[MealComposer] startRecording failed:", err);
@@ -391,7 +395,7 @@ export function MealComposer({
       handleRef.current = null;
       updateMode({ kind: "idle" });
     }
-  }, [finishAndCancel, finishAndSend, meterLevel, updateMode]);
+  }, [dialog, finishAndCancel, finishAndSend, meterLevel, updateMode]);
 
   // -- All gesture callbacks must be declared BEFORE `pan` --
 

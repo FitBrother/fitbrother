@@ -2,7 +2,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { ChevronLeft, ImagePlus, X } from "lucide-react-native";
 import { randomUUID } from "expo-crypto";
 import { useState } from "react";
-import { Alert, Image, Pressable, Text, TextInput, View } from "react-native";
+import { Image, Pressable, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/Button";
@@ -14,6 +14,7 @@ import { useCreatePost } from "@/lib/hooks/useCreatePost";
 import { pickImage } from "@/lib/media/image-picker";
 import { uploadPostImage } from "@/lib/storage";
 import { supabase } from "@/lib/supabase";
+import { useToast } from "@/lib/toast/toast-context";
 
 const NUM: { fontVariant: ["tabular-nums"] } = { fontVariant: ["tabular-nums"] };
 
@@ -24,6 +25,7 @@ export default function NewPostScreen() {
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const create = useCreatePost();
+  const toast = useToast();
 
   async function pickPhoto() {
     const uri = await pickImage({ allowsEditing: true, aspect: [4, 3], quality: 0.7 });
@@ -59,11 +61,11 @@ export default function NewPostScreen() {
         },
         {
           onSuccess: () => router.replace("/(app)/feed" as never),
-          onError: () => Alert.alert("Não foi possível publicar", friendlyApiError()),
+          onError: () => toast({ variant: "error", message: friendlyApiError() }),
         },
       );
     } catch {
-      Alert.alert("Não foi possível enviar a foto", friendlyApiError());
+      toast({ variant: "error", message: "Não foi possível enviar a foto" });
     } finally {
       setUploading(false);
     }

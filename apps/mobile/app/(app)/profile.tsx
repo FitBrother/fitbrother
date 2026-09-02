@@ -17,7 +17,6 @@ import {
 import { useEffect, useState, type ComponentType, type ReactNode } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Image,
   Modal,
   Platform,
@@ -28,6 +27,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { useDialog } from "@/lib/dialog/dialog-context";
 import { EmailConfirmationBanner } from "@/components/domain/EmailConfirmationBanner";
 import { PullToRefresh } from "@/components/PullToRefresh";
 import { InstallPrompt } from "@/components/domain/InstallPrompt";
@@ -49,6 +49,7 @@ export default function ProfileScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const toast = useToast();
+  const dialog = useDialog();
   const account = useAccountProfile();
   const { update } = useProfileActions();
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
@@ -77,7 +78,10 @@ export default function ProfileScreen() {
     if (Platform.OS !== "web") {
       const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permission.granted) {
-        Alert.alert("Permissão necessária", "Autorize o acesso às fotos para trocar seu avatar.");
+        await dialog.alert({
+          title: "Permissão necessária",
+          description: "Autorize o acesso às fotos para trocar seu avatar.",
+        });
         return;
       }
     }

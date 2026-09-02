@@ -1,7 +1,6 @@
 import { useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Platform,
   Pressable,
   RefreshControl,
@@ -17,6 +16,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { colors } from "@/lib/colors";
 import { friendlyAuthError } from "@/lib/errors";
 import { supabase } from "@/lib/supabase";
+import { useToast } from "@/lib/toast/toast-context";
 import { Button } from "@/components/Button";
 import { PullToRefresh } from "@/components/PullToRefresh";
 import { LeaderboardRow } from "@/components/domain/LeaderboardRow";
@@ -43,6 +43,7 @@ export function FriendsPanel() {
   const streak = useStreak();
   const verifyPhone = useVerifyPhone();
   const syncContacts = useSyncContacts();
+  const toast = useToast();
   const qc = useQueryClient();
 
   const unfollow = useMutation({
@@ -99,13 +100,19 @@ export function FriendsPanel() {
   async function onSync() {
     try {
       const followed = await syncContacts.mutateAsync();
-      Alert.alert("Pronto!", `${followed.length} contato(s) já usam o Fitbrother.`);
+      toast({
+        variant: "success",
+        message: `${followed.length} contato(s) já usam o Fitbrother`,
+      });
     } catch (err) {
       const msg = err instanceof Error ? err.message : "erro";
-      Alert.alert(
-        "Não rolou",
-        msg === "contacts_permission_denied" ? "Permita o acesso aos contatos." : "Tente de novo.",
-      );
+      toast({
+        variant: "error",
+        message:
+          msg === "contacts_permission_denied"
+            ? "Permita o acesso aos contatos"
+            : "Não foi possível sincronizar",
+      });
     }
   }
 

@@ -26,14 +26,21 @@ export function ConfirmDialog({
   /** Opcional: sem uma consequência concreta a dizer, a linha vira ruído. */
   description?: string;
   confirmLabel: string;
-  cancelLabel?: string;
+  /**
+   * `null` remove o botão de cancelar e o diálogo vira um aviso de um botão só
+   * — para quando não há escolha a fazer, só algo que precisa ser lido. Nesse
+   * caso o fundo também confirma, porque sair e confirmar são a mesma coisa.
+   */
+  cancelLabel?: string | null;
   /** Pinta a confirmação de vermelho. Para o que apaga ou desfaz algo. */
   destructive?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
 }) {
+  const avulso = cancelLabel === null;
+  const sair = avulso ? onConfirm : onCancel;
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={sair}>
       <View className="flex-1 items-center justify-center px-6">
         {/* Tocar fora cancela — mesmo alvo do botão Cancelar, nunca da
             confirmação: um toque acidental no vazio não pode disparar a ação.
@@ -43,7 +50,7 @@ export function ConfirmDialog({
             por leitor de tela sai pelo botão Cancelar. */}
         <Pressable
           testID="confirm-dialog-backdrop"
-          onPress={onCancel}
+          onPress={sair}
           accessibilityElementsHidden
           importantForAccessibility="no-hide-descendants"
           className="absolute inset-0 bg-black/40"
@@ -60,14 +67,16 @@ export function ConfirmDialog({
             </Text>
           ) : null}
           <View className="mt-5 flex-row gap-3">
-            <Pressable
-              onPress={onCancel}
-              accessibilityRole="button"
-              accessibilityLabel={cancelLabel}
-              className="min-h-[52px] flex-1 items-center justify-center rounded-[26px] bg-neutral-100 active:bg-neutral-200"
-            >
-              <Text className="font-sans-semibold text-neutral-700">{cancelLabel}</Text>
-            </Pressable>
+            {avulso ? null : (
+              <Pressable
+                onPress={onCancel}
+                accessibilityRole="button"
+                accessibilityLabel={cancelLabel}
+                className="min-h-[52px] flex-1 items-center justify-center rounded-[26px] bg-neutral-100 active:bg-neutral-200"
+              >
+                <Text className="font-sans-semibold text-neutral-700">{cancelLabel}</Text>
+              </Pressable>
+            )}
             <Pressable
               onPress={onConfirm}
               accessibilityRole="button"
