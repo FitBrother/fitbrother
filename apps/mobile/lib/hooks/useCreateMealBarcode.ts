@@ -4,6 +4,7 @@ import { createMealBarcode } from "@/lib/api/barcode";
 import { dailySummariesHistoryKey } from "./useDailySummaries";
 import { dailySummaryKey } from "./useDailySummary";
 import { mealDetailKey, mealsForDayKey } from "./useMealsForDay";
+import { streakKey } from "./useStreak";
 import type { OptimisticMeal } from "./useCreateMealText";
 
 type Context = { previous?: MealResponse[] };
@@ -66,6 +67,7 @@ export function useCreateMealBarcode() {
       queryClient.setQueryData(mealDetailKey(result.meal.id), result.meal);
       queryClient.invalidateQueries({ queryKey: dailySummaryKey(args.day) });
       queryClient.invalidateQueries({ queryKey: dailySummariesHistoryKey });
+      queryClient.invalidateQueries({ queryKey: streakKey });
     },
     onError: (_err, args, ctx) => {
       if (ctx?.previous !== undefined) {
