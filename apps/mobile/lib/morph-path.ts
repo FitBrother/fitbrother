@@ -7,11 +7,13 @@
  *
  * Duas propriedades caem de graça dessa escolha:
  *
- * 1. A altura em qualquer `t` é `2r(1-t)`, monótona decrescente — o expandido
- *    é o teto por construção, não por clamp. (Desenrolar o anel mantendo o
- *    comprimento do traço, que seria o morph fisicamente honesto, faz o raio
- *    crescer e o container INCHA no meio do caminho: um arco de 270° é mais
- *    alto que o círculo que o originou.)
+ * 1. A altura em qualquer `t` é `2r(1-t)`, monótona decrescente — dentro de
+ *    [0,1] o expandido é o teto por construção, sem precisar de clamp.
+ *    (Desenrolar o anel mantendo o comprimento do traço, que seria o morph
+ *    fisicamente honesto, faz o raio crescer e o container INCHA no meio do
+ *    caminho: um arco de 270° é mais alto que o círculo que o originou.) O
+ *    `clamp01` logo abaixo não contradiz isso: ele existe só para os valores
+ *    FORA da faixa, que a mola produz ao inverter o gesto.
  * 2. O preenchimento é o mesmo corte nos dois estados. 59% dos pontos é 59%
  *    do anel a partir do topo e 59% da barra a partir da esquerda, sem
  *    lógica separada por estado.
@@ -27,6 +29,29 @@ export type MorphEndpoints = {
   bar: number[];
   steps: number;
 };
+
+/**
+ * Prende `t` em [0, 1].
+ *
+ * O morph é interpolação entre dois extremos e só sabe desenhar o que está
+ * entre eles: fora da faixa, `ring + (bar - ring)·t` extrapola os pontos para
+ * além da barra e `2r(1-t)` afunda a altura abaixo da espessura do traço.
+ *
+ * O clamp mora aqui, e não em quem dirige a animação, porque a restrição é da
+ * geometria. Antes ele estava do outro lado — via `overshootClamping` na mola
+ * — e cobrava caro: o `overshootClamping` do Reanimated encerra a animação
+ * assim que o valor passa do ponto de partida, então toda inversão de gesto no
+ * meio da transição terminava a mola na hora e cravava o alvo, num salto seco.
+ * Protegida aqui, a mola pode passar do alvo à vontade sem quebrar nada.
+ *
+ * Fica ACIMA de quem a chama de propósito: o plugin de worklet do Reanimated
+ * não resolve referência para função declarada depois no módulo, e o worklet
+ * estoura com "clamp01 is not a function" em runtime.
+ */
+export function clamp01(t: number): number {
+  "worklet";
+  return t < 0 ? 0 : t > 1 ? 1 : t;
+}
 
 /**
  * Pré-calcula os dois extremos do morph. Não depende de `t`, então roda uma
@@ -60,7 +85,7 @@ export function morphEndpoints(
 /** Altura ocupada pelo traço, incluindo a espessura. Decresce com `t`. */
 export function morphHeight(t: number, radius: number, strokeWidth: number): number {
   "worklet";
-  return 2 * radius * (1 - t) + strokeWidth;
+  return 2 * radius * (1 - clamp01(t)) + strokeWidth;
 }
 
 /** Arredonda pra 1 casa. Evita strings de path com 17 dígitos por coordenada. */
@@ -75,8 +100,9 @@ function round1(n: number): number {
  * ponto mais próximo — sem isso o preenchimento anda aos saltos de 1,6%
  * enquanto o valor anima na montagem.
  */
-export function morphPath(e: MorphEndpoints, t: number, progress: number, dy: number): string {
+export function morphPath(e: MorphEndpoints, tRaw: number, progress: number, dy: number): string {
   "worklet";
+  const t = clamp01(tRaw);
   const n = e.steps;
   const ring = e.ring;
   const bar = e.bar;

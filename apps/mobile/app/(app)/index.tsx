@@ -18,6 +18,7 @@ import Animated, {
   useAnimatedStyle,
   useReducedMotion,
   useSharedValue,
+  withSpring,
   withTiming,
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -182,12 +183,7 @@ export default function HomeScreen() {
     if (alvo === collapseTarget.value) return;
 
     collapseTarget.value = alvo;
-    collapse.value = reducedMotion
-      ? alvo
-      : withTiming(alvo, {
-          duration: Motion.duration.base,
-          easing: Motion.easing.standard,
-        });
+    collapse.value = reducedMotion ? alvo : withSpring(alvo, Motion.spring.morph);
     runOnJS(setSummaryExpanded)(alvo === 0);
   });
 

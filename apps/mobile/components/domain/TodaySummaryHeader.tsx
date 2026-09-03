@@ -77,10 +77,18 @@ function fmtGrams(n: number): string {
   return `${Math.round(n)}g`;
 }
 
-/** Interpola entre dois valores. Espelha o `lerp` do worklet no lado JS. */
+/**
+ * Interpola entre dois valores, com `t` preso em [0, 1].
+ *
+ * O clamp existe pelo mesmo motivo do `clamp01` da geometria: a mola que
+ * dirige o `collapse` pode passar do alvo quando o usuário inverte o gesto no
+ * meio da transição. Sem prender, um spacer nasceria com altura negativa e os
+ * textos passariam do lugar onde os anéis já pararam — os dois dessincronizam.
+ */
 function lerp(a: number, b: number, t: number): number {
   "worklet";
-  return a + (b - a) * t;
+  const k = t < 0 ? 0 : t > 1 ? 1 : t;
+  return a + (b - a) * k;
 }
 
 type MorphTextProps = {

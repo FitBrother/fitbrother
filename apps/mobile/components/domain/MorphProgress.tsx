@@ -9,7 +9,7 @@ import Animated, {
 import Svg, { Path } from "react-native-svg";
 import { colors } from "@/lib/colors";
 import { Motion } from "@/lib/motion";
-import { morphEndpoints, morphHeight, morphPath } from "@/lib/morph-path";
+import { clamp01, morphEndpoints, morphHeight, morphPath } from "@/lib/morph-path";
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 
@@ -85,22 +85,25 @@ export function MorphProgress({
     });
   }, [progress, targetProgress]);
 
-  const containerStyle = useAnimatedStyle(() => ({
-    height: morphHeight(
-      collapse.value,
-      radius,
-      strokeExpanded + (strokeCollapsed - strokeExpanded) * collapse.value,
-    ),
-  }));
+  // `collapse` pode passar de [0,1]: a mola que o dirige tem overshoot, de
+  // propósito (ver Motion.spring.morph). A espessura é presa junto com o
+  // resto da geometria para o traço não afinar além do estado colapsado no
+  // repique.
+  const containerStyle = useAnimatedStyle(() => {
+    const t = clamp01(collapse.value);
+    return {
+      height: morphHeight(t, radius, strokeExpanded + (strokeCollapsed - strokeExpanded) * t),
+    };
+  });
 
   const trackProps = useAnimatedProps(() => {
-    const t = collapse.value;
+    const t = clamp01(collapse.value);
     const sw = strokeExpanded + (strokeCollapsed - strokeExpanded) * t;
     return { d: morphPath(endpoints, t, 1, sw / 2), strokeWidth: sw };
   });
 
   const fillProps = useAnimatedProps(() => {
-    const t = collapse.value;
+    const t = clamp01(collapse.value);
     const sw = strokeExpanded + (strokeCollapsed - strokeExpanded) * t;
     return { d: morphPath(endpoints, t, progress.value, sw / 2), strokeWidth: sw };
   });

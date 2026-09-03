@@ -60,6 +60,15 @@ describe("morphHeight", () => {
     expect(morphHeight(0, RAIO, 14)).toBe(2 * RAIO + 14);
     expect(morphHeight(1, RAIO, 10)).toBe(10);
   });
+
+  // A mola que dirige o morph tem overshoot: quem inverte o gesto no meio da
+  // transição empurra `t` para fora de [0,1]. Sem o clamp, t>1 afundaria a
+  // altura ABAIXO da espessura do traço (o anel sumiria dentro de si) e t<0
+  // faria o container passar do estado expandido.
+  test("t fora de [0,1] não passa dos dois extremos", () => {
+    expect(morphHeight(1.4, RAIO, 10)).toBe(morphHeight(1, RAIO, 10));
+    expect(morphHeight(-0.4, RAIO, 14)).toBe(morphHeight(0, RAIO, 14));
+  });
 });
 
 describe("morphPath", () => {
@@ -108,6 +117,11 @@ describe("morphPath", () => {
     const a = pontos(morphPath(e, 1, 0.5, 0));
     const b = pontos(morphPath(e, 1, 0.5 + 0.5 / MORPH_STEPS, 0));
     expect(b[b.length - 1]!.x).toBeGreaterThan(a[a.length - 1]!.x);
+  });
+
+  test("t fora de [0,1] desenha o extremo, não uma extrapolação", () => {
+    expect(morphPath(e, 1.6, 1, 0)).toBe(morphPath(e, 1, 1, 0));
+    expect(morphPath(e, -0.6, 1, 0)).toBe(morphPath(e, 0, 1, 0));
   });
 
   test("progresso zero e progresso acima de 1 não estouram o caminho", () => {
