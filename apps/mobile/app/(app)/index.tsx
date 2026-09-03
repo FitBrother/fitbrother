@@ -45,6 +45,7 @@ import { useCreateMealPhoto } from "@/lib/hooks/useCreateMealPhoto";
 import { QuotaExceededError, getErrorStatus } from "@/lib/api/meals";
 import { colors } from "@/lib/colors";
 import { Motion } from "@/lib/motion";
+import { nextCollapse } from "@/lib/summary-collapse";
 import { uploadMealAudio, uploadMealPhoto } from "@/lib/storage";
 import type { AudioExtension } from "@/lib/audio/recorder";
 import { Card } from "@/components/Card";
@@ -162,12 +163,11 @@ export default function HomeScreen() {
   // viram barras horizontais e o bloco cai para ~140px, devolvendo espaço para
   // as refeições sem tirar os números de vista.
   //
-  // Dois estados apenas, sem posições intermediárias paradas: o gatilho é a
-  // DIREÇÃO do gesto, não a posição do scroll. Descer colapsa, subir expande,
-  // e no topo o expandido é forçado.
+  // Ele é o cabeçalho FIXO do FlatList, não um irmão acima dele — ver
+  // `listHeaderComponent` mais abaixo, onde está a explicação de por que a
+  // diferença importa tanto.
   const collapse = useSharedValue(0);
-  const collapseTarget = useSharedValue(0);
-  const lastScrollY = useSharedValue(0);
+  const collapseTarget = useSharedValue<0 | 1>(0);
   // Espelho em JS do estado, só para o RefreshControl — puxar-pra-atualizar
   // fica disponível apenas no expandido, que é justamente quando a lista está
   // no topo e o gesto faz sentido.
@@ -175,13 +175,10 @@ export default function HomeScreen() {
   const reducedMotion = useReducedMotion();
 
   const handleListScroll = useAnimatedScrollHandler((event) => {
-    const y = event.contentOffset.y;
-    const delta = y - lastScrollY.value;
-    lastScrollY.value = y;
-
-    // Zona morta de 3px: sem ela, o tremor de um scroll parado fica alternando
-    // os dois estados.
-    const alvo = y <= 2 ? 0 : delta > 3 ? 1 : delta < -3 ? 0 : collapseTarget.value;
+    const alvo = nextCollapse({
+      y: event.contentOffset.y,
+      current: collapseTarget.value,
+    });
     if (alvo === collapseTarget.value) return;
 
     collapseTarget.value = alvo;
@@ -549,6 +546,37 @@ export default function HomeScreen() {
     </View>
   );
 
+  /**
+   * Cabeçalho fixo da lista: resumo + rótulo "Refeições".
+   *
+   * Ele é o `ListHeaderComponent` do FlatList, marcado como sticky — e não um
+   * irmão acima da lista, como já foi. A diferença não é cosmética; ela é o
+   * que faz o resumo funcionar:
+   *
+   * 1. Fora da lista, o resumo não pertencia a nenhuma superfície rolável.
+   *    Arrastar o dedo em cima dele não fazia nada, porque não havia nada ali
+   *    para rolar. Dentro, o gesto é da lista de graça, em qualquer ponto.
+   *
+   * 2. Fora da lista, encolher o resumo encolhia a caixa acima dela e o
+   *    VIEWPORT da lista crescia junto (medido: 412px → 590px). Isso muda o
+   *    offset máximo de rolagem, o navegador reancora o `scrollTop` para
+   *    caber, e o reajuste voltava ao `onScroll` como se fosse gesto do
+   *    usuário — o resumo se desfazia sozinho e ficava piscando. Como
+   *    cabeçalho, o viewport é constante: encolher muda só a altura do
+   *    conteúdo, e o gatilho por posição (`nextCollapse`) ignora reajustes
+   *    longe do topo.
+   *
+   * Visualmente nada muda: `position: sticky` mantém o bloco colado no topo
+   * com os cards passando por baixo, que é como já era.
+   */
+  const listHeaderComponent = (
+    <View className="bg-neutral-50">
+      {macroPanel}
+      {listHeader}
+      {items.length > 0 && <ListTopFade />}
+    </View>
+  );
+
   // isPending (não isLoading): true só enquanto NUNCA houve dado pra essa
   // query (primeiro carregamento do dia) — uma vez que os macros/refeições
   // chegam uma vez, refetches em segundo plano (foco, pull-to-refresh) não
@@ -575,62 +603,57 @@ export default function HomeScreen() {
         onIndexChange={(i) => setActiveTab(TABS[i]!.key)}
       >
         <>
-          {/* PullToRefresh embrulha o painel de macros + cabeçalho da lista
-              junto com o FlatList (não só o FlatList sozinho) — puxar pra
-              atualizar precisa funcionar assim que sai do header fixo da
-              Home, não só depois de já estar dentro da lista de refeições. */}
+          {/* A lista é a única superfície rolável da aba, e o resumo mora
+              dentro dela — então o PullToRefresh embrulha o FlatList direto.
+              Puxar pra atualizar continua funcionando desde o resumo, porque
+              o resumo agora é o cabeçalho da própria lista. */}
           <PullToRefresh onRefresh={handleRefresh} enabled={summaryExpanded}>
-            <View className="flex-1">
-              {macroPanel}
-              {listHeader}
-              {/* A lista é renderizada sempre, inclusive vazia: antes o estado
-                  vazio era um Pressable solto, sem container rolável, e a tela
-                  ficava morta — nem o bounce do iOS acontecia. O estado vazio virou
-                  ListEmptyComponent para manter um único container de rolagem. */}
-              {/* `relative` ancora o degradê do topo, que dissolve os cards
-                  logo abaixo do título fixo em vez de deixá-los serem cortados
-                  na borda da lista. */}
-              <View className="relative flex-1">
-                {items.length > 0 && <ListTopFade />}
-                <Animated.FlatList
-                  data={items}
-                  keyExtractor={(m) => (m as OptimisticMeal).id}
-                  renderItem={renderItem as never}
-                  onScroll={handleListScroll}
-                  scrollEventThrottle={16}
-                  // Os degradês nas duas pontas já sinalizam que a lista
-                  // continua; a barra por cima deles só suja a moldura.
-                  showsVerticalScrollIndicator={false}
-                  ListEmptyComponent={
-                    mealsQuery.isLoading ? null : (
-                      <Pressable onPress={Keyboard.dismiss}>
-                        <Card variant="flat" className="mx-4">
-                          <EmptyMealsState />
-                        </Card>
-                      </Pressable>
-                    )
-                  }
-                  alwaysBounceVertical
-                  contentContainerStyle={{
-                    paddingBottom: listBottomSpace(composerHeight),
-                    flexGrow: 1,
-                  }}
-                  keyboardDismissMode="on-drag"
-                  keyboardShouldPersistTaps="handled"
-                  itemLayoutAnimation={LinearTransition.springify().damping(20).stiffness(180)}
-                  refreshControl={
-                    <RefreshControl
-                      // Só no expandido — que é exatamente quando a lista está
-                      // no topo e puxar para atualizar faz sentido.
-                      enabled={summaryExpanded}
-                      refreshing={mealsQuery.isRefetching || summaryQuery.isRefetching}
-                      onRefresh={handleRefresh}
-                      tintColor={colors.primary[400]}
-                    />
-                  }
+            {/* A lista é renderizada sempre, inclusive vazia: antes o estado
+                vazio era um Pressable solto, sem container rolável, e a tela
+                ficava morta — nem o bounce do iOS acontecia. O estado vazio
+                virou ListEmptyComponent para manter um único container de
+                rolagem. */}
+            <Animated.FlatList
+              data={items}
+              keyExtractor={(m) => (m as OptimisticMeal).id}
+              renderItem={renderItem as never}
+              ListHeaderComponent={listHeaderComponent}
+              // Prende o cabeçalho (índice 0) no topo do scroller. É o que
+              // mantém o resumo à vista enquanto os cards correm por baixo.
+              stickyHeaderIndices={[0]}
+              onScroll={handleListScroll}
+              scrollEventThrottle={16}
+              // Os degradês nas duas pontas já sinalizam que a lista
+              // continua; a barra por cima deles só suja a moldura.
+              showsVerticalScrollIndicator={false}
+              ListEmptyComponent={
+                mealsQuery.isLoading ? null : (
+                  <Pressable onPress={Keyboard.dismiss}>
+                    <Card variant="flat" className="mx-4">
+                      <EmptyMealsState />
+                    </Card>
+                  </Pressable>
+                )
+              }
+              alwaysBounceVertical
+              contentContainerStyle={{
+                paddingBottom: listBottomSpace(composerHeight),
+                flexGrow: 1,
+              }}
+              keyboardDismissMode="on-drag"
+              keyboardShouldPersistTaps="handled"
+              itemLayoutAnimation={LinearTransition.springify().damping(20).stiffness(180)}
+              refreshControl={
+                <RefreshControl
+                  // Só no expandido — que é exatamente quando a lista está
+                  // no topo e puxar para atualizar faz sentido.
+                  enabled={summaryExpanded}
+                  refreshing={mealsQuery.isRefetching || summaryQuery.isRefetching}
+                  onRefresh={handleRefresh}
+                  tintColor={colors.primary[400]}
                 />
-              </View>
-            </View>
+              }
+            />
           </PullToRefresh>
         </>
         <FeedTabContent />

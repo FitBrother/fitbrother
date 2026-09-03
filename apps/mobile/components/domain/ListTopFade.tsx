@@ -19,6 +19,11 @@ export const LIST_TOP_FADE_HEIGHT = 24;
  *
  * A curva é a inversa da do rodapé: opaco encostado no título, transparente na
  * ponta de baixo.
+ *
+ * Mora dentro do cabeçalho fixo da lista e se pendura para fora dele
+ * (`top: 100%`), porque é logo abaixo da borda do cabeçalho que os cards
+ * passam por baixo. Ficar ancorado no topo do container da lista não serve
+ * mais: o cabeçalho é quem ocupa essa faixa agora, e cobriria o degradê.
  */
 export function ListTopFade() {
   return (
@@ -35,7 +40,7 @@ export function ListTopFade() {
         position: "absolute",
         left: 0,
         right: 0,
-        top: 0,
+        top: "100%",
         height: LIST_TOP_FADE_HEIGHT,
         zIndex: 1,
       }}
