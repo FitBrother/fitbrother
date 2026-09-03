@@ -1,4 +1,6 @@
 import { describe, expect, test } from "@jest/globals";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { COLLAPSE_AT, EXPAND_AT, nextCollapse } from "@/lib/summary-collapse";
 
 describe("nextCollapse", () => {
@@ -47,5 +49,36 @@ describe("nextCollapse", () => {
       estado = nextCollapse({ y, current: estado });
       expect(estado).toBe(1);
     }
+  });
+});
+
+/**
+ * Guard do `overflow-anchor: none` na lista de refeições.
+ *
+ * O scroll anchoring do navegador reancora o `scrollTop` quando o conteúdo
+ * acima da vista muda de tamanho — e o cabeçalho da Home faz exatamente isso,
+ * de propósito, a cada colapso. O scroll devolvido pelo navegador é o mesmo
+ * que decide se o resumo colapsa, então perto do topo fechava um ciclo:
+ * colapsa → anchoring puxa pra 0 → expande → conteúdo desce → anchoring
+ * empurra → colapsa. Num scroll lento o resumo pulsava sem parar.
+ *
+ * É comportamento de navegador: não aparece em teste de unidade nem em
+ * revisão, e o `style` parece decoração removível. Medido, ligado, o anchoring
+ * comeu mais de 100px de um gesto de 180px. Daí o guard ler o fonte.
+ */
+describe("lista de refeições da Home", () => {
+  const home = readFileSync(resolve(__dirname, "../app/(app)/index.tsx"), "utf8");
+
+  test("desliga o scroll anchoring do navegador", () => {
+    expect(home).toContain('overflowAnchor: "none"');
+    expect(home).toContain("style={NO_SCROLL_ANCHOR}");
+  });
+
+  test("o resumo é cabeçalho fixo da lista, não um irmão acima dela", () => {
+    // Fora da lista, o resumo não pertence a superfície rolável nenhuma: o
+    // dedo em cima dele não rola nada e encolher passa a redimensionar o
+    // viewport, que era a origem do travamento.
+    expect(home).toContain("ListHeaderComponent={listHeaderComponent}");
+    expect(home).toContain("stickyHeaderIndices={[0]}");
   });
 });

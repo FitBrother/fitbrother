@@ -8,6 +8,7 @@ import {
   Text,
   useWindowDimensions,
   View,
+  type ViewStyle,
 } from "react-native";
 import Animated, {
   Easing,
@@ -71,6 +72,39 @@ import { useStreak } from "@/lib/hooks/useStreak";
 
 /** Sobra entre o último card e o começo do degradê do composer. */
 const LIST_BREATHING_ROOM = 28;
+
+/**
+ * Desliga o scroll anchoring do navegador na lista de refeições (só web; no
+ * nativo o recurso não existe e a constante é `undefined`).
+ *
+ * O anchoring existe para quando o conteúdo ACIMA da vista muda de tamanho sem
+ * o usuário pedir — uma imagem que carrega, um bloco que chega tarde. O
+ * navegador escolhe um elemento visível como âncora e reposiciona o scroll
+ * para segurá-lo no lugar.
+ *
+ * Aqui essa premissa é falsa. O cabeçalho encolhe COMO RESPOSTA ao scroll, de
+ * propósito, e ele fica acima de tudo. O navegador via os cards subirem 178px,
+ * concluía que algo tinha se mexido sozinho e devolvia o scroll — mas esse
+ * scroll devolvido é justamente o que decide se o resumo colapsa. Perto do
+ * topo o vaivém fechava um ciclo: colapsa → anchoring puxa o scroll pra 0 →
+ * `nextCollapse` expande → conteúdo desce → anchoring empurra de volta →
+ * colapsa. Num scroll lento o usuário parava exatamente nesse ponto de
+ * equilíbrio e o resumo pulsava sem parar.
+ *
+ * Medido nesta lista, pedindo 180px de rolagem: com anchoring, 46 dos 90
+ * frames tiveram desvio que ninguém pediu (até 45px de uma vez) e o scroll só
+ * andou até y=79 — o recurso comeu mais de 100px do gesto. Desligado, desvio
+ * zero e y=199.
+ *
+ * O preço é que a lista perde a proteção contra reflow de verdade acima da
+ * vista. Aceitável aqui: os cards são texto de altura estável, sem imagem
+ * assíncrona que possa crescer depois de renderizada.
+ *
+ * `as` porque `overflowAnchor` é CSS que só o react-native-web entende; não
+ * está no ViewStyle do RN.
+ */
+const NO_SCROLL_ANCHOR =
+  Platform.OS === "web" ? ({ overflowAnchor: "none" } as unknown as ViewStyle) : undefined;
 
 /**
  * Espaço livre no fim da lista de refeições, em px.
@@ -617,6 +651,9 @@ export default function HomeScreen() {
               // Prende o cabeçalho (índice 0) no topo do scroller. É o que
               // mantém o resumo à vista enquanto os cards correm por baixo.
               stickyHeaderIndices={[0]}
+              // Sem isso o resumo pulsa sem parar num scroll lento — ver a
+              // constante para o ciclo completo.
+              style={NO_SCROLL_ANCHOR}
               onScroll={handleListScroll}
               scrollEventThrottle={16}
               // Os degradês nas duas pontas já sinalizam que a lista
