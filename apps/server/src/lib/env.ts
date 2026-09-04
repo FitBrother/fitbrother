@@ -46,6 +46,12 @@ export const env = cleanEnv(process.env, {
   AI_CAP_COST_CENTS: num({ default: 200 }),
 
   SENTRY_DSN: str({ default: "" }),
+  // Tag de ambiente do Sentry, separada de NODE_ENV — NODE_ENV fica sempre
+  // "production" em qualquer stack real (CORS estrito + rota de proxy
+  // dev-only desligada dependem disso, ver app.ts/supabase-proxy.ts), mas o
+  // stack de dev precisa marcar seus próprios eventos como "development" pra
+  // não misturar com os alertas de produção no mesmo projeto Sentry.
+  SENTRY_ENVIRONMENT: str({ default: "" }),
 
   // Lembrete de cadastro abandonado (M17) — Resend.
   RESEND_API_KEY: str({ default: "" }),
