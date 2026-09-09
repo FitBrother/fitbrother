@@ -48,6 +48,7 @@ import { QuotaExceededError, getErrorStatus } from "@/lib/api/meals";
 import { colors } from "@/lib/colors";
 import { Motion } from "@/lib/motion";
 import { nextCollapse } from "@/lib/summary-collapse";
+import { collapseSpacer } from "@/lib/summary-geometry";
 import { uploadMealAudio, uploadMealPhoto } from "@/lib/storage";
 import type { AudioExtension } from "@/lib/audio/recorder";
 import { Card } from "@/components/Card";
@@ -65,7 +66,7 @@ import { NewVersionBanner } from "@/components/domain/NewVersionBanner";
 import { EmptyMealsState } from "@/components/domain/EmptyMealsState";
 import { ListTopFade } from "@/components/domain/ListTopFade";
 import { ErrorBanner, type ErrorBannerVariant } from "@/components/domain/ErrorBanner";
-import { TodaySummaryHeader } from "@/components/domain/TodaySummaryHeader";
+import { SummaryCollapseSpacer, TodaySummaryHeader } from "@/components/domain/TodaySummaryHeader";
 import { GoalsDisclaimer } from "@/components/domain/GoalsDisclaimer";
 import { StreakCounter } from "@/components/domain/StreakCounter";
 import { useStreak } from "@/lib/hooks/useStreak";
@@ -208,6 +209,32 @@ export default function HomeScreen() {
   // no topo e o gesto faz sentido.
   const [summaryExpanded, setSummaryExpanded] = useState(true);
   const reducedMotion = useReducedMotion();
+
+  // ── Chão para o colapso ──────────────────────────────────────────────────
+  // Colapsar encolhe o conteúdo em 178px, e o navegador reage a isso prendendo
+  // o `scrollTop` no novo máximo. Numa lista curta esse máximo vai a zero, o
+  // resumo lê zero como "voltei ao topo" e reexpande — em looping, enquanto o
+  // dedo estiver na tela. O rodapé abaixo garante que sempre sobre faixa
+  // rolável no estado colapsado; `collapseSpacer` calcula o MÍNIMO para isso e
+  // devolve zero quando a lista já é longa o bastante, que é o caso comum.
+  const [listViewport, setListViewport] = useState(0);
+  const [naturalContent, setNaturalContent] = useState(0);
+
+  const handleContentSizeChange = useCallback(
+    (_w: number, h: number) => {
+      // Só o estado expandido serve de referência: é o único em que o rodapé
+      // mede zero, então `h` é a altura do conteúdo sem ele — sem isso a
+      // medida realimentaria o próprio spacer.
+      if (collapse.value !== 0) return;
+      setNaturalContent(h);
+    },
+    [collapse],
+  );
+
+  const spacerTotal = useMemo(
+    () => collapseSpacer(naturalContent, listViewport),
+    [naturalContent, listViewport],
+  );
 
   const handleListScroll = useAnimatedScrollHandler((event) => {
     const alvo = nextCollapse({
@@ -648,6 +675,13 @@ export default function HomeScreen() {
               keyExtractor={(m) => (m as OptimisticMeal).id}
               renderItem={renderItem as never}
               ListHeaderComponent={listHeaderComponent}
+              // Chão para o colapso em listas curtas; zero nas longas. Ver
+              // `spacerTotal` acima.
+              ListFooterComponent={
+                <SummaryCollapseSpacer collapse={collapse} total={spacerTotal} />
+              }
+              onLayout={(e) => setListViewport(e.nativeEvent.layout.height)}
+              onContentSizeChange={handleContentSizeChange}
               // Prende o cabeçalho (índice 0) no topo do scroller. É o que
               // mantém o resumo à vista enquanto os cards correm por baixo.
               stickyHeaderIndices={[0]}

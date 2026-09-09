@@ -74,6 +74,25 @@ describe("lista de refeições da Home", () => {
     expect(home).toContain("style={NO_SCROLL_ANCHOR}");
   });
 
+  /**
+   * O rodapé parece decoração — um branco no fim da lista — e some numa
+   * limpeza de "código morto" sem que nada quebre visivelmente. O que ele
+   * segura é o chão da faixa rolável: sem ele, colapsar tira 178px de conteúdo,
+   * e com poucas refeições isso é mais do que a faixa inteira (medido: 46px com
+   * 2 refeições). O navegador prende o scroll em zero, `nextCollapse` lê zero
+   * como topo e reexpande, e o resumo pulsa enquanto o dedo estiver na tela.
+   * Medido: sem o rodapé, 2 trocas de estado num arrasto lento e o
+   * `scrollHeight` oscilando 784↔830; com ele, 1 troca.
+   *
+   * As duas medidas que alimentam a conta entram junto: sem `onLayout` e
+   * `onContentSizeChange` o total fica preso em zero e o rodapé não faz nada.
+   */
+  test("garante chão de rolagem para o colapso em listas curtas", () => {
+    expect(home).toContain("<SummaryCollapseSpacer collapse={collapse} total={spacerTotal} />");
+    expect(home).toContain("onLayout={(e) => setListViewport(e.nativeEvent.layout.height)}");
+    expect(home).toContain("onContentSizeChange={handleContentSizeChange}");
+  });
+
   test("o resumo é cabeçalho fixo da lista, não um irmão acima dela", () => {
     // Fora da lista, o resumo não pertence a superfície rolável nenhuma: o
     // dedo em cima dele não rola nada e encolher passa a redimensionar o

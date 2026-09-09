@@ -7,6 +7,7 @@ import Animated, {
 } from "react-native-reanimated";
 import type { DailySummary } from "@fitbrother/shared";
 import { colors } from "@/lib/colors";
+import { collapseSpacerHeight, SUMMARY } from "@/lib/summary-geometry";
 import { MorphProgress, type MorphColor } from "./MorphProgress";
 
 type Props = {
@@ -19,46 +20,6 @@ type Props = {
    */
   collapse?: SharedValue<number>;
 };
-
-/**
- * Geometria do resumo nos dois estados. Fica num objeto só porque a altura do
- * bloco é derivada daqui em três lugares (spacers, posição dos textos e a
- * altura que o morph reporta) — constantes soltas saíam de sintonia.
- */
-export const SUMMARY = {
-  kcal: {
-    radius: 73,
-    strokeExpanded: 14,
-    strokeCollapsed: 10,
-    /** Respiro acima da barra onde os números pousam no estado colapsado. */
-    lead: 34,
-    valueFont: 30,
-    valueFontCollapsed: 17,
-    subFont: 12,
-    subFontCollapsed: 11,
-    /** Centro vertical dos textos: expandido (dentro do anel) → colapsado. */
-    valueY: [72, 15],
-    subY: [96, 16],
-    /** Folga entre o número e o "/ meta" quando ficam lado a lado. */
-    gap: 6,
-  },
-  macro: {
-    radius: 36,
-    strokeExpanded: 8,
-    strokeCollapsed: 6,
-    lead: 24,
-    valueFont: 18,
-    valueFontCollapsed: 12,
-    subFont: 12,
-    subFontCollapsed: 11,
-    valueY: [33, 10],
-    subY: [50, 10],
-    /** Folga entre o número e a meta quando ficam lado a lado. */
-    gap: 3,
-  },
-  /** Espaço entre o bloco de calorias e a linha de macros. */
-  groupGap: [24, 12],
-} as const;
 
 /**
  * Famílias por peso, espelhando os tokens do Tailwind. Precisam vir literais
@@ -162,6 +123,30 @@ function MorphText({
       </Animated.Text>
     </Animated.View>
   );
+}
+
+/**
+ * Espaço em branco que fecha a lista de refeições, aparecendo junto com o
+ * colapso do resumo.
+ *
+ * `total` é o que a lista precisa para o colapso parar de pé, e sai de
+ * `collapseSpacer` — que devolve ZERO para lista longa. Numa lista longa,
+ * portanto, este componente não ocupa nada.
+ *
+ * Mora neste arquivo, e não na Home, porque quem ele compensa é o
+ * `TodaySummaryHeader` logo abaixo: quem mexer na composição de um precisa
+ * esbarrar no outro. A conta fica em `summary-geometry.ts`, junto das medidas
+ * de onde ela sai.
+ */
+export function SummaryCollapseSpacer({
+  collapse,
+  total,
+}: {
+  collapse: SharedValue<number>;
+  total: number;
+}) {
+  const style = useAnimatedStyle(() => ({ height: collapseSpacerHeight(collapse.value, total) }));
+  return <Animated.View pointerEvents="none" style={style} />;
 }
 
 /** Spacer cuja altura acompanha o morph. */
