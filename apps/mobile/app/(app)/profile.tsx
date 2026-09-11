@@ -12,6 +12,7 @@ import {
   LogOut,
   Settings,
   ShieldCheck,
+  UserRound,
   Users,
 } from "lucide-react-native";
 import { useEffect, useState, type ComponentType, type ReactNode } from "react";
@@ -203,6 +204,16 @@ export default function ProfileScreen() {
           </View>
 
           <MenuSection>
+            {/* Esta tela é a sua CONTA (configurações, atalhos); `/users/:id` é
+                como você aparece para os outros, com seus posts. São coisas
+                diferentes e por isso o rótulo diz "público" — sem essa palavra,
+                dois itens chamados "Perfil" levando a telas distintas é que
+                confundiriam. */}
+            <MenuItem
+              icon={UserRound}
+              label="Ver perfil público"
+              onPress={() => router.push(`/(app)/users/${user.id}` as never)}
+            />
             <MenuItem
               icon={Clock3}
               label="Histórico"
