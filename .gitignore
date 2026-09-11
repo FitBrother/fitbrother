@@ -66,3 +66,6 @@ coverage/
 
 # Brainstorm/visual-companion artifacts
 .superpowers/
+
+# Capturas e logs do Playwright MCP — saída de inspeção local, não fonte
+.playwright-mcp/
