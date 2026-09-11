@@ -14,12 +14,18 @@ import type { MealResponse } from "@fitbrother/shared";
 import { colors } from "@/lib/colors";
 import { radii } from "@/lib/radii";
 import { shadows } from "@/lib/shadows";
+import { MacroLegendInline, MacroSplitBorder } from "./MacroSplitBar";
 
-/** Equivalente a `rounded-[26px] bg-white p-4`, que o Reanimated descartaria. */
+/**
+ * Equivalente a `rounded-[26px] bg-white overflow-hidden`, que o Reanimated
+ * descartaria. O padding saiu daqui e foi para o bloco interno: a faixa de
+ * macros vai de ponta a ponta e é este raio, com `overflow: hidden`, que
+ * recorta as pontas dela.
+ */
 const rowCardStyle = {
   borderRadius: radii.card,
   backgroundColor: colors.white,
-  padding: 16,
+  overflow: "hidden",
 } as const;
 
 type MealItem = MealResponse["items"][number];
@@ -106,14 +112,21 @@ export function MealItemRowSwipeable({ item, onDelete }: Props) {
               em componentes do Reanimated. As classes daqui eram descartadas
               em silêncio, e a linha ficava sem fundo, sem raio e sem padding. */}
           <Animated.View style={[cardStyle, shadows.card, rowCardStyle]}>
-            <Text className="text-base font-sans-medium text-neutral-800">{item.description}</Text>
-            <Text style={NUM} className="mt-1 text-sm font-sans text-neutral-500">
-              {item.quantity} {item.unit} · {Math.round(item.kcal)} kcal
-            </Text>
-            <Text style={NUM} className="mt-0.5 text-xs font-sans text-neutral-500">
-              {Math.round(item.protein_g)}g P · {Math.round(item.carbs_g)}g C ·{" "}
-              {Math.round(item.fat_g)}g G
-            </Text>
+            <View className="p-4">
+              <Text className="text-base font-sans-medium text-neutral-800">
+                {item.description}
+              </Text>
+              {/* Quantidade à esquerda, gramas à direita, uma linha só. A
+                  proporção desceu para a borda do card — é ela que responde
+                  QUAL item puxou os macros do dia pra um lado. */}
+              <View className="mt-1 flex-row items-center justify-between gap-2">
+                <Text style={NUM} className="text-sm font-sans text-neutral-500">
+                  {item.quantity} {item.unit} · {Math.round(item.kcal)} kcal
+                </Text>
+                <MacroLegendInline protein={item.protein_g} carbs={item.carbs_g} fat={item.fat_g} />
+              </View>
+            </View>
+            <MacroSplitBorder protein={item.protein_g} carbs={item.carbs_g} fat={item.fat_g} />
           </Animated.View>
         </GestureDetector>
       </View>

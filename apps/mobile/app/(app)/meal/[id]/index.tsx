@@ -16,6 +16,7 @@ import { nutritionalDay } from "@/lib/time/nutritional-day";
 import { colors } from "@/lib/colors";
 import { shadows } from "@/lib/shadows";
 import { MealItemRowSwipeable } from "@/components/domain/MealItemRowSwipeable";
+import { MacroLegendInline, MacroSplitBorder } from "@/components/domain/MacroSplitBar";
 
 function toPatchItem(it: MealResponse["items"][number]) {
   return {
@@ -159,14 +160,31 @@ export default function MealDetailScreen() {
       </View>
 
       <ScrollView contentContainerStyle={{ paddingBottom: 32 }}>
-        <View style={shadows.card} className="mx-4 mt-2 rounded-[26px] bg-white p-4">
-          <Text style={NUM} className="text-3xl font-display-bold text-neutral-800">
-            {Math.round(meal.total_kcal)} kcal
-          </Text>
-          <Text style={NUM} className="mt-2 text-sm font-sans text-neutral-500">
-            {Math.round(meal.total_protein_g)}g P · {Math.round(meal.total_carbs_g)}g C ·{" "}
-            {Math.round(meal.total_fat_g)}g G
-          </Text>
+        {/* Mesma faixa-borda dos cards de item logo abaixo. Com a barra no meio
+            deste card e na borda dos outros, a mesma informação aparecia de
+            duas formas diferentes na mesma tela. */}
+        <View style={shadows.card} className="mx-4 mt-2 overflow-hidden rounded-[26px] bg-white">
+          <View className="flex-row items-center justify-between gap-2 p-4">
+            {/* Aqui a caloria CONTINUA em 3xl, ao contrário do card do feed: esta
+                tela é sobre esta refeição, e o número é o assunto. No feed ele é
+                contexto de um post e foi reduzido por isso. */}
+            <View className="flex-row items-baseline gap-1.5">
+              <Text style={NUM} className="text-3xl font-display-bold text-neutral-800">
+                {Math.round(meal.total_kcal)}
+              </Text>
+              <Text className="font-sans-medium text-base text-neutral-500">kcal</Text>
+            </View>
+            <MacroLegendInline
+              protein={meal.total_protein_g}
+              carbs={meal.total_carbs_g}
+              fat={meal.total_fat_g}
+            />
+          </View>
+          <MacroSplitBorder
+            protein={meal.total_protein_g}
+            carbs={meal.total_carbs_g}
+            fat={meal.total_fat_g}
+          />
         </View>
 
         {meal.ai_feedback ? (
