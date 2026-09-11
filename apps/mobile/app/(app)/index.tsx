@@ -97,6 +97,14 @@ const LIST_BREATHING_ROOM = 28;
  * andou até y=79 — o recurso comeu mais de 100px do gesto. Desligado, desvio
  * zero e y=199.
  *
+ * Continua necessário DEPOIS do rodapé de `collapseSpacer` — remedido com ele
+ * no lugar, mesmo gesto de 180px: ligado, 39 frames de desvio (300px no total)
+ * e o resumo trocando de estado 11 vezes; desligado, desvio zero e 1 troca.
+ * Os dois atacam canais diferentes do mesmo bug: o rodapé garante que a FAIXA
+ * rolável não suma, enquanto isto impede o navegador de mexer no OFFSET por
+ * conta própria. O cabeçalho encolhe acima da vista de qualquer jeito, então o
+ * anchoring tem o que reancorar mesmo com a faixa preservada.
+ *
  * O preço é que a lista perde a proteção contra reflow de verdade acima da
  * vista. Aceitável aqui: os cards são texto de altura estável, sem imagem
  * assíncrona que possa crescer depois de renderizada.
