@@ -17,6 +17,7 @@ import { colors } from "@/lib/colors";
 import { radii } from "@/lib/radii";
 import { shadows } from "@/lib/shadows";
 import { useDialog } from "@/lib/dialog/dialog-context";
+import { useAutoGrowInput } from "@/lib/hooks/useAutoGrowInput";
 import {
   cancelRecording,
   startRecording,
@@ -142,50 +143,24 @@ export function MealComposer({
   showBackdropFade = true,
 }: Props) {
   const [text, setText] = useState("");
-  const [contentHeight, setContentHeight] = useState(0);
   const [mode, setMode] = useState<ComposerMode>({ kind: "idle" });
   const [attachMenuOpen, setAttachMenuOpen] = useState(false);
   const [durationMs, setDurationMs] = useState(0);
   const meterLevel = useSharedValue<number>(-160);
   const hasText = text.trim().length > 0;
+  const {
+    ref: textInputRef,
+    contentHeight,
+    setContentHeight,
+    measureAfterInput,
+    reset: resetInputHeight,
+    webHeight,
+  } = useAutoGrowInput();
   const isMultiline = contentHeight > MULTILINE_THRESHOLD;
-  const textInputRef = useRef<TextInput>(null);
-
-  // A <textarea>'s scrollHeight can never read below its current
-  // clientHeight (DOM invariant) — so driving height off scrollHeight
-  // directly ratchets upward forever from any one stray tall measurement
-  // (e.g. the placeholder wrapping while the pill is momentarily narrow
-  // before the photo/scan buttons hide). Resetting to "auto" before each
-  // read is the standard auto-grow-textarea fix: it drops the previous
-  // clamp so scrollHeight reflects only what the new content actually
-  // needs. RN's onContentSizeChange doesn't give us that reset-first
-  // control, so this bypasses it and measures the DOM node directly.
-  function autosizeWeb() {
-    if (Platform.OS !== "web") return;
-    const node = textInputRef.current as unknown as HTMLTextAreaElement | null;
-    if (!node) return;
-    // "auto" isn't actually zero here: a <textarea> with no `rows` attribute
-    // (RN Web never sets one) falls back to the UA default of 2 rows, so
-    // "auto" floors scrollHeight at 48px even for one short line. "0px"
-    // forces a true content-only measurement.
-    node.style.height = "0px";
-    const next = Math.min(160, Math.max(24, node.scrollHeight));
-    node.style.height = `${next}px`;
-    setContentHeight(next);
-  }
 
   const handleChangeText = (value: string) => {
     setText(value);
-    // The native <textarea>'s own value is already updated by the time this
-    // fires, so measure synchronously for an instant response. But this can
-    // still land mid-flight: e.g. the char that flips `hasText` also widens
-    // the pill (hides the photo/scan buttons) via a React re-render that
-    // hasn't painted yet, so this first measurement sees the old, narrower
-    // width. A deferred correction pass, once that layout has settled, fixes
-    // it — setTimeout rather than rAF, since rAF never fires on a backgrounded
-    // tab and this needs to work either way.
-    autosizeWeb();
-    setTimeout(autosizeWeb, 0);
+    measureAfterInput();
   };
 
   const dialog = useDialog();
@@ -498,14 +473,7 @@ export function MealComposer({
     if (!value || disabled || processing) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
     setText("");
-    // The DOM node still shows the pre-clear text until React re-renders
-    // with the new value, so there's nothing meaningful to measure yet —
-    // just collapse straight back to the single-line minimum.
-    if (Platform.OS === "web") {
-      const node = textInputRef.current as unknown as HTMLTextAreaElement | null;
-      if (node) node.style.height = "24px";
-    }
-    setContentHeight(0);
+    resetInputHeight();
     onSend(value);
   };
 
@@ -624,7 +592,7 @@ export function MealComposer({
                   paddingBottom: 0,
                   includeFontPadding: false,
                   ...(Platform.OS === "web"
-                    ? { resize: "none", outlineWidth: 0, height: contentHeight || 24 }
+                    ? { resize: "none", outlineWidth: 0, height: webHeight }
                     : null),
                 }}
                 className="max-h-40 text-base font-sans text-neutral-800"
