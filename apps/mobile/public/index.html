@@ -16,7 +16,20 @@
 
     <!-- iOS Safari não lê manifest.json para o modo standalone; precisa destas tags. -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <!-- `black-translucent`, e não `default`, por causa do `viewport-fit=cover`
+         no viewport acima: os dois juntos são contraditórios. `cover` manda o
+         conteúdo ocupar a tela inteira, mas com `default` o iOS continua se
+         achando dono da faixa da status bar e desenha o próprio fundo
+         translúcido por cima dela — daí o véu branco cobrindo o topo do
+         header no app instalado na tela de início (não aparece no navegador,
+         só em standalone).
+
+         Com `black-translucent` o iOS para de desenhar esse fundo e passa a
+         reportar `env(safe-area-inset-top)` de verdade, que é o que o
+         `SafeAreaView edges={["top"]}` de cada tela já consome para reservar
+         a faixa. O header desce para baixo da status bar em vez de ficar
+         atrás dela. -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Fitbrother" />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
 
