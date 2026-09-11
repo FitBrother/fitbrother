@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import {
   ActivityIndicator,
   Platform,
@@ -18,8 +18,11 @@ import { friendlyAuthError } from "@/lib/errors";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/lib/toast/toast-context";
 import { Button } from "@/components/Button";
+import { Avatar } from "@/components/Avatar";
 import { PullToRefresh } from "@/components/PullToRefresh";
-import { LeaderboardRow } from "@/components/domain/LeaderboardRow";
+import { LeaderboardLegend, LeaderboardRow } from "@/components/domain/LeaderboardRow";
+import { BlockDivider, ListBlock } from "@/components/domain/ListBlock";
+import { profileInitials } from "@/lib/account-utils";
 import { unfollowUser } from "@/lib/api/users";
 import { useProfile } from "@/lib/profile/profile-context";
 import { followingKey, useFollowing } from "@/lib/hooks/useFollowing";
@@ -151,67 +154,98 @@ export function FriendsPanel() {
           leftIcon={<Search size={18} color={colors.neutral[800]} />}
         />
 
-        <View className="gap-3">
-          <Text className="font-sans-bold text-base text-neutral-800">Ranking semanal</Text>
+        <ListBlock title="Ranking semanal" subtitle={<LeaderboardLegend />}>
           {leaderboard.isLoading ? (
-            <ActivityIndicator color={colors.primary[400]} />
+            <View className="py-6">
+              <ActivityIndicator color={colors.primary[400]} />
+            </View>
           ) : (
             (leaderboard.data ?? []).map((row, i) => (
-              <LeaderboardRow
-                key={row.user_id}
-                position={i + 1}
-                fullName={row.full_name}
-                // Weekly leaderboard is capped to a 7-day window. For "Você",
-                // show the full streak value so it matches Home expectations.
-                windowStreak={
-                  row.is_me && streak.data ? streak.data.streak.current_streak : row.window_streak
-                }
-                weeklyHits={row.weekly_hits}
-                isMe={row.is_me}
-              />
+              // Fragment com key porque cada pessoa rende duas coisas: o filete
+              // e a linha. Só a partir da segunda — a primeira encosta na borda
+              // de cima do card e não tem o que separar.
+              <Fragment key={row.user_id}>
+                {i > 0 ? <BlockDivider /> : null}
+                <LeaderboardRow
+                  userId={row.user_id}
+                  position={i + 1}
+                  fullName={row.full_name}
+                  // Weekly leaderboard is capped to a 7-day window. For "Você",
+                  // show the full streak value so it matches Home expectations.
+                  windowStreak={
+                    row.is_me && streak.data ? streak.data.streak.current_streak : row.window_streak
+                  }
+                  weeklyHits={row.weekly_hits}
+                  isMe={row.is_me}
+                />
+              </Fragment>
             ))
           )}
-        </View>
+        </ListBlock>
 
-        <View className="gap-2">
-          <Text className="font-sans-bold text-base text-neutral-800">
-            Seguindo ({following.data?.length ?? 0})
-          </Text>
+        <ListBlock title={`Seguindo (${following.data?.length ?? 0})`}>
           {following.isLoading ? (
-            <ActivityIndicator color={colors.primary[400]} />
+            <View className="py-6">
+              <ActivityIndicator color={colors.primary[400]} />
+            </View>
           ) : (following.data ?? []).length > 0 ? (
-            (following.data ?? []).map((f) => (
-              <View
-                key={f.user_id}
-                // 22px pelo mesmo motivo do LeaderboardRow: a linha fecha em
-                // ~60px (o botão interno já tem 44, mais o `py-2`), então
-                // `rounded-full` daria 30 em vez dos 22 da barra de abas.
-                className="min-h-[44px] flex-row items-center justify-between rounded-[26px] border border-neutral-200 bg-white px-3 py-2"
-              >
-                <Text className="flex-1 pr-3 font-sans text-sm text-neutral-700">
-                  {f.full_name ?? "Amigo"}
-                </Text>
-                <Pressable
-                  onPress={() => unfollow.mutate(f.user_id)}
-                  disabled={unfollow.isPending && unfollow.variables === f.user_id}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Deixar de seguir ${f.full_name ?? "amigo"}`}
-                  className="min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-neutral-200 bg-white px-3"
-                >
-                  <Text className="font-sans-semibold text-sm text-neutral-700">
-                    {unfollow.isPending && unfollow.variables === f.user_id
-                      ? "..."
-                      : "Deixar de seguir"}
-                  </Text>
-                </Pressable>
-              </View>
+            (following.data ?? []).map((f, i) => (
+              <Fragment key={f.user_id}>
+                {i > 0 ? <BlockDivider /> : null}
+                <View className="min-h-[44px] flex-row items-center justify-between px-4 py-2">
+                  {/* Só o avatar + nome abrem o perfil, não a linha inteira: o
+                      botão de deixar de seguir mora nela, e uma linha inteira
+                      tocável com um botão destrutivo dentro faz errar o alvo.
+                      Os dois alvos ficam separados e cada um com seus 44px. */}
+                  <Pressable
+                    onPress={() => router.push(`/(app)/users/${f.user_id}` as never)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Ver perfil de ${f.full_name ?? "amigo"}`}
+                    className="min-h-[44px] flex-1 flex-row items-center active:opacity-70"
+                  >
+                    {/* Avatar + nome em semibold: a linha é sobre a PESSOA. Antes o
+                        nome saía em `font-sans text-sm` ao lado de um botão
+                        "Deixar de seguir" em semibold com borda — a ação
+                        destrutiva pesava mais que quem ela afeta. */}
+                    <Avatar
+                      uri={null}
+                      initials={profileInitials(f.full_name, null)}
+                      size={36}
+                      accessibilityLabel={`Foto de ${f.full_name ?? "amigo"}`}
+                    />
+                    <Text
+                      className="ml-3 flex-1 pr-3 font-sans-semibold text-sm text-neutral-800"
+                      numberOfLines={1}
+                    >
+                      {f.full_name ?? "Amigo"}
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => unfollow.mutate(f.user_id)}
+                    disabled={unfollow.isPending && unfollow.variables === f.user_id}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Deixar de seguir ${f.full_name ?? "amigo"}`}
+                    className="min-h-[44px] min-w-[44px] items-center justify-center rounded-full px-3 active:bg-neutral-100"
+                  >
+                    {/* Continua dizendo o que o toque faz. "Seguindo" seria mais
+                        curto, mas nomeia um estado em vez da ação — e não bate
+                        com o accessibilityLabel logo acima. O que muda é só o
+                        peso visual: sem borda e em neutro claro. */}
+                    <Text className="font-sans-medium text-sm text-neutral-500">
+                      {unfollow.isPending && unfollow.variables === f.user_id
+                        ? "..."
+                        : "Deixar de seguir"}
+                    </Text>
+                  </Pressable>
+                </View>
+              </Fragment>
             ))
           ) : (
-            <Text className="font-sans text-sm text-neutral-500">
+            <Text className="px-4 py-5 font-sans text-sm text-neutral-500">
               Você ainda não segue ninguém. Use a busca para encontrar pessoas.
             </Text>
           )}
-        </View>
+        </ListBlock>
 
         {/* Sincronização de contatos não tem equivalente confiável no navegador
           (sem Contact Picker API cross-browser) — só faz sentido no app nativo. */}

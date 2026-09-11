@@ -86,19 +86,27 @@ describe("alturas de controle", () => {
 /**
  * A barra de abas é `rounded-full` sobre a linha do header, então sua curva
  * real é metade dela — 26px desde que a linha fechou nos 52 dos controles. Uma
- * linha de lista mais alta com a MESMA classe teria curva maior: foi o que
+ * superfície mais alta com a MESMA classe teria curva maior: foi o que
  * aconteceu ao levar `rounded-full` para o ranking (~64px → 32) e para
  * "Seguindo" (~60px → 30). Casar a curva exige o valor fixo, não a classe.
+ *
+ * Quem arredonda mudou: o Ranking e o Seguindo deixaram de ser um card por
+ * pessoa e viraram UM card por bloco, com as linhas separadas por filete. A
+ * curva agora é do `ListBlock` — as linhas dentro dele são retas de propósito.
+ * O invariante é o mesmo, só migrou de arquivo junto com a superfície.
  */
-describe("curva dos itens de lista da aba Amigos", () => {
+describe("curva dos blocos de lista da aba Amigos", () => {
   const CONTROL_RADIUS = HEADER_HEIGHT / 2;
 
   // Reverter para `rounded-full` faz este teste falhar por si só — não há
   // asserção negativa separada.
-  test.each([["components/domain/LeaderboardRow.tsx"], ["components/domain/FriendsPanel.tsx"]])(
-    "%s usa a curva da barra de abas",
-    (file) => {
-      expect(source(file)).toContain(`rounded-[${CONTROL_RADIUS}px]`);
-    },
-  );
+  test("o card do bloco usa a curva da barra de abas", () => {
+    expect(source("components/domain/ListBlock.tsx")).toContain(`rounded-[${CONTROL_RADIUS}px]`);
+  });
+
+  // O card do bloco recorta o fundo da linha "Você" nos cantos. Sem
+  // `overflow-hidden` essa faixa menta vaza quadrada por cima da curva.
+  test("o card do bloco recorta o conteúdo na curva", () => {
+    expect(source("components/domain/ListBlock.tsx")).toContain("overflow-hidden");
+  });
 });
