@@ -73,6 +73,25 @@ Falha após passo 5? `processed_at` fica NULL e retry job processa de novo — o
 
 ---
 
+## Fluxo: Esqueci minha senha (resumo)
+
+> Ainda não implementado. Ao construir, seguir este padrão — spec detalhada deve virar uma subseção nova em `FEATURES.md` (ex. §4.6, no mesmo molde de §4.5 Verificação de Telefone).
+
+1. Tela `apps/mobile/app/(auth)/forgot-password.tsx`: usuário informa e-mail (`Input`, mesmo padrão de `sign-in.tsx`).
+2. `supabase.auth.resetPasswordForEmail(email, { redirectTo: <deep link> })` — reaproveitar o mecanismo de deep link já usado em `lib/oauth.ts` / `lib/supabase.ts` (`detectSessionInUrl`).
+3. Erros traduzidos via `friendlyAuthError` (`lib/errors.ts`); mapear novos códigos de recovery ali junto de `over_email_send_rate_limit` (já existente).
+4. Link do e-mail abre `apps/mobile/app/(auth)/reset-password.tsx` (nova tela): sessão de recovery chega via `onAuthStateChange` / `useAuthSession`.
+5. Nova senha com `PasswordInput` + `passwordStrength` (mesmo mínimo de `SignupBlock.tsx`, strength ≥ 2) → `supabase.auth.updateUser({ password })`.
+6. Sucesso → navega para o app autenticado; falha → Error Banner padrão (`DESIGN_SYSTEM.md` §11.5).
+
+**UI (tokens e componentes já existentes, não inventar novos):**
+- Componentes: `Input`, `PasswordInput`, `Button` (`variant="primary"`, com `loading`), Error Banner (`bg-danger-50` / `border-danger-600` / texto `text-danger-500`), Password Strength Bar (§11.7) na tela de nova senha.
+- Tipografia: `font-display-semibold` no título da tela, `font-sans-medium` em labels/erros — nunca `font-medium`/`font-semibold`/`font-bold`.
+- Cores: borda do input `neutral-200` → `primary-400` (foco) → `danger-500` (erro); CTA em `primary-400`; força de senha fraca/média/forte em `danger-500`/`warning-500`/`success-500`.
+- Sem tela de cadastro separada nesse fluxo — cadastro de e-mail/senha continua isolado em `SignupBlock.tsx` (onboarding); "esqueci senha" é um fluxo próprio dentro de `(auth)`.
+
+---
+
 ## Convenções
 
 ### Estrutura de pastas (monorepo npm workspaces)
