@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Alert, Linking, Modal, Platform, Pressable, Text, TextInput, View } from "react-native";
+import { Linking, Modal, Platform, Pressable, Text, TextInput, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   Easing,
@@ -16,6 +16,8 @@ import { Camera, Loader2, Mic, Plus, Send, ScanLine } from "lucide-react-native"
 import { colors } from "@/lib/colors";
 import { radii } from "@/lib/radii";
 import { shadows } from "@/lib/shadows";
+import { useDialog } from "@/lib/dialog/dialog-context";
+import { useAutoGrowInput } from "@/lib/hooks/useAutoGrowInput";
 import {
   cancelRecording,
   startRecording,
@@ -55,10 +57,10 @@ type PendingAction = "send" | "cancel" | "lock" | null;
  */
 export const COMPOSER_BACKDROP_HEIGHT = 120;
 
-/** Equivalente a `h-12 w-12 items-center justify-center rounded-full`. */
+/** Equivalente a `h-[52px] w-[52px] items-center justify-center rounded-full`. */
 const micButtonStyle = {
-  width: 48,
-  height: 48,
+  width: 52,
+  height: 52,
   alignItems: "center",
   justifyContent: "center",
   borderRadius: radii.full,
@@ -141,52 +143,27 @@ export function MealComposer({
   showBackdropFade = true,
 }: Props) {
   const [text, setText] = useState("");
-  const [contentHeight, setContentHeight] = useState(0);
   const [mode, setMode] = useState<ComposerMode>({ kind: "idle" });
   const [attachMenuOpen, setAttachMenuOpen] = useState(false);
   const [durationMs, setDurationMs] = useState(0);
   const meterLevel = useSharedValue<number>(-160);
   const hasText = text.trim().length > 0;
+  const {
+    ref: textInputRef,
+    contentHeight,
+    setContentHeight,
+    measureAfterInput,
+    reset: resetInputHeight,
+    webHeight,
+  } = useAutoGrowInput();
   const isMultiline = contentHeight > MULTILINE_THRESHOLD;
-  const textInputRef = useRef<TextInput>(null);
-
-  // A <textarea>'s scrollHeight can never read below its current
-  // clientHeight (DOM invariant) — so driving height off scrollHeight
-  // directly ratchets upward forever from any one stray tall measurement
-  // (e.g. the placeholder wrapping while the pill is momentarily narrow
-  // before the photo/scan buttons hide). Resetting to "auto" before each
-  // read is the standard auto-grow-textarea fix: it drops the previous
-  // clamp so scrollHeight reflects only what the new content actually
-  // needs. RN's onContentSizeChange doesn't give us that reset-first
-  // control, so this bypasses it and measures the DOM node directly.
-  function autosizeWeb() {
-    if (Platform.OS !== "web") return;
-    const node = textInputRef.current as unknown as HTMLTextAreaElement | null;
-    if (!node) return;
-    // "auto" isn't actually zero here: a <textarea> with no `rows` attribute
-    // (RN Web never sets one) falls back to the UA default of 2 rows, so
-    // "auto" floors scrollHeight at 48px even for one short line. "0px"
-    // forces a true content-only measurement.
-    node.style.height = "0px";
-    const next = Math.min(160, Math.max(24, node.scrollHeight));
-    node.style.height = `${next}px`;
-    setContentHeight(next);
-  }
 
   const handleChangeText = (value: string) => {
     setText(value);
-    // The native <textarea>'s own value is already updated by the time this
-    // fires, so measure synchronously for an instant response. But this can
-    // still land mid-flight: e.g. the char that flips `hasText` also widens
-    // the pill (hides the photo/scan buttons) via a React re-render that
-    // hasn't painted yet, so this first measurement sees the old, narrower
-    // width. A deferred correction pass, once that layout has settled, fixes
-    // it — setTimeout rather than rAF, since rAF never fires on a backgrounded
-    // tab and this needs to work either way.
-    autosizeWeb();
-    setTimeout(autosizeWeb, 0);
+    measureAfterInput();
   };
 
+  const dialog = useDialog();
   const insets = useSafeAreaInsets();
   const rotation = useSharedValue(0);
 
@@ -365,25 +342,27 @@ export function MealComposer({
       const code = (err as { code?: string } | null)?.code;
       if (code === "PERMISSION_DENIED") {
         if (Platform.OS === "web") {
-          Alert.alert(
-            "Microfone bloqueado",
-            "Permita o uso do microfone nas configurações deste site e recarregue a página.",
-          );
-        } else {
-          Alert.alert(
-            "Microfone bloqueado",
-            "Habilite o microfone nas configurações pra gravar refeições.",
-            [
-              { text: "Cancelar", style: "cancel" },
-              { text: "Abrir Configurações", onPress: () => Linking.openSettings() },
-            ],
-          );
+          // Instrução para ler e executar, não um aviso de passagem: um toast
+          // de 3s some antes de a pessoa chegar nas configurações do site.
+          await dialog.alert({
+            title: "Microfone bloqueado",
+            description:
+              "Permita o uso do microfone nas configurações deste site e recarregue a página.",
+          });
+        } else if (
+          await dialog.confirm({
+            title: "Microfone bloqueado",
+            description: "Habilite o microfone nas configurações pra gravar refeições.",
+            confirmLabel: "Abrir Configurações",
+          })
+        ) {
+          void Linking.openSettings();
         }
       } else if (code === "RECORDING_UNSUPPORTED") {
-        Alert.alert(
-          "Gravação indisponível",
-          "Este navegador não oferece uma opção compatível para gravar áudio.",
-        );
+        await dialog.alert({
+          title: "Gravação indisponível",
+          description: "Este navegador não oferece uma opção compatível para gravar áudio.",
+        });
       } else {
         // eslint-disable-next-line no-console
         console.warn("[MealComposer] startRecording failed:", err);
@@ -391,7 +370,7 @@ export function MealComposer({
       handleRef.current = null;
       updateMode({ kind: "idle" });
     }
-  }, [finishAndCancel, finishAndSend, meterLevel, updateMode]);
+  }, [dialog, finishAndCancel, finishAndSend, meterLevel, updateMode]);
 
   // -- All gesture callbacks must be declared BEFORE `pan` --
 
@@ -494,14 +473,7 @@ export function MealComposer({
     if (!value || disabled || processing) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
     setText("");
-    // The DOM node still shows the pre-clear text until React re-renders
-    // with the new value, so there's nothing meaningful to measure yet —
-    // just collapse straight back to the single-line minimum.
-    if (Platform.OS === "web") {
-      const node = textInputRef.current as unknown as HTMLTextAreaElement | null;
-      if (node) node.style.height = "24px";
-    }
-    setContentHeight(0);
+    resetInputHeight();
     onSend(value);
   };
 
@@ -576,7 +548,11 @@ export function MealComposer({
             <View
               style={shadows.floating}
               className={[
-                "min-h-[48px] flex-1 justify-center rounded-[22px] bg-white px-4",
+                // 52/26 é a geometria da linha do header — ofensiva, barra de
+                // abas e avatar — e a altura de controle do app (Button `md`,
+                // Input). O composer é a outra barra flutuante da tela, então
+                // fecha na mesma altura e na mesma curva.
+                "min-h-[52px] flex-1 justify-center rounded-[26px] bg-white px-4",
                 isMultiline ? "py-2" : "",
               ].join(" ")}
             >
@@ -616,7 +592,7 @@ export function MealComposer({
                   paddingBottom: 0,
                   includeFontPadding: false,
                   ...(Platform.OS === "web"
-                    ? { resize: "none", outlineWidth: 0, height: contentHeight || 24 }
+                    ? { resize: "none", outlineWidth: 0, height: webHeight }
                     : null),
                 }}
                 className="max-h-40 text-base font-sans text-neutral-800"
@@ -632,7 +608,7 @@ export function MealComposer({
               disabled={disabled || processing}
               style={shadows.floating}
               className={[
-                "h-12 w-12 items-center justify-center rounded-full",
+                "h-[52px] w-[52px] items-center justify-center rounded-full",
                 disabled || processing ? "bg-neutral-200" : "bg-white active:bg-neutral-100",
               ].join(" ")}
             >
@@ -646,7 +622,7 @@ export function MealComposer({
               disabled={disabled || processing}
               style={shadows.floating}
               className={[
-                "h-12 w-12 items-center justify-center rounded-full",
+                "h-[52px] w-[52px] items-center justify-center rounded-full",
                 disabled || processing ? "bg-neutral-200" : "bg-white active:bg-neutral-100",
               ].join(" ")}
             >
@@ -660,7 +636,7 @@ export function MealComposer({
               disabled={disabled || processing}
               style={shadows.floating}
               className={[
-                "h-12 w-12 items-center justify-center rounded-full",
+                "h-[52px] w-[52px] items-center justify-center rounded-full",
                 disabled || processing ? "bg-neutral-200" : "bg-white active:bg-neutral-100",
               ].join(" ")}
             >
@@ -676,7 +652,7 @@ export function MealComposer({
               disabled={disabled || processing}
               style={shadows.floating}
               className={[
-                "h-12 w-12 items-center justify-center rounded-full",
+                "h-[52px] w-[52px] items-center justify-center rounded-full",
                 disabled || processing ? "bg-neutral-200" : "bg-primary-400 active:bg-primary-500",
               ].join(" ")}
             >
@@ -691,7 +667,7 @@ export function MealComposer({
               accessibilityLabel={micAccessibilityLabel}
               accessibilityRole="button"
               style={shadows.floating}
-              className="h-12 w-12 items-center justify-center rounded-full bg-primary-400 active:bg-primary-500"
+              className="h-[52px] w-[52px] items-center justify-center rounded-full bg-primary-400 active:bg-primary-500"
             >
               {micIcon}
             </Pressable>
@@ -703,7 +679,7 @@ export function MealComposer({
               disabled={disabled || processing}
               style={shadows.floating}
               className={[
-                "h-12 w-12 items-center justify-center rounded-full",
+                "h-[52px] w-[52px] items-center justify-center rounded-full",
                 disabled || processing ? "bg-neutral-200" : "bg-primary-400 active:bg-primary-500",
               ].join(" ")}
             >

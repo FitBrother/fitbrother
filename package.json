@@ -19,7 +19,7 @@
     "db:types": "supabase gen types typescript --local > packages/db-types/index.ts",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
-    "lint": "eslint . --ext .ts,.tsx --max-warnings 0 && npm run test:legal-copy && npm run lint:legal-copy",
+    "lint": "eslint . --ext .ts,.tsx,.js,.mjs,.cjs --max-warnings 0 && npm run test:legal-copy && npm run lint:legal-copy",
     "test:legal-copy": "tsx --test scripts/legal-copy/scan.test.ts",
     "lint:legal-copy": "tsx scripts/check-legal-copy.ts",
     "format": "prettier --write .",

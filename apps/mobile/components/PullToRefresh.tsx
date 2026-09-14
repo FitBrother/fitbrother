@@ -5,6 +5,12 @@ import { LoadingDots } from "@/components/LoadingDots";
 
 type Props = {
   onRefresh: () => void | Promise<unknown>;
+  /**
+   * Desliga o gesto. A Home usa isso para liberar o puxar-pra-atualizar apenas
+   * com o resumo expandido — que é quando a lista está no topo. Colapsado, o
+   * usuário está lendo refeições e o gesto só atrapalharia.
+   */
+  enabled?: boolean;
   children: ReactElement;
 };
 
@@ -21,11 +27,12 @@ type Props = {
  * não a tela toda: o cabeçalho fica fixo, só o conteúdo scrollável puxa,
  * igual ao comportamento nativo.
  */
-export function PullToRefresh({ onRefresh, children }: Props) {
+export function PullToRefresh({ onRefresh, enabled = true, children }: Props) {
   if (Platform.OS !== "web") return children;
 
   return (
     <WebPullToRefresh
+      isPullable={enabled}
       onRefresh={async () => {
         await onRefresh();
       }}

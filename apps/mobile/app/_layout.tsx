@@ -22,6 +22,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { queryClient } from "@/lib/query-client";
 import { installKeyboardScrollGuard } from "@/lib/pwa/keyboard-scroll-guard";
 import { registerServiceWorker } from "@/lib/pwa/register-service-worker";
+import { DialogProvider } from "@/lib/dialog/dialog-context";
 import { ToastProvider } from "@/lib/toast/toast-context";
 import "../global.css";
 
@@ -58,8 +59,12 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <QueryClientProvider client={queryClient}>
           <ToastProvider>
-            <StatusBar style="dark" />
-            <Stack screenOptions={{ headerShown: false, animation: "fade" }} />
+            {/* Dentro do Toast: um erro disparado a partir de um diálogo
+                precisa do toast já montado para ter onde aparecer. */}
+            <DialogProvider>
+              <StatusBar style="dark" />
+              <Stack screenOptions={{ headerShown: false, animation: "fade" }} />
+            </DialogProvider>
           </ToastProvider>
         </QueryClientProvider>
       </SafeAreaProvider>

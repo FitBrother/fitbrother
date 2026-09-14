@@ -540,6 +540,29 @@ export const PostResponseSchema = z.object({
 });
 export type PostResponse = z.infer<typeof PostResponseSchema>;
 
+// ── Perfil público de outra pessoa ────────────────────────────────────────
+export const PublicProfileDetailSchema = z.object({
+  profile: PublicProfileSchema,
+  /** Se o usuário autenticado já segue esta pessoa. `false` no próprio perfil. */
+  is_following: z.boolean(),
+  /** Verdadeiro quando o id pedido é o do próprio usuário autenticado. */
+  is_me: z.boolean(),
+  follower_count: z.number().int(),
+  following_count: z.number().int(),
+  post_count: z.number().int(),
+  current_streak: z.number().int(),
+  /**
+   * Posts da pessoa, já no mesmo formato do feed.
+   *
+   * Vem VAZIO quando não se segue o perfil — a mesma regra de `GET /posts/:id`,
+   * que devolve 404 para post de quem você não segue. O cliente distingue
+   * "perfil privado para mim" de "ainda não postou" por `post_count`, que é
+   * público: saber que alguém tem 12 posts é o que dá motivo para seguir.
+   */
+  posts: z.array(PostSchema),
+});
+export type PublicProfileDetail = z.infer<typeof PublicProfileDetailSchema>;
+
 // ── M7.3 engajamento (likes + comentários) ─────────────────────────────────
 export const LikeResponseSchema = z.object({
   liked: z.boolean(),

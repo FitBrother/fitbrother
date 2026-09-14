@@ -1,4 +1,4 @@
-import { ActivityIndicator, Alert, Pressable, ScrollView, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ChevronLeft, Lock, Share2, Trophy } from "lucide-react-native";
 import { useRouter } from "expo-router";
@@ -6,6 +6,7 @@ import { colors } from "@/lib/colors";
 import { friendlyApiError } from "@/lib/errors";
 import { useAchievements, useMyAchievements } from "@/lib/hooks/useAchievements";
 import { useCreateAchievementPost } from "@/lib/hooks/useCreatePost";
+import { useToast } from "@/lib/toast/toast-context";
 
 export default function AchievementsScreen() {
   const router = useRouter();
@@ -14,6 +15,7 @@ export default function AchievementsScreen() {
   const catalog = useAchievements();
   const mine = useMyAchievements();
   const shareAchievement = useCreateAchievementPost();
+  const toast = useToast();
   const isLoading = catalog.isLoading || mine.isLoading;
 
   const unlockedAt = new Map((mine.data ?? []).map((u) => [u.achievement_id, u.unlocked_at]));
@@ -79,9 +81,8 @@ export default function AchievementsScreen() {
                         },
                         {
                           onSuccess: () =>
-                            Alert.alert("Publicado", "Conquista compartilhada no feed."),
-                          onError: () =>
-                            Alert.alert("Não foi possível publicar", friendlyApiError()),
+                            toast({ variant: "success", message: "Compartilhado no feed" }),
+                          onError: () => toast({ variant: "error", message: friendlyApiError() }),
                         },
                       )
                     }

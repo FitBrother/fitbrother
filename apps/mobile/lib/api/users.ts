@@ -1,7 +1,9 @@
 import {
+  PublicProfileDetailSchema,
   UserSearchResponseSchema,
   UsernameAvailableResponseSchema,
   type PublicProfile,
+  type PublicProfileDetail,
 } from "@fitbrother/shared";
 import { authedFetch } from "@/lib/api";
 
@@ -19,6 +21,12 @@ export async function checkUsernameAvailable(username: string): Promise<boolean>
   const res = await authedFetch(`/users/username-available?u=${encodeURIComponent(username)}`);
   const body = await parseOrThrow(res);
   return UsernameAvailableResponseSchema.parse(body).available;
+}
+
+export async function fetchPublicProfile(userId: string): Promise<PublicProfileDetail> {
+  const res = await authedFetch(`/users/${encodeURIComponent(userId)}`);
+  const body = await parseOrThrow(res);
+  return PublicProfileDetailSchema.parse(body);
 }
 
 export async function searchUsers(q: string): Promise<PublicProfile[]> {

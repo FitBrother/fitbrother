@@ -38,7 +38,18 @@ describe("régua vertical da Home", () => {
   test("o header não adiciona padding inferior próprio", () => {
     // Com `pb` aqui, o gap até o dashboard viraria a soma de dois paddings de
     // arquivos diferentes — que foi como ele virou 16 sem ninguém decidir.
-    expect(header).toContain('className="gap-2 px-4 pt-2 md:hidden"');
+    //
+    // A asserção olha as classes do container raiz em vez da string inteira:
+    // ele já ganhou `flex-row items-center` quando o menu de navegação entrou
+    // na mesma linha da ofensiva e do perfil, e travar o literal fazia o guard
+    // falhar por um motivo que não é o que ele vigia.
+    // `lg:hidden` (não `md:`): o header acompanha o mobile até 1024, que é
+    // onde a Sidebar e o layout de duas colunas assumem.
+    const raiz = header.match(/className="([^"]*lg:hidden[^"]*)"/)?.[1];
+    expect(raiz).toBeDefined();
+    expect(raiz).toContain("px-4");
+    expect(raiz).toContain("pt-2");
+    expect(raiz).not.toMatch(/\bpb-/);
   });
 
   test("o painel de macros abre com 8 e fecha com 16", () => {

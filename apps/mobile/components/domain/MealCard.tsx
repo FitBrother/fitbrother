@@ -3,6 +3,7 @@ import { ScanBarcode } from "lucide-react-native";
 import type { MealResponse } from "@fitbrother/shared";
 import { shadows } from "@/lib/shadows";
 import { colors } from "@/lib/colors";
+import { MacroLegendInline, MacroSplitBorder } from "./MacroSplitBar";
 
 const MEAL_TYPE_LABEL: Record<MealResponse["meal_type"], string> = {
   breakfast: "🍳 Café da manhã",
@@ -61,58 +62,81 @@ export function MealCard({ meal, onPress }: Props) {
       accessibilityRole={onPress ? "button" : undefined}
       accessibilityLabel={`Refeição ${MEAL_TYPE_LABEL[meal.meal_type]}, ${Math.round(meal.total_kcal)} kcal, ${meal.items.length} ${meal.items.length === 1 ? "item" : "itens"}`}
       style={shadows.card}
+      // `overflow-hidden` e sem `p-4`: o padding desceu para o bloco interno
+      // porque a faixa de macros precisa ir de ponta a ponta, e é o raio daqui
+      // que recorta as pontas dela.
       className={[
-        "rounded-[22px] bg-white p-4 active:opacity-70",
+        "overflow-hidden rounded-[26px] bg-white active:opacity-70",
         isReview ? "border-[1.5px] border-warning-500" : "",
       ].join(" ")}
     >
-      <View className="flex-row items-center justify-between">
-        <Text className="text-base font-sans-semibold text-neutral-800">
-          {MEAL_TYPE_LABEL[meal.meal_type]}
-        </Text>
-        <View className="flex-row items-center gap-2">
-          {isReview && (
-            <View className="rounded-full bg-warning-50 px-2 py-0.5">
-              <Text className="text-xs font-sans-semibold text-warning-500">Revisar</Text>
-            </View>
-          )}
-          {meal.source === "app_barcode" && <ScanBarcode size={14} color={colors.neutral[400]} />}
-          <Text style={NUM} className="text-sm font-sans text-neutral-500">
-            {formatTime(meal.consumed_at)}
+      <View className="p-4">
+        <View className="flex-row items-center justify-between">
+          <Text className="text-base font-sans-semibold text-neutral-800">
+            {MEAL_TYPE_LABEL[meal.meal_type]}
           </Text>
+          <View className="flex-row items-center gap-2">
+            {isReview && (
+              <View className="rounded-full bg-warning-50 px-2 py-0.5">
+                <Text className="text-xs font-sans-semibold text-warning-500">Revisar</Text>
+              </View>
+            )}
+            {meal.source === "app_barcode" && <ScanBarcode size={14} color={colors.neutral[400]} />}
+            <Text style={NUM} className="text-sm font-sans text-neutral-500">
+              {formatTime(meal.consumed_at)}
+            </Text>
+          </View>
+        </View>
+
+        <View className="mt-2 gap-0.5">
+          {visibleItems.length === 0 ? (
+            <Text className="text-base font-sans-medium text-neutral-400">—</Text>
+          ) : (
+            visibleItems.map((item) => (
+              <View key={item.id} className="flex-row items-baseline justify-between gap-3">
+                <Text
+                  numberOfLines={1}
+                  className="flex-1 text-base font-sans-medium text-neutral-800"
+                >
+                  {item.description}
+                </Text>
+                <Text style={NUM} className="text-sm font-sans text-neutral-500">
+                  {formatItemQuantity(item)}
+                </Text>
+              </View>
+            ))
+          )}
+          {hiddenCount > 0 && (
+            <Text className="mt-0.5 text-sm font-sans text-neutral-400">
+              + {hiddenCount} {hiddenCount === 1 ? "item" : "itens"}
+            </Text>
+          )}
+        </View>
+
+        <View className="my-3 h-px bg-neutral-100" />
+        {/* kcal e gramas dividem UMA linha, e a proporção desceu para a borda do
+            card. Antes eram três linhas empilhadas (kcal, barra, legenda) —
+            ~70px de rodapé em cada card, num scroll que é todo feito de cards. */}
+        <View className="flex-row items-center justify-between gap-2">
+          <View className="flex-row items-baseline gap-1">
+            <Text style={NUM} className="text-base font-display-bold text-neutral-700">
+              {Math.round(meal.total_kcal)}
+            </Text>
+            <Text className="font-sans text-sm text-neutral-500">kcal</Text>
+          </View>
+          <MacroLegendInline
+            protein={meal.total_protein_g}
+            carbs={meal.total_carbs_g}
+            fat={meal.total_fat_g}
+          />
         </View>
       </View>
 
-      <View className="mt-2 gap-0.5">
-        {visibleItems.length === 0 ? (
-          <Text className="text-base font-sans-medium text-neutral-400">—</Text>
-        ) : (
-          visibleItems.map((item) => (
-            <View key={item.id} className="flex-row items-baseline justify-between gap-3">
-              <Text
-                numberOfLines={1}
-                className="flex-1 text-base font-sans-medium text-neutral-800"
-              >
-                {item.description}
-              </Text>
-              <Text style={NUM} className="text-sm font-sans text-neutral-500">
-                {formatItemQuantity(item)}
-              </Text>
-            </View>
-          ))
-        )}
-        {hiddenCount > 0 && (
-          <Text className="mt-0.5 text-sm font-sans text-neutral-400">
-            + {hiddenCount} {hiddenCount === 1 ? "item" : "itens"}
-          </Text>
-        )}
-      </View>
-
-      <View className="my-3 h-px bg-neutral-100" />
-      <Text style={NUM} className="text-sm font-sans text-neutral-500">
-        {Math.round(meal.total_kcal)} kcal · {Math.round(meal.total_protein_g)}g P ·{" "}
-        {Math.round(meal.total_carbs_g)}g C · {Math.round(meal.total_fat_g)}g G
-      </Text>
+      <MacroSplitBorder
+        protein={meal.total_protein_g}
+        carbs={meal.total_carbs_g}
+        fat={meal.total_fat_g}
+      />
     </Pressable>
   );
 }

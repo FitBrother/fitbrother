@@ -7,7 +7,7 @@
 
 export const radii = {
   input: 12, // rounded-xl
-  card: 22, // rounded-[22px] — a curva dos pills de 44pt (rounded-full ÷ 2)
+  card: 26, // rounded-[26px] — a curva dos pills de 52pt (rounded-full ÷ 2)
   banner: 12, // rounded-xl
   full: 9999, // rounded-full
 } as const;

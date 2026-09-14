@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useReducer, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -17,6 +16,8 @@ import { Plus, Trash2, X } from "lucide-react-native";
 import { PatchMealItemSchema, type MealResponse, type PatchMealRequest } from "@fitbrother/shared";
 import { useUpdateMeal } from "@/lib/hooks/useUpdateMeal";
 import { useDeleteMeal } from "@/lib/hooks/useDeleteMeal";
+import { useDialog } from "@/lib/dialog/dialog-context";
+import { useToast } from "@/lib/toast/toast-context";
 import { colors } from "@/lib/colors";
 import { shadows } from "@/lib/shadows";
 
@@ -96,6 +97,8 @@ export function EditMealModal({ meal, day }: Props) {
   const router = useRouter();
   const update = useUpdateMeal(meal.id, day);
   const remove = useDeleteMeal();
+  const dialog = useDialog();
+  const toast = useToast();
 
   const [state, dispatch] = useReducer(reducer, {
     items: meal.items.map((it) => ({
@@ -124,40 +127,36 @@ export function EditMealModal({ meal, day }: Props) {
     );
   }, [state.items]);
 
-  const handleClose = () => {
+  const handleClose = async () => {
     if (!state.dirty) {
       router.back();
       return;
     }
-    Alert.alert("Descartar alterações?", "Você não salvou os ajustes.", [
-      { text: "Cancelar", style: "cancel" },
-      { text: "Descartar", style: "destructive", onPress: () => router.back() },
-    ]);
+    const descartar = await dialog.confirm({
+      title: "Descartar alterações?",
+      description: "Você não salvou os ajustes.",
+      confirmLabel: "Descartar",
+      destructive: true,
+    });
+    if (descartar) router.back();
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     // Cascade: zero items → delete meal (com confirmação).
     if (state.items.length === 0) {
-      Alert.alert(
-        "Excluir refeição?",
-        "Você removeu todos os itens. A refeição inteira será excluída.",
-        [
-          { text: "Cancelar", style: "cancel" },
-          {
-            text: "Excluir",
-            style: "destructive",
-            onPress: () => {
-              remove.mutate(
-                { id: meal.id, day },
-                {
-                  onSuccess: () => router.replace("/(app)"),
-                  onError: () =>
-                    Alert.alert("Não foi possível excluir", "Tente novamente em instantes."),
-                },
-              );
-            },
-          },
-        ],
+      const ok = await dialog.confirm({
+        title: "Excluir refeição?",
+        description: "Você removeu todos os itens. A refeição inteira será excluída.",
+        confirmLabel: "Excluir",
+        destructive: true,
+      });
+      if (!ok) return;
+      remove.mutate(
+        { id: meal.id, day },
+        {
+          onSuccess: () => router.replace("/(app)"),
+          onError: () => toast({ variant: "error", message: "Não foi possível excluir" }),
+        },
       );
       return;
     }
@@ -172,10 +171,13 @@ export function EditMealModal({ meal, day }: Props) {
       const list = Array.from(errors)
         .map((i) => i + 1)
         .join(", ");
-      Alert.alert(
-        "Campos inválidos",
-        `Item${errors.size > 1 ? "s" : ""} ${list} tem campos inválidos.`,
-      );
+      // Toast e não diálogo: os campos culpados já ficam marcados em vermelho
+      // pelo `setErrorIndexes` acima, então a mensagem só precisa apontar para
+      // onde olhar — e um diálogo cobriria justamente o que ela manda ver.
+      toast({
+        variant: "error",
+        message: `Ite${errors.size > 1 ? "ns" : "m"} ${list} com campos inválidos`,
+      });
       return;
     }
     setErrorIndexes(new Set());
@@ -195,7 +197,7 @@ export function EditMealModal({ meal, day }: Props) {
 
     update.mutate(patch, {
       onSuccess: () => router.back(),
-      onError: () => Alert.alert("Não foi possível salvar", "Tente novamente em instantes."),
+      onError: () => toast({ variant: "error", message: "Não foi possível salvar" }),
     });
   };
 
@@ -212,7 +214,7 @@ export function EditMealModal({ meal, day }: Props) {
     >
       <View className="flex-row items-center justify-between px-4 py-2">
         <Pressable
-          onPress={handleClose}
+          onPress={() => void handleClose()}
           accessibilityLabel="Fechar"
           accessibilityRole="button"
           className="min-h-[44px] min-w-[44px] items-center justify-center"
@@ -223,7 +225,7 @@ export function EditMealModal({ meal, day }: Props) {
           Editar refeição
         </Text>
         <Pressable
-          onPress={handleSave}
+          onPress={() => void handleSave()}
           disabled={!state.dirty || isSaving}
           accessibilityLabel="Salvar alterações"
           accessibilityRole="button"

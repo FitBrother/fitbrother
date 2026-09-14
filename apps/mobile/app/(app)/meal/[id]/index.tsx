@@ -1,4 +1,4 @@
-import { ActivityIndicator, Alert, Pressable, ScrollView, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
@@ -10,10 +10,13 @@ import { useConfirmMeal } from "@/lib/hooks/useConfirmMeal";
 import { useDeleteMeal } from "@/lib/hooks/useDeleteMeal";
 import { useUpdateMeal } from "@/lib/hooks/useUpdateMeal";
 import { useProfile } from "@/lib/profile/profile-context";
+import { useDialog } from "@/lib/dialog/dialog-context";
+import { useToast } from "@/lib/toast/toast-context";
 import { nutritionalDay } from "@/lib/time/nutritional-day";
 import { colors } from "@/lib/colors";
 import { shadows } from "@/lib/shadows";
 import { MealItemRowSwipeable } from "@/components/domain/MealItemRowSwipeable";
+import { MacroLegendInline, MacroSplitBorder } from "@/components/domain/MacroSplitBar";
 
 function toPatchItem(it: MealResponse["items"][number]) {
   return {
@@ -36,6 +39,8 @@ export default function MealDetailScreen() {
   const profile = useProfile();
   const confirm = useConfirmMeal();
   const remove = useDeleteMeal();
+  const dialog = useDialog();
+  const toast = useToast();
   const query = useQuery({
     queryKey: mealDetailKey(id ?? ""),
     queryFn: () => getMeal(id!),
@@ -66,64 +71,46 @@ export default function MealDetailScreen() {
   const handleConfirm = () => {
     confirm.mutate(
       { id: meal.id, day },
+      { onError: () => toast({ variant: "error", message: "Não foi possível confirmar" }) },
+    );
+  };
+
+  const excluirRefeicao = () => {
+    remove.mutate(
+      { id: meal.id, day },
       {
-        onError: () => Alert.alert("Não foi possível confirmar", "Tente novamente em instantes."),
+        onSuccess: () => router.back(),
+        onError: () => toast({ variant: "error", message: "Não foi possível excluir" }),
       },
     );
   };
 
-  const handleDelete = () => {
-    Alert.alert("Excluir refeição?", "Essa ação não pode ser desfeita.", [
-      { text: "Cancelar", style: "cancel" },
-      {
-        text: "Excluir",
-        style: "destructive",
-        onPress: () => {
-          remove.mutate(
-            { id: meal.id, day },
-            {
-              onSuccess: () => router.back(),
-              onError: () =>
-                Alert.alert("Não foi possível excluir", "Tente novamente em instantes."),
-            },
-          );
-        },
-      },
-    ]);
+  const handleDelete = async () => {
+    const ok = await dialog.confirm({
+      title: "Excluir refeição?",
+      description: "Essa ação não pode ser desfeita.",
+      confirmLabel: "Excluir",
+      destructive: true,
+    });
+    if (ok) excluirRefeicao();
   };
 
-  const handleRemoveItem = (itemId: string) => {
+  const handleRemoveItem = async (itemId: string) => {
     const remaining = meal.items.filter((it) => it.id !== itemId);
     if (remaining.length === 0) {
       // Cascade: remover o último item exclui a refeição.
-      Alert.alert(
-        "Excluir refeição?",
-        "Esse era o último item. Remover vai excluir a refeição inteira.",
-        [
-          { text: "Cancelar", style: "cancel" },
-          {
-            text: "Excluir",
-            style: "destructive",
-            onPress: () => {
-              remove.mutate(
-                { id: meal.id, day },
-                {
-                  onSuccess: () => router.back(),
-                  onError: () =>
-                    Alert.alert("Não foi possível excluir", "Tente novamente em instantes."),
-                },
-              );
-            },
-          },
-        ],
-      );
+      const ok = await dialog.confirm({
+        title: "Excluir refeição?",
+        description: "Esse era o último item. Remover vai excluir a refeição inteira.",
+        confirmLabel: "Excluir",
+        destructive: true,
+      });
+      if (ok) excluirRefeicao();
       return;
     }
     update.mutate(
       { items: remaining.map(toPatchItem) },
-      {
-        onError: () => Alert.alert("Não foi possível remover", "Tente novamente em instantes."),
-      },
+      { onError: () => toast({ variant: "error", message: "Não foi possível remover" }) },
     );
   };
 
@@ -162,7 +149,7 @@ export default function MealDetailScreen() {
           <Pencil size={20} color={colors.neutral[800]} />
         </Pressable>
         <Pressable
-          onPress={handleDelete}
+          onPress={() => void handleDelete()}
           disabled={remove.isPending}
           accessibilityLabel="Excluir refeição"
           accessibilityRole="button"
@@ -173,14 +160,31 @@ export default function MealDetailScreen() {
       </View>
 
       <ScrollView contentContainerStyle={{ paddingBottom: 32 }}>
-        <View style={shadows.card} className="mx-4 mt-2 rounded-[22px] bg-white p-4">
-          <Text style={NUM} className="text-3xl font-display-bold text-neutral-800">
-            {Math.round(meal.total_kcal)} kcal
-          </Text>
-          <Text style={NUM} className="mt-2 text-sm font-sans text-neutral-500">
-            {Math.round(meal.total_protein_g)}g P · {Math.round(meal.total_carbs_g)}g C ·{" "}
-            {Math.round(meal.total_fat_g)}g G
-          </Text>
+        {/* Mesma faixa-borda dos cards de item logo abaixo. Com a barra no meio
+            deste card e na borda dos outros, a mesma informação aparecia de
+            duas formas diferentes na mesma tela. */}
+        <View style={shadows.card} className="mx-4 mt-2 overflow-hidden rounded-[26px] bg-white">
+          <View className="flex-row items-center justify-between gap-2 p-4">
+            {/* Aqui a caloria CONTINUA em 3xl, ao contrário do card do feed: esta
+                tela é sobre esta refeição, e o número é o assunto. No feed ele é
+                contexto de um post e foi reduzido por isso. */}
+            <View className="flex-row items-baseline gap-1.5">
+              <Text style={NUM} className="text-3xl font-display-bold text-neutral-800">
+                {Math.round(meal.total_kcal)}
+              </Text>
+              <Text className="font-sans-medium text-base text-neutral-500">kcal</Text>
+            </View>
+            <MacroLegendInline
+              protein={meal.total_protein_g}
+              carbs={meal.total_carbs_g}
+              fat={meal.total_fat_g}
+            />
+          </View>
+          <MacroSplitBorder
+            protein={meal.total_protein_g}
+            carbs={meal.total_carbs_g}
+            fat={meal.total_fat_g}
+          />
         </View>
 
         {meal.ai_feedback ? (
@@ -200,7 +204,7 @@ export default function MealDetailScreen() {
             <MealItemRowSwipeable
               key={item.id}
               item={item}
-              onDelete={() => handleRemoveItem(item.id)}
+              onDelete={() => void handleRemoveItem(item.id)}
             />
           ))}
         </View>

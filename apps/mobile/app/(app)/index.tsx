@@ -8,13 +8,18 @@ import {
   Text,
   useWindowDimensions,
   View,
+  type ViewStyle,
 } from "react-native";
 import Animated, {
   Easing,
   FadeInDown,
   LinearTransition,
+  runOnJS,
+  useAnimatedScrollHandler,
   useAnimatedStyle,
+  useReducedMotion,
   useSharedValue,
+  withSpring,
   withTiming,
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -42,6 +47,8 @@ import { useCreateMealPhoto } from "@/lib/hooks/useCreateMealPhoto";
 import { QuotaExceededError, getErrorStatus } from "@/lib/api/meals";
 import { colors } from "@/lib/colors";
 import { Motion } from "@/lib/motion";
+import { nextCollapse } from "@/lib/summary-collapse";
+import { collapseSpacer } from "@/lib/summary-geometry";
 import { uploadMealAudio, uploadMealPhoto } from "@/lib/storage";
 import type { AudioExtension } from "@/lib/audio/recorder";
 import { Card } from "@/components/Card";
@@ -57,14 +64,56 @@ import { ComposerBackdrop, COMPOSER_FADE_HEIGHT } from "@/components/domain/Comp
 import { EmailConfirmationBanner } from "@/components/domain/EmailConfirmationBanner";
 import { NewVersionBanner } from "@/components/domain/NewVersionBanner";
 import { EmptyMealsState } from "@/components/domain/EmptyMealsState";
+import { ListTopFade } from "@/components/domain/ListTopFade";
 import { ErrorBanner, type ErrorBannerVariant } from "@/components/domain/ErrorBanner";
-import { TodaySummaryHeader } from "@/components/domain/TodaySummaryHeader";
+import { SummaryCollapseSpacer, TodaySummaryHeader } from "@/components/domain/TodaySummaryHeader";
 import { GoalsDisclaimer } from "@/components/domain/GoalsDisclaimer";
 import { StreakCounter } from "@/components/domain/StreakCounter";
 import { useStreak } from "@/lib/hooks/useStreak";
 
 /** Sobra entre o último card e o começo do degradê do composer. */
 const LIST_BREATHING_ROOM = 28;
+
+/**
+ * Desliga o scroll anchoring do navegador na lista de refeições (só web; no
+ * nativo o recurso não existe e a constante é `undefined`).
+ *
+ * O anchoring existe para quando o conteúdo ACIMA da vista muda de tamanho sem
+ * o usuário pedir — uma imagem que carrega, um bloco que chega tarde. O
+ * navegador escolhe um elemento visível como âncora e reposiciona o scroll
+ * para segurá-lo no lugar.
+ *
+ * Aqui essa premissa é falsa. O cabeçalho encolhe COMO RESPOSTA ao scroll, de
+ * propósito, e ele fica acima de tudo. O navegador via os cards subirem 178px,
+ * concluía que algo tinha se mexido sozinho e devolvia o scroll — mas esse
+ * scroll devolvido é justamente o que decide se o resumo colapsa. Perto do
+ * topo o vaivém fechava um ciclo: colapsa → anchoring puxa o scroll pra 0 →
+ * `nextCollapse` expande → conteúdo desce → anchoring empurra de volta →
+ * colapsa. Num scroll lento o usuário parava exatamente nesse ponto de
+ * equilíbrio e o resumo pulsava sem parar.
+ *
+ * Medido nesta lista, pedindo 180px de rolagem: com anchoring, 46 dos 90
+ * frames tiveram desvio que ninguém pediu (até 45px de uma vez) e o scroll só
+ * andou até y=79 — o recurso comeu mais de 100px do gesto. Desligado, desvio
+ * zero e y=199.
+ *
+ * Continua necessário DEPOIS do rodapé de `collapseSpacer` — remedido com ele
+ * no lugar, mesmo gesto de 180px: ligado, 39 frames de desvio (300px no total)
+ * e o resumo trocando de estado 11 vezes; desligado, desvio zero e 1 troca.
+ * Os dois atacam canais diferentes do mesmo bug: o rodapé garante que a FAIXA
+ * rolável não suma, enquanto isto impede o navegador de mexer no OFFSET por
+ * conta própria. O cabeçalho encolhe acima da vista de qualquer jeito, então o
+ * anchoring tem o que reancorar mesmo com a faixa preservada.
+ *
+ * O preço é que a lista perde a proteção contra reflow de verdade acima da
+ * vista. Aceitável aqui: os cards são texto de altura estável, sem imagem
+ * assíncrona que possa crescer depois de renderizada.
+ *
+ * `as` porque `overflowAnchor` é CSS que só o react-native-web entende; não
+ * está no ViewStyle do RN.
+ */
+const NO_SCROLL_ANCHOR =
+  Platform.OS === "web" ? ({ overflowAnchor: "none" } as unknown as ViewStyle) : undefined;
 
 /**
  * Espaço livre no fim da lista de refeições, em px.
@@ -151,6 +200,61 @@ export default function HomeScreen() {
     opacity: summaryOpacity.value,
     transform: [{ translateY: summaryTranslateY.value }],
   }));
+
+  // ── Resumo colapsável ────────────────────────────────────────────────────
+  // O resumo expandido come ~320px de tela. Em vez de sumir para cima quando a
+  // lista rola (o padrão de collapsing header), ele achata no lugar: os anéis
+  // viram barras horizontais e o bloco cai para ~140px, devolvendo espaço para
+  // as refeições sem tirar os números de vista.
+  //
+  // Ele é o cabeçalho FIXO do FlatList, não um irmão acima dele — ver
+  // `listHeaderComponent` mais abaixo, onde está a explicação de por que a
+  // diferença importa tanto.
+  const collapse = useSharedValue(0);
+  const collapseTarget = useSharedValue<0 | 1>(0);
+  // Espelho em JS do estado, só para o RefreshControl — puxar-pra-atualizar
+  // fica disponível apenas no expandido, que é justamente quando a lista está
+  // no topo e o gesto faz sentido.
+  const [summaryExpanded, setSummaryExpanded] = useState(true);
+  const reducedMotion = useReducedMotion();
+
+  // ── Chão para o colapso ──────────────────────────────────────────────────
+  // Colapsar encolhe o conteúdo em 178px, e o navegador reage a isso prendendo
+  // o `scrollTop` no novo máximo. Numa lista curta esse máximo vai a zero, o
+  // resumo lê zero como "voltei ao topo" e reexpande — em looping, enquanto o
+  // dedo estiver na tela. O rodapé abaixo garante que sempre sobre faixa
+  // rolável no estado colapsado; `collapseSpacer` calcula o MÍNIMO para isso e
+  // devolve zero quando a lista já é longa o bastante, que é o caso comum.
+  const [listViewport, setListViewport] = useState(0);
+  const [naturalContent, setNaturalContent] = useState(0);
+
+  const handleContentSizeChange = useCallback(
+    (_w: number, h: number) => {
+      // Só o estado expandido serve de referência: é o único em que o rodapé
+      // mede zero, então `h` é a altura do conteúdo sem ele — sem isso a
+      // medida realimentaria o próprio spacer.
+      if (collapse.value !== 0) return;
+      setNaturalContent(h);
+    },
+    [collapse],
+  );
+
+  const spacerTotal = useMemo(
+    () => collapseSpacer(naturalContent, listViewport),
+    [naturalContent, listViewport],
+  );
+
+  const handleListScroll = useAnimatedScrollHandler((event) => {
+    const alvo = nextCollapse({
+      y: event.contentOffset.y,
+      current: collapseTarget.value,
+    });
+    if (alvo === collapseTarget.value) return;
+
+    collapseTarget.value = alvo;
+    collapse.value = reducedMotion ? alvo : withSpring(alvo, Motion.spring.morph);
+    runOnJS(setSummaryExpanded)(alvo === 0);
+  });
 
   const items = (mealsQuery.data ?? []) as OptimisticMeal[];
 
@@ -361,56 +465,76 @@ export default function HomeScreen() {
           </Card>
         </View>
 
-        <View className="mx-auto w-full max-w-[1120px] flex-1 flex-row items-start gap-8">
-          <View className="sticky top-[124px] w-[320px] shrink-0 gap-5 xl:w-[400px]">
-            <Animated.View style={summaryCardStyle}>
-              <Card variant="elevated">
-                <TodaySummaryHeader
-                  key={summaryFocusKey}
-                  summary={summaryQuery.data}
-                  softMode={profile.soft_mode}
-                />
-              </Card>
-            </Animated.View>
-            <GoalsDisclaimer />
-          </View>
-
-          <View className="flex-1">
-            <View className="mb-4 flex-row items-baseline justify-between gap-4">
-              <Text className="text-2xl font-display-bold text-neutral-800">Refeições</Text>
-              <Text
-                className="text-[13px] text-neutral-500"
-                style={{ fontVariant: ["tabular-nums"] }}
-              >
-                {items.length} de hoje
-              </Text>
+        {/* O `px-6` mora no wrapper, e não no container de 1120, para espelhar
+            exatamente a saudação acima e o composer abaixo: os três se alinham
+            porque medem 1120 no MÁXIMO, dentro da mesma faixa já recuada. Sem
+            este wrapper, a linha era a única a encostar na sidebar (e na borda
+            direita) sempre que a janela era estreita demais para o `mx-auto`
+            sobrar margem — o que acontece em toda a faixa de 1024 a 1168. */}
+        <View className="flex-1 px-6">
+          <View className="mx-auto w-full max-w-[1120px] flex-1 flex-row items-start gap-8">
+            <View className="sticky top-[124px] w-[320px] shrink-0 gap-5 xl:w-[400px]">
+              <Animated.View style={summaryCardStyle}>
+                <Card variant="elevated">
+                  {/* No desktop o resumo mora numa coluna lateral própria e não
+                      disputa espaço com a lista — fica sempre expandido. Por
+                      isso `collapse` é omitido em vez de repassado: a lista
+                      daqui não tem `onScroll`, então o valor compartilhado nunca
+                      voltaria a zero. Quem colapsasse no mobile e alargasse a
+                      janela até o desktop via a coluna lateral presa em barras. */}
+                  <TodaySummaryHeader
+                    key={summaryFocusKey}
+                    summary={summaryQuery.data}
+                    softMode={profile.soft_mode}
+                  />
+                </Card>
+              </Animated.View>
+              <GoalsDisclaimer />
             </View>
-            {mealsQuery.isLoading ? (
-              <View className="flex-1 items-center justify-center">
-                <ActivityIndicator color={colors.primary[400]} />
+
+            <View className="flex-1">
+              {/* `px-4` pelo mesmo motivo do cabeçalho da lista no mobile: os
+                  cards carregam `marginHorizontal: 16` próprio, então sem este
+                  recuo o título e a contagem ficavam 16px à esquerda deles. */}
+              <View className="mb-4 flex-row items-baseline justify-between gap-4 px-4">
+                <Text className="text-2xl font-display-bold text-neutral-800">Refeições</Text>
+                <Text
+                  className="text-[13px] text-neutral-500"
+                  style={{ fontVariant: ["tabular-nums"] }}
+                >
+                  {items.length} de hoje
+                </Text>
               </View>
-            ) : items.length === 0 ? (
-              <Card variant="flat">
-                <EmptyMealsState />
-              </Card>
-            ) : (
-              <PullToRefresh onRefresh={handleRefresh}>
-                <Animated.FlatList
-                  data={items}
-                  keyExtractor={(m) => (m as OptimisticMeal).id}
-                  renderItem={renderItem as never}
-                  contentContainerStyle={{ paddingBottom: 180 }}
-                  itemLayoutAnimation={LinearTransition.springify().damping(20).stiffness(180)}
-                  refreshControl={
-                    <RefreshControl
-                      refreshing={mealsQuery.isRefetching || summaryQuery.isRefetching}
-                      onRefresh={handleRefresh}
-                      tintColor={colors.primary[400]}
-                    />
-                  }
-                />
-              </PullToRefresh>
-            )}
+              {mealsQuery.isLoading ? (
+                <View className="flex-1 items-center justify-center">
+                  <ActivityIndicator color={colors.primary[400]} />
+                </View>
+              ) : items.length === 0 ? (
+                <Card variant="flat">
+                  <EmptyMealsState />
+                </Card>
+              ) : (
+                <PullToRefresh onRefresh={handleRefresh}>
+                  <Animated.FlatList
+                    data={items}
+                    keyExtractor={(m) => (m as OptimisticMeal).id}
+                    renderItem={renderItem as never}
+                    // Os degradês nas duas pontas já sinalizam que a lista
+                    // continua; a barra por cima deles só suja a moldura.
+                    showsVerticalScrollIndicator={false}
+                    contentContainerStyle={{ paddingBottom: 180 }}
+                    itemLayoutAnimation={LinearTransition.springify().damping(20).stiffness(180)}
+                    refreshControl={
+                      <RefreshControl
+                        refreshing={mealsQuery.isRefetching || summaryQuery.isRefetching}
+                        onRefresh={handleRefresh}
+                        tintColor={colors.primary[400]}
+                      />
+                    }
+                  />
+                </PullToRefresh>
+              )}
+            </View>
           </View>
         </View>
 
@@ -435,19 +559,23 @@ export default function HomeScreen() {
     );
   }
 
-  const listHeader = (
-    // Sem padding inferior: o respiro até o primeiro card vem da margem do
-    // próprio card, então o rótulo fica mais perto da lista que ele nomeia do
-    // que do dashboard acima — proximidade é o que agrupa os dois.
-    <View className="px-4">
-      <View className="flex-row items-baseline justify-between gap-4">
-        <Text className="text-xl font-display-bold text-neutral-800">Refeições</Text>
-        <Text className="text-[13px] text-neutral-500" style={{ fontVariant: ["tabular-nums"] }}>
-          {items.length} de hoje
-        </Text>
+  // O título é fixo acima da lista, então some quando não há o que nomear:
+  // "Refeições — 0 de hoje" cravado sobre um card vazio só repete o que a
+  // ilustração do estado vazio já diz melhor.
+  const listHeader =
+    items.length === 0 ? null : (
+      // Sem padding inferior: o respiro até o primeiro card vem da margem do
+      // próprio card, então o rótulo fica mais perto da lista que ele nomeia do
+      // que do dashboard acima — proximidade é o que agrupa os dois.
+      <View className="px-4">
+        <View className="flex-row items-baseline justify-between gap-4">
+          <Text className="text-xl font-display-bold text-neutral-800">Refeições</Text>
+          <Text className="text-[13px] text-neutral-500" style={{ fontVariant: ["tabular-nums"] }}>
+            {items.length} de hoje
+          </Text>
+        </View>
       </View>
-    </View>
-  );
+    );
 
   const macroPanel = (
     <View className="gap-2 px-4 pb-4 pt-2">
@@ -457,6 +585,7 @@ export default function HomeScreen() {
             key={summaryFocusKey}
             summary={summaryQuery.data}
             softMode={profile.soft_mode}
+            collapse={collapse}
           />
           <Pressable
             onPress={() => setDisclaimerOpen((v) => !v)}
@@ -474,11 +603,42 @@ export default function HomeScreen() {
       {disclaimerOpen && (
         // 22 como o card acima: o disclaimer abre colado nele e é conteúdo
         // inline, não uma superfície flutuante como o ErrorBanner.
-        <View className="flex-row items-start gap-2 rounded-[22px] bg-neutral-100 p-3">
+        <View className="flex-row items-start gap-2 rounded-[26px] bg-neutral-100 p-3">
           <Info size={16} color={colors.neutral[500]} />
           <Text className="flex-1 text-xs font-sans text-neutral-600">{GOALS_DISCLAIMER_TEXT}</Text>
         </View>
       )}
+    </View>
+  );
+
+  /**
+   * Cabeçalho fixo da lista: resumo + rótulo "Refeições".
+   *
+   * Ele é o `ListHeaderComponent` do FlatList, marcado como sticky — e não um
+   * irmão acima da lista, como já foi. A diferença não é cosmética; ela é o
+   * que faz o resumo funcionar:
+   *
+   * 1. Fora da lista, o resumo não pertencia a nenhuma superfície rolável.
+   *    Arrastar o dedo em cima dele não fazia nada, porque não havia nada ali
+   *    para rolar. Dentro, o gesto é da lista de graça, em qualquer ponto.
+   *
+   * 2. Fora da lista, encolher o resumo encolhia a caixa acima dela e o
+   *    VIEWPORT da lista crescia junto (medido: 412px → 590px). Isso muda o
+   *    offset máximo de rolagem, o navegador reancora o `scrollTop` para
+   *    caber, e o reajuste voltava ao `onScroll` como se fosse gesto do
+   *    usuário — o resumo se desfazia sozinho e ficava piscando. Como
+   *    cabeçalho, o viewport é constante: encolher muda só a altura do
+   *    conteúdo, e o gatilho por posição (`nextCollapse`) ignora reajustes
+   *    longe do topo.
+   *
+   * Visualmente nada muda: `position: sticky` mantém o bloco colado no topo
+   * com os cards passando por baixo, que é como já era.
+   */
+  const listHeaderComponent = (
+    <View className="bg-neutral-50">
+      {macroPanel}
+      {listHeader}
+      {items.length > 0 && <ListTopFade />}
     </View>
   );
 
@@ -508,48 +668,67 @@ export default function HomeScreen() {
         onIndexChange={(i) => setActiveTab(TABS[i]!.key)}
       >
         <>
-          {/* PullToRefresh embrulha o painel de macros + cabeçalho da lista
-              junto com o FlatList (não só o FlatList sozinho) — puxar pra
-              atualizar precisa funcionar assim que sai do header fixo da
-              Home, não só depois de já estar dentro da lista de refeições. */}
-          <PullToRefresh onRefresh={handleRefresh}>
-            <View className="flex-1">
-              {macroPanel}
-              {listHeader}
-              {/* A lista é renderizada sempre, inclusive vazia: antes o estado
-                  vazio era um Pressable solto, sem container rolável, e a tela
-                  ficava morta — nem o bounce do iOS acontecia. O estado vazio virou
-                  ListEmptyComponent para manter um único container de rolagem. */}
-              <Animated.FlatList
-                data={items}
-                keyExtractor={(m) => (m as OptimisticMeal).id}
-                renderItem={renderItem as never}
-                ListEmptyComponent={
-                  mealsQuery.isLoading ? null : (
-                    <Pressable onPress={Keyboard.dismiss}>
-                      <Card variant="flat" className="mx-4">
-                        <EmptyMealsState />
-                      </Card>
-                    </Pressable>
-                  )
-                }
-                alwaysBounceVertical
-                contentContainerStyle={{
-                  paddingBottom: listBottomSpace(composerHeight),
-                  flexGrow: 1,
-                }}
-                keyboardDismissMode="on-drag"
-                keyboardShouldPersistTaps="handled"
-                itemLayoutAnimation={LinearTransition.springify().damping(20).stiffness(180)}
-                refreshControl={
-                  <RefreshControl
-                    refreshing={mealsQuery.isRefetching || summaryQuery.isRefetching}
-                    onRefresh={handleRefresh}
-                    tintColor={colors.primary[400]}
-                  />
-                }
-              />
-            </View>
+          {/* A lista é a única superfície rolável da aba, e o resumo mora
+              dentro dela — então o PullToRefresh embrulha o FlatList direto.
+              Puxar pra atualizar continua funcionando desde o resumo, porque
+              o resumo agora é o cabeçalho da própria lista. */}
+          <PullToRefresh onRefresh={handleRefresh} enabled={summaryExpanded}>
+            {/* A lista é renderizada sempre, inclusive vazia: antes o estado
+                vazio era um Pressable solto, sem container rolável, e a tela
+                ficava morta — nem o bounce do iOS acontecia. O estado vazio
+                virou ListEmptyComponent para manter um único container de
+                rolagem. */}
+            <Animated.FlatList
+              data={items}
+              keyExtractor={(m) => (m as OptimisticMeal).id}
+              renderItem={renderItem as never}
+              ListHeaderComponent={listHeaderComponent}
+              // Chão para o colapso em listas curtas; zero nas longas. Ver
+              // `spacerTotal` acima.
+              ListFooterComponent={
+                <SummaryCollapseSpacer collapse={collapse} total={spacerTotal} />
+              }
+              onLayout={(e) => setListViewport(e.nativeEvent.layout.height)}
+              onContentSizeChange={handleContentSizeChange}
+              // Prende o cabeçalho (índice 0) no topo do scroller. É o que
+              // mantém o resumo à vista enquanto os cards correm por baixo.
+              stickyHeaderIndices={[0]}
+              // Sem isso o resumo pulsa sem parar num scroll lento — ver a
+              // constante para o ciclo completo.
+              style={NO_SCROLL_ANCHOR}
+              onScroll={handleListScroll}
+              scrollEventThrottle={16}
+              // Os degradês nas duas pontas já sinalizam que a lista
+              // continua; a barra por cima deles só suja a moldura.
+              showsVerticalScrollIndicator={false}
+              ListEmptyComponent={
+                mealsQuery.isLoading ? null : (
+                  <Pressable onPress={Keyboard.dismiss}>
+                    <Card variant="flat" className="mx-4">
+                      <EmptyMealsState />
+                    </Card>
+                  </Pressable>
+                )
+              }
+              alwaysBounceVertical
+              contentContainerStyle={{
+                paddingBottom: listBottomSpace(composerHeight),
+                flexGrow: 1,
+              }}
+              keyboardDismissMode="on-drag"
+              keyboardShouldPersistTaps="handled"
+              itemLayoutAnimation={LinearTransition.springify().damping(20).stiffness(180)}
+              refreshControl={
+                <RefreshControl
+                  // Só no expandido — que é exatamente quando a lista está
+                  // no topo e puxar para atualizar faz sentido.
+                  enabled={summaryExpanded}
+                  refreshing={mealsQuery.isRefetching || summaryQuery.isRefetching}
+                  onRefresh={handleRefresh}
+                  tintColor={colors.primary[400]}
+                />
+              }
+            />
           </PullToRefresh>
         </>
         <FeedTabContent />

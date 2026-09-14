@@ -53,7 +53,9 @@ function GuardedStack() {
   }
 
   return (
-    <View className="flex-1 md:flex-row">
+    // Linha só a partir de `lg`, casando com o breakpoint da Sidebar: abaixo
+    // disso ela não existe e a coluna é o layout do mobile.
+    <View className="flex-1 lg:flex-row">
       <Sidebar />
       <ScreenFade>
         <Stack screenOptions={{ headerShown: false, animation: "fade" }}>

@@ -274,7 +274,7 @@ Tokens semânticos extras em `tailwind.config.ts`:
 |---|---|---|
 | Botões (primário, dark) | 9999px | `rounded-full` |
 | Inputs | 12px | `rounded-xl` |
-| Cards | 22px | `rounded-[22px]` |
+| Cards | 26px | `rounded-[26px]` |
 | Badges/chips | 9999px | `rounded-full` |
 | Ícones circulares (avatar) | 50% | `rounded-full` |
 | Banner de feedback | 12px | `rounded-xl` |
@@ -450,7 +450,7 @@ Estados: `default`, `focused`, `filled`, `error`.
 | `outlined` | white | `neutral-200` | — |
 | `flat` | `neutral-50` | — | — |
 
-Padding padrão `p-4`, raio `rounded-[22px]` (a curva exata dos pills de 44pt: `rounded-full` ÷ 2). Quando recebe `onPress`, vira `Pressable` com feedback de cor (flat/outlined) ou de sombra (elevated → Nível 2 ao pressionar).
+Padding padrão `p-4`, raio `rounded-[26px]` (a curva exata dos controles de 52pt — `button-height` — sob `rounded-full`: ÷ 2). Quando recebe `onPress`, vira `Pressable` com feedback de cor (flat/outlined) ou de sombra (elevated → Nível 2 ao pressionar).
 
 ### 11.4 Onboarding Nav Buttons
 
