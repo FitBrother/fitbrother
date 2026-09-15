@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
   Keyboard,
   Platform,
   Pressable,
@@ -59,6 +58,7 @@ import { HomeHeader, greetingFor, TABS, type HomeTab } from "@/components/domain
 import { SwipeableTabs } from "@/components/domain/SwipeableTabs";
 import { MealCardSwipeable } from "@/components/domain/MealCardSwipeable";
 import { MealCardSkeleton } from "@/components/domain/MealCardSkeleton";
+import { HomeSkeleton } from "@/components/domain/HomeSkeleton";
 import { MealComposer } from "@/components/domain/MealComposer";
 import { ComposerBackdrop, COMPOSER_FADE_HEIGHT } from "@/components/domain/ComposerBackdrop";
 import { EmailConfirmationBanner } from "@/components/domain/EmailConfirmationBanner";
@@ -506,8 +506,10 @@ export default function HomeScreen() {
                 </Text>
               </View>
               {mealsQuery.isLoading ? (
-                <View className="flex-1 items-center justify-center">
-                  <ActivityIndicator color={colors.primary[400]} />
+                <View>
+                  <MealCardSkeleton />
+                  <MealCardSkeleton />
+                  <MealCardSkeleton />
                 </View>
               ) : items.length === 0 ? (
                 <Card variant="flat">
@@ -528,7 +530,7 @@ export default function HomeScreen() {
                       <RefreshControl
                         refreshing={mealsQuery.isRefetching || summaryQuery.isRefetching}
                         onRefresh={handleRefresh}
-                        tintColor={colors.primary[400]}
+                        tintColor={colors.neutral[400]}
                       />
                     }
                   />
@@ -651,8 +653,8 @@ export default function HomeScreen() {
   // dos dados do dia chegarem.
   if (mealsQuery.isPending || summaryQuery.isPending) {
     return (
-      <SafeAreaView className="flex-1 items-center justify-center bg-neutral-50">
-        <ActivityIndicator size="large" color={colors.primary[400]} />
+      <SafeAreaView className="flex-1 bg-neutral-50" edges={["top", "left", "right"]}>
+        <HomeSkeleton />
       </SafeAreaView>
     );
   }
@@ -725,7 +727,7 @@ export default function HomeScreen() {
                   enabled={summaryExpanded}
                   refreshing={mealsQuery.isRefetching || summaryQuery.isRefetching}
                   onRefresh={handleRefresh}
-                  tintColor={colors.primary[400]}
+                  tintColor={colors.neutral[400]}
                 />
               }
             />

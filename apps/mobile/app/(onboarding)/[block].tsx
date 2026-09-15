@@ -1,9 +1,8 @@
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, View } from "react-native";
+import { OnboardingGateSkeleton } from "@/components/onboarding/OnboardingGateSkeleton";
 import { ONBOARDING_BLOCKS, DATA_BLOCK_COUNT } from "@/lib/onboarding/blocks";
 import { getOnboardingProgress, patchOnboardingProgress } from "@/lib/api";
-import { colors } from "@/lib/colors";
 import { firstIncompleteGateIndex } from "@/lib/onboarding/gate";
 import { CHAPTER_NAMES } from "@/lib/onboarding/types";
 import { useOnboardingStore } from "@/lib/stores/onboardingStore";
@@ -51,11 +50,7 @@ export default function OnboardingBlockScreen() {
   }, [index]);
 
   if (index === -1 || !gateChecked) {
-    return (
-      <View className="flex-1 items-center justify-center bg-neutral-50">
-        <ActivityIndicator size="large" color={colors.primary[400]} />
-      </View>
-    );
+    return <OnboardingGateSkeleton />;
   }
   const block = ONBOARDING_BLOCKS[index]!;
 

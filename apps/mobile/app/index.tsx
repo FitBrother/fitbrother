@@ -1,9 +1,9 @@
 import { Redirect } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, Pressable, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { AppShellSkeleton } from "@/components/AppShellSkeleton";
 import { AccountDeletionPendingError, getMe } from "@/lib/api";
-import { colors } from "@/lib/colors";
 import { friendlyApiError } from "@/lib/errors";
 import { useAuthSession } from "@/lib/hooks/useAuthSession";
 
@@ -49,11 +49,7 @@ export default function Index() {
   }, [auth.status, fetchMe]);
 
   if (auth.status === "loading" || (auth.status === "signed_in" && profile.kind === "checking")) {
-    return (
-      <SafeAreaView className="flex-1 items-center justify-center bg-neutral-50">
-        <ActivityIndicator size="large" color={colors.primary[400]} />
-      </SafeAreaView>
-    );
+    return <AppShellSkeleton />;
   }
 
   if (auth.status === "signed_out") {

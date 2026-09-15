@@ -1,19 +1,12 @@
 import * as Linking from "expo-linking";
 import { router } from "expo-router";
 import { useEffect, useRef, useState } from "react";
-import {
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
-  Text,
-  type TextInput,
-  View,
-} from "react-native";
+import { KeyboardAvoidingView, Platform, Text, type TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Button } from "@/components/Button";
 import { LogoHomeLink } from "@/components/LogoHomeLink";
 import { PasswordInput, passwordStrength } from "@/components/PasswordInput";
-import { colors } from "@/lib/colors";
+import { SkeletonBlock, SkeletonText } from "@/components/Skeleton";
 import { friendlyAuthError } from "@/lib/errors";
 import { paramsFromCallbackUrl } from "@/lib/oauth";
 import { supabase } from "@/lib/supabase";
@@ -93,9 +86,20 @@ export default function ResetPassword() {
   }
 
   if (sessionState === "pending") {
+    // Validando o link de recovery — espelha o formulário real (título +
+    // dois campos de senha) que está prestes a aparecer.
     return (
-      <SafeAreaView className="flex-1 items-center justify-center bg-neutral-50">
-        <ActivityIndicator size="large" color={colors.primary[400]} />
+      <SafeAreaView className="flex-1 bg-neutral-50" edges={["top", "left", "right"]}>
+        <View className="w-full flex-1 p-5 pt-12 md:mx-auto md:max-w-[440px]">
+          <LogoHomeLink height={28} className="mb-8" />
+          <View className="mb-8">
+            <SkeletonText lines={2} lineHeight={18} lastLineWidth="90%" />
+          </View>
+          <View className="gap-3">
+            <SkeletonBlock width="100%" height={52} radius={12} />
+            <SkeletonBlock width="100%" height={52} radius={12} />
+          </View>
+        </View>
       </SafeAreaView>
     );
   }

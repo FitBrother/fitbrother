@@ -1,7 +1,8 @@
-import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-native";
+import { Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ChevronLeft, Lock, Share2, Trophy } from "lucide-react-native";
 import { useRouter } from "expo-router";
+import { AchievementCardSkeleton } from "@/components/domain/AchievementCardSkeleton";
 import { colors } from "@/lib/colors";
 import { friendlyApiError } from "@/lib/errors";
 import { useAchievements, useMyAchievements } from "@/lib/hooks/useAchievements";
@@ -38,7 +39,13 @@ export default function AchievementsScreen() {
       </View>
 
       {isLoading ? (
-        <ActivityIndicator className="mt-10" color={colors.primary[400]} />
+        <View className="gap-3 px-5 pb-10 pt-1">
+          <AchievementCardSkeleton />
+          <AchievementCardSkeleton />
+          <AchievementCardSkeleton />
+          <AchievementCardSkeleton />
+          <AchievementCardSkeleton />
+        </View>
       ) : (
         <ScrollView contentContainerClassName="px-5 pb-10 gap-3">
           {items.map((a) => {

@@ -1,14 +1,14 @@
 import { router } from "expo-router";
 import { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, type TextInput, Text, View } from "react-native";
+import { type TextInput, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Button } from "@/components/Button";
 import { GoogleIcon } from "@/components/domain/GoogleIcon";
 import { Input } from "@/components/Input";
 import { OnboardingChapterShell } from "@/components/onboarding/OnboardingChapterShell";
 import { PasswordInput, passwordStrength } from "@/components/PasswordInput";
+import { SkeletonBlock } from "@/components/Skeleton";
 import { resolveSignupConflict } from "@/lib/api";
-import { colors } from "@/lib/colors";
 import { friendlyAuthError } from "@/lib/errors";
 import { useAuthSession } from "@/lib/hooks/useAuthSession";
 import { linkOAuthIdentity, OAuthCallbackError, type OAuthProvider } from "@/lib/oauth";
@@ -173,9 +173,14 @@ export function SignupBlock({ onNext, onBack, chapter }: OnboardingBlockProps) {
   }
 
   if (authSession.status === "loading" || alreadyUpgraded || accountMismatch || conflictDetected) {
+    // Espelha os 3 campos do formulário abaixo (e-mail + senha + confirmar).
     return (
-      <SafeAreaView className="flex-1 items-center justify-center bg-neutral-50">
-        <ActivityIndicator size="large" color={colors.primary[400]} />
+      <SafeAreaView className="flex-1 bg-neutral-50">
+        <View className="mx-auto w-full max-w-[440px] flex-1 justify-center gap-3 p-5">
+          <SkeletonBlock width="100%" height={52} radius={12} />
+          <SkeletonBlock width="100%" height={52} radius={12} />
+          <SkeletonBlock width="100%" height={52} radius={12} />
+        </View>
       </SafeAreaView>
     );
   }

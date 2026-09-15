@@ -1,4 +1,4 @@
-import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-native";
+import { Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
@@ -17,6 +17,7 @@ import { colors } from "@/lib/colors";
 import { shadows } from "@/lib/shadows";
 import { MealItemRowSwipeable } from "@/components/domain/MealItemRowSwipeable";
 import { MacroLegendInline, MacroSplitBorder } from "@/components/domain/MacroSplitBar";
+import { MealDetailSkeleton } from "@/components/domain/MealDetailSkeleton";
 
 function toPatchItem(it: MealResponse["items"][number]) {
   return {
@@ -52,11 +53,7 @@ export default function MealDetailScreen() {
   const update = useUpdateMeal(id ?? "", day);
 
   if (query.isLoading || !id) {
-    return (
-      <SafeAreaView className="flex-1 items-center justify-center bg-neutral-50">
-        <ActivityIndicator size="large" color={colors.primary[400]} />
-      </SafeAreaView>
-    );
+    return <MealDetailSkeleton />;
   }
   if (query.isError || !query.data) {
     return (

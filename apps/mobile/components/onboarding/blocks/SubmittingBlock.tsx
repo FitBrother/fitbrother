@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Text, View } from "react-native";
+import { Text, View } from "react-native";
 import { Button } from "@/components/Button";
+import { SkeletonCircle, SkeletonText } from "@/components/Skeleton";
 import { postOnboarding } from "@/lib/api";
-import { colors } from "@/lib/colors";
 import { friendlyApiError } from "@/lib/errors";
 import { useOnboardingStore } from "@/lib/stores/onboardingStore";
 import { useOnboardingResultStore } from "@/lib/stores/onboardingResultStore";
@@ -79,7 +79,12 @@ export function SubmittingBlock({ onNext }: OnboardingBlockProps) {
         </>
       ) : (
         <>
-          <ActivityIndicator size="large" color={colors.primary[500]} />
+          {/* Sugere um resumo de perfil sendo montado (avatar + linhas),
+              em vez de um bloco de card sem relação com o texto abaixo. */}
+          <View className="w-full max-w-[280px] items-center gap-4">
+            <SkeletonCircle size={56} />
+            <SkeletonText lines={3} lineHeight={14} gap={10} lastLineWidth="70%" />
+          </View>
           <Text className="text-center text-base font-sans text-neutral-600">
             Criando sua conta...
           </Text>

@@ -1,7 +1,7 @@
 import { Platform, Text, View } from "react-native";
 import type { ReactElement } from "react";
 import WebPullToRefresh from "react-simple-pull-to-refresh";
-import { LoadingDots } from "@/components/LoadingDots";
+import { SkeletonBlock } from "@/components/Skeleton";
 
 type Props = {
   onRefresh: () => void | Promise<unknown>;
@@ -53,8 +53,8 @@ export function PullToRefresh({ onRefresh, enabled = true, children }: Props) {
         </View>
       }
       refreshingContent={
-        <View className="items-center py-3">
-          <LoadingDots />
+        <View className="items-center px-4 py-3">
+          <SkeletonBlock width="100%" height={5} radius={3} />
         </View>
       }
     >

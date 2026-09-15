@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ErrorBanner, type ErrorBannerVariant } from "@/components/domain/ErrorBanner";
+import { ScanResultSkeleton } from "@/components/domain/ScanResultSkeleton";
 import { colors } from "@/lib/colors";
 import { useBarcodeProduct } from "@/lib/hooks/useBarcodeProduct";
 import { useCreateMealBarcode } from "@/lib/hooks/useCreateMealBarcode";
@@ -132,7 +133,7 @@ export default function ScanConfirmScreen() {
   if (isLoading) {
     return (
       <View className="flex-1 bg-neutral-50 justify-center items-center">
-        <ActivityIndicator size="large" color={colors.primary[400]} />
+        <ScanResultSkeleton />
         <Text className="mt-4 text-neutral-500 font-sans">Buscando produto...</Text>
       </View>
     );
@@ -141,7 +142,7 @@ export default function ScanConfirmScreen() {
   if (isNotFound || createMealText.isPending) {
     return (
       <View className="flex-1 bg-neutral-50 justify-center items-center">
-        <ActivityIndicator size="large" color={colors.primary[400]} />
+        <ScanResultSkeleton />
         <Text className="mt-4 text-neutral-500 font-sans text-center px-6">
           Não achamos esse código de barras na base. Deixa com a IA...
         </Text>

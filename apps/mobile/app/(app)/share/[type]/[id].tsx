@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Platform, Pressable, Text, View } from "react-native";
+import { Platform, Pressable, Text, View } from "react-native";
 import type { View as RNView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ChevronLeft, Download, Share2 } from "lucide-react-native";
 import { useQuery } from "@tanstack/react-query";
 import { ShareCard, type ShareCardData } from "@/components/domain/ShareCard";
+import { ShareCardSkeleton } from "@/components/domain/ShareCardSkeleton";
 import { captureCard, saveCardToGallery, shareCard, toDisplayableImageUri } from "@/lib/share-card";
 import { getMeal } from "@/lib/api/meals";
 import { fetchPost } from "@/lib/api/posts";
@@ -156,7 +157,7 @@ export default function ShareScreen() {
 
       <View className="flex-1 items-center justify-center px-4">
         {q.isLoading ? (
-          <ActivityIndicator color={colors.primary[400]} />
+          <ShareCardSkeleton />
         ) : q.data ? (
           <View ref={cardRef} collapsable={false}>
             <ShareCard data={q.data} />

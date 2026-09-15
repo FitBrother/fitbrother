@@ -1,6 +1,5 @@
 import { Fragment, useState } from "react";
 import {
-  ActivityIndicator,
   Platform,
   Pressable,
   RefreshControl,
@@ -20,7 +19,9 @@ import { useToast } from "@/lib/toast/toast-context";
 import { Button } from "@/components/Button";
 import { Avatar } from "@/components/Avatar";
 import { PullToRefresh } from "@/components/PullToRefresh";
+import { FriendRowSkeleton } from "@/components/domain/FriendRowSkeleton";
 import { LeaderboardLegend, LeaderboardRow } from "@/components/domain/LeaderboardRow";
+import { LeaderboardRowSkeleton } from "@/components/domain/LeaderboardRowSkeleton";
 import { BlockDivider, ListBlock } from "@/components/domain/ListBlock";
 import { profileInitials } from "@/lib/account-utils";
 import { unfollowUser } from "@/lib/api/users";
@@ -137,7 +138,7 @@ export function FriendsPanel() {
           <RefreshControl
             refreshing={following.isRefetching || leaderboard.isRefetching || streak.isRefetching}
             onRefresh={handleRefresh}
-            tintColor={colors.primary[400]}
+            tintColor={colors.neutral[400]}
           />
         }
       >
@@ -155,39 +156,45 @@ export function FriendsPanel() {
         />
 
         <ListBlock title="Ranking semanal" subtitle={<LeaderboardLegend />}>
-          {leaderboard.isLoading ? (
-            <View className="py-6">
-              <ActivityIndicator color={colors.primary[400]} />
-            </View>
-          ) : (
-            (leaderboard.data ?? []).map((row, i) => (
-              // Fragment com key porque cada pessoa rende duas coisas: o filete
-              // e a linha. Só a partir da segunda — a primeira encosta na borda
-              // de cima do card e não tem o que separar.
-              <Fragment key={row.user_id}>
-                {i > 0 ? <BlockDivider /> : null}
-                <LeaderboardRow
-                  userId={row.user_id}
-                  position={i + 1}
-                  fullName={row.full_name}
-                  // Weekly leaderboard is capped to a 7-day window. For "Você",
-                  // show the full streak value so it matches Home expectations.
-                  windowStreak={
-                    row.is_me && streak.data ? streak.data.streak.current_streak : row.window_streak
-                  }
-                  weeklyHits={row.weekly_hits}
-                  isMe={row.is_me}
-                />
-              </Fragment>
-            ))
-          )}
+          {leaderboard.isLoading
+            ? Array.from({ length: 5 }, (_, i) => (
+                <Fragment key={i}>
+                  {i > 0 ? <BlockDivider /> : null}
+                  <LeaderboardRowSkeleton />
+                </Fragment>
+              ))
+            : (leaderboard.data ?? []).map((row, i) => (
+                // Fragment com key porque cada pessoa rende duas coisas: o filete
+                // e a linha. Só a partir da segunda — a primeira encosta na borda
+                // de cima do card e não tem o que separar.
+                <Fragment key={row.user_id}>
+                  {i > 0 ? <BlockDivider /> : null}
+                  <LeaderboardRow
+                    userId={row.user_id}
+                    position={i + 1}
+                    fullName={row.full_name}
+                    // Weekly leaderboard is capped to a 7-day window. For "Você",
+                    // show the full streak value so it matches Home expectations.
+                    windowStreak={
+                      row.is_me && streak.data
+                        ? streak.data.streak.current_streak
+                        : row.window_streak
+                    }
+                    weeklyHits={row.weekly_hits}
+                    isMe={row.is_me}
+                  />
+                </Fragment>
+              ))}
         </ListBlock>
 
         <ListBlock title={`Seguindo (${following.data?.length ?? 0})`}>
           {following.isLoading ? (
-            <View className="py-6">
-              <ActivityIndicator color={colors.primary[400]} />
-            </View>
+            Array.from({ length: 5 }, (_, i) => (
+              <Fragment key={i}>
+                {i > 0 ? <BlockDivider /> : null}
+                <FriendRowSkeleton />
+              </Fragment>
+            ))
           ) : (following.data ?? []).length > 0 ? (
             (following.data ?? []).map((f, i) => (
               <Fragment key={f.user_id}>

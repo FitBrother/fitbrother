@@ -16,22 +16,15 @@ import {
   Users,
 } from "lucide-react-native";
 import { useEffect, useState, type ComponentType, type ReactNode } from "react";
-import {
-  ActivityIndicator,
-  Image,
-  Modal,
-  Platform,
-  Pressable,
-  ScrollView,
-  Text,
-  View,
-} from "react-native";
+import { Image, Modal, Platform, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { useDialog } from "@/lib/dialog/dialog-context";
 import { EmailConfirmationBanner } from "@/components/domain/EmailConfirmationBanner";
 import { PullToRefresh } from "@/components/PullToRefresh";
 import { InstallPrompt } from "@/components/domain/InstallPrompt";
+import { ProfileSkeleton } from "@/components/domain/ProfileSkeleton";
+import { SkeletonCircle } from "@/components/Skeleton";
 import { patchAccountAvatar } from "@/lib/api/account";
 import { profileInitials } from "@/lib/account-utils";
 import { colors } from "@/lib/colors";
@@ -126,8 +119,8 @@ export default function ProfileScreen() {
 
   if (account.isLoading) {
     return (
-      <SafeAreaView className="flex-1 items-center justify-center bg-canvas">
-        <ActivityIndicator color={colors.primary[400]} />
+      <SafeAreaView className="flex-1 bg-canvas md:mx-auto md:w-full md:max-w-[640px]">
+        <ProfileSkeleton />
       </SafeAreaView>
     );
   }
@@ -185,8 +178,8 @@ export default function ProfileScreen() {
                   <Text className="font-display-bold text-3xl text-primary-800">{initials}</Text>
                 )}
                 {avatarBusy ? (
-                  <View className="absolute inset-0 items-center justify-center bg-neutral-900/40">
-                    <ActivityIndicator color={colors.neutral[50]} />
+                  <View className="absolute inset-0 items-center justify-center">
+                    <SkeletonCircle size={96} />
                   </View>
                 ) : null}
               </View>
