@@ -8,16 +8,21 @@ import { getPostImageSignedUrl } from "@/lib/storage";
  * apenas a pasta do `auth.uid()`, então avatar de terceiros já chega assinado
  * pelo servidor (ver `apps/server/src/lib/avatars.ts`) e não passa por aqui.
  *
- * Falha de assinatura devolve `null` — o chamador cai nas iniciais.
+ * Retorno em três estados — `undefined` enquanto a assinatura ainda não
+ * voltou (chamador deve mostrar skeleton, não as iniciais), `null` quando
+ * confirmado que não há foto ou a assinatura falhou, e a URL nos demais
+ * casos. Sem essa distinção, todo primeiro carregamento mostrava as iniciais
+ * por um instante antes da foto de verdade aparecer.
  */
-export function useAvatarUrl(path: string | null | undefined): string | null {
-  const [url, setUrl] = useState<string | null>(null);
+export function useAvatarUrl(path: string | null | undefined): string | null | undefined {
+  const [url, setUrl] = useState<string | null | undefined>(path ? undefined : null);
 
   useEffect(() => {
     if (!path) {
       setUrl(null);
       return;
     }
+    setUrl(undefined);
     // `ativo` evita setState depois do unmount e descarta a resposta de um
     // caminho antigo que chegue atrasada depois da troca de foto.
     let ativo = true;

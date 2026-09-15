@@ -400,7 +400,12 @@ export function HomeHeader({
         {/* O wrapper carrega a sombra e repete o fundo do Avatar porque o
             `elevation` do Android não desenha sombra em View transparente. */}
         <View style={shadows.floating} className="rounded-full bg-primary-100">
-          <Avatar uri={avatarUrl} initials={initials} size={AVATAR_SIZE} />
+          <Avatar
+            uri={avatarUrl ?? null}
+            loading={avatarUrl === undefined}
+            initials={initials}
+            size={AVATAR_SIZE}
+          />
         </View>
       </Pressable>
     </View>

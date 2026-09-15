@@ -26,11 +26,20 @@ export function Avatar({
   initials,
   size = 44,
   accessibilityLabel = "Foto de perfil",
+  loading = false,
 }: {
   uri?: string | null;
   initials: string;
   size?: number;
   accessibilityLabel?: string;
+  /**
+   * Ainda não se sabe se há foto (ex.: URL assinada não voltou, upload em
+   * andamento) — mostra skeleton em vez de cair nas iniciais. `uri` some
+   * (`null`/`undefined`) só quer dizer "sem foto" quando `loading` é falso;
+   * antes dessa distinção, o avatar mostrava as iniciais por um instante no
+   * primeiro carregamento, mesmo quando o usuário tinha foto cadastrada.
+   */
+  loading?: boolean;
 }) {
   // Tamanho vai em `style` porque é dinâmico: o Tailwind gera classes
   // estáticas e não daria conta de um diâmetro vindo por prop.
@@ -48,7 +57,9 @@ export function Avatar({
       style={box}
       className="items-center justify-center overflow-hidden rounded-full bg-primary-100"
     >
-      {uri ? (
+      {loading ? (
+        <SkeletonCircle size={size} />
+      ) : uri ? (
         <>
           <Image
             testID="avatar-image"
