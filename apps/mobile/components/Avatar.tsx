@@ -51,11 +51,19 @@ export function Avatar({
   const [loaded, setLoaded] = useState(false);
   useEffect(() => setLoaded(false), [uri]);
 
+  // Fundo verde (`bg-primary-100`) é o encosto das iniciais, não uma cor de
+  // base do componente — em qualquer estado de loading (com ou sem `uri`
+  // ainda resolvida) o fundo fica neutro, pro skeleton por cima nunca
+  // aparecer sobre um verde.
+  const showingInitials = !loading && !uri;
+
   return (
     <View
       testID="avatar"
       style={box}
-      className="items-center justify-center overflow-hidden rounded-full bg-primary-100"
+      className={`items-center justify-center overflow-hidden rounded-full ${
+        showingInitials ? "bg-primary-100" : "bg-neutral-100"
+      }`}
     >
       {loading ? (
         <SkeletonCircle size={size} />
