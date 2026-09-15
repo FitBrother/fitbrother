@@ -29,6 +29,7 @@ import { Info } from "lucide-react-native";
 import { GOALS_DISCLAIMER_TEXT } from "@fitbrother/shared";
 import { reloadApp } from "@/lib/reload-app";
 import { useProfile } from "@/lib/profile/profile-context";
+import { useAvatarUrl } from "@/lib/hooks/useAvatarUrl";
 import { nutritionalToday } from "@/lib/time/nutritional-day";
 import { useMealsForDay } from "@/lib/hooks/useMealsForDay";
 import { useDailySummary } from "@/lib/hooks/useDailySummary";
@@ -136,6 +137,11 @@ function detectLocale(): string {
 export default function HomeScreen() {
   const router = useRouter();
   const profile = useProfile();
+  // Mesma query de HomeHeader/profile.tsx — inclui de propósito no gate de
+  // pending abaixo, pra a tela só sair do skeleton quando a foto (não só as
+  // refeições/resumo) já estiver pronta. Sem isso, o avatar podia continuar
+  // resolvendo depois que o resto da Home já tinha virado real.
+  const avatarUrl = useAvatarUrl(profile.avatar_url);
   const day = nutritionalToday(profile);
   const mealsQuery = useMealsForDay(day);
   const createMeal = useCreateMealText();
@@ -657,7 +663,11 @@ export default function HomeScreen() {
   // vira real de uma vez. Trocar de aba depois disso (Feed/Análises) é que
   // usa skeleton só no conteúdo da aba — o header/composer já são reais e
   // estáveis nesse ponto.
-  if (mealsQuery.isPending || summaryQuery.isPending) {
+  //
+  // `avatarUrl === undefined` entra na mesma condição: sem foto (`null`) não
+  // segura nada, mas com foto ela some do gate assim que resolver — junto
+  // com meals/summary, não depois.
+  if (mealsQuery.isPending || summaryQuery.isPending || avatarUrl === undefined) {
     return (
       <SafeAreaView className="flex-1 bg-neutral-50" edges={["top", "left", "right"]}>
         <HomeSkeleton />
