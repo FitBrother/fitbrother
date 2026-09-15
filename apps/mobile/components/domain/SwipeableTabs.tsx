@@ -1,4 +1,4 @@
-import { Children, useEffect } from "react";
+import { Children, useEffect, useState } from "react";
 import { useWindowDimensions, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
@@ -83,6 +83,15 @@ export function SwipeableTabs({
   const scenes = Children.toArray(children);
   const count = scenes.length;
 
+  // Cada cena só monta (e só então dispara suas próprias queries) na
+  // primeira vez que fica ativa — sem isso, todas as abas carregavam de
+  // uma vez no mount da Home, mesmo as que o usuário nunca visitou. Uma vez
+  // montada, permanece: trocar de aba não deve perder o scroll/estado dela.
+  const [visited, setVisited] = useState<ReadonlySet<number>>(() => new Set([index]));
+  useEffect(() => {
+    setVisited((prev) => (prev.has(index) ? prev : new Set(prev).add(index)));
+  }, [index]);
+
   const translateX = useSharedValue(-index * width);
   const startX = useSharedValue(0);
   // Espelho do índice em shared value: o worklet do gesto lê este valor em vez
@@ -139,7 +148,7 @@ export function SwipeableTabs({
       <Animated.View style={[{ flex: 1, flexDirection: "row", width: width * count }, style]}>
         {scenes.map((scene, i) => (
           <View key={i} style={{ width, flexShrink: 0 }}>
-            {scene}
+            {visited.has(i) ? scene : null}
           </View>
         ))}
       </Animated.View>

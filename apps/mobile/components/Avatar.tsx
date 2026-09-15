@@ -1,4 +1,6 @@
+import { useEffect, useState } from "react";
 import { Image, Text, View } from "react-native";
+import { SkeletonCircle } from "@/components/Skeleton";
 
 /**
  * Proporção entre o diâmetro do avatar e o tamanho das iniciais do fallback.
@@ -34,6 +36,12 @@ export function Avatar({
   // estáticas e não daria conta de um diâmetro vindo por prop.
   const box = { width: size, height: size, borderRadius: size / 2 };
 
+  // A foto em si (não a query que trouxe a URL) pode levar um tempo pra
+  // baixar — sem isso, o círculo ficava transparente até o download
+  // terminar, e a imagem "estourava" na tela do nada.
+  const [loaded, setLoaded] = useState(false);
+  useEffect(() => setLoaded(false), [uri]);
+
   return (
     <View
       testID="avatar"
@@ -41,12 +49,18 @@ export function Avatar({
       className="items-center justify-center overflow-hidden rounded-full bg-primary-100"
     >
       {uri ? (
-        <Image
-          testID="avatar-image"
-          source={{ uri }}
-          style={box}
-          accessibilityLabel={accessibilityLabel}
-        />
+        <>
+          <Image
+            testID="avatar-image"
+            source={{ uri }}
+            style={box}
+            accessibilityLabel={accessibilityLabel}
+            onLoad={() => setLoaded(true)}
+          />
+          {!loaded && (
+            <SkeletonCircle size={size} style={{ position: "absolute", top: 0, left: 0 }} />
+          )}
+        </>
       ) : (
         <Text
           testID="avatar-initials"

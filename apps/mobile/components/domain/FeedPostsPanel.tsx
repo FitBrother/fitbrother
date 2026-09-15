@@ -94,7 +94,7 @@ export function FeedPostsPanel() {
   // O `?? []` mora DENTRO do useMemo: fora dele, cada render criaria um array
   // novo e a dependência mudaria sempre, remontando a lista inteira à toa.
   const rows = useMemo(() => {
-    const posts = feed.data ?? [];
+    const posts = feed.data?.pages.flatMap((page) => page.posts) ?? [];
     return numColumns === 1
       ? withSectionHeaders(posts)
       : posts.map((post): FeedRow => ({ kind: "post", key: post.id, post }));
@@ -137,6 +137,13 @@ export function FeedPostsPanel() {
               </View>
             )
           }
+          onEndReached={() => {
+            if (feed.hasNextPage && !feed.isFetchingNextPage) {
+              void feed.fetchNextPage();
+            }
+          }}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={feed.isFetchingNextPage ? <FeedPostSkeleton /> : null}
         />
       </PullToRefresh>
     </View>

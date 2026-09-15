@@ -5,6 +5,7 @@ import {
   LikeResponseSchema,
   PostResponseSchema,
   type Comment,
+  type FeedResponse,
   type LikeResponse,
   type Post,
 } from "@fitbrother/shared";
@@ -20,10 +21,11 @@ async function parseOrThrow(res: Response): Promise<unknown> {
   throw err;
 }
 
-export async function fetchFeed(): Promise<Post[]> {
-  const res = await authedFetch("/feed");
+export async function fetchFeed(before?: string): Promise<FeedResponse> {
+  const qs = before ? `?before=${encodeURIComponent(before)}` : "";
+  const res = await authedFetch(`/feed${qs}`);
   const body = await parseOrThrow(res);
-  return FeedResponseSchema.parse(body).posts;
+  return FeedResponseSchema.parse(body);
 }
 
 export async function createPost(input: {
