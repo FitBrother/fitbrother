@@ -398,8 +398,14 @@ export function HomeHeader({
         accessibilityRole="button"
       >
         {/* O wrapper carrega a sombra e repete o fundo do Avatar porque o
-            `elevation` do Android não desenha sombra em View transparente. */}
-        <View style={shadows.floating} className="rounded-full bg-primary-100">
+            `elevation` do Android não desenha sombra em View transparente —
+            precisa bater com o fundo real do Avatar (verde só quando vai
+            mostrar iniciais de fato), senão sobra um aro verde na borda
+            enquanto a foto ainda carrega. */}
+        <View
+          style={shadows.floating}
+          className={`rounded-full ${avatarUrl === null ? "bg-primary-100" : "bg-neutral-100"}`}
+        >
           <Avatar
             uri={avatarUrl ?? null}
             loading={avatarUrl === undefined}

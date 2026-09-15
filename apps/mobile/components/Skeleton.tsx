@@ -52,7 +52,17 @@ export function SkeletonBlock({
     <Animated.View
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
-      style={[{ width, height, borderRadius: radius }, animatedStyle, style]}
+      // `backgroundColor: neutral[100]` já no style base (não só no
+      // `animatedStyle`): o Reanimated aplica o estilo animado um frame
+      // depois do primeiro paint, e sem essa cor de partida o bloco nascia
+      // transparente — deixava o que estivesse atrás (ex.: o `bg-primary-100`
+      // do Avatar) aparecer por um instante antes do cinza "vestir" o
+      // skeleton.
+      style={[
+        { width, height, borderRadius: radius, backgroundColor: colors.neutral[100] },
+        animatedStyle,
+        style,
+      ]}
     />
   );
 }
