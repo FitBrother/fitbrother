@@ -1,4 +1,4 @@
-import { Image } from "react-native";
+import { Image } from "expo-image";
 import { useQuery } from "@tanstack/react-query";
 import { getPostImageSignedUrl } from "@/lib/storage";
 
@@ -15,7 +15,14 @@ export async function resolveAvatarUrl(path: string): Promise<string> {
   // com a Home esperando a URL. `.catch` porque falha no prefetch (rede,
   // formato) não deve derrubar a URL, que ainda é válida pro <Image> tentar
   // de novo sozinho.
-  await Image.prefetch(url).catch(() => {});
+  //
+  // `expo-image`, não o `Image` do react-native: o prefetch nativo do RN não
+  // garante compartilhar cache com o <Image> real de forma confiável entre
+  // plataformas — o componente ainda podia levar um tempo perceptível pra
+  // disparar `onLoad` mesmo com os bytes já baixados, e a foto continuava
+  // "aparecendo depois" do resto da Home. `expo-image` usa o mesmo pipeline
+  // de cache pro prefetch e pro componente (ver `components/Avatar.tsx`).
+  await Image.prefetch(url, "memory-disk").catch(() => {});
   return url;
 }
 

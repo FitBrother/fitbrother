@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Image, Text, View } from "react-native";
+import { Image } from "expo-image";
+import { Text, View } from "react-native";
 import { SkeletonCircle } from "@/components/Skeleton";
 
 /**
@@ -80,6 +81,8 @@ export function Avatar({
             source={{ uri }}
             style={box}
             accessibilityLabel={accessibilityLabel}
+            cachePolicy="memory-disk"
+            recyclingKey={stableUri}
             onLoad={() => setLoaded(true)}
           />
           {!loaded && (
