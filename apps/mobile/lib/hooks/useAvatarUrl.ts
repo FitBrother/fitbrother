@@ -1,8 +1,22 @@
+import { Image } from "react-native";
 import { useQuery } from "@tanstack/react-query";
 import { getPostImageSignedUrl } from "@/lib/storage";
 
 export function avatarUrlKey(path: string) {
   return ["avatar-url", path] as const;
+}
+
+/** Assina a URL e já baixa os bytes da foto antes de considerá-la "pronta" — ver doc de `useAvatarUrl`. */
+export async function resolveAvatarUrl(path: string): Promise<string> {
+  const url = await getPostImageSignedUrl(path);
+  // Sem isso, a URL contava como "resolvida" assim que a assinatura voltava,
+  // mas o download da imagem em si só começava quando o <Image> real
+  // montava — e a foto aparecia um instante depois do resto da tela mesmo
+  // com a Home esperando a URL. `.catch` porque falha no prefetch (rede,
+  // formato) não deve derrubar a URL, que ainda é válida pro <Image> tentar
+  // de novo sozinho.
+  await Image.prefetch(url).catch(() => {});
+  return url;
 }
 
 /**
@@ -18,15 +32,16 @@ export function avatarUrlKey(path: string) {
  * isso, a assinatura só começava quando o header aparecia, e a foto do
  * avatar sempre chegava um instante depois do resto da tela.
  *
- * Retorno em três estados — `undefined` enquanto a assinatura ainda não
- * voltou (chamador deve mostrar skeleton, não as iniciais), `null` quando
+ * Retorno em três estados — `undefined` enquanto a assinatura (+ o
+ * pré-carregamento dos bytes, ver `resolveAvatarUrl`) ainda não voltou
+ * (chamador deve mostrar skeleton, não as iniciais), `null` quando
  * confirmado que não há foto ou a assinatura falhou, e a URL nos demais
  * casos.
  */
 export function useAvatarUrl(path: string | null | undefined): string | null | undefined {
   const query = useQuery({
     queryKey: avatarUrlKey(path ?? ""),
-    queryFn: () => getPostImageSignedUrl(path as string),
+    queryFn: () => resolveAvatarUrl(path as string),
     enabled: Boolean(path),
   });
 

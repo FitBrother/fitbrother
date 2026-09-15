@@ -29,12 +29,12 @@ import { patchAccountAvatar } from "@/lib/api/account";
 import { profileInitials } from "@/lib/account-utils";
 import { colors } from "@/lib/colors";
 import { accountProfileKey, useAccountProfile } from "@/lib/hooks/useAccountProfile";
-import { avatarUrlKey, useAvatarUrl } from "@/lib/hooks/useAvatarUrl";
+import { avatarUrlKey, resolveAvatarUrl, useAvatarUrl } from "@/lib/hooks/useAvatarUrl";
 import { backOrHome } from "@/lib/navigation";
 import { useProfileActions } from "@/lib/profile/profile-context";
 import { shadows } from "@/lib/shadows";
 import { reloadApp } from "@/lib/reload-app";
-import { getPostImageSignedUrl, uploadAvatar } from "@/lib/storage";
+import { uploadAvatar } from "@/lib/storage";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/lib/toast/toast-context";
 
@@ -87,7 +87,7 @@ export default function ProfileScreen() {
       // só a URL assinada muda (token novo). Empurra ela direto no cache
       // compartilhado: invalidar a query sozinha não bastaria, porque a
       // chave (o path) continua igual e nada disparava um refetch.
-      queryClient.setQueryData(avatarUrlKey(path), await getPostImageSignedUrl(path));
+      queryClient.setQueryData(avatarUrlKey(path), await resolveAvatarUrl(path));
       toast({ variant: "success", message: "Foto atualizada" });
     } catch {
       toast({ variant: "error", message: "Não foi possível atualizar a foto" });
