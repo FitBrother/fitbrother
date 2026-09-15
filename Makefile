@@ -23,7 +23,18 @@
 # `--ignore-scripts` evita o `prepare` (husky) do package.json raiz, que
 # depende de um repo git que não existe dentro do build isolado.
 # `--prefer-offline --no-audit --no-fund` evita round-trips de rede que não
-# mudam o resultado do build.
+# mudam o resultado do build — esse primeiro install resolve contra o
+# lockfile de verdade (package-lock.json), então "confiar no cache sem
+# checar a registry" é seguro.
+#
+# O segundo install (linha abaixo, dentro do pacote isolado da Lambda) NÃO
+# leva `--prefer-offline`: ali não existe lockfile nenhum — o `npm install`
+# resolve a árvore de dependências do zero a cada build — e servir esse
+# resolve a partir de um cache do npm restaurado (possivelmente
+# desatualizado ou corrompido) já causou `npm error Cannot read properties
+# of null (reading 'edgesOut')` num run real. Sem a flag, o npm ainda usa os
+# tarballs do cache quando o hash bate, só não deixa de validar a resolução
+# contra a registry.
 
 build-ApiFunction build-StreakTickFunction build-StreakAlertFunction \
 build-GoalReminderFunction build-DispatchNotificationFunction \
@@ -39,4 +50,4 @@ build-PurgeAbandonedSignupsFunction:
 	cp packages/shared/package.json "$(ARTIFACTS_DIR)/packages/shared/package.json"
 	cp -R packages/db-types/. "$(ARTIFACTS_DIR)/packages/db-types/"
 	node scripts/lambda-package-json.mjs apps/server/package.json "$(ARTIFACTS_DIR)/package.json"
-	cd "$(ARTIFACTS_DIR)" && npm install --omit=dev --no-audit --no-fund --prefer-offline --ignore-scripts
+	cd "$(ARTIFACTS_DIR)" && npm install --omit=dev --no-audit --no-fund --ignore-scripts

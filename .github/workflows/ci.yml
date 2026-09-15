@@ -121,7 +121,15 @@ jobs:
           # aqui (~/.npm, keyed pelo hash do lockfile) evita baixar da
           # registry tudo de novo a cada run, que era o maior custo do job
           # (SAM build sozinho passava de 3min50s numa run sem cache).
-          cache-dependency-path: package-lock.json
+          #
+          # apps/server/package.json entra na chave junto: é de lá que sai o
+          # segundo `npm install` do Makefile (pacote isolado da Lambda, sem
+          # lockfile próprio) — sem isso, mudar uma dependência do server não
+          # invalidava esse cache, só uma mudança no lockfile da raiz.
+          # (Bônus: também é o que força a troca de chave/cache novo abaixo.)
+          cache-dependency-path: |
+            package-lock.json
+            apps/server/package.json
 
       - uses: aws-actions/configure-aws-credentials@v4
         with:
