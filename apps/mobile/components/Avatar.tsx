@@ -49,7 +49,13 @@ export function Avatar({
   // baixar — sem isso, o círculo ficava transparente até o download
   // terminar, e a imagem "estourava" na tela do nada.
   const [loaded, setLoaded] = useState(false);
-  useEffect(() => setLoaded(false), [uri]);
+  // Reseta só quando o ARQUIVO muda (path antes do `?`), não a URL inteira —
+  // uma reassinatura em background troca apenas o token (`?token=...`) do
+  // mesmo objeto no Storage. Resetar em cada token novo reexibia o skeleton
+  // por cima de uma foto que já estava carregada, fazendo o avatar "piscar"
+  // toda vez que o app voltava do background.
+  const stableUri = uri?.split("?")[0];
+  useEffect(() => setLoaded(false), [stableUri]);
 
   // Fundo verde (`bg-primary-100`) é o encosto das iniciais, não uma cor de
   // base do componente — em qualquer estado de loading (com ou sem `uri`
