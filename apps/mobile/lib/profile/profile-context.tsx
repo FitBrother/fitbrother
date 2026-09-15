@@ -1,8 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { getMe } from "@/lib/api";
-import { avatarUrlKey } from "@/lib/hooks/useAvatarUrl";
-import { getPostImageSignedUrl } from "@/lib/storage";
+import { avatarUrlKey, resolveAvatarUrl } from "@/lib/hooks/useAvatarUrl";
 import type { Profile } from "./types";
 
 type State =
@@ -32,16 +31,16 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
       const data = (await getMe()) as { profile: Profile } | null;
       const profile = data?.profile ?? null;
       setState(profile ? { status: "ready", profile } : { status: "missing" });
-      // Dispara a assinatura do avatar em paralelo com o resto do loading
-      // inicial (mealsQuery/summaryQuery), em vez de só começar quando o
-      // HomeHeader monta — é o que faz a foto já estar pronta (ou quase)
-      // assim que a tela deixa de ser skeleton. `useAvatarUrl` lê da mesma
-      // chave.
+      // Dispara a assinatura + o download da foto em paralelo com o resto do
+      // loading inicial (mealsQuery/summaryQuery), em vez de só começar
+      // quando o HomeHeader monta — é o que faz a foto já estar pronta (não
+      // só a URL) assim que a tela deixa de ser skeleton. `useAvatarUrl` lê
+      // da mesma chave.
       if (profile?.avatar_url) {
         const path = profile.avatar_url;
         void queryClient.prefetchQuery({
           queryKey: avatarUrlKey(path),
-          queryFn: () => getPostImageSignedUrl(path),
+          queryFn: () => resolveAvatarUrl(path),
         });
       }
     } catch (e) {
