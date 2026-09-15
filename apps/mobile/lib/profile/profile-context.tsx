@@ -1,5 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { getMe } from "@/lib/api";
+import { avatarUrlKey } from "@/lib/hooks/useAvatarUrl";
+import { getPostImageSignedUrl } from "@/lib/storage";
 import type { Profile } from "./types";
 
 type State =
@@ -21,6 +24,7 @@ const ProfileContext = createContext<ContextValue>({
 
 export function ProfileProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<State>({ status: "loading" });
+  const queryClient = useQueryClient();
 
   const load = useCallback(async () => {
     try {
@@ -28,13 +32,25 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
       const data = (await getMe()) as { profile: Profile } | null;
       const profile = data?.profile ?? null;
       setState(profile ? { status: "ready", profile } : { status: "missing" });
+      // Dispara a assinatura do avatar em paralelo com o resto do loading
+      // inicial (mealsQuery/summaryQuery), em vez de só começar quando o
+      // HomeHeader monta — é o que faz a foto já estar pronta (ou quase)
+      // assim que a tela deixa de ser skeleton. `useAvatarUrl` lê da mesma
+      // chave.
+      if (profile?.avatar_url) {
+        const path = profile.avatar_url;
+        void queryClient.prefetchQuery({
+          queryKey: avatarUrlKey(path),
+          queryFn: () => getPostImageSignedUrl(path),
+        });
+      }
     } catch (e) {
       setState({
         status: "error",
         message: e instanceof Error ? e.message : "profile_load_failed",
       });
     }
-  }, []);
+  }, [queryClient]);
 
   useEffect(() => {
     void load();
