@@ -1,7 +1,8 @@
 import { Redirect, Stack, useRouter } from "expo-router";
 import { useEffect } from "react";
 import { View } from "react-native";
-import { AppShellSkeleton } from "@/components/AppShellSkeleton";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { HomeSkeleton } from "@/components/domain/HomeSkeleton";
 import { ScreenFade } from "@/components/ScreenFade";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { supabase } from "@/lib/supabase";
@@ -40,7 +41,14 @@ function GuardedStack() {
   }, [state.status]);
 
   if (state.status === "loading") {
-    return <AppShellSkeleton />;
+    // Mesmo raciocínio do gate em app/index.tsx: usar o skeleton da Home (o
+    // destino padrão desta stack) em vez de uma casca genérica, pra não
+    // trocar de formato de skeleton assim que a Home montar.
+    return (
+      <SafeAreaView className="flex-1 bg-neutral-50" edges={["top", "left", "right"]}>
+        <HomeSkeleton />
+      </SafeAreaView>
+    );
   }
   if (state.status === "missing") {
     return <Redirect href="/(onboarding)" />;
