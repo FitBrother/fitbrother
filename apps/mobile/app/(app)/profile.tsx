@@ -16,15 +16,15 @@ import {
   Users,
 } from "lucide-react-native";
 import { useEffect, useState, type ComponentType, type ReactNode } from "react";
-import { Image, Modal, Platform, Pressable, ScrollView, Text, View } from "react-native";
+import { Modal, Platform, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Avatar } from "@/components/Avatar";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { useDialog } from "@/lib/dialog/dialog-context";
 import { EmailConfirmationBanner } from "@/components/domain/EmailConfirmationBanner";
 import { PullToRefresh } from "@/components/PullToRefresh";
 import { InstallPrompt } from "@/components/domain/InstallPrompt";
 import { ProfileSkeleton } from "@/components/domain/ProfileSkeleton";
-import { SkeletonCircle } from "@/components/Skeleton";
 import { patchAccountAvatar } from "@/lib/api/account";
 import { profileInitials } from "@/lib/account-utils";
 import { colors } from "@/lib/colors";
@@ -46,7 +46,11 @@ export default function ProfileScreen() {
   const dialog = useDialog();
   const account = useAccountProfile();
   const { update } = useProfileActions();
-  const [avatarUri, setAvatarUri] = useState<string | null>(null);
+  // `undefined` = ainda resolvendo a URL assinada (mostra skeleton);
+  // `null` = perfil confirmado sem foto (mostra iniciais). Sem essa
+  // distinção, o primeiro load sempre mostrava as iniciais por um instante
+  // antes da foto de verdade aparecer.
+  const [avatarUri, setAvatarUri] = useState<string | null | undefined>(undefined);
   const [avatarBusy, setAvatarBusy] = useState(false);
   const [avatarModal, setAvatarModal] = useState<"actions" | "confirm-remove" | null>(null);
   const [logoutConfirm, setLogoutConfirm] = useState(false);
@@ -59,6 +63,7 @@ export default function ProfileScreen() {
       setAvatarUri(null);
       return;
     }
+    setAvatarUri(undefined);
     void getPostImageSignedUrl(profile.avatar_url)
       .then((url) => active && setAvatarUri(url))
       .catch(() => active && setAvatarUri(null));
@@ -167,22 +172,13 @@ export default function ProfileScreen() {
               accessibilityLabel="Opções da foto do perfil"
               className="relative h-24 w-24"
             >
-              <View className="h-24 w-24 items-center justify-center overflow-hidden rounded-full bg-primary-100">
-                {avatarUri ? (
-                  <Image
-                    source={{ uri: avatarUri }}
-                    className="h-24 w-24"
-                    accessibilityLabel="Foto do perfil"
-                  />
-                ) : (
-                  <Text className="font-display-bold text-3xl text-primary-800">{initials}</Text>
-                )}
-                {avatarBusy ? (
-                  <View className="absolute inset-0 items-center justify-center">
-                    <SkeletonCircle size={96} />
-                  </View>
-                ) : null}
-              </View>
+              <Avatar
+                uri={avatarUri ?? null}
+                loading={avatarUri === undefined || avatarBusy}
+                initials={initials}
+                size={96}
+                accessibilityLabel="Foto do perfil"
+              />
               <View className="absolute bottom-0 right-0 h-9 w-9 items-center justify-center rounded-full bg-primary-400">
                 <Camera size={18} color={colors.neutral[50]} />
               </View>

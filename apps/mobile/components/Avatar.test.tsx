@@ -34,4 +34,14 @@ describe("Avatar", () => {
 
     expect(getByTestId("avatar")).toHaveStyle({ width: 64, height: 64, borderRadius: 32 });
   });
+
+  // Bug relatado: no primeiro load, o avatar mostrava as iniciais por um
+  // instante antes da URL assinada voltar, mesmo com foto cadastrada — porque
+  // "ainda não sei" e "confirmado sem foto" eram o mesmo `null`/`undefined`.
+  test("loading mostra skeleton em vez das iniciais, mesmo sem uri ainda", () => {
+    const { queryByTestId } = render(<Avatar initials="AS" loading />);
+
+    expect(queryByTestId("avatar-initials")).toBeNull();
+    expect(queryByTestId("avatar-image")).toBeNull();
+  });
 });
