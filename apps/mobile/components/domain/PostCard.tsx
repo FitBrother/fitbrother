@@ -9,6 +9,7 @@ import { profileInitials } from "@/lib/account-utils";
 import { getPostImageSignedUrl } from "@/lib/storage";
 import { relativeTime } from "@/lib/social/post-format";
 import { Avatar } from "@/components/Avatar";
+import { SkeletonBlock } from "@/components/Skeleton";
 import { MacroSplitBar } from "./MacroSplitBar";
 import { LikeButton } from "./LikeButton";
 
@@ -20,22 +21,43 @@ export function PostCard({ post }: { post: Post }) {
   const username = post.author.username ? `@${post.author.username}` : "";
   const achievement = post.post_type === "achievement" ? post.achievement : null;
   const [imageUrl, setImageUrl] = useState<string | null>(null);
+  // Distingue "ainda buscando a URL assinada" de "buscou e não há foto" —
+  // sem isso, uma falha na assinatura deixava a área da imagem vazia mas sem
+  // fechar o skeleton, que ficava girando pra sempre.
+  const [imageChecked, setImageChecked] = useState(false);
+  // A URL assinada resolver não significa que os pixels já chegaram — o
+  // download em si pode demorar, e sem isso a foto "estourava" na tela do
+  // nada assim que terminava.
+  const [imageLoaded, setImageLoaded] = useState(false);
 
   useEffect(() => {
     let active = true;
+    setImageChecked(false);
+    setImageLoaded(false);
+    setImageUrl(null);
     if (post.image_path) {
       getPostImageSignedUrl(post.image_path)
         .then((url) => {
-          if (active) setImageUrl(url);
+          if (!active) return;
+          setImageUrl(url);
+          setImageChecked(true);
         })
         .catch(() => {
-          if (active) setImageUrl(null);
+          if (active) setImageChecked(true);
         });
+    } else {
+      setImageChecked(true);
     }
     return () => {
       active = false;
     };
   }, [post.image_path]);
+
+  // Reserva a área da foto enquanto ainda não sabemos se ela existe (evita o
+  // "pulo" de layout quando a URL assinada chega) ou enquanto já sabemos que
+  // existe uma. Sem foto de fato (checado e sem URL), não reserva nada — igual
+  // ao comportamento de antes.
+  const hasImageArea = Boolean(post.image_path) && (!imageChecked || Boolean(imageUrl));
 
   function abrirPost() {
     router.push(`/(app)/post/${post.id}` as never);
@@ -85,13 +107,26 @@ export function PostCard({ post }: { post: Post }) {
         <Text className="mt-3 text-base font-sans text-neutral-800">{post.caption}</Text>
       ) : null}
 
-      {imageUrl ? (
-        <Image
-          source={{ uri: imageUrl }}
-          accessibilityIgnoresInvertColors
-          className="mt-3 h-64 w-full rounded-2xl"
-          resizeMode="cover"
-        />
+      {hasImageArea ? (
+        <View className="relative mt-3 h-64 w-full overflow-hidden rounded-2xl">
+          {imageUrl && (
+            <Image
+              source={{ uri: imageUrl }}
+              accessibilityIgnoresInvertColors
+              style={{ width: "100%", height: "100%" }}
+              resizeMode="cover"
+              onLoad={() => setImageLoaded(true)}
+            />
+          )}
+          {(!imageChecked || !imageLoaded) && (
+            <SkeletonBlock
+              width="100%"
+              height={256}
+              radius={16}
+              style={{ position: "absolute", top: 0, left: 0 }}
+            />
+          )}
+        </View>
       ) : null}
 
       {achievement ? (

@@ -1,14 +1,34 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import type { Post } from "@fitbrother/shared";
+import { useMutation, useQueryClient, type InfiniteData } from "@tanstack/react-query";
+import type { FeedResponse, Post } from "@fitbrother/shared";
 import { setLike } from "@/lib/api/posts";
 import { feedKey } from "./useFeed";
 import { postKey } from "./usePost";
+
+type FeedPages = InfiniteData<FeedResponse>;
 
 function aplicarLike(post: Post, liked: boolean): Post {
   return {
     ...post,
     liked_by_me: liked,
     like_count: Math.max(0, post.like_count + (liked ? 1 : -1)),
+  };
+}
+
+// `feed` agora é paginado (useInfiniteQuery): o cache é `{ pages, pageParams }`,
+// não mais um array — o update otimista precisa mapear post-a-post dentro de
+// cada página em vez de um único `.map` na lista inteira.
+function aplicarLikeNoFeed(
+  data: FeedPages | undefined,
+  postId: string,
+  liked: boolean,
+): FeedPages | undefined {
+  if (!data) return data;
+  return {
+    ...data,
+    pages: data.pages.map((page) => ({
+      ...page,
+      posts: page.posts.map((p) => (p.id === postId ? aplicarLike(p, liked) : p)),
+    })),
   };
 }
 
@@ -31,12 +51,10 @@ export function useToggleLike() {
         qc.cancelQueries({ queryKey: postKey(postId) }),
       ]);
 
-      const prevFeed = qc.getQueryData<Post[]>(feedKey);
+      const prevFeed = qc.getQueryData<FeedPages>(feedKey);
       const prevPost = qc.getQueryData<Post>(postKey(postId));
 
-      qc.setQueryData<Post[]>(feedKey, (old) =>
-        (old ?? []).map((p) => (p.id === postId ? aplicarLike(p, liked) : p)),
-      );
+      qc.setQueryData<FeedPages>(feedKey, (old) => aplicarLikeNoFeed(old, postId, liked));
       qc.setQueryData<Post>(postKey(postId), (old) => (old ? aplicarLike(old, liked) : old));
 
       return { prevFeed, prevPost, postId };

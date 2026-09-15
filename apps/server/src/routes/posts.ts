@@ -1,5 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { z } from "zod";
 import {
   CommentSchema,
   CommentsResponseSchema,
@@ -13,6 +14,15 @@ import { authRequired } from "../lib/auth.js";
 import { internalError } from "../lib/errors.js";
 import { attachAuthors, likedPostIds, POST_SELECT, type PostRow } from "../lib/posts.js";
 import { supabaseService } from "../lib/supabase.js";
+
+const FEED_PAGE_SIZE = 20;
+
+const feedQuerySchema = z.object({
+  // Cursor: created_at do último post já visto pelo cliente — a próxima
+  // página traz só posts mais antigos que ele.
+  before: z.string().datetime({ offset: true }).optional(),
+  limit: z.coerce.number().int().min(1).max(50).optional(),
+});
 
 export async function postsRoutes(app: FastifyInstance) {
   app.addHook("preHandler", authRequired);
@@ -112,6 +122,12 @@ export async function postsRoutes(app: FastifyInstance) {
   });
 
   app.get("/feed", async (req, reply) => {
+    const parsedQuery = feedQuerySchema.safeParse(req.query);
+    if (!parsedQuery.success) {
+      return reply.code(400).send({ error: parsedQuery.error.issues[0]?.message ?? "bad_query" });
+    }
+    const { before, limit = FEED_PAGE_SIZE } = parsedQuery.data;
+
     const userId = req.user!.id;
     const admin = supabaseService();
 
@@ -124,13 +140,15 @@ export async function postsRoutes(app: FastifyInstance) {
     }
 
     const network = [userId, ...((follows ?? []).map((f) => f.followee_id) as string[])];
-    const { data, error } = await admin
+    let query = admin
       .from("posts")
       .select(POST_SELECT)
       .in("user_id", network)
       .is("deleted_at", null)
       .order("created_at", { ascending: false })
-      .limit(50);
+      .limit(limit);
+    if (before) query = query.lt("created_at", before);
+    const { data, error } = await query;
 
     if (error) {
       return internalError(reply, req.log, error, { where: "feed_posts" });
@@ -143,7 +161,9 @@ export async function postsRoutes(app: FastifyInstance) {
       rows.map((r) => r.id),
     );
     const posts = await attachAuthors(rows, likedSet);
-    return reply.send({ posts });
+    // Página cheia -> provavelmente há mais; incompleta -> chegou ao fim.
+    const nextCursor = rows.length === limit ? rows[rows.length - 1]!.created_at : null;
+    return reply.send({ posts, next_cursor: nextCursor });
   });
 
   app.get<{ Params: { id: string } }>("/posts/:id", async (req, reply) => {

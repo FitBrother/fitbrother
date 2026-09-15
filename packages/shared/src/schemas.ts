@@ -532,6 +532,8 @@ export type Post = z.infer<typeof PostSchema>;
 
 export const FeedResponseSchema = z.object({
   posts: z.array(PostSchema),
+  /** `created_at` do último post da página — passe em `?before=` pra pedir a próxima. `null` quando não há mais. */
+  next_cursor: z.string().nullable(),
 });
 export type FeedResponse = z.infer<typeof FeedResponseSchema>;
 
