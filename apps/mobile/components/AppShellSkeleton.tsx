@@ -5,10 +5,11 @@ import { shadows } from "@/lib/shadows";
 
 /**
  * "Casca" genérica do app: barra de topo (avatar + título) + cards vazios.
- * Usado nos gates de auth/perfil (app/index.tsx, (app)/_layout.tsx,
- * auth-callback.tsx) — nesse ponto ainda não se sabe pra qual tela o usuário
- * vai cair, então mostrar a estrutura comum do shell é mais honesto do que
- * tentar adivinhar o conteúdo final.
+ * Usado no callback de OAuth (auth-callback.tsx), onde o destino final
+ * ainda é desconhecido. Os gates de auth/perfil (app/index.tsx,
+ * (app)/_layout.tsx) usam `HomeSkeleton` em vez deste — a Home é o destino
+ * esmagador da maioria dos acessos, e reaproveitar sua forma evita um
+ * flash de dois formatos de skeleton diferentes em sequência.
  */
 export function AppShellSkeleton() {
   return (

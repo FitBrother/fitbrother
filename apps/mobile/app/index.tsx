@@ -2,7 +2,7 @@ import { Redirect } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { AppShellSkeleton } from "@/components/AppShellSkeleton";
+import { HomeSkeleton } from "@/components/domain/HomeSkeleton";
 import { AccountDeletionPendingError, getMe } from "@/lib/api";
 import { friendlyApiError } from "@/lib/errors";
 import { useAuthSession } from "@/lib/hooks/useAuthSession";
@@ -49,7 +49,15 @@ export default function Index() {
   }, [auth.status, fetchMe]);
 
   if (auth.status === "loading" || (auth.status === "signed_in" && profile.kind === "checking")) {
-    return <AppShellSkeleton />;
+    // Home é o destino esmagador da maioria dos acessos (usuário já
+    // onboardado reabrindo o app) — usar o skeleton da Home aqui, e não uma
+    // casca genérica, evita o "pisca-pisca" de dois formatos de skeleton
+    // diferentes em sequência quando o redirect pra /(app) acontece.
+    return (
+      <SafeAreaView className="flex-1 bg-neutral-50" edges={["top", "left", "right"]}>
+        <HomeSkeleton />
+      </SafeAreaView>
+    );
   }
 
   if (auth.status === "signed_out") {
