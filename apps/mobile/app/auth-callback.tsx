@@ -1,7 +1,7 @@
 import { useEffect } from "react";
-import { ActivityIndicator, Text, View } from "react-native";
+import { Text, View } from "react-native";
 import * as WebBrowser from "expo-web-browser";
-import { colors } from "@/lib/colors";
+import { AppShellSkeleton } from "@/components/AppShellSkeleton";
 
 /**
  * Alvo do redirectTo do login OAuth (Google/Apple). No nativo, o próprio SO
@@ -17,9 +17,11 @@ export default function AuthCallback() {
   }, []);
 
   return (
-    <View className="flex-1 items-center justify-center gap-3 bg-neutral-50">
-      <ActivityIndicator color={colors.primary[400]} />
-      <Text className="font-sans text-sm text-neutral-500">Concluindo login...</Text>
+    <View className="flex-1">
+      <AppShellSkeleton />
+      <Text className="absolute inset-x-0 bottom-10 text-center font-sans text-sm text-neutral-500">
+        Concluindo login...
+      </Text>
     </View>
   );
 }

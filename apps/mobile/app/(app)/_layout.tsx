@@ -1,6 +1,7 @@
 import { Redirect, Stack, useRouter } from "expo-router";
 import { useEffect } from "react";
-import { ActivityIndicator, View } from "react-native";
+import { View } from "react-native";
+import { AppShellSkeleton } from "@/components/AppShellSkeleton";
 import { ScreenFade } from "@/components/ScreenFade";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { supabase } from "@/lib/supabase";
@@ -39,11 +40,7 @@ function GuardedStack() {
   }, [state.status]);
 
   if (state.status === "loading") {
-    return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <ActivityIndicator size="large" color={colors.primary[400]} />
-      </View>
-    );
+    return <AppShellSkeleton />;
   }
   if (state.status === "missing") {
     return <Redirect href="/(onboarding)" />;

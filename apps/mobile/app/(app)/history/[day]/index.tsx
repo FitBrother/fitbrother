@@ -1,4 +1,4 @@
-import { ActivityIndicator, FlatList, Pressable, Text, View } from "react-native";
+import { FlatList, Pressable, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ChevronLeft, Plus } from "lucide-react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -11,6 +11,7 @@ import { useProfile } from "@/lib/profile/profile-context";
 import { colors } from "@/lib/colors";
 import { TodaySummaryHeader } from "@/components/domain/TodaySummaryHeader";
 import { MealCard } from "@/components/domain/MealCard";
+import { MealCardSkeleton } from "@/components/domain/MealCardSkeleton";
 import { PullToRefresh } from "@/components/PullToRefresh";
 import { reloadApp } from "@/lib/reload-app";
 
@@ -77,8 +78,10 @@ export default function HistoryDayScreen() {
         )}
       </View>
       {mealsQuery.isLoading ? (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color={colors.primary[400]} />
+        <View>
+          <MealCardSkeleton />
+          <MealCardSkeleton />
+          <MealCardSkeleton />
         </View>
       ) : (
         <PullToRefresh onRefresh={reloadApp}>

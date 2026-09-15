@@ -1,11 +1,12 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ChevronLeft, Flame, Lock } from "lucide-react-native";
-import { ActivityIndicator, FlatList, Pressable, SafeAreaView, Text, View } from "react-native";
+import { FlatList, Pressable, SafeAreaView, Text, View } from "react-native";
 import type { Post } from "@fitbrother/shared";
 import { Avatar } from "@/components/Avatar";
 import { Button } from "@/components/Button";
 import { PostCard } from "@/components/domain/PostCard";
+import { ProfileSkeleton } from "@/components/domain/ProfileSkeleton";
 import { profileInitials } from "@/lib/account-utils";
 import { followUser, unfollowUser } from "@/lib/api/users";
 import { colors } from "@/lib/colors";
@@ -144,9 +145,7 @@ export default function PublicProfileScreen() {
       </View>
 
       {isLoading ? (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator color={colors.primary[400]} />
-        </View>
+        <ProfileSkeleton variant="public" />
       ) : isError || !data ? (
         <View className="flex-1 items-center justify-center gap-2 px-6">
           <Text className="text-center font-sans-semibold text-neutral-700">

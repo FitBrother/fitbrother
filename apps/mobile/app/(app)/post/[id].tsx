@@ -1,10 +1,11 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ChevronLeft } from "lucide-react-native";
-import { ActivityIndicator, FlatList, Pressable, Text, View } from "react-native";
+import { FlatList, Pressable, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import type { Comment } from "@fitbrother/shared";
 import { CommentComposer } from "@/components/domain/CommentComposer";
 import { CommentRow } from "@/components/domain/CommentRow";
+import { CommentRowSkeleton } from "@/components/domain/CommentRowSkeleton";
 import { PostCard } from "@/components/domain/PostCard";
 import { colors } from "@/lib/colors";
 import { useAddComment, useComments } from "@/lib/hooks/useComments";
@@ -50,8 +51,11 @@ export default function PostDetailScreen() {
         }
         ListEmptyComponent={
           commentsQuery.isLoading ? (
-            <View className="py-6">
-              <ActivityIndicator color={colors.primary[400]} />
+            <View className="gap-1">
+              <CommentRowSkeleton />
+              <CommentRowSkeleton />
+              <CommentRowSkeleton />
+              <CommentRowSkeleton />
             </View>
           ) : (
             <View className="px-6 py-6">

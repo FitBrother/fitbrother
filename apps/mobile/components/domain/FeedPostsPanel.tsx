@@ -1,9 +1,10 @@
 import { useMemo } from "react";
-import { ActivityIndicator, FlatList, Text, View, useWindowDimensions } from "react-native";
+import { FlatList, Text, View, useWindowDimensions } from "react-native";
 import { useRouter } from "expo-router";
 import { Search } from "lucide-react-native";
 import type { Post } from "@fitbrother/shared";
 import { Button } from "@/components/Button";
+import { FeedPostSkeleton } from "@/components/domain/FeedPostSkeleton";
 import { PostCard } from "@/components/domain/PostCard";
 import { PullToRefresh } from "@/components/PullToRefresh";
 import { colors } from "@/lib/colors";
@@ -101,8 +102,11 @@ export function FeedPostsPanel() {
 
   if (feed.isLoading) {
     return (
-      <View className="flex-1 items-center justify-center py-10">
-        <ActivityIndicator color={colors.primary[400]} />
+      <View className="mx-auto w-full flex-1 gap-4 px-4 pb-8 pt-2 md:max-w-[900px]">
+        <FeedPostSkeleton />
+        <FeedPostSkeleton />
+        <FeedPostSkeleton />
+        <FeedPostSkeleton />
       </View>
     );
   }

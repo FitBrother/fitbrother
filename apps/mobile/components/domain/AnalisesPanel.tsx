@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { ActivityIndicator, FlatList, Text, View } from "react-native";
+import { FlatList, Text, View } from "react-native";
 import type { Insight } from "@fitbrother/shared";
 import { InsightCard } from "@/components/domain/InsightCard";
+import { InsightCardSkeleton } from "@/components/domain/InsightCardSkeleton";
 import { SubTabs } from "@/components/domain/SubTabs";
 import { PullToRefresh } from "@/components/PullToRefresh";
-import { colors } from "@/lib/colors";
 import { useInsights } from "@/lib/hooks/useInsights";
 import { reloadApp } from "@/lib/reload-app";
 
@@ -28,8 +28,10 @@ export function AnalisesPanel() {
       <SubTabs tabs={PERIODS} active={period} onChange={setPeriod} />
 
       {q.isLoading ? (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator color={colors.primary[400]} />
+        <View className="gap-4 px-4 pb-8 pt-4">
+          <InsightCardSkeleton />
+          <InsightCardSkeleton />
+          <InsightCardSkeleton />
         </View>
       ) : (
         <PullToRefresh onRefresh={reloadApp}>

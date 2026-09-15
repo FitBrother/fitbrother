@@ -1,7 +1,7 @@
 import { computeTargets, evaluateSafetyGates } from "@fitbrother/shared";
 import { useEffect } from "react";
 import { View } from "react-native";
-import { LoadingDots } from "@/components/LoadingDots";
+import { PlanResultSkeleton } from "@/components/domain/PlanResultSkeleton";
 import { OnboardingChapterShell } from "@/components/onboarding/OnboardingChapterShell";
 import { brDateToIso } from "@/lib/masks";
 import { useOnboardingStore } from "@/lib/stores/onboardingStore";
@@ -87,8 +87,10 @@ export function CalculatingBlock({ onNext, chapter }: OnboardingBlockProps) {
 
   return (
     <OnboardingChapterShell chapter={chapter} title="Calculando suas metas..." showNav={false}>
-      <View className="flex-1 items-center justify-center gap-3 py-12">
-        <LoadingDots />
+      <View className="flex-1 items-center justify-center">
+        {/* Espelha o RevealBlock (próxima tela: metas prontas), não um
+            spinner genérico — antecipa o formato do resultado. */}
+        <PlanResultSkeleton />
       </View>
     </OnboardingChapterShell>
   );

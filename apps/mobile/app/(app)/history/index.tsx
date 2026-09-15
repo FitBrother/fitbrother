@@ -1,12 +1,5 @@
 import { useMemo } from "react";
-import {
-  ActivityIndicator,
-  FlatList,
-  Pressable,
-  Text,
-  useWindowDimensions,
-  View,
-} from "react-native";
+import { FlatList, Pressable, Text, useWindowDimensions, View } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ChevronLeft } from "lucide-react-native";
@@ -21,6 +14,7 @@ import { shadows } from "@/lib/shadows";
 import { useStreak } from "@/lib/hooks/useStreak";
 import { reloadApp } from "@/lib/reload-app";
 import { HistoryDayCard } from "@/components/domain/HistoryDayCard";
+import { HistoryDayCardSkeleton } from "@/components/domain/HistoryDayCardSkeleton";
 import { HistoryEmptyDayCard } from "@/components/domain/HistoryEmptyDayCard";
 import { StreakCounter } from "@/components/domain/StreakCounter";
 import { PullToRefresh } from "@/components/PullToRefresh";
@@ -92,8 +86,14 @@ export default function HistoryScreen() {
         )}
       </View>
       {query.isLoading ? (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color={colors.primary[400]} />
+        <View className="mx-auto w-full flex-1 md:max-w-[1100px]">
+          <View className="flex-row flex-wrap">
+            {Array.from({ length: 6 }, (_, i) => (
+              <View key={i} style={{ width: `${100 / numColumns}%` }}>
+                <HistoryDayCardSkeleton />
+              </View>
+            ))}
+          </View>
         </View>
       ) : (
         <View className="mx-auto w-full flex-1 md:max-w-[1100px]">
@@ -124,8 +124,12 @@ export default function HistoryScreen() {
               onEndReachedThreshold={0.5}
               ListFooterComponent={
                 query.isFetchingNextPage ? (
-                  <View className="py-4">
-                    <ActivityIndicator color={colors.primary[400]} />
+                  <View className="flex-row flex-wrap py-1">
+                    {Array.from({ length: Math.min(numColumns, 2) }, (_, i) => (
+                      <View key={i} style={{ width: `${100 / numColumns}%` }}>
+                        <HistoryDayCardSkeleton />
+                      </View>
+                    ))}
                   </View>
                 ) : null
               }
