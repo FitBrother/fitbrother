@@ -1,7 +1,9 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { getMe } from "@/lib/api";
+import { fetchHome, type HomeResponse } from "@/lib/api";
 import { avatarUrlKey, resolveAvatarUrl } from "@/lib/hooks/useAvatarUrl";
+import { dailySummaryKey } from "@/lib/hooks/useDailySummary";
+import { mealsForDayKey } from "@/lib/hooks/useMealsForDay";
 import type { Profile } from "./types";
 
 type State =
@@ -27,10 +29,20 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
 
   const load = useCallback(async () => {
     try {
-      // getMe() returns { profile, nutrition_goal, anthropometric } or null
-      const data = (await getMe()) as { profile: Profile } | null;
-      const profile = data?.profile ?? null;
+      const data = (await fetchHome()) as HomeResponse | null;
+      const profile = (data?.profile as Profile | undefined) ?? null;
       setState(profile ? { status: "ready", profile } : { status: "missing" });
+      if (data) {
+        // Semeia o cache do React Query com as mesmas chaves que
+        // useDailySummary/useMealsForDay usam (`day` calculado no servidor,
+        // via fitbrother_today) — index.tsx não precisa esperar uma segunda
+        // rodada de fetch pra resumo/refeições do dia, já que GET /me/home
+        // trouxe tudo numa resposta só. Se o `day` calculado no client não
+        // bater exatamente com o do servidor (borda da virada do dia), os
+        // hooks simplesmente buscam eles mesmos, como antes.
+        queryClient.setQueryData(dailySummaryKey(data.day), data.summary);
+        queryClient.setQueryData(mealsForDayKey(data.day), data.meals);
+      }
       // Dispara a assinatura + o download da foto em paralelo com o resto do
       // loading inicial (mealsQuery/summaryQuery), em vez de só começar
       // quando o HomeHeader monta — é o que faz a foto já estar pronta (não

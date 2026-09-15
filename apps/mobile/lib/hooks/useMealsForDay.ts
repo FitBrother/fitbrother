@@ -9,5 +9,9 @@ export function useMealsForDay(day: string) {
     queryKey: mealsForDayKey(day),
     queryFn: () => listMealsForDay(day),
     enabled: Boolean(day),
+    // Igual useDailySummary: o Realtime (useMealsRealtime) já invalida a
+    // query quando algo muda, então isso só evita refetch redundante em
+    // cada foco/remonte dentro dessa janela.
+    staleTime: 60_000,
   });
 }

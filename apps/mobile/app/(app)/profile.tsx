@@ -1,4 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
+import { manipulateAsync, SaveFormat } from "expo-image-manipulator";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import {
@@ -79,7 +80,15 @@ export default function ProfileScreen() {
     if (result.canceled || !result.assets[0]) return;
     setAvatarBusy(true);
     try {
-      const { path } = await uploadAvatar({ userId: user.id, fileUri: result.assets[0].uri });
+      // 512px é mais que suficiente pro maior uso (perfil, 96pt @3x) — sem
+      // isso a foto original (câmera moderna, alguns megapixels) ia inteira
+      // pro Storage e voltava assim em toda revalidação, pesando download e
+      // decode do <Image> pra caber num círculo de 44-96pt.
+      const resized = await manipulateAsync(result.assets[0].uri, [{ resize: { width: 512 } }], {
+        compress: 0.82,
+        format: SaveFormat.JPEG,
+      });
+      const { path } = await uploadAvatar({ userId: user.id, fileUri: resized.uri });
       await patchAccountAvatar(path);
       update({ avatar_url: path });
       await queryClient.invalidateQueries({ queryKey: accountProfileKey });

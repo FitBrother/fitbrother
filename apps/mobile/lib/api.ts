@@ -1,4 +1,4 @@
-import type { OnboardingPayload } from "@fitbrother/shared";
+import type { DailySummary, MealResponse, OnboardingPayload } from "@fitbrother/shared";
 import { API_TIMEOUT_MS } from "@/lib/constants";
 import { apiBaseUrl } from "@/lib/dev-host";
 import { supabase } from "@/lib/supabase";
@@ -140,6 +140,44 @@ export async function getMe() {
       return null;
     }
     throw new Error(`me_failed_${res.status}`);
+  }
+  return res.json();
+}
+
+export type HomeResponse = {
+  profile: Record<string, unknown>;
+  nutrition_goal: Record<string, unknown> | null;
+  anthropometric: Record<string, unknown> | null;
+  day: string;
+  summary: DailySummary;
+  meals: MealResponse[];
+};
+
+/**
+ * Perfil + resumo do dia + refeições do dia numa chamada só — ver
+ * `apps/server/src/routes/me.ts` (`GET /me/home`). Mesmo tratamento de erro
+ * de `getMe()`, que essa rota substitui no boot da Home
+ * (`lib/profile/profile-context.tsx`).
+ */
+export async function fetchHome(): Promise<HomeResponse | null> {
+  const res = await authedFetch("/me/home");
+  if (!res.ok) {
+    if (res.status === 404) return null;
+    if (res.status === 401) {
+      const body = (await res.json().catch(() => null)) as {
+        error?: string;
+        scheduled_purge_at?: string | null;
+        can_reactivate?: boolean;
+      } | null;
+      if (body?.error === "account_deletion_pending") {
+        throw new AccountDeletionPendingError(
+          body.scheduled_purge_at ?? null,
+          body.can_reactivate ?? false,
+        );
+      }
+      return null;
+    }
+    throw new Error(`me_home_failed_${res.status}`);
   }
   return res.json();
 }

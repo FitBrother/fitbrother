@@ -12,7 +12,11 @@ import { env } from "../lib/env.js";
 import { internalError } from "../lib/errors.js";
 import { AiQuotaExceededError } from "../services/ai-usage.js";
 import { extractMeal } from "../services/extraction.js";
-import { applyCatalogToItems } from "../services/meals.js";
+import {
+  applyCatalogToItems,
+  listMealsForNutritionalDay,
+  MEAL_DETAIL_SELECT,
+} from "../services/meals.js";
 import { extractMealFromPhoto } from "../services/photo-extraction.js";
 import {
   recordPipelineEvent,
@@ -39,16 +43,6 @@ import { lookupByBarcode } from "../services/openfoodfacts.js";
  *
  * Audio (POST /meals/audio + signed-upload-url) lands in PR-M2.3.
  */
-
-const MEAL_DETAIL_SELECT = `
-  id, source, raw_input, audio_path, meal_type, consumed_at,
-  total_kcal, total_protein_g, total_carbs_g, total_fat_g,
-  confidence, review_required, ai_feedback, created_at, deleted_at,
-  items:meal_items(
-    id, food_id, description, quantity, unit,
-    kcal, protein_g, carbs_g, fat_g, density_assumed
-  )
-`;
 
 export async function mealsRoutes(app: FastifyInstance) {
   app.addHook("preHandler", authRequired);
@@ -578,31 +572,12 @@ export async function mealsRoutes(app: FastifyInstance) {
     }
     const supabase = supabaseForRequest(req);
 
-    // We need meals where fitbrother_nutritional_day(user, consumed_at) = day.
-    // PostgREST can't call the helper inline. Cheapest correct query: pull a
-    // ±3-day window (covers any timezone + day_start_hour combo) then have
-    // the DB classify each candidate via the boundary RPC. A dedicated
-    // RPC `fitbrother_meals_for_day(user, day)` would beat the N+1 calls
-    // here; deferred until the list grows past trivial sizes.
-    const from = new Date(`${day}T00:00:00Z`);
-    from.setUTCDate(from.getUTCDate() - 3);
-    const to = new Date(`${day}T00:00:00Z`);
-    to.setUTCDate(to.getUTCDate() + 3);
-
-    const { data, error } = await supabase
-      .from("meals")
-      .select(MEAL_DETAIL_SELECT)
-      .gte("consumed_at", from.toISOString())
-      .lt("consumed_at", to.toISOString())
-      .is("deleted_at", null)
-      .order("consumed_at", { ascending: false });
-
-    if (error) return internalError(reply, req.log, error, { where: "meals_list" });
-
-    // Filter by the nutritional day for this user (avoid mis-attributing
-    // meals around the day_start_hour boundary).
-    const meals = await filterByNutritionalDay(supabase, req.user!.id, data ?? [], day);
-    return reply.send({ meals });
+    try {
+      const meals = await listMealsForNutritionalDay(supabase, req.user!.id, day);
+      return reply.send({ meals });
+    } catch (error) {
+      return internalError(reply, req.log, error, { where: "meals_list" });
+    }
   });
 
   /* ── GET /meals/:id ────────────────────────────────────────────────── */
@@ -707,29 +682,4 @@ async function loadMeal(
     return null;
   }
   return data;
-}
-
-type MealRow = {
-  consumed_at: string;
-  [key: string]: unknown;
-};
-
-async function filterByNutritionalDay(
-  supabase: ReturnType<typeof supabaseForRequest>,
-  userId: string,
-  meals: MealRow[],
-  targetDay: string,
-): Promise<MealRow[]> {
-  // For each candidate meal, ask the DB what nutritional day it belongs to.
-  // Batched in a single RPC call would be ideal; for MVP N is small (~5/day).
-  const result: MealRow[] = [];
-  for (const meal of meals) {
-    const { data, error } = await supabase.rpc("fitbrother_nutritional_day", {
-      p_user_id: userId,
-      p_ts: meal.consumed_at,
-    });
-    if (error) continue;
-    if (data === targetDay) result.push(meal);
-  }
-  return result;
 }

@@ -43,6 +43,13 @@ export function useAvatarUrl(path: string | null | undefined): string | null | u
     queryKey: avatarUrlKey(path ?? ""),
     queryFn: () => resolveAvatarUrl(path as string),
     enabled: Boolean(path),
+    // A URL assinada é válida por 1h (`getPostImageSignedUrl`) — sem isso a
+    // query herdava o staleTime default (30s) e o `refetchOnWindowFocus`
+    // global (RN dispara em transições de AppState) reassinava a foto toda
+    // vez que o app voltava do background, trocando a `uri` à toa e fazendo
+    // o avatar "piscar" mesmo com o arquivo intacto.
+    staleTime: 50 * 60_000,
+    gcTime: 60 * 60_000,
   });
 
   if (!path) return null;

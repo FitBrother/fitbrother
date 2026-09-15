@@ -11,6 +11,7 @@ import { authRequired, supabaseForRequest } from "../lib/auth.js";
 import { internalError } from "../lib/errors.js";
 import { supabaseService } from "../lib/supabase.js";
 import { hashE164, reverseMatchFollows } from "../services/contacts.js";
+import { listMealsForNutritionalDay } from "../services/meals.js";
 
 const dailySummaryQuerySchema = z.object({
   day: z
@@ -99,23 +100,84 @@ export async function meRoutes(app: FastifyInstance) {
       .limit(1)
       .maybeSingle();
 
-    const summary: DailySummary = {
-      user_id: userId,
-      day: resolvedDay,
-      kcal: 0,
-      protein_g: 0,
-      carbs_g: 0,
-      fat_g: 0,
-      goal_kcal: goal?.kcal ?? null,
-      goal_protein_g: goal?.protein_g ?? null,
-      goal_carbs_g: goal?.carbs_g ?? null,
-      goal_fat_g: goal?.fat_g ?? null,
-      goal_hit: false,
-      meals_count: 0,
-      updated_at: new Date().toISOString(),
-    } satisfies DailySummary;
+    return reply.send({ summary: emptyDailySummary(userId, resolvedDay, goal) });
+  });
 
-    return reply.send({ summary });
+  /**
+   * Agregado do boot da Home: perfil + resumo do dia + refeições do dia numa
+   * resposta só. Sem isso o client tinha uma barreira sequencial obrigatória
+   * — GET /me precisa terminar (é dele que sai timezone/day_start_hour) antes
+   * de GET /me/daily-summary e GET /meals sequer poderem disparar — e cada
+   * troca de fase (loading → pronto) ainda passava por um remount da tela.
+   * Aqui o "dia nutricional" é resolvido no servidor via `fitbrother_today`,
+   * então nem o client precisa calculá-lo antes de pedir os outros dados.
+   */
+  app.get("/me/home", { preHandler: [authRequired] }, async (req, reply) => {
+    const userId = req.user!.id;
+    const supabase = supabaseForRequest(req);
+
+    const [profileQ, privateQ, goalQ, anthroQ, todayQ] = await Promise.all([
+      supabase.from("profiles").select("*").maybeSingle(),
+      supabase.from("profiles_private").select("phone_verified_at").maybeSingle(),
+      supabase.from("nutrition_goals").select("*").is("effective_to", null).maybeSingle(),
+      supabase
+        .from("anthropometrics")
+        .select("*")
+        .order("measured_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      supabase.rpc("fitbrother_today", { p_user_id: userId }),
+    ]);
+
+    const firstError =
+      profileQ.error ?? privateQ.error ?? goalQ.error ?? anthroQ.error ?? todayQ.error;
+    if (firstError) {
+      return internalError(reply, req.log, firstError, { where: "me_home_query" });
+    }
+
+    if (!profileQ.data) {
+      return reply.code(404).send({ error: "profile_not_found" });
+    }
+
+    const day = todayQ.data as string | null;
+    if (!day) {
+      return internalError(reply, req.log, new Error("fitbrother_today_returned_null"), {
+        userId,
+      });
+    }
+
+    const [summaryResult, mealsResult] = await Promise.allSettled([
+      supabase.from("daily_summaries").select("*").eq("day", day).maybeSingle(),
+      listMealsForNutritionalDay(supabase, userId, day),
+    ]);
+
+    if (mealsResult.status === "rejected") {
+      return internalError(reply, req.log, mealsResult.reason, { where: "me_home_meals" });
+    }
+    if (summaryResult.status === "rejected") {
+      return internalError(reply, req.log, summaryResult.reason, { where: "me_home_summary" });
+    }
+    const summaryQ = summaryResult.value;
+    if (summaryQ.error) {
+      return internalError(reply, req.log, summaryQ.error, { where: "me_home_summary" });
+    }
+    const meals = mealsResult.value;
+
+    const summary = summaryQ.data
+      ? DailySummarySchema.parse(summaryQ.data)
+      : emptyDailySummary(userId, day, goalQ.data);
+
+    return reply.send({
+      profile: {
+        ...profileQ.data,
+        phone_verified_at: privateQ.data?.phone_verified_at ?? null,
+      },
+      nutrition_goal: goalQ.data,
+      anthropometric: anthroQ.data,
+      day,
+      summary,
+      meals,
+    });
   });
 
   app.get("/me/streak", { preHandler: [authRequired] }, async (req, reply) => {
@@ -268,4 +330,32 @@ export async function meRoutes(app: FastifyInstance) {
       return reply.send({ insight: InsightSchema.parse(data) });
     },
   );
+}
+
+/** Resumo zerado quando o dia ainda não tem linha em `daily_summaries` (sem refeições ainda). */
+function emptyDailySummary(
+  userId: string,
+  day: string,
+  goal: {
+    kcal?: number | null;
+    protein_g?: number | null;
+    carbs_g?: number | null;
+    fat_g?: number | null;
+  } | null,
+): DailySummary {
+  return {
+    user_id: userId,
+    day,
+    kcal: 0,
+    protein_g: 0,
+    carbs_g: 0,
+    fat_g: 0,
+    goal_kcal: goal?.kcal ?? null,
+    goal_protein_g: goal?.protein_g ?? null,
+    goal_carbs_g: goal?.carbs_g ?? null,
+    goal_fat_g: goal?.fat_g ?? null,
+    goal_hit: false,
+    meals_count: 0,
+    updated_at: new Date().toISOString(),
+  } satisfies DailySummary;
 }

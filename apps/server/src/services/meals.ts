@@ -25,6 +25,71 @@ import { matchFood, type FoodMatch } from "./foods.js";
  *                through `applyCatalogToItem` returning the original item.
  */
 
+export const MEAL_DETAIL_SELECT = `
+  id, source, raw_input, audio_path, meal_type, consumed_at,
+  total_kcal, total_protein_g, total_carbs_g, total_fat_g,
+  confidence, review_required, ai_feedback, created_at, deleted_at,
+  items:meal_items(
+    id, food_id, description, quantity, unit,
+    kcal, protein_g, carbs_g, fat_g, density_assumed
+  )
+`;
+
+type MealRow = {
+  consumed_at: string;
+  [key: string]: unknown;
+};
+
+/**
+ * Meals for a user's nutritional day (GET /meals?day= and GET /me/home).
+ *
+ * PostgREST can't call `fitbrother_nutritional_day` inline, so the cheapest
+ * correct query is: pull a ±3-day window (covers any timezone + day_start_hour
+ * combo) then have the DB classify each candidate via the boundary RPC. A
+ * dedicated RPC `fitbrother_meals_for_day(user, day)` would beat the N+1
+ * calls here; deferred until the list grows past trivial sizes.
+ */
+export async function listMealsForNutritionalDay(
+  supabase: SupabaseClient,
+  userId: string,
+  day: string,
+): Promise<MealRow[]> {
+  const from = new Date(`${day}T00:00:00Z`);
+  from.setUTCDate(from.getUTCDate() - 3);
+  const to = new Date(`${day}T00:00:00Z`);
+  to.setUTCDate(to.getUTCDate() + 3);
+
+  const { data, error } = await supabase
+    .from("meals")
+    .select(MEAL_DETAIL_SELECT)
+    .gte("consumed_at", from.toISOString())
+    .lt("consumed_at", to.toISOString())
+    .is("deleted_at", null)
+    .order("consumed_at", { ascending: false });
+
+  if (error) throw error;
+
+  return filterByNutritionalDay(supabase, userId, data ?? [], day);
+}
+
+async function filterByNutritionalDay(
+  supabase: SupabaseClient,
+  userId: string,
+  meals: MealRow[],
+  targetDay: string,
+): Promise<MealRow[]> {
+  const result: MealRow[] = [];
+  for (const meal of meals) {
+    const { data, error } = await supabase.rpc("fitbrother_nutritional_day", {
+      p_user_id: userId,
+      p_ts: meal.consumed_at,
+    });
+    if (error) continue;
+    if (data === targetDay) result.push(meal);
+  }
+  return result;
+}
+
 export type ApplyCatalogResult = {
   applied: AppliedMealItem[];
   matched_count: number;
