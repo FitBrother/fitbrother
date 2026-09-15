@@ -15,7 +15,7 @@ import {
   UserRound,
   Users,
 } from "lucide-react-native";
-import { useEffect, useState, type ComponentType, type ReactNode } from "react";
+import { useState, type ComponentType, type ReactNode } from "react";
 import { Modal, Platform, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Avatar } from "@/components/Avatar";
@@ -29,6 +29,7 @@ import { patchAccountAvatar } from "@/lib/api/account";
 import { profileInitials } from "@/lib/account-utils";
 import { colors } from "@/lib/colors";
 import { accountProfileKey, useAccountProfile } from "@/lib/hooks/useAccountProfile";
+import { avatarUrlKey, useAvatarUrl } from "@/lib/hooks/useAvatarUrl";
 import { backOrHome } from "@/lib/navigation";
 import { useProfileActions } from "@/lib/profile/profile-context";
 import { shadows } from "@/lib/shadows";
@@ -46,31 +47,16 @@ export default function ProfileScreen() {
   const dialog = useDialog();
   const account = useAccountProfile();
   const { update } = useProfileActions();
-  // `undefined` = ainda resolvendo a URL assinada (mostra skeleton);
-  // `null` = perfil confirmado sem foto (mostra iniciais). Sem essa
-  // distinção, o primeiro load sempre mostrava as iniciais por um instante
-  // antes da foto de verdade aparecer.
-  const [avatarUri, setAvatarUri] = useState<string | null | undefined>(undefined);
+  // Mesma query de `HomeHeader` (chave = caminho do avatar): a foto assinada
+  // uma vez fica em cache pro app inteiro — sem isso, cada tela reassinava a
+  // URL do zero, e ir e voltar entre Perfil e Home recarregava a foto toda
+  // vez, mesmo sem ela ter mudado.
   const [avatarBusy, setAvatarBusy] = useState(false);
   const [avatarModal, setAvatarModal] = useState<"actions" | "confirm-remove" | null>(null);
   const [logoutConfirm, setLogoutConfirm] = useState(false);
   const profile = account.data?.profile;
   const user = account.data?.user;
-
-  useEffect(() => {
-    let active = true;
-    if (!profile?.avatar_url) {
-      setAvatarUri(null);
-      return;
-    }
-    setAvatarUri(undefined);
-    void getPostImageSignedUrl(profile.avatar_url)
-      .then((url) => active && setAvatarUri(url))
-      .catch(() => active && setAvatarUri(null));
-    return () => {
-      active = false;
-    };
-  }, [profile?.avatar_url]);
+  const avatarUrl = useAvatarUrl(profile?.avatar_url);
 
   async function chooseAvatar() {
     if (!user) return;
@@ -97,7 +83,11 @@ export default function ProfileScreen() {
       await patchAccountAvatar(path);
       update({ avatar_url: path });
       await queryClient.invalidateQueries({ queryKey: accountProfileKey });
-      setAvatarUri(await getPostImageSignedUrl(path));
+      // O caminho do arquivo não muda entre uploads (upsert no mesmo path) —
+      // só a URL assinada muda (token novo). Empurra ela direto no cache
+      // compartilhado: invalidar a query sozinha não bastaria, porque a
+      // chave (o path) continua igual e nada disparava um refetch.
+      queryClient.setQueryData(avatarUrlKey(path), await getPostImageSignedUrl(path));
       toast({ variant: "success", message: "Foto atualizada" });
     } catch {
       toast({ variant: "error", message: "Não foi possível atualizar a foto" });
@@ -112,7 +102,6 @@ export default function ProfileScreen() {
     try {
       await patchAccountAvatar(null);
       update({ avatar_url: null });
-      setAvatarUri(null);
       await queryClient.invalidateQueries({ queryKey: accountProfileKey });
       toast({ variant: "success", message: "Foto removida" });
     } catch {
@@ -173,8 +162,8 @@ export default function ProfileScreen() {
               className="relative h-24 w-24"
             >
               <Avatar
-                uri={avatarUri ?? null}
-                loading={avatarUri === undefined || avatarBusy}
+                uri={avatarUrl ?? null}
+                loading={avatarUrl === undefined || avatarBusy}
                 initials={initials}
                 size={96}
                 accessibilityLabel="Foto do perfil"
