@@ -647,17 +647,15 @@ export default function HomeScreen() {
   // isPending (não isLoading): true só enquanto NUNCA houve dado pra essa
   // query (primeiro carregamento do dia) — uma vez que os macros/refeições
   // chegam uma vez, refetches em segundo plano (foco, pull-to-refresh) não
-  // reacendem esse spinner de tela cheia de novo. Sem isso, o loading
-  // inicial do app (GuardedStack) escondia assim que o profile ficava
-  // pronto, e a Home aparecia de relance com macros/refeições zerados antes
-  // dos dados do dia chegarem.
-  if (mealsQuery.isPending || summaryQuery.isPending) {
-    return (
-      <SafeAreaView className="flex-1 bg-neutral-50" edges={["top", "left", "right"]}>
-        <HomeSkeleton />
-      </SafeAreaView>
-    );
-  }
+  // reacendem esse skeleton de novo.
+  //
+  // Só o CONTEÚDO da aba Home vira skeleton aqui — header, banners, abas e o
+  // composer no rodapé são "casca fixa" (sempre a mesma, não dependem de
+  // mealsQuery/summaryQuery) e continuam renderizando de verdade desde o
+  // primeiro frame. Antes eles só apareciam depois que os dados chegavam, o
+  // que fazia o header (com o avatar) parecer "pular" pra dentro da tela
+  // logo depois do skeleton em vez de já estar lá.
+  const homePending = mealsQuery.isPending || summaryQuery.isPending;
 
   return (
     <SafeAreaView className="flex-1 bg-neutral-50" edges={["top", "left", "right"]}>
@@ -669,70 +667,74 @@ export default function HomeScreen() {
         index={TABS.findIndex((t) => t.key === activeTab)}
         onIndexChange={(i) => setActiveTab(TABS[i]!.key)}
       >
-        <>
-          {/* A lista é a única superfície rolável da aba, e o resumo mora
-              dentro dela — então o PullToRefresh embrulha o FlatList direto.
-              Puxar pra atualizar continua funcionando desde o resumo, porque
-              o resumo agora é o cabeçalho da própria lista. */}
-          <PullToRefresh onRefresh={handleRefresh} enabled={summaryExpanded}>
-            {/* A lista é renderizada sempre, inclusive vazia: antes o estado
-                vazio era um Pressable solto, sem container rolável, e a tela
-                ficava morta — nem o bounce do iOS acontecia. O estado vazio
-                virou ListEmptyComponent para manter um único container de
-                rolagem. */}
-            <Animated.FlatList
-              data={items}
-              keyExtractor={(m) => (m as OptimisticMeal).id}
-              renderItem={renderItem as never}
-              ListHeaderComponent={listHeaderComponent}
-              // Chão para o colapso em listas curtas; zero nas longas. Ver
-              // `spacerTotal` acima.
-              ListFooterComponent={
-                <SummaryCollapseSpacer collapse={collapse} total={spacerTotal} />
-              }
-              onLayout={(e) => setListViewport(e.nativeEvent.layout.height)}
-              onContentSizeChange={handleContentSizeChange}
-              // Prende o cabeçalho (índice 0) no topo do scroller. É o que
-              // mantém o resumo à vista enquanto os cards correm por baixo.
-              stickyHeaderIndices={[0]}
-              // Sem isso o resumo pulsa sem parar num scroll lento — ver a
-              // constante para o ciclo completo.
-              style={NO_SCROLL_ANCHOR}
-              onScroll={handleListScroll}
-              scrollEventThrottle={16}
-              // Os degradês nas duas pontas já sinalizam que a lista
-              // continua; a barra por cima deles só suja a moldura.
-              showsVerticalScrollIndicator={false}
-              ListEmptyComponent={
-                mealsQuery.isLoading ? null : (
-                  <Pressable onPress={Keyboard.dismiss}>
-                    <Card variant="flat" className="mx-4">
-                      <EmptyMealsState />
-                    </Card>
-                  </Pressable>
-                )
-              }
-              alwaysBounceVertical
-              contentContainerStyle={{
-                paddingBottom: listBottomSpace(composerHeight),
-                flexGrow: 1,
-              }}
-              keyboardDismissMode="on-drag"
-              keyboardShouldPersistTaps="handled"
-              itemLayoutAnimation={LinearTransition.springify().damping(20).stiffness(180)}
-              refreshControl={
-                <RefreshControl
-                  // Só no expandido — que é exatamente quando a lista está
-                  // no topo e puxar para atualizar faz sentido.
-                  enabled={summaryExpanded}
-                  refreshing={mealsQuery.isRefetching || summaryQuery.isRefetching}
-                  onRefresh={handleRefresh}
-                  tintColor={colors.neutral[400]}
-                />
-              }
-            />
-          </PullToRefresh>
-        </>
+        {homePending ? (
+          <HomeSkeleton />
+        ) : (
+          <>
+            {/* A lista é a única superfície rolável da aba, e o resumo mora
+                dentro dela — então o PullToRefresh embrulha o FlatList direto.
+                Puxar pra atualizar continua funcionando desde o resumo, porque
+                o resumo agora é o cabeçalho da própria lista. */}
+            <PullToRefresh onRefresh={handleRefresh} enabled={summaryExpanded}>
+              {/* A lista é renderizada sempre, inclusive vazia: antes o estado
+                  vazio era um Pressable solto, sem container rolável, e a tela
+                  ficava morta — nem o bounce do iOS acontecia. O estado vazio
+                  virou ListEmptyComponent para manter um único container de
+                  rolagem. */}
+              <Animated.FlatList
+                data={items}
+                keyExtractor={(m) => (m as OptimisticMeal).id}
+                renderItem={renderItem as never}
+                ListHeaderComponent={listHeaderComponent}
+                // Chão para o colapso em listas curtas; zero nas longas. Ver
+                // `spacerTotal` acima.
+                ListFooterComponent={
+                  <SummaryCollapseSpacer collapse={collapse} total={spacerTotal} />
+                }
+                onLayout={(e) => setListViewport(e.nativeEvent.layout.height)}
+                onContentSizeChange={handleContentSizeChange}
+                // Prende o cabeçalho (índice 0) no topo do scroller. É o que
+                // mantém o resumo à vista enquanto os cards correm por baixo.
+                stickyHeaderIndices={[0]}
+                // Sem isso o resumo pulsa sem parar num scroll lento — ver a
+                // constante para o ciclo completo.
+                style={NO_SCROLL_ANCHOR}
+                onScroll={handleListScroll}
+                scrollEventThrottle={16}
+                // Os degradês nas duas pontas já sinalizam que a lista
+                // continua; a barra por cima deles só suja a moldura.
+                showsVerticalScrollIndicator={false}
+                ListEmptyComponent={
+                  mealsQuery.isLoading ? null : (
+                    <Pressable onPress={Keyboard.dismiss}>
+                      <Card variant="flat" className="mx-4">
+                        <EmptyMealsState />
+                      </Card>
+                    </Pressable>
+                  )
+                }
+                alwaysBounceVertical
+                contentContainerStyle={{
+                  paddingBottom: listBottomSpace(composerHeight),
+                  flexGrow: 1,
+                }}
+                keyboardDismissMode="on-drag"
+                keyboardShouldPersistTaps="handled"
+                itemLayoutAnimation={LinearTransition.springify().damping(20).stiffness(180)}
+                refreshControl={
+                  <RefreshControl
+                    // Só no expandido — que é exatamente quando a lista está
+                    // no topo e puxar para atualizar faz sentido.
+                    enabled={summaryExpanded}
+                    refreshing={mealsQuery.isRefetching || summaryQuery.isRefetching}
+                    onRefresh={handleRefresh}
+                    tintColor={colors.neutral[400]}
+                  />
+                }
+              />
+            </PullToRefresh>
+          </>
+        )}
         <FeedTabContent />
         <AnalisesPanel />
       </SwipeableTabs>
