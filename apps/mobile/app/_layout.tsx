@@ -19,6 +19,7 @@ import { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
+import { HomeSkeleton } from "@/components/domain/HomeSkeleton";
 import { queryClient } from "@/lib/query-client";
 import { installKeyboardScrollGuard } from "@/lib/pwa/keyboard-scroll-guard";
 import { registerServiceWorker } from "@/lib/pwa/register-service-worker";
@@ -52,7 +53,11 @@ export default function RootLayout() {
 
   useEffect(() => installKeyboardScrollGuard(), []);
 
-  if (!fontsLoaded) return null;
+  // `null` aqui pintava uma tela branca no lugar do skeleton — invisível no
+  // nativo (escondida atrás da splash screen do SO), mas perceptível na web,
+  // onde o carregamento das Google Fonts pode levar um tempo visível. Os
+  // blocos do skeleton não têm texto, então não dependem de `fontsLoaded`.
+  if (!fontsLoaded) return <HomeSkeleton />;
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
