@@ -1,0 +1,106 @@
+import { View, Text, useWindowDimensions } from "react-native";
+import Svg, { Defs, Mask, Rect as SvgRect } from "react-native-svg";
+import { Button } from "@/components/Button";
+import { useInstallPrompt } from "@/lib/hooks/useInstallPrompt";
+import { useTour } from "@/lib/tour/tour-context";
+import { visibleSteps } from "@/lib/tour/steps";
+import { shadows } from "@/lib/shadows";
+
+/** Respiro entre o alvo real e a borda do recorte do spotlight. */
+const CUTOUT_PADDING = 8;
+const CUTOUT_RADIUS = 16;
+const BALLOON_MARGIN = 16;
+const BALLOON_SIDE_MARGIN = 20;
+
+export function TourOverlay() {
+  const { active, currentStepId, targets, next, skip } = useTour();
+  const install = useInstallPrompt();
+  const { width, height } = useWindowDimensions();
+
+  if (!active || !currentStepId) return null;
+
+  const steps = visibleSteps(install.status);
+  const stepIndex = steps.findIndex((s) => s.id === currentStepId);
+  const step = steps[stepIndex];
+  if (!step) return null;
+
+  const isLast = stepIndex === steps.length - 1;
+  const rect = targets[currentStepId];
+  const hole = rect
+    ? {
+        x: Math.max(0, rect.x - CUTOUT_PADDING),
+        y: Math.max(0, rect.y - CUTOUT_PADDING),
+        width: rect.width + CUTOUT_PADDING * 2,
+        height: rect.height + CUTOUT_PADDING * 2,
+      }
+    : null;
+
+  // Sem retângulo ainda medido (tela recém-navegada), o balão fica no meio
+  // vertical da tela — melhor que travar sem nada visível.
+  const balloonBelow = !rect || rect.y < height / 2;
+
+  return (
+    <View
+      style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
+      accessibilityViewIsModal
+    >
+      <Svg width={width} height={height} style={{ position: "absolute" }} pointerEvents="none">
+        <Defs>
+          <Mask id="tour-mask">
+            <SvgRect x={0} y={0} width={width} height={height} fill="white" />
+            {hole ? (
+              <SvgRect
+                x={hole.x}
+                y={hole.y}
+                width={hole.width}
+                height={hole.height}
+                rx={CUTOUT_RADIUS}
+                fill="black"
+              />
+            ) : null}
+          </Mask>
+        </Defs>
+        <SvgRect
+          x={0}
+          y={0}
+          width={width}
+          height={height}
+          fill="rgba(4, 16, 12, 0.72)"
+          mask="url(#tour-mask)"
+        />
+      </Svg>
+
+      <View
+        style={{
+          position: "absolute",
+          left: BALLOON_SIDE_MARGIN,
+          right: BALLOON_SIDE_MARGIN,
+          ...(rect
+            ? balloonBelow
+              ? { top: rect.y + rect.height + CUTOUT_PADDING + BALLOON_MARGIN }
+              : { bottom: height - rect.y + CUTOUT_PADDING + BALLOON_MARGIN }
+            : { top: height / 2 - 60 }),
+        }}
+      >
+        <View className="gap-3 rounded-2xl bg-white p-4" style={shadows.floating}>
+          <Text className="font-sans-medium text-base text-neutral-900">{step.copy}</Text>
+          <View className="flex-row justify-end gap-2">
+            <Button
+              label="Pular"
+              variant="ghost"
+              size="sm"
+              onPress={skip}
+              accessibilityLabel="Pular tour"
+            />
+            <Button
+              label={isLast ? "Entendi" : "Próximo"}
+              size="sm"
+              onPress={next}
+              accessibilityLabel={isLast ? "Concluir tour" : "Próximo passo"}
+            />
+          </View>
+        </View>
+      </View>
+    </View>
+  );
+}
