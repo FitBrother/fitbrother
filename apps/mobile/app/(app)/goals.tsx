@@ -7,9 +7,10 @@ import {
 } from "@fitbrother/shared";
 import { Flame } from "lucide-react-native";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Pressable, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { AccountCard, AccountScreen } from "@/components/account/AccountScreen";
 import { Button } from "@/components/Button";
+import { GoalsSkeleton } from "@/components/domain/GoalsSkeleton";
 import { SliderInput } from "@/components/SliderInput";
 import { colors } from "@/lib/colors";
 import { useAccountProfile } from "@/lib/hooks/useAccountProfile";
@@ -271,9 +272,7 @@ export default function GoalsScreen() {
   if (loading || kcal === null || macros === null) {
     return (
       <AccountScreen title="Metas e macros">
-        <View className="items-center py-10">
-          <ActivityIndicator color={colors.primary[500]} />
-        </View>
+        <GoalsSkeleton />
       </AccountScreen>
     );
   }
