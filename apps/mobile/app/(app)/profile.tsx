@@ -13,6 +13,7 @@ import {
   LogOut,
   Settings,
   ShieldCheck,
+  Target,
   UserRound,
   Users,
 } from "lucide-react-native";
@@ -200,6 +201,11 @@ export default function ProfileScreen() {
               icon={UserRound}
               label="Ver perfil público"
               onPress={() => router.push(`/(app)/users/${user.id}` as never)}
+            />
+            <MenuItem
+              icon={Target}
+              label="Metas e macros"
+              onPress={() => router.push("/goals" as never)}
             />
             <MenuItem
               icon={Clock3}
