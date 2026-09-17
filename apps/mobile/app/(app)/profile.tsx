@@ -26,6 +26,7 @@ import { EmailConfirmationBanner } from "@/components/domain/EmailConfirmationBa
 import { PullToRefresh } from "@/components/PullToRefresh";
 import { InstallPrompt } from "@/components/domain/InstallPrompt";
 import { ProfileSkeleton } from "@/components/domain/ProfileSkeleton";
+import { TourTarget } from "@/components/tour/TourTarget";
 import { patchAccountAvatar } from "@/lib/api/account";
 import { profileInitials } from "@/lib/account-utils";
 import { colors } from "@/lib/colors";
@@ -161,34 +162,40 @@ export default function ProfileScreen() {
       <PullToRefresh onRefresh={reloadApp}>
         <ScrollView contentContainerClassName="gap-6 px-5 pb-10 pt-3">
           <EmailConfirmationBanner />
-          <InstallPrompt />
-          <View className="items-center">
-            <Pressable
-              onPress={() => setAvatarModal("actions")}
-              disabled={avatarBusy}
-              accessibilityRole="button"
-              accessibilityLabel="Opções da foto do perfil"
-              className="relative h-24 w-24"
-            >
-              <Avatar
-                uri={avatarUrl ?? null}
-                loading={avatarUrl === undefined || avatarBusy}
-                initials={initials}
-                size={96}
-                accessibilityLabel="Foto do perfil"
-              />
-              <View className="absolute bottom-0 right-0 h-9 w-9 items-center justify-center rounded-full bg-primary-400">
-                <Camera size={18} color={colors.neutral[50]} />
-              </View>
-            </Pressable>
-            <Text className="mt-3 font-display-bold text-2xl text-neutral-900">
-              {profile.full_name || "FitBrother"}
-            </Text>
-            {profile.username ? (
-              <Text className="font-sans-medium text-sm text-primary-700">@{profile.username}</Text>
-            ) : null}
-            <Text className="mt-1 font-sans text-sm text-neutral-500">{user.email}</Text>
-          </View>
+          <TourTarget id="profile-shortcut-card">
+            <InstallPrompt />
+          </TourTarget>
+          <TourTarget id="profile-avatar">
+            <View className="items-center">
+              <Pressable
+                onPress={() => setAvatarModal("actions")}
+                disabled={avatarBusy}
+                accessibilityRole="button"
+                accessibilityLabel="Opções da foto do perfil"
+                className="relative h-24 w-24"
+              >
+                <Avatar
+                  uri={avatarUrl ?? null}
+                  loading={avatarUrl === undefined || avatarBusy}
+                  initials={initials}
+                  size={96}
+                  accessibilityLabel="Foto do perfil"
+                />
+                <View className="absolute bottom-0 right-0 h-9 w-9 items-center justify-center rounded-full bg-primary-400">
+                  <Camera size={18} color={colors.neutral[50]} />
+                </View>
+              </Pressable>
+              <Text className="mt-3 font-display-bold text-2xl text-neutral-900">
+                {profile.full_name || "FitBrother"}
+              </Text>
+              {profile.username ? (
+                <Text className="font-sans-medium text-sm text-primary-700">
+                  @{profile.username}
+                </Text>
+              ) : null}
+              <Text className="mt-1 font-sans text-sm text-neutral-500">{user.email}</Text>
+            </View>
+          </TourTarget>
 
           <MenuSection>
             {/* Esta tela é a sua CONTA (configurações, atalhos); `/users/:id` é
