@@ -18,6 +18,8 @@ import { useStreak } from "@/lib/hooks/useStreak";
 import { useProfile } from "@/lib/profile/profile-context";
 import { StreakCounter } from "@/components/domain/StreakCounter";
 import { Avatar } from "@/components/Avatar";
+import { TourTarget } from "@/components/tour/TourTarget";
+import type { TourStepId } from "@/lib/tour/steps";
 
 export type HomeTab = "home" | "feed" | "analises";
 
@@ -26,6 +28,12 @@ export const TABS: { key: HomeTab; label: string; Icon: typeof HomeIcon }[] = [
   { key: "feed", label: "Social", Icon: Rss },
   { key: "analises", label: "Análises", Icon: BarChart3 },
 ];
+
+const TAB_STEP_ID: Record<HomeTab, TourStepId> = {
+  home: "home-tab",
+  feed: "social-tab",
+  analises: "analises-tab",
+};
 
 /** Padding interno da barra de abas, em px (equivale ao `p-[3px]`). */
 const TAB_BAR_PADDING = 3;
@@ -377,17 +385,18 @@ export function HomeHeader({
         {TABS.map(({ key, label, Icon }) => {
           const active = key === activeTab;
           return (
-            <Tab
-              key={key}
-              label={label}
-              Icon={Icon}
-              active={active}
-              wide={wide}
-              // Em `wide` as três dividem a barra por igual; em `compact` só a
-              // ativa cresce e as outras ficam quadradas.
-              width={wide || active ? largura : TAB_INACTIVE_WIDTH}
-              onPress={() => onChangeTab(key)}
-            />
+            <TourTarget key={key} id={TAB_STEP_ID[key]}>
+              <Tab
+                label={label}
+                Icon={Icon}
+                active={active}
+                wide={wide}
+                // Em `wide` as três dividem a barra por igual; em `compact` só a
+                // ativa cresce e as outras ficam quadradas.
+                width={wide || active ? largura : TAB_INACTIVE_WIDTH}
+                onPress={() => onChangeTab(key)}
+              />
+            </TourTarget>
           );
         })}
       </View>

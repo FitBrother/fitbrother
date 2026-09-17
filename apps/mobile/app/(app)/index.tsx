@@ -71,6 +71,7 @@ import { SummaryCollapseSpacer, TodaySummaryHeader } from "@/components/domain/T
 import { GoalsDisclaimer } from "@/components/domain/GoalsDisclaimer";
 import { StreakCounter } from "@/components/domain/StreakCounter";
 import { useStreak } from "@/lib/hooks/useStreak";
+import { useTour } from "@/lib/tour/tour-context";
 
 /** Sobra entre o último card e o começo do degradê do composer. */
 const LIST_BREATHING_ROOM = 28;
@@ -167,6 +168,16 @@ export default function HomeScreen() {
   const [banner, setBanner] = useState<ErrorBannerVariant | null>(null);
   const [disclaimerOpen, setDisclaimerOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<HomeTab>("home");
+  const tour = useTour();
+
+  // O tour comanda a troca de aba durante os passos 1-3 (ver
+  // lib/tour/steps.ts) — as abas em si continuam sendo estado local desta
+  // tela, o tour só reage a elas.
+  useEffect(() => {
+    if (tour.currentStepId === "home-tab") setActiveTab("home");
+    else if (tour.currentStepId === "social-tab") setActiveTab("feed");
+    else if (tour.currentStepId === "analises-tab") setActiveTab("analises");
+  }, [tour.currentStepId]);
   const { width } = useWindowDimensions();
   const isDesktop = width >= 1024;
   const [composerHeight, setComposerHeight] = useState(0);
@@ -274,6 +285,7 @@ export default function HomeScreen() {
         day,
       },
       {
+        onSuccess: () => tour.notifyMealCreated(),
         onError: (err) => {
           if (err instanceof QuotaExceededError) {
             setBanner("quota_exceeded");
@@ -311,6 +323,7 @@ export default function HomeScreen() {
             day,
           },
           {
+            onSuccess: () => tour.notifyMealCreated(),
             onError: (err) => {
               // eslint-disable-next-line no-console
               console.warn("[handleAudioReady] mutation error:", err);
@@ -334,7 +347,7 @@ export default function HomeScreen() {
         setBanner("network");
       }
     },
-    [createMealAudio, day, userId],
+    [createMealAudio, day, tour, userId],
   );
 
   const handlePhotoPress = useCallback(async () => {
@@ -357,6 +370,7 @@ export default function HomeScreen() {
           day,
         },
         {
+          onSuccess: () => tour.notifyMealCreated(),
           onError: (err) => {
             if (err instanceof QuotaExceededError) {
               setBanner("quota_exceeded");
@@ -375,7 +389,7 @@ export default function HomeScreen() {
       console.warn("[handlePhotoPress] photo error:", err);
       setBanner("network");
     }
-  }, [createMealPhoto, day, userId]);
+  }, [createMealPhoto, day, tour, userId]);
 
   const handleDelete = useCallback(
     (id: string) => {
