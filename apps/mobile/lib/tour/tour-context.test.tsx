@@ -27,9 +27,10 @@ jest.mock("@/lib/hooks/useInstallPrompt", () => ({
   useInstallPrompt: () => ({ status: mockInstallStatus }),
 }));
 
-const mockPatchAccountSettings = jest.fn<() => Promise<{ settings: Record<string, unknown> }>>();
+const mockPatchAccountSettings =
+  jest.fn<(body: { tutorial_completed: true }) => Promise<{ settings: Record<string, unknown> }>>();
 jest.mock("@/lib/api/account", () => ({
-  patchAccountSettings: (...args: unknown[]) => mockPatchAccountSettings(...args),
+  patchAccountSettings: (body: { tutorial_completed: true }) => mockPatchAccountSettings(body),
 }));
 
 let mockLarguraJanela = 375;
