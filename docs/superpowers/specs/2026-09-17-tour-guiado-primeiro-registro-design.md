@@ -65,8 +65,11 @@ O passo 5 só entra na sequência se `useInstallPrompt().status` **não** for
 `"native"`, `"installed"` ou `"unsupported"`; nesses casos o tour encerra no
 passo 4.
 
-`TourTarget` envolve: os 3 botões de aba e o avatar em `HomeHeader.tsx`, o
-avatar em `profile.tsx`, e o `InstallPrompt` em `profile.tsx`.
+`TourTarget` envolve: os 3 botões de aba em `HomeHeader.tsx`, o avatar em
+`profile.tsx` e o `InstallPrompt` em `profile.tsx`. O avatar do `HomeHeader`
+(gateway pra Perfil no uso normal) não precisa de `TourTarget` — a navegação
+do passo 3→4 é disparada pelo próprio tour via `router.push`, sem depender do
+usuário tocar nesse botão.
 
 ## Gatilho e persistência
 
@@ -84,15 +87,24 @@ antigos (com dezenas/centenas de refeições já registradas) sejam tratados
 como novos e vejam o tour reaparecer sem motivo.
 
 Gatilho: no `onSuccess` de qualquer modalidade de criação de refeição feita no
-app (texto/áudio/foto/barcode, em `index.tsx`), se
-`profile.tutorial_completed_at === null`, `TourProvider.startTour()` é
-chamado. Como a coluna só é `NULL` para contas novas, essa é necessariamente a
-primeira refeição do usuário — não precisa contar histórico de `meals`.
+app — texto/áudio/foto em `index.tsx` (composer da Home) e barcode/fallback-IA
+em `scan-confirm.tsx` — se `profile.tutorial_completed_at === null`,
+`TourProvider.notifyMealCreated()` chama `startTour()`. Como a coluna só é
+`NULL` para contas novas, essa é necessariamente a primeira refeição do
+usuário — não precisa contar histórico de `meals`.
+
+Fora de escopo: `history/[day]/new.tsx` (lançar refeição num dia passado) não
+dispara o tour — é uma tela de backfill alcançada a partir do Histórico, não
+faz sentido como "primeiro registro" de um usuário novo (que ainda não tem
+histórico pra fazer backfill).
 
 Ao terminar (todos os passos concluídos ou "Pular" em qualquer passo), o app
-faz `PATCH /account/profile` com `{ tutorial_completed_at: <ISO now> }` —
-mesmo endpoint parcial já usado por `patchAccountAvatar` em
-`lib/api/account.ts`.
+faz `PATCH /account/settings` com `{ tutorial_completed: true }` — o servidor
+traduz para `tutorial_completed_at = now()`. Reaproveita a rota existente de
+`account.ts` (hoje só aceita `timezone`/`day_start_hour`), em vez de criar um
+endpoint novo ou usar `PATCH /account/profile`, que é exclusiva de
+`avatar_url` (recorta o path, valida ownership, faz cleanup no Storage — não
+serve pra um campo genérico).
 
 Replay manual: novo item "Rever tutorial" na tela de Configurações
 (`app/(app)/settings.tsx`) chama `startTour()` direto — não depende de
@@ -100,11 +112,20 @@ Replay manual: novo item "Rever tutorial" na tela de Configurações
 
 ## Fluxo de dados e coordenação com navegação
 
-Ao avançar do passo 4 pro 5 (troca de tela Home → Perfil), o `TourProvider`
+Ao avançar do passo 3 pro 4 (troca de tela Home → Perfil), o `TourProvider`
 marca o passo como "aguardando alvo" e dispara o `router.push`. Os
 `TourTarget` da Home desmontam e saem do registro; o `TourOverlay` fica sem
 retângulo por um instante — mostra só o véu escurecido, sem recorte, até o
 `profile-avatar` da nova tela montar e chamar `registerTarget`.
+
+Também vale pra abertura manual ("Rever tutorial" em Configurações): se o
+usuário estiver em qualquer tela que não seja a Home, `startTour()` primeiro
+navega pra `/(app)/` antes de armar o passo 1.
+
+O tour só dispara no layout compacto (`width < 1024`, o mesmo corte de
+`lg` usado por `HomeHeader`/`Sidebar` no resto do app) — é nele que moram os 3
+`TourTarget` de aba; no layout desktop a navegação principal é a `Sidebar`,
+fora do escopo deste tour (pedido explicitamente como guia "para mobile").
 
 ## Tratamento de erros
 
@@ -142,3 +163,6 @@ entregas no `docs/PLAN.md`). Verificação prevista:
 - Replay manual disponível em Configurações.
 - Registro por WhatsApp ainda não existe no produto — fora de escopo do
   gatilho.
+- Tour roda só no layout compacto (mobile/tablet, `width < 1024`) — no
+  desktop a navegação é a `Sidebar`, fora de escopo.
+- `history/[day]/new.tsx` (backfill de dia passado) não dispara o tour.
