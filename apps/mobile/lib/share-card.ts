@@ -1,14 +1,11 @@
-import { captureRef } from "react-native-view-shot";
 import * as Sharing from "expo-sharing";
 import * as MediaLibrary from "expo-media-library";
-import type { RefObject } from "react";
-import { Platform, type View } from "react-native";
+import { Platform } from "react-native";
 
-/** Captura a view referenciada como PNG temporário e devolve o uri. */
-export async function captureCard(ref: RefObject<View | null>): Promise<string> {
-  if (!ref.current) throw new Error("share_card_ref_missing");
-  return captureRef(ref, { format: "png", quality: 1, result: "tmpfile" });
-}
+// A captura mora em `share/capture`, que o Metro resolve por plataforma
+// (`capture.web.ts` na web, `capture.ts` no nativo). São implementações
+// diferentes de verdade, não só opções diferentes — ver o comentário na web.
+export { captureCard } from "./share/capture";
 
 /**
  * Na web, a captura do card usa html2canvas, que "tainta" o canvas ao
