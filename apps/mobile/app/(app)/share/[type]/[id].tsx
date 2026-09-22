@@ -220,8 +220,13 @@ export default function ShareScreen() {
 
       <View className="flex-1" onLayout={onLayoutArea}>
         {q.isLoading ? (
+          // Dentro do mesmo `CardPreview` do card de verdade: é ele que
+          // arredonda e encolhe para caber na tela. Solto, o esqueleto saía em
+          // 360×640 cheios e estourava a área.
           <View className="flex-1 items-center justify-center">
-            <ShareCardSkeleton />
+            <CardPreview escala={escala}>
+              <ShareCardSkeleton />
+            </CardPreview>
           </View>
         ) : dados ? (
           <SwipeableTabs index={presetIndex} onIndexChange={setPresetIndex}>
