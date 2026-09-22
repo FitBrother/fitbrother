@@ -1,4 +1,13 @@
-import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { useRouter, usePathname } from "expo-router";
 import { useWindowDimensions } from "react-native";
 import { patchAccountSettings } from "@/lib/api/account";
@@ -40,6 +49,11 @@ export function TourProvider({ children }: { children: ReactNode }) {
   const install = useInstallPrompt();
   const router = useRouter();
   const pathname = usePathname();
+  // Lido via ref no startTour: se o pathname entrasse nas deps, cada troca de
+  // rota geraria um valor de contexto novo e re-renderizaria a Home no meio
+  // da transição de tela.
+  const pathnameRef = useRef(pathname);
+  pathnameRef.current = pathname;
   const { width } = useWindowDimensions();
 
   const steps = visibleSteps(install.status);
@@ -79,10 +93,10 @@ export function TourProvider({ children }: { children: ReactNode }) {
     if (width >= DESKTOP_MIN_WIDTH) return;
     // Replay a partir de Configurações/Perfil: volta pra Home (desempilhando
     // o que estiver por cima) antes de armar o passo 1 — ver spec.
-    if (pathname !== "/") router.dismissTo("/(app)");
+    if (pathnameRef.current !== "/") router.dismissTo("/(app)");
     setTargets({});
     setStepIndex(0);
-  }, [stepIndex, width, pathname, router]);
+  }, [stepIndex, width, router]);
 
   const notifyMealCreated = useCallback(() => {
     if (profile.tutorial_completed_at !== null) return;
@@ -96,6 +110,16 @@ export function TourProvider({ children }: { children: ReactNode }) {
         const nextTargets = { ...current };
         delete nextTargets[id];
         return nextTargets;
+      }
+      const prev = current[id];
+      if (
+        prev &&
+        prev.x === rect.x &&
+        prev.y === rect.y &&
+        prev.width === rect.width &&
+        prev.height === rect.height
+      ) {
+        return current;
       }
       return { ...current, [id]: rect };
     });
@@ -121,22 +145,21 @@ export function TourProvider({ children }: { children: ReactNode }) {
     return () => clearTimeout(timeout);
   }, [stepIndex, currentStepId, targets, next]);
 
-  return (
-    <TourContext.Provider
-      value={{
-        active: stepIndex !== null,
-        currentStepId,
-        targets,
-        registerTarget,
-        startTour,
-        next,
-        skip,
-        notifyMealCreated,
-      }}
-    >
-      {children}
-    </TourContext.Provider>
+  const value = useMemo(
+    () => ({
+      active: stepIndex !== null,
+      currentStepId,
+      targets,
+      registerTarget,
+      startTour,
+      next,
+      skip,
+      notifyMealCreated,
+    }),
+    [stepIndex, currentStepId, targets, registerTarget, startTour, next, skip, notifyMealCreated],
   );
+
+  return <TourContext.Provider value={value}>{children}</TourContext.Provider>;
 }
 
 export function useTour(): ContextValue {

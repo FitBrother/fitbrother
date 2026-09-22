@@ -3,14 +3,16 @@ import { View } from "react-native";
 import { useTour } from "@/lib/tour/tour-context";
 import type { TourStepId } from "@/lib/tour/steps";
 
-/** Espera a tela recém-empilhada assentar (transição nativa + conteúdo
- * assíncrono acima do alvo) antes de medir de novo. */
+/** Espera a animação de largura da aba (Motion.duration.base), a transição
+ * nativa da tela recém-empilhada e conteúdo assíncrono acima do alvo
+ * assentarem antes de medir de novo. */
 const SETTLE_MS = 400;
 
 /**
  * Envolve um elemento real (aba, avatar, card) que o tour pode apontar.
- * Fora do tour não faz nada além de repassar os filhos — sem custo de
- * `onLayout`/medição quando `active` é `false`.
+ * Só mede quando o passo dele é o atual — nada de `onLayout`: a aba ativa
+ * anima a largura frame a frame, e medir (e re-renderizar a Home) a cada
+ * frame travava a transição.
  */
 export function TourTarget({ id, children }: { id: TourStepId; children: ReactNode }) {
   const { active, currentStepId, registerTarget } = useTour();
@@ -29,10 +31,8 @@ export function TourTarget({ id, children }: { id: TourStepId; children: ReactNo
     return () => registerTarget(id, null);
   }, [active, id, registerTarget]);
 
-  // O `onLayout` só dispara quando o layout relativo ao pai muda — numa tela
-  // recém-empilhada (Perfil) a primeira medida pode sair antes da tela estar
-  // na janela, ou antes de banners acima do alvo carregarem. Mede de novo
-  // quando este passo vira o atual e depois que tudo assentou.
+  // Mede ao virar o passo atual (hole aparece já) e de novo depois que
+  // animação/tela recém-empilhada/banners assentaram (posição final).
   useEffect(() => {
     if (!isCurrent) return;
     measure();
@@ -40,8 +40,8 @@ export function TourTarget({ id, children }: { id: TourStepId; children: ReactNo
     return () => clearTimeout(timeout);
   }, [isCurrent, measure]);
 
-  if (!active) return <>{children}</>;
-
+  // Wrapper sempre presente: alternar entre fragment e View remontaria os
+  // filhos (abas, avatar) no início e no fim do tour.
   return (
     <View
       ref={ref}
@@ -49,7 +49,6 @@ export function TourTarget({ id, children }: { id: TourStepId; children: ReactNo
       // otimização de hierarquia nativa, e `measureInWindow` para de
       // funcionar de forma confiável.
       collapsable={false}
-      onLayout={measure}
     >
       {children}
     </View>
