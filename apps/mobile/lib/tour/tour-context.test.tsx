@@ -9,9 +9,10 @@ import { Pressable, Text } from "react-native";
 // antes das `const mock* = jest.fn()`, essas variáveis ainda não existiriam
 // quando a factory rodasse (mesmo padrão de `HomeHeader.test.tsx`).
 const mockPush = jest.fn();
+const mockDismissTo = jest.fn();
 let mockPathname = "/";
 jest.mock("expo-router", () => ({
-  useRouter: () => ({ push: mockPush }),
+  useRouter: () => ({ push: mockPush, dismissTo: mockDismissTo }),
   usePathname: () => mockPathname,
 }));
 
@@ -69,6 +70,7 @@ function renderTour() {
 
 beforeEach(() => {
   mockPush.mockReset();
+  mockDismissTo.mockReset();
   mockPathname = "/";
   mockProfile.tutorial_completed_at = null;
   mockUpdate.mockReset();
@@ -121,6 +123,20 @@ describe("início e avanço do tour", () => {
     fireEvent.press(getByTestId("skip"));
     expect(await findByTestId("active")).toHaveTextContent("false");
     expect(mockPatchAccountSettings).toHaveBeenCalledWith({ tutorial_completed: true });
+  });
+
+  test("startTour fora da Home volta pra Home (replay via Configurações)", () => {
+    mockPathname = "/settings";
+    const { getByTestId } = renderTour();
+    fireEvent.press(getByTestId("start"));
+    expect(mockDismissTo).toHaveBeenCalledWith("/(app)");
+    expect(getByTestId("step")).toHaveTextContent("home-tab");
+  });
+
+  test("startTour na Home não navega", () => {
+    const { getByTestId } = renderTour();
+    fireEvent.press(getByTestId("start"));
+    expect(mockDismissTo).not.toHaveBeenCalled();
   });
 
   test("startTour não faz nada se o tour já está ativo", () => {

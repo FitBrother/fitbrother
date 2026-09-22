@@ -77,9 +77,12 @@ export function TourProvider({ children }: { children: ReactNode }) {
   const startTour = useCallback(() => {
     if (stepIndex !== null) return;
     if (width >= DESKTOP_MIN_WIDTH) return;
+    // Replay a partir de Configurações/Perfil: volta pra Home (desempilhando
+    // o que estiver por cima) antes de armar o passo 1 — ver spec.
+    if (pathname !== "/") router.dismissTo("/(app)");
     setTargets({});
     setStepIndex(0);
-  }, [stepIndex, width]);
+  }, [stepIndex, width, pathname, router]);
 
   const notifyMealCreated = useCallback(() => {
     if (profile.tutorial_completed_at !== null) return;
