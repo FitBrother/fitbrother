@@ -196,10 +196,15 @@ export function PostCard({ post }: { post: Post }) {
             <Text className="font-sans text-sm text-neutral-500">Comentar</Text>
           )}
         </Pressable>
+        {/* `Share2` é o ícone que, num feed, promete a folha de
+            compartilhamento do sistema — e é exatamente o que este caminho
+            entrega (via a tela de preview). O rótulo diz "fora do Fitbrother"
+            porque dentro do app "compartilhar" já significa publicar no feed,
+            que é o que esta publicação já é. */}
         <Pressable
           onPress={() => router.push(`/(app)/share/post/${post.id}` as never)}
           accessibilityRole="button"
-          accessibilityLabel="Exportar imagem"
+          accessibilityLabel="Compartilhar fora do Fitbrother"
           className="ml-auto min-h-[44px] min-w-[44px] items-center justify-center active:opacity-70"
         >
           <Share2 size={20} color={colors.neutral[500]} />
