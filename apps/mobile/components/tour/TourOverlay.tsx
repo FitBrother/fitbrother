@@ -1,3 +1,4 @@
+import { useRef, useState } from "react";
 import { View, Text, useWindowDimensions } from "react-native";
 import Svg, { Defs, Mask, Rect as SvgRect } from "react-native-svg";
 import { Button } from "@/components/Button";
@@ -16,6 +17,12 @@ export function TourOverlay() {
   const { active, currentStepId, targets, next, skip } = useTour();
   const install = useInstallPrompt();
   const { width, height } = useWindowDimensions();
+  // Origem do próprio overlay no mesmo sistema do `measureInWindow` dos
+  // alvos. No Android edge-to-edge esse sistema começa abaixo da status bar
+  // enquanto o overlay começa no topo da tela — subtrair a origem cancela o
+  // deslocamento em qualquer plataforma.
+  const rootRef = useRef<View>(null);
+  const [origin, setOrigin] = useState({ x: 0, y: 0 });
 
   if (!active || !currentStepId) return null;
 
@@ -25,7 +32,10 @@ export function TourOverlay() {
   if (!step) return null;
 
   const isLast = stepIndex === steps.length - 1;
-  const rect = targets[currentStepId];
+  const measured = targets[currentStepId];
+  const rect = measured
+    ? { ...measured, x: measured.x - origin.x, y: measured.y - origin.y }
+    : undefined;
   const hole = rect
     ? {
         x: Math.max(0, rect.x - CUTOUT_PADDING),
@@ -41,6 +51,13 @@ export function TourOverlay() {
 
   return (
     <View
+      ref={rootRef}
+      collapsable={false}
+      onLayout={() =>
+        rootRef.current?.measureInWindow((x, y) =>
+          setOrigin((o) => (o.x === x && o.y === y ? o : { x, y })),
+        )
+      }
       style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
       accessibilityViewIsModal
     >
