@@ -9,6 +9,15 @@ import { SHARE_CARD_HEIGHT, SHARE_CARD_WIDTH, SHARE_EXPORT_SCALE } from "./geome
  * Esta é a versão nativa. A web tem a própria em `capture.web.ts` — ver o
  * comentário de lá para o porquê de não dar para usar esta nas duas.
  */
+/**
+ * Só existe para casar com a assinatura da web, onde a captura guarda o Blob
+ * para o compartilhamento montar o `File` sem await. No nativo o
+ * `expo-sharing` recebe o caminho do arquivo direto.
+ */
+export function blobCapturado(_uri: string): Blob | null {
+  return null;
+}
+
 export async function captureCard(ref: RefObject<View | null>): Promise<string> {
   if (!ref.current) throw new Error("share_card_ref_missing");
   return captureRef(ref, {

@@ -35,5 +35,36 @@ export async function captureCard(ref: RefObject<View | null>): Promise<string> 
     width: SHARE_CARD_WIDTH,
     height: SHARE_CARD_HEIGHT,
   });
-  return canvas.toDataURL("image/png");
+
+  // `toBlob`, e não `toDataURL`: os dois codificam os mesmos 2 megapixels, mas
+  // `toDataURL` é síncrono e trava a thread principal o tempo todo da
+  // codificação, enquanto `toBlob` devolve por callback e o navegador pode
+  // codificar fora dela. Num profile com CPU estrangulada em 6× (celular
+  // lento), `toDataURL` sozinho respondia por 574ms de thread bloqueada a cada
+  // captura — o maior item isolado do perfil.
+  //
+  return await new Promise<string>((resolve, reject) => {
+    canvas.toBlob((b) => {
+      if (!b) return reject(new Error("canvas_to_blob_failed"));
+      // Revoga a captura anterior: folheando os presets, cada uma deixaria os
+      // bytes de um PNG de 1080×1920 presos na memória da aba.
+      if (ultima) URL.revokeObjectURL(ultima.uri);
+      const uri = URL.createObjectURL(b);
+      ultima = { uri, blob: b };
+      resolve(uri);
+    }, "image/png");
+  });
+}
+
+let ultima: { uri: string; blob: Blob } | null = null;
+
+/**
+ * O Blob por trás do uri da última captura, se for ele.
+ *
+ * Serve para o compartilhamento montar o `File` SEM await: `navigator.share()`
+ * exige ser chamado dentro da janela de ativação do clique, e buscar o blob de
+ * volta pelo uri introduziria um await bem no meio dela.
+ */
+export function blobCapturado(uri: string): Blob | null {
+  return ultima && ultima.uri === uri ? ultima.blob : null;
 }

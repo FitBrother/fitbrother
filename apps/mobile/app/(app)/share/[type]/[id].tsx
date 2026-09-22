@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Platform, Pressable, Text, View } from "react-native";
+import { ActivityIndicator, Platform, Pressable, Text, View } from "react-native";
 import type { LayoutChangeEvent, View as RNView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -109,7 +109,20 @@ export default function ShareScreen() {
     queryKey: ["share-card", type, id],
     queryFn: () => loadCardData(type ?? "", id ?? ""),
     enabled: Boolean(type && id),
+    // Sem cache entre visitas: na web a foto do card é um blob URL, revogado
+    // ao sair da tela (ver abaixo). Um dado em cache apontando para um blob
+    // já revogado renderizaria o card sem foto, em silêncio.
+    gcTime: 0,
   });
+
+  // Libera o blob da foto ao sair. `URL.createObjectURL` prende os bytes até
+  // alguém revogar — sem isso, cada visita à tela deixa uma foto na memória
+  // da aba até o reload.
+  const fotoBlob = q.data ? fotoDoCard(q.data) : null;
+  useEffect(() => {
+    if (!fotoBlob?.startsWith("blob:")) return;
+    return () => URL.revokeObjectURL(fotoBlob);
+  }, [fotoBlob]);
 
   // A lista depende do conteúdo: "Moldura" precisa de foto para emoldurar, e os
   // minimalistas precisam de foto e de macros. `presetAt` prende o índice,
@@ -130,44 +143,38 @@ export default function ShareScreen() {
   }, []);
   const escala = areaAltura > 0 ? Math.min(1, (areaAltura - 24) / SHARE_CARD_HEIGHT) : 0;
 
-  const [cardUri, setCardUri] = useState<string | null>(null);
+  const [preparando, setPreparando] = useState(false);
 
-  // Pré-captura assim que o card está pronto, e de novo a cada troca de preset.
-  // Na web, `navigator.share()` exige ser chamado dentro da janela de ativação
-  // do clique — esperar a captura rodar DEPOIS do clique consome essa janela e
-  // faz o share falhar em silêncio. Capturando antes, o clique só lê o uri.
-  useEffect(() => {
-    if (!q.data) return;
-    let active = true;
-    setCardUri(null);
-    const raf = requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        captureCard(cardRef)
-          .then((uri) => {
-            if (active) setCardUri(uri);
-          })
-          .catch(() => {
-            // Falha aqui não é fatal: onShare/onSave tentam de novo e aí sim
-            // mostram o erro real.
-          });
-      });
-    });
-    return () => {
-      active = false;
-      cancelAnimationFrame(raf);
-    };
-  }, [q.data, presetIndex]);
-
-  async function ensureCardUri(): Promise<string> {
-    if (cardUri) return cardUri;
-    const uri = await captureCard(cardRef);
-    setCardUri(uri);
-    return uri;
+  /**
+   * Captura o preset em cena, na hora em que a pessoa pede.
+   *
+   * **Não há pré-captura.** Havia: o card era rasterizado a cada troca de
+   * preset, para ter o arquivo pronto dentro da janela de ativação do clique
+   * que o `navigator.share()` exige. Só que uma captura é o trabalho mais caro
+   * desta tela — clona o DOM, copia estilo por estilo e rasteriza 1080×1920 —
+   * e pagá-la a cada preset folheado travava justamente o gesto de folhear.
+   *
+   * Medido com CPU estrangulada em 6× (celular lento), três arrastos:
+   * com pré-captura, 21 travadas de thread principal somando 3803ms, a maior
+   * de 538ms; sem ela, 6 travadas somando 843ms, a maior de 255ms. Era 78% do
+   * tempo bloqueado, gasto em imagens que quase sempre iam para o lixo.
+   *
+   * Agora o custo cai no toque, onde esperar é esperado — e com o botão
+   * dizendo que está preparando. O preço é o share poder cair fora da janela
+   * de ativação; `shareCard` trata isso caindo para o download.
+   */
+  async function comCaptura(acao: (uri: string) => Promise<void>) {
+    setPreparando(true);
+    try {
+      await acao(await captureCard(cardRef));
+    } finally {
+      setPreparando(false);
+    }
   }
 
   async function onShare() {
     try {
-      await shareCard(await ensureCardUri());
+      await comCaptura(shareCard);
     } catch (err) {
       // Cancelar a folha de compartilhamento rejeita com AbortError — não é
       // falha, a pessoa só desistiu.
@@ -180,7 +187,7 @@ export default function ShareScreen() {
 
   async function onSave() {
     try {
-      await saveCardToGallery(await ensureCardUri());
+      await comCaptura(saveCardToGallery);
       toast({
         variant: "success",
         message: Platform.OS === "web" ? "Imagem baixada!" : "Salvo na galeria!",
@@ -273,7 +280,7 @@ export default function ShareScreen() {
       <View className="flex-row items-center gap-3 px-4 pb-4 pt-3">
         <Pressable
           onPress={onSave}
-          disabled={!pronto}
+          disabled={!pronto || preparando}
           accessibilityRole="button"
           accessibilityLabel={Platform.OS === "web" ? "Baixar imagem" : "Salvar na galeria"}
           style={shadows.card}
@@ -282,17 +289,25 @@ export default function ShareScreen() {
           <Download size={22} color={colors.neutral[700]} />
         </Pressable>
         {/* Um primário só, largo e rotulado — a ação que a tela existe para
-            oferecer não pode disputar espaço igual com "salvar". */}
+            oferecer não pode disputar espaço igual com "salvar".
+            Como a imagem só é gerada agora, no toque, o botão diz enquanto
+            gera: sem isso o app parecia ter engasgado. */}
         <Pressable
           onPress={onShare}
-          disabled={!pronto}
+          disabled={!pronto || preparando}
           accessibilityRole="button"
           accessibilityLabel="Compartilhar imagem"
           style={shadows.card}
           className="min-h-[56px] flex-1 flex-row items-center justify-center gap-2 rounded-full bg-primary-400 active:bg-primary-500 disabled:opacity-50"
         >
-          <Share2 size={20} color={colors.white} />
-          <Text className="text-base font-sans-bold text-white">Compartilhar</Text>
+          {preparando ? (
+            <ActivityIndicator color={colors.white} />
+          ) : (
+            <Share2 size={20} color={colors.white} />
+          )}
+          <Text className="text-base font-sans-bold text-white">
+            {preparando ? "Gerando imagem…" : "Compartilhar"}
+          </Text>
         </Pressable>
       </View>
 
