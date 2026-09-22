@@ -73,7 +73,7 @@ usuário tocar nesse botão.
 
 ## Gatilho e persistência
 
-Nova migration `0077_profiles_tutorial_completed.sql`:
+Nova migration `0079_profiles_tutorial_completed.sql`:
 
 ```sql
 alter table profiles add column tutorial_completed_at timestamptz;

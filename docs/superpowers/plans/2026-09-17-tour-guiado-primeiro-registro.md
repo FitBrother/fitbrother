@@ -32,7 +32,7 @@
 ## Task 1: Migration — `profiles.tutorial_completed_at`
 
 **Files:**
-- Create: `supabase/migrations/0077_profiles_tutorial_completed.sql`
+- Create: `supabase/migrations/0079_profiles_tutorial_completed.sql`
 
 **Interfaces:**
 - Produces: coluna `public.profiles.tutorial_completed_at timestamptz` (nullable), `NULL` só para profiles criados depois desta migration.
@@ -57,7 +57,7 @@ UPDATE public.profiles SET tutorial_completed_at = now() WHERE tutorial_complete
 - [ ] **Step 2: Aplicar localmente e conferir**
 
 Run: `npm run db:reset`
-Expected: migration `0077_profiles_tutorial_completed.sql` aplica sem erro; conferir manualmente com `select user_id, tutorial_completed_at from profiles limit 5;` no `supabase db` local — todas as linhas do seed (se houver) devem vir com timestamp preenchido, não `NULL` (prova do backfill).
+Expected: migration `0079_profiles_tutorial_completed.sql` aplica sem erro; conferir manualmente com `select user_id, tutorial_completed_at from profiles limit 5;` no `supabase db` local — todas as linhas do seed (se houver) devem vir com timestamp preenchido, não `NULL` (prova do backfill).
 
 - [ ] **Step 3: Regenerar tipos do Postgres (convenção do projeto)**
 
@@ -67,7 +67,7 @@ Expected: `packages/db-types/index.ts` atualizado incluindo `tutorial_completed_
 - [ ] **Step 4: Commit**
 
 ```bash
-git add supabase/migrations/0077_profiles_tutorial_completed.sql packages/db-types/index.ts
+git add supabase/migrations/0079_profiles_tutorial_completed.sql packages/db-types/index.ts
 git commit -m "feat(db): adiciona profiles.tutorial_completed_at com backfill"
 ```
 
