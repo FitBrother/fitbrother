@@ -3,9 +3,16 @@ import type {
   AccountDeletionStateResponse,
   AccountProfileResponse,
   AccountSettingsResponse,
+  AnthropometricsResponse,
+  BodyProfileResponse,
   DeleteAccountResponse,
+  NutritionGoalResponse,
   PatchAccountSettingsRequest,
+  PatchBodyProfileRequest,
+  PostAnthropometricsRequest,
+  PostNutritionGoalsRequest,
   ReactivateAccountResponse,
+  SuggestedNutritionGoalsResponse,
 } from "@fitbrother/shared";
 import { authedFetch } from "@/lib/api";
 import { exportFilename } from "@/lib/account-utils";
@@ -30,6 +37,33 @@ export const patchAccountAvatar = (avatarUrl: string | null) =>
   json<{ profile: { avatar_url: string | null; updated_at: string } }>("/account/profile", {
     method: "PATCH",
     body: JSON.stringify({ avatar_url: avatarUrl }),
+  });
+
+export const getCurrentAnthropometrics = () =>
+  json<{ anthropometrics: AnthropometricsResponse | null }>("/account/anthropometrics/current");
+
+export const postAnthropometrics = (body: PostAnthropometricsRequest) =>
+  json<{ anthropometrics: AnthropometricsResponse }>("/account/anthropometrics", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+
+export const patchBodyProfile = (body: PatchBodyProfileRequest) =>
+  json<{ profile: BodyProfileResponse }>("/account/body-profile", {
+    method: "PATCH",
+    body: JSON.stringify(body),
+  });
+
+export const getCurrentNutritionGoals = () =>
+  json<{ goal: NutritionGoalResponse | null }>("/account/nutrition-goals/current");
+
+export const getSuggestedNutritionGoals = () =>
+  json<SuggestedNutritionGoalsResponse>("/account/nutrition-goals/suggested");
+
+export const postNutritionGoals = (body: PostNutritionGoalsRequest) =>
+  json<{ goal: NutritionGoalResponse }>("/account/nutrition-goals", {
+    method: "POST",
+    body: JSON.stringify(body),
   });
 
 export const setMarketingConsent = (granted: boolean) =>

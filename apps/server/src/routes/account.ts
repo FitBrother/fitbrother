@@ -2,9 +2,13 @@ import {
   AuthorizeAccountDeletionPasswordRequestSchema,
   CompleteAccountDeletionOAuthRequestSchema,
   DeleteAccountRequestSchema,
+  macrosMatchKcal,
   PatchAccountProfileRequestSchema,
   PatchAccountSettingsRequestSchema,
+  PatchBodyProfileRequestSchema,
   PostAccountConsentRequestSchema,
+  PostAnthropometricsRequestSchema,
+  PostNutritionGoalsRequestSchema,
   StartAccountDeletionOAuthRequestSchema,
   type ConsentScope,
 } from "@fitbrother/shared";
@@ -16,6 +20,7 @@ import { activeAccountRequired, authTokenRequired } from "../lib/auth.js";
 import { internalError } from "../lib/errors.js";
 import { Sentry } from "../lib/sentry.js";
 import { supabaseAnonymous, supabaseFromJwt, supabaseService } from "../lib/supabase.js";
+import { buildTargetsInputFromAccountState, computeTargets } from "../services/targets.js";
 
 const CONSENT_SCOPES = [
   "terms",
@@ -69,7 +74,7 @@ export async function accountRoutes(app: FastifyInstance) {
       admin
         .from("profiles")
         .select(
-          "full_name, username, avatar_url, timezone, day_start_hour, locale, created_at, updated_at",
+          "full_name, username, avatar_url, timezone, day_start_hour, locale, activity_level, goal, created_at, updated_at",
         )
         .eq("user_id", userId)
         .maybeSingle(),
@@ -194,6 +199,311 @@ export async function accountRoutes(app: FastifyInstance) {
     }
     await auditAccountAction(req, "account_profile", "success", { avatar_changed: true });
     return reply.send({ profile: data });
+  });
+
+  // ── M20: edição manual de metas/corpo (Perfil → "Metas e macros") ────────
+  app.get("/account/anthropometrics/current", activeAccount, async (req, reply) => {
+    const userId = req.user!.id;
+    const { data, error } = await supabaseService()
+      .from("anthropometrics")
+      .select("weight_kg, height_cm, bmr_kcal, tdee_kcal, measured_at")
+      .eq("user_id", userId)
+      .order("measured_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (error) {
+      return internalError(reply, req.log, error, {
+        user_id: userId,
+        where: "anthropometrics_current",
+      });
+    }
+    return reply.send({ anthropometrics: data ?? null });
+  });
+
+  app.get("/account/nutrition-goals/current", activeAccount, async (req, reply) => {
+    const userId = req.user!.id;
+    const { data, error } = await supabaseService()
+      .from("nutrition_goals")
+      .select("id, kcal, protein_g, carbs_g, fat_g, fiber_g, effective_from, tdee_source")
+      .eq("user_id", userId)
+      .is("effective_to", null)
+      .maybeSingle();
+    if (error) {
+      return internalError(reply, req.log, error, {
+        user_id: userId,
+        where: "nutrition_goals_current",
+      });
+    }
+    return reply.send({ goal: data ?? null });
+  });
+
+  app.patch("/account/body-profile", activeAccount, async (req, reply) => {
+    const parsed = PatchBodyProfileRequestSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: "invalid_payload", issues: parsed.error.issues });
+    }
+    if (Object.keys(parsed.data).length === 0) {
+      return reply.code(400).send({ error: "empty_patch" });
+    }
+
+    const userId = req.user!.id;
+    const admin = supabaseService();
+    const patch: Record<string, unknown> = {};
+    if (parsed.data.activity_level) patch.activity_level = parsed.data.activity_level;
+    if (parsed.data.goal) patch.goal = parsed.data.goal;
+
+    req.log.info(
+      { user_id: userId, request_id: req.id, action: "account_body_profile" },
+      "account_action",
+    );
+    Sentry.addBreadcrumb({ category: "account", message: "body_profile_update" });
+
+    const { data, error } = await admin
+      .from("profiles")
+      .update(patch)
+      .eq("user_id", userId)
+      .select("activity_level, goal, updated_at")
+      .single();
+
+    if (error) {
+      await auditAccountAction(req, "account_body_profile", "failed", { error: error.message });
+      return internalError(reply, req.log, error, {
+        user_id: userId,
+        where: "account_body_profile",
+      });
+    }
+
+    await auditAccountAction(req, "account_body_profile", "success", {
+      fields: Object.keys(patch),
+    });
+    return reply.send({ profile: data });
+  });
+
+  app.post("/account/anthropometrics", activeAccount, async (req, reply) => {
+    const parsed = PostAnthropometricsRequestSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: "invalid_payload", issues: parsed.error.issues });
+    }
+
+    const userId = req.user!.id;
+    const admin = supabaseService();
+
+    // bmr_kcal/tdee_kcal não têm mais trigger em SQL (0056 — motor de cálculo
+    // migrou pra TS): quem insere em anthropometrics precisa computar e
+    // mandar pronto, exatamente como `complete_onboarding` já faz.
+    const [profileQ, anthroQ] = await Promise.all([
+      admin
+        .from("profiles")
+        .select("birth_date, sex, activity_level, goal")
+        .eq("user_id", userId)
+        .maybeSingle(),
+      admin
+        .from("anthropometrics")
+        .select(
+          "body_fat_pct, target_weight_kg, rate_kg_per_week, strength_training, is_pregnant_or_lactating, has_kidney_disease, has_type1_diabetes, uses_glp1",
+        )
+        .eq("user_id", userId)
+        .order("measured_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+    ]);
+    const stateError = profileQ.error ?? anthroQ.error;
+    if (stateError) {
+      return internalError(reply, req.log, stateError, {
+        user_id: userId,
+        where: "account_anthropometrics_state",
+      });
+    }
+    if (!profileQ.data) {
+      return reply.code(409).send({ error: "account_state_incomplete" });
+    }
+
+    const targets = computeTargets(
+      buildTargetsInputFromAccountState({
+        birth_date: profileQ.data.birth_date,
+        sex: profileQ.data.sex,
+        activity_level: profileQ.data.activity_level,
+        goal: profileQ.data.goal,
+        weight_kg: parsed.data.weight_kg,
+        height_cm: parsed.data.height_cm,
+        body_fat_pct: anthroQ.data?.body_fat_pct ?? null,
+        target_weight_kg: anthroQ.data?.target_weight_kg ?? null,
+        rate_kg_per_week: anthroQ.data?.rate_kg_per_week ?? null,
+        strength_training: anthroQ.data?.strength_training ?? null,
+        is_pregnant_or_lactating: anthroQ.data?.is_pregnant_or_lactating ?? null,
+        has_kidney_disease: anthroQ.data?.has_kidney_disease ?? null,
+        has_type1_diabetes: anthroQ.data?.has_type1_diabetes ?? null,
+        uses_glp1: anthroQ.data?.uses_glp1 ?? null,
+      }),
+    );
+
+    req.log.info(
+      { user_id: userId, request_id: req.id, action: "account_anthropometrics" },
+      "account_action",
+    );
+    Sentry.addBreadcrumb({ category: "account", message: "anthropometrics_update" });
+
+    const { data, error } = await supabaseForToken(req).rpc("fitbrother_set_anthropometrics", {
+      p_weight_kg: parsed.data.weight_kg,
+      p_height_cm: parsed.data.height_cm,
+      p_bmr_kcal: targets.bmr_kcal,
+      p_tdee_kcal: targets.tdee_kcal,
+    });
+    if (error) {
+      await auditAccountAction(req, "account_anthropometrics", "failed", { error: error.message });
+      return internalError(reply, req.log, error, {
+        user_id: userId,
+        where: "account_anthropometrics",
+      });
+    }
+
+    const row = (Array.isArray(data) ? data[0] : data) as {
+      weight_kg: number;
+      height_cm: number;
+      bmr_kcal: number | null;
+      tdee_kcal: number | null;
+      measured_at: string;
+    };
+    await auditAccountAction(req, "account_anthropometrics", "success", {});
+    return reply.send({
+      anthropometrics: {
+        weight_kg: row.weight_kg,
+        height_cm: row.height_cm,
+        bmr_kcal: row.bmr_kcal,
+        tdee_kcal: row.tdee_kcal,
+        measured_at: row.measured_at,
+      },
+    });
+  });
+
+  // Não persiste nada — só recalcula com computeTargets a partir do estado
+  // atual (profiles + última anthropometrics), pro app mostrar "recalcular
+  // metas?" depois que o usuário edita peso/atividade/objetivo em "Meu
+  // corpo". Aplicar a sugestão é uma chamada separada a POST /account/nutrition-goals.
+  app.get("/account/nutrition-goals/suggested", activeAccount, async (req, reply) => {
+    const userId = req.user!.id;
+    const admin = supabaseService();
+
+    const [profileQ, anthroQ] = await Promise.all([
+      admin
+        .from("profiles")
+        .select("birth_date, sex, activity_level, goal")
+        .eq("user_id", userId)
+        .maybeSingle(),
+      admin
+        .from("anthropometrics")
+        .select(
+          "weight_kg, height_cm, body_fat_pct, target_weight_kg, rate_kg_per_week, strength_training, is_pregnant_or_lactating, has_kidney_disease, has_type1_diabetes, uses_glp1",
+        )
+        .eq("user_id", userId)
+        .order("measured_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+    ]);
+
+    const firstError = profileQ.error ?? anthroQ.error;
+    if (firstError) {
+      return internalError(reply, req.log, firstError, {
+        user_id: userId,
+        where: "nutrition_goals_suggested",
+      });
+    }
+    if (!profileQ.data || !anthroQ.data) {
+      return reply.code(409).send({ error: "account_state_incomplete" });
+    }
+
+    const targets = computeTargets(
+      buildTargetsInputFromAccountState({
+        birth_date: profileQ.data.birth_date,
+        sex: profileQ.data.sex,
+        activity_level: profileQ.data.activity_level,
+        goal: profileQ.data.goal,
+        weight_kg: anthroQ.data.weight_kg,
+        height_cm: anthroQ.data.height_cm,
+        body_fat_pct: anthroQ.data.body_fat_pct,
+        target_weight_kg: anthroQ.data.target_weight_kg,
+        rate_kg_per_week: anthroQ.data.rate_kg_per_week,
+        strength_training: anthroQ.data.strength_training,
+        is_pregnant_or_lactating: anthroQ.data.is_pregnant_or_lactating,
+        has_kidney_disease: anthroQ.data.has_kidney_disease,
+        has_type1_diabetes: anthroQ.data.has_type1_diabetes,
+        uses_glp1: anthroQ.data.uses_glp1,
+      }),
+    );
+
+    return reply.send({
+      kcal: targets.kcal,
+      protein_g: targets.protein_g,
+      carbs_g: targets.carbs_g,
+      fat_g: targets.fat_g,
+      fiber_g: targets.fiber_g,
+      bmr_kcal: targets.bmr_kcal,
+      tdee_kcal: targets.tdee_kcal,
+      warnings: targets.warnings,
+      blocked: targets.blocked,
+      block_reason: targets.block_reason,
+    });
+  });
+
+  app.post("/account/nutrition-goals", activeAccount, async (req, reply) => {
+    const parsed = PostNutritionGoalsRequestSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: "invalid_payload", issues: parsed.error.issues });
+    }
+    const { kcal, protein_g, carbs_g, fat_g, fiber_g, source } = parsed.data;
+    // Garante que os macros enviados realmente batem com a caloria declarada
+    // (4P + 4C + 9G) — a matemática de proporcionalidade já roda no cliente,
+    // isso é só o cinto de segurança contra payload inconsistente.
+    if (!macrosMatchKcal({ protein_g, carbs_g, fat_g }, kcal)) {
+      return reply.code(400).send({ error: "macros_kcal_mismatch" });
+    }
+
+    const userId = req.user!.id;
+    req.log.info(
+      { user_id: userId, request_id: req.id, action: "account_nutrition_goals" },
+      "account_action",
+    );
+    Sentry.addBreadcrumb({ category: "account", message: "nutrition_goals_update" });
+
+    const { data, error } = await supabaseForToken(req).rpc("fitbrother_set_nutrition_goals", {
+      p_kcal: kcal,
+      p_protein_g: protein_g,
+      p_carbs_g: carbs_g,
+      p_fat_g: fat_g,
+      p_fiber_g: fiber_g ?? null,
+      p_source: source,
+    });
+    if (error) {
+      await auditAccountAction(req, "account_nutrition_goals", "failed", { error: error.message });
+      return internalError(reply, req.log, error, {
+        user_id: userId,
+        where: "account_nutrition_goals",
+      });
+    }
+
+    const row = (Array.isArray(data) ? data[0] : data) as {
+      id: string;
+      kcal: number;
+      protein_g: number;
+      carbs_g: number;
+      fat_g: number;
+      fiber_g: number | null;
+      effective_from: string;
+      tdee_source: string;
+    };
+    await auditAccountAction(req, "account_nutrition_goals", "success", { source });
+    return reply.send({
+      goal: {
+        id: row.id,
+        kcal: row.kcal,
+        protein_g: row.protein_g,
+        carbs_g: row.carbs_g,
+        fat_g: row.fat_g,
+        fiber_g: row.fiber_g,
+        effective_from: row.effective_from,
+        tdee_source: row.tdee_source,
+      },
+    });
   });
 
   app.post("/account/consent", activeAccount, async (req, reply) => {
