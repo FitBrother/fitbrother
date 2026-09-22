@@ -275,6 +275,16 @@ export default function HomeScreen() {
 
   const items = (mealsQuery.data ?? []) as OptimisticMeal[];
 
+  // Gatilho do tour: primeira refeição persistida visível na Home. Cobre o
+  // composer daqui e o registro feito no último passo do onboarding
+  // (FirstMealBlock), que roda fora do TourProvider. Depende só do booleano
+  // pra não re-disparar enquanto o PATCH de tutorial_completed está em voo.
+  const hasPersistedMeal = items.some((m) => m.__status !== "processing");
+  useEffect(() => {
+    if (hasPersistedMeal) tour.notifyMealCreated();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasPersistedMeal]);
+
   const handleSend = (text: string) => {
     setBanner(null);
     createMeal.mutate(
@@ -285,7 +295,6 @@ export default function HomeScreen() {
         day,
       },
       {
-        onSuccess: () => tour.notifyMealCreated(),
         onError: (err) => {
           if (err instanceof QuotaExceededError) {
             setBanner("quota_exceeded");
@@ -323,7 +332,6 @@ export default function HomeScreen() {
             day,
           },
           {
-            onSuccess: () => tour.notifyMealCreated(),
             onError: (err) => {
               // eslint-disable-next-line no-console
               console.warn("[handleAudioReady] mutation error:", err);
@@ -347,7 +355,7 @@ export default function HomeScreen() {
         setBanner("network");
       }
     },
-    [createMealAudio, day, tour, userId],
+    [createMealAudio, day, userId],
   );
 
   const handlePhotoPress = useCallback(async () => {
@@ -370,7 +378,6 @@ export default function HomeScreen() {
           day,
         },
         {
-          onSuccess: () => tour.notifyMealCreated(),
           onError: (err) => {
             if (err instanceof QuotaExceededError) {
               setBanner("quota_exceeded");
@@ -389,7 +396,7 @@ export default function HomeScreen() {
       console.warn("[handlePhotoPress] photo error:", err);
       setBanner("network");
     }
-  }, [createMealPhoto, day, tour, userId]);
+  }, [createMealPhoto, day, userId]);
 
   const handleDelete = useCallback(
     (id: string) => {
