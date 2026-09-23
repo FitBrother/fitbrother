@@ -2,22 +2,26 @@ import { useRouter, usePathname } from "expo-router";
 import { Calendar, Home as HomeIcon, Rss, Search, Sparkles, Users } from "lucide-react-native";
 import { Pressable, Text, View } from "react-native";
 import { Logo } from "@/components/Logo";
+import { TourTarget } from "@/components/tour/TourTarget";
 import { profileInitials } from "@/lib/account-utils";
 import { colors } from "@/lib/colors";
 import { shadows } from "@/lib/shadows";
 import { useProfile } from "@/lib/profile/profile-context";
+import type { TourStepId } from "@/lib/tour/steps";
 
 type NavItem = {
   label: string;
   href: string;
   icon: typeof HomeIcon;
+  /** Passo do tour que destaca este item no layout desktop. */
+  tourId?: TourStepId;
 };
 
 const NAV_ITEMS: NavItem[] = [
-  { label: "Home", href: "/", icon: HomeIcon },
+  { label: "Home", href: "/", icon: HomeIcon, tourId: "home-tab" },
   { label: "Histórico", href: "/(app)/history", icon: Calendar },
-  { label: "Feed", href: "/(app)/feed", icon: Rss },
-  { label: "Análises", href: "/(app)/insights", icon: Sparkles },
+  { label: "Feed", href: "/(app)/feed", icon: Rss, tourId: "social-tab" },
+  { label: "Análises", href: "/(app)/insights", icon: Sparkles, tourId: "analises-tab" },
   { label: "Buscar pessoas", href: "/(app)/users/search", icon: Search },
   { label: "Amigos", href: "/(app)/friends", icon: Users },
 ];
@@ -46,7 +50,7 @@ export function Sidebar() {
       {NAV_ITEMS.map((item) => {
         const active = isActive(pathname, item.href);
         const Icon = item.icon;
-        return (
+        const link = (
           <Pressable
             key={item.href}
             onPress={() => router.push(item.href as never)}
@@ -64,25 +68,34 @@ export function Sidebar() {
             </Text>
           </Pressable>
         );
+        return item.tourId ? (
+          <TourTarget key={item.href} id={item.tourId}>
+            {link}
+          </TourTarget>
+        ) : (
+          link
+        );
       })}
 
       <View className="flex-1" />
 
-      <Pressable
-        onPress={() => router.push("/(app)/profile")}
-        accessibilityRole="link"
-        accessibilityLabel="Perfil"
-        className="min-h-[44px] flex-row items-center gap-3 rounded-xl px-2"
-      >
-        <View className="h-9 w-9 items-center justify-center rounded-full bg-primary-100">
-          <Text className="text-xs font-sans-bold text-primary-700">
-            {profileInitials(profile.full_name, null)}
+      <TourTarget id="home-avatar">
+        <Pressable
+          onPress={() => router.push("/(app)/profile")}
+          accessibilityRole="link"
+          accessibilityLabel="Perfil"
+          className="min-h-[44px] flex-row items-center gap-3 rounded-xl px-2"
+        >
+          <View className="h-9 w-9 items-center justify-center rounded-full bg-primary-100">
+            <Text className="text-xs font-sans-bold text-primary-700">
+              {profileInitials(profile.full_name, null)}
+            </Text>
+          </View>
+          <Text className="flex-1 font-sans-medium text-neutral-800" numberOfLines={1}>
+            {profile.full_name}
           </Text>
-        </View>
-        <Text className="flex-1 font-sans-medium text-neutral-800" numberOfLines={1}>
-          {profile.full_name}
-        </Text>
-      </Pressable>
+        </Pressable>
+      </TourTarget>
     </View>
   );
 }

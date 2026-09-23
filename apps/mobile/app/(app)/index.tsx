@@ -1,3 +1,4 @@
+import { TourTarget } from "@/components/tour/TourTarget";
 import type { TourStepId } from "@/lib/tour/steps";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
@@ -492,10 +493,12 @@ export default function HomeScreen() {
               <Text className="mt-0.5 text-[28px] font-display-bold text-neutral-800">Hoje</Text>
             </View>
             {!profile.soft_mode && streakView && (
-              <StreakCounter
-                current={streakView.streak.current_streak}
-                atRisk={streakView.atRisk}
-              />
+              <TourTarget id="streak">
+                <StreakCounter
+                  current={streakView.streak.current_streak}
+                  atRisk={streakView.atRisk}
+                />
+              </TourTarget>
             )}
           </Card>
         </View>
