@@ -5,6 +5,10 @@
 **Base:** `2026-09-17-tour-guiado-primeiro-registro-design.md` (gatilho,
 persistência, replay e medição continuam valendo; este documento só descreve o
 que muda).
+**Revisão 2026-09-23:** o toque direto foi revertido — todos os passos avançam
+pelo "Próximo" (o último só com "Concluir"). Roteiro, navegação e volta pra
+Home continuam valendo; as seções de "tap" abaixo ficam como histórico da
+decisão.
 
 ## Objetivo
 
