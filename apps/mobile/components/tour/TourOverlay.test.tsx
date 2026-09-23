@@ -1,5 +1,5 @@
-import { describe, expect, jest, test } from "@jest/globals";
-import { fireEvent, render } from "@testing-library/react-native";
+import { beforeEach, describe, expect, jest, test } from "@jest/globals";
+import { act, fireEvent, render } from "@testing-library/react-native";
 
 // Mesma regra de ordenação do tour-context.test.tsx: o import de
 // `./TourOverlay` (módulo sob teste) fica no fim do arquivo, depois de todo
@@ -17,9 +17,21 @@ jest.mock("@/lib/tour/tour-context", () => ({
   useTour: () => mockTour,
 }));
 
+const mockPrompt = jest.fn(async () => {});
+let mockInstall: { status: string; promptEvent?: object } = { status: "installable-chrome" };
 jest.mock("@/lib/hooks/useInstallPrompt", () => ({
-  useInstallPrompt: () => ({ status: "installable-chrome" }),
+  useInstallPrompt: () => mockInstall,
 }));
+
+beforeEach(() => {
+  mockInstall = {
+    status: "installable-chrome",
+    promptEvent: { prompt: mockPrompt, userChoice: Promise.resolve({ outcome: "accepted" }) },
+  };
+  mockPrompt.mockClear();
+  mockNext.mockReset();
+  mockSkip.mockReset();
+});
 
 let mockLarguraJanela = 375;
 jest.mock("react-native/Libraries/Utilities/useWindowDimensions", () => ({
@@ -75,6 +87,7 @@ describe("TourOverlay", () => {
   });
 
   test("no último passo só aparece 'Concluir' (sem Pular)", () => {
+    mockInstall = { status: "native" }; // sem atalho: o último é Metas
     mockTour = {
       active: true,
       currentStepId: "goals-editor",
@@ -87,6 +100,45 @@ describe("TourOverlay", () => {
     fireEvent.press(getByLabelText("Concluir tour"));
     expect(mockNext).toHaveBeenCalled();
     expect(queryByLabelText("Pular tour")).toBeNull();
+  });
+
+  test("atalho no Chrome: Pular e Instalar; Instalar abre o prompt e encerra", async () => {
+    mockTour = {
+      active: true,
+      currentStepId: "profile-shortcut-card",
+      targets: { "profile-shortcut-card": { x: 10, y: 300, width: 300, height: 80 } },
+      next: mockNext,
+      skip: mockSkip,
+    };
+    const { getByLabelText, queryByLabelText } = render(<TourOverlay />);
+    expect(queryByLabelText("Concluir tour")).toBeNull();
+    fireEvent.press(getByLabelText("Pular tour"));
+    expect(mockSkip).toHaveBeenCalled();
+    await act(async () => {
+      fireEvent.press(getByLabelText("Instalar o app"));
+    });
+    expect(mockPrompt).toHaveBeenCalled();
+    expect(mockNext).toHaveBeenCalled();
+  });
+
+  test("atalho no Safari do Mac: texto com o caminho e botão Entendi", () => {
+    mockInstall = { status: "installable-mac-safari" };
+    mockTour = {
+      active: true,
+      currentStepId: "profile-shortcut-card",
+      targets: { "profile-shortcut-card": { x: 10, y: 300, width: 300, height: 80 } },
+      next: mockNext,
+      skip: mockSkip,
+    };
+    const { getByText, getByLabelText } = render(<TourOverlay />);
+    expect(
+      getByText(
+        "Para instalar, clique em Compartilhar na barra de endereço e escolha “Adicionar ao Dock”.",
+      ),
+    ).toBeTruthy();
+    fireEvent.press(getByLabelText("Concluir tour"));
+    expect(mockNext).toHaveBeenCalled();
+    expect(getByLabelText("Pular tour")).toBeTruthy();
   });
 
   test("passo que não é o último tem Pular e Próximo, e o recorte não é botão", () => {

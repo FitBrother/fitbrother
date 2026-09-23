@@ -4,7 +4,7 @@ import Svg, { Defs, Mask, Rect as SvgRect } from "react-native-svg";
 import { Button } from "@/components/Button";
 import { useInstallPrompt } from "@/lib/hooks/useInstallPrompt";
 import { useTour } from "@/lib/tour/tour-context";
-import { tourLayout, visibleSteps, type TourLayout } from "@/lib/tour/steps";
+import { SHORTCUT_STEP_ID, tourLayout, visibleSteps, type TourLayout } from "@/lib/tour/steps";
 import type { Rect } from "@/lib/tour/tour-context";
 import { shadows } from "@/lib/shadows";
 
@@ -83,6 +83,20 @@ export function TourOverlay() {
   if (!step) return null;
 
   const isLast = stepIndex === steps.length - 1;
+  const isShortcutLast = isLast && step.id === SHORTCUT_STEP_ID;
+  // Chrome/Edge: o balão dispara o prompt nativo; Safari/iOS não têm prompt
+  // programático — o texto do passo ensina o caminho e o botão só fecha.
+  const chromeInstall = install.status === "installable-chrome" ? install : null;
+  const handleInstall = async () => {
+    try {
+      if (chromeInstall) {
+        await chromeInstall.promptEvent.prompt();
+        await chromeInstall.promptEvent.userChoice;
+      }
+    } finally {
+      next();
+    }
+  };
   const measured = targets[currentStepId];
   const rect = measured
     ? { ...measured, x: measured.x - origin.x, y: measured.y - origin.y }
@@ -156,7 +170,7 @@ export function TourOverlay() {
           <View className="gap-3 rounded-2xl bg-white p-4" style={shadows.floating}>
             <Text className="font-sans-medium text-base text-neutral-900">{step.copy}</Text>
             <View className="flex-row justify-end gap-2">
-              {isLast ? (
+              {isLast && !isShortcutLast ? (
                 <Button
                   label="Concluir"
                   size="sm"
@@ -172,12 +186,30 @@ export function TourOverlay() {
                     onPress={skip}
                     accessibilityLabel="Pular tour"
                   />
-                  <Button
-                    label="Próximo"
-                    size="sm"
-                    onPress={next}
-                    accessibilityLabel="Próximo passo"
-                  />
+                  {isShortcutLast ? (
+                    chromeInstall ? (
+                      <Button
+                        label="Instalar"
+                        size="sm"
+                        onPress={handleInstall}
+                        accessibilityLabel="Instalar o app"
+                      />
+                    ) : (
+                      <Button
+                        label="Entendi"
+                        size="sm"
+                        onPress={next}
+                        accessibilityLabel="Concluir tour"
+                      />
+                    )
+                  ) : (
+                    <Button
+                      label="Próximo"
+                      size="sm"
+                      onPress={next}
+                      accessibilityLabel="Próximo passo"
+                    />
+                  )}
                 </>
               )}
             </View>
