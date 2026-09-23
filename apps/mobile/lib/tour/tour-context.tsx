@@ -13,7 +13,7 @@ import { useWindowDimensions } from "react-native";
 import { patchAccountSettings } from "@/lib/api/account";
 import { useInstallPrompt } from "@/lib/hooks/useInstallPrompt";
 import { useProfile, useProfileActions } from "@/lib/profile/profile-context";
-import { visibleSteps, type TourStepId } from "./steps";
+import { visibleSteps, type TourScreen, type TourStepId } from "./steps";
 
 export type Rect = { x: number; y: number; width: number; height: number };
 
@@ -41,6 +41,15 @@ const DESKTOP_MIN_WIDTH = 1024;
  * sozinho em vez de travar o véu sem recorte. */
 const TARGET_TIMEOUT_MS = 2000;
 
+/** Onde cada tela do roteiro mora: `pathname` como o `usePathname` devolve e
+ * `href` pra navegar. */
+const SCREEN_ROUTE: Record<TourScreen, { pathname: string; href: string }> = {
+  home: { pathname: "/", href: "/(app)" },
+  history: { pathname: "/history", href: "/(app)/history" },
+  profile: { pathname: "/profile", href: "/(app)/profile" },
+  goals: { pathname: "/goals", href: "/(app)/goals" },
+};
+
 export function TourProvider({ children }: { children: ReactNode }) {
   const [stepIndex, setStepIndex] = useState<number | null>(null);
   const [targets, setTargets] = useState<Partial<Record<TourStepId, Rect>>>({});
@@ -49,7 +58,7 @@ export function TourProvider({ children }: { children: ReactNode }) {
   const install = useInstallPrompt();
   const router = useRouter();
   const pathname = usePathname();
-  // Lido via ref no startTour: se o pathname entrasse nas deps, cada troca de
+  // Lido via ref no finish: se o pathname entrasse nas deps, cada troca de
   // rota geraria um valor de contexto novo e re-renderizaria a Home no meio
   // da transição de tela.
   const pathnameRef = useRef(pathname);
@@ -62,6 +71,8 @@ export function TourProvider({ children }: { children: ReactNode }) {
   const finish = useCallback(() => {
     setStepIndex(null);
     setTargets({});
+    // Termina sempre na Home (spec: "Ao terminar, o app volta para a Home").
+    if (pathnameRef.current !== "/") router.dismissTo("/(app)");
     void patchAccountSettings({ tutorial_completed: true })
       .then((result) => update(result.settings))
       .catch(() => {
@@ -70,7 +81,7 @@ export function TourProvider({ children }: { children: ReactNode }) {
         // e o tour dispara de novo no próximo primeiro-registro, o que é
         // aceitável.
       });
-  }, [update]);
+  }, [update, router]);
 
   const next = useCallback(() => {
     setStepIndex((current) => {
@@ -91,12 +102,9 @@ export function TourProvider({ children }: { children: ReactNode }) {
   const startTour = useCallback(() => {
     if (stepIndex !== null) return;
     if (width >= DESKTOP_MIN_WIDTH) return;
-    // Replay a partir de Configurações/Perfil: volta pra Home (desempilhando
-    // o que estiver por cima) antes de armar o passo 1 — ver spec.
-    if (pathnameRef.current !== "/") router.dismissTo("/(app)");
     setTargets({});
     setStepIndex(0);
-  }, [stepIndex, width, router]);
+  }, [stepIndex, width]);
 
   const notifyMealCreated = useCallback(() => {
     if (profile.tutorial_completed_at !== null) return;
@@ -125,16 +133,18 @@ export function TourProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  // Navega pro Perfil assim que o passo atual pede uma tela que não é a Home
-  // — ver spec, "Fluxo de dados e coordenação com navegação".
+  // Leva o usuário pra tela do passo atual (inclui o replay a partir de
+  // Configurações: o passo 1 é da Home) — ver spec, "Navegação e abas".
+  // Depende da tela (string), não do array `steps` (novo a cada render), pra
+  // não empurrar a mesma rota de novo enquanto a navegação ainda está em voo.
+  const currentScreen = stepIndex !== null ? steps[stepIndex]?.screen : undefined;
   useEffect(() => {
-    if (stepIndex === null) return;
-    const step = steps[stepIndex];
-    if (!step) return;
-    if (step.screen === "profile" && pathname !== "/profile") {
-      router.push("/(app)/profile");
-    }
-  }, [stepIndex, steps, pathname, router]);
+    if (!currentScreen) return;
+    const route = SCREEN_ROUTE[currentScreen];
+    if (pathname === route.pathname) return;
+    if (currentScreen === "home") router.dismissTo(route.href);
+    else router.push(route.href);
+  }, [currentScreen, pathname, router]);
 
   // Rede de segurança: se o alvo do passo atual não registrar a tempo,
   // avança sozinho em vez de travar o véu sem recorte.

@@ -68,6 +68,14 @@ function renderTour() {
   );
 }
 
+function pressNextUntil(getByTestId: ReturnType<typeof renderTour>["getByTestId"], stepId: string) {
+  for (let i = 0; i < 12; i++) {
+    if (getByTestId("step").props.children === stepId) return;
+    fireEvent.press(getByTestId("next"));
+  }
+  throw new Error(`não chegou em ${stepId}`);
+}
+
 beforeEach(() => {
   mockPush.mockReset();
   mockDismissTo.mockReset();
@@ -107,12 +115,8 @@ describe("início e avanço do tour", () => {
   test("next no último passo encerra o tour e persiste no servidor", async () => {
     const { getByTestId, findByTestId } = renderTour();
     fireEvent.press(getByTestId("start"));
-    fireEvent.press(getByTestId("next")); // social-tab
-    fireEvent.press(getByTestId("next")); // analises-tab
-    fireEvent.press(getByTestId("next")); // profile-avatar
-    fireEvent.press(getByTestId("next")); // profile-shortcut-card (último — ainda visível)
-    expect(getByTestId("step")).toHaveTextContent("profile-shortcut-card");
-    fireEvent.press(getByTestId("next")); // "Entendi" no último passo: conclui
+    pressNextUntil(getByTestId, "goals-editor");
+    fireEvent.press(getByTestId("next")); // "Concluir"
     expect(await findByTestId("active")).toHaveTextContent("false");
     expect(mockPatchAccountSettings).toHaveBeenCalledWith({ tutorial_completed: true });
   });
@@ -171,36 +175,65 @@ describe("gatilho do primeiro registro", () => {
   });
 });
 
-describe("navegação automática pro Perfil", () => {
-  test("ao entrar no passo profile-avatar, navega se ainda não está lá", () => {
+describe("navegação do roteiro", () => {
+  test("empurra Histórico, Perfil e Metas nos passos dessas telas", () => {
     const { getByTestId } = renderTour();
     fireEvent.press(getByTestId("start"));
-    fireEvent.press(getByTestId("next")); // social-tab
-    fireEvent.press(getByTestId("next")); // analises-tab
-    fireEvent.press(getByTestId("next")); // profile-avatar
+    pressNextUntil(getByTestId, "history-day");
+    expect(mockPush).toHaveBeenCalledWith("/(app)/history");
+    pressNextUntil(getByTestId, "profile-shortcut-card");
     expect(mockPush).toHaveBeenCalledWith("/(app)/profile");
+    pressNextUntil(getByTestId, "goals-editor");
+    expect(mockPush).toHaveBeenCalledWith("/(app)/goals");
   });
 
-  test("não navega de novo se já está no Perfil", () => {
+  test("volta do Histórico pra Home com dismissTo no passo do avatar", () => {
+    const { getByTestId } = renderTour();
+    fireEvent.press(getByTestId("start"));
+    pressNextUntil(getByTestId, "history-day");
+    mockPathname = "/history";
+    fireEvent.press(getByTestId("next")); // home-avatar
+    expect(mockDismissTo).toHaveBeenCalledWith("/(app)");
+  });
+
+  test("não navega se já está na tela do passo", () => {
     mockPathname = "/profile";
     const { getByTestId } = renderTour();
     fireEvent.press(getByTestId("start"));
+    pressNextUntil(getByTestId, "profile-goals");
+    expect(mockPush).not.toHaveBeenCalledWith("/(app)/profile");
+  });
+});
+
+describe("fim do tour", () => {
+  test("concluir fora da Home volta pra Home", () => {
+    const { getByTestId } = renderTour();
+    fireEvent.press(getByTestId("start"));
+    // Antes de chegar no último passo: o pathname entra no próximo render e o
+    // finish() lê o valor renderizado (pathnameRef).
+    mockPathname = "/goals";
+    pressNextUntil(getByTestId, "goals-editor");
+    mockDismissTo.mockReset();
     fireEvent.press(getByTestId("next"));
-    fireEvent.press(getByTestId("next"));
-    fireEvent.press(getByTestId("next"));
-    expect(mockPush).not.toHaveBeenCalled();
+    expect(mockDismissTo).toHaveBeenCalledWith("/(app)");
+  });
+
+  test("pular na Home não navega", () => {
+    const { getByTestId } = renderTour();
+    fireEvent.press(getByTestId("start"));
+    fireEvent.press(getByTestId("skip"));
+    expect(mockDismissTo).not.toHaveBeenCalled();
   });
 });
 
 describe("passo sem atalho pra instalar", () => {
-  test("com status native, o último passo é profile-avatar", () => {
+  test("com status native, do avatar vai direto pra Metas e macros", () => {
     mockInstallStatus = "native";
     const { getByTestId } = renderTour();
-    fireEvent.press(getByTestId("start")); // home-tab
-    fireEvent.press(getByTestId("next")); // social-tab
-    fireEvent.press(getByTestId("next")); // analises-tab
-    fireEvent.press(getByTestId("next")); // profile-avatar (último, sem passo de atalho)
-    expect(getByTestId("step")).toHaveTextContent("profile-avatar");
+    fireEvent.press(getByTestId("start"));
+    pressNextUntil(getByTestId, "home-avatar");
+    fireEvent.press(getByTestId("next"));
+    expect(getByTestId("step")).toHaveTextContent("profile-goals");
   });
 });
 
