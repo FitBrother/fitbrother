@@ -151,11 +151,11 @@ describe("início e avanço do tour", () => {
     expect(getByTestId("step")).toHaveTextContent("social-tab");
   });
 
-  test("no layout desktop (width >= 1024) o tour não inicia", () => {
-    mockLarguraJanela = 1024;
+  test("no layout desktop (web ≥ 1024) o tour inicia", () => {
+    mockLarguraJanela = 1280;
     const { getByTestId } = renderTour();
     fireEvent.press(getByTestId("start"));
-    expect(getByTestId("active")).toHaveTextContent("false");
+    expect(getByTestId("active")).toHaveTextContent("true");
   });
 });
 
@@ -176,6 +176,16 @@ describe("gatilho do primeiro registro", () => {
 });
 
 describe("navegação do roteiro", () => {
+  test("no desktop, Social e Análises abrem Feed e Insights", () => {
+    mockLarguraJanela = 1280;
+    const { getByTestId } = renderTour();
+    fireEvent.press(getByTestId("start"));
+    fireEvent.press(getByTestId("next")); // social-tab
+    expect(mockPush).toHaveBeenCalledWith("/(app)/feed");
+    fireEvent.press(getByTestId("next")); // analises-tab
+    expect(mockPush).toHaveBeenCalledWith("/(app)/insights");
+  });
+
   test("empurra Histórico, Perfil e Metas nos passos dessas telas", () => {
     const { getByTestId } = renderTour();
     fireEvent.press(getByTestId("start"));

@@ -13,7 +13,7 @@ import { useWindowDimensions } from "react-native";
 import { patchAccountSettings } from "@/lib/api/account";
 import { useInstallPrompt } from "@/lib/hooks/useInstallPrompt";
 import { useProfile, useProfileActions } from "@/lib/profile/profile-context";
-import { visibleSteps, type TourScreen, type TourStepId } from "./steps";
+import { tourLayout, visibleSteps, type TourScreen, type TourStepId } from "./steps";
 
 export type Rect = { x: number; y: number; width: number; height: number };
 
@@ -30,13 +30,6 @@ type ContextValue = {
 
 const TourContext = createContext<ContextValue | null>(null);
 
-/**
- * A partir daqui a navegação principal é a `Sidebar`, não a barra de abas do
- * `HomeHeader` — o tour foi pedido "para mobile" (ver spec) e não tem alvo
- * nenhum pra apontar nesse layout.
- */
-const DESKTOP_MIN_WIDTH = 1024;
-
 /** Alvo não registra a tempo (ex.: navegação lenta pro Perfil) — avança
  * sozinho em vez de travar o véu sem recorte. */
 const TARGET_TIMEOUT_MS = 2000;
@@ -48,6 +41,8 @@ const SCREEN_ROUTE: Record<TourScreen, { pathname: string; href: Href }> = {
   history: { pathname: "/history", href: "/(app)/history" },
   profile: { pathname: "/profile", href: "/(app)/profile" },
   goals: { pathname: "/goals", href: "/(app)/goals" },
+  feed: { pathname: "/feed", href: "/(app)/feed" },
+  insights: { pathname: "/insights", href: "/(app)/insights" },
 };
 
 export function TourProvider({ children }: { children: ReactNode }) {
@@ -65,7 +60,7 @@ export function TourProvider({ children }: { children: ReactNode }) {
   pathnameRef.current = pathname;
   const { width } = useWindowDimensions();
 
-  const steps = visibleSteps(install.status);
+  const steps = visibleSteps(install.status, tourLayout(width));
   const currentStepId = stepIndex !== null ? (steps[stepIndex]?.id ?? null) : null;
 
   const finish = useCallback(() => {
@@ -101,10 +96,9 @@ export function TourProvider({ children }: { children: ReactNode }) {
 
   const startTour = useCallback(() => {
     if (stepIndex !== null) return;
-    if (width >= DESKTOP_MIN_WIDTH) return;
     setTargets({});
     setStepIndex(0);
-  }, [stepIndex, width]);
+  }, [stepIndex]);
 
   const notifyMealCreated = useCallback(() => {
     if (profile.tutorial_completed_at !== null) return;
