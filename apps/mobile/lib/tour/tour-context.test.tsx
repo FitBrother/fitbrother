@@ -115,18 +115,30 @@ describe("início e avanço do tour", () => {
   test("next no último passo encerra o tour e persiste no servidor", async () => {
     const { getByTestId, findByTestId } = renderTour();
     fireEvent.press(getByTestId("start"));
-    pressNextUntil(getByTestId, "goals-editor");
-    fireEvent.press(getByTestId("next")); // "Concluir"
+    pressNextUntil(getByTestId, "profile-shortcut-card");
+    fireEvent.press(getByTestId("next")); // último: encerra
     expect(await findByTestId("active")).toHaveTextContent("false");
     expect(mockPatchAccountSettings).toHaveBeenCalledWith({ tutorial_completed: true });
   });
 
-  test("skip encerra o tour em qualquer passo e persiste", async () => {
+  test("skip num passo do meio pula pro atalho; no atalho encerra e persiste", async () => {
+    const { getByTestId, findByTestId } = renderTour();
+    fireEvent.press(getByTestId("start"));
+    fireEvent.press(getByTestId("next")); // social-tab
+    fireEvent.press(getByTestId("skip"));
+    expect(getByTestId("step")).toHaveTextContent("profile-shortcut-card");
+    expect(mockPatchAccountSettings).not.toHaveBeenCalled();
+    fireEvent.press(getByTestId("skip"));
+    expect(await findByTestId("active")).toHaveTextContent("false");
+    expect(mockPatchAccountSettings).toHaveBeenCalledWith({ tutorial_completed: true });
+  });
+
+  test("sem passo de atalho (nativo), skip encerra", async () => {
+    mockInstallStatus = "native";
     const { getByTestId, findByTestId } = renderTour();
     fireEvent.press(getByTestId("start"));
     fireEvent.press(getByTestId("skip"));
     expect(await findByTestId("active")).toHaveTextContent("false");
-    expect(mockPatchAccountSettings).toHaveBeenCalledWith({ tutorial_completed: true });
   });
 
   test("startTour fora da Home volta pra Home (replay via Configurações)", () => {
@@ -191,10 +203,12 @@ describe("navegação do roteiro", () => {
     fireEvent.press(getByTestId("start"));
     pressNextUntil(getByTestId, "history-day");
     expect(mockPush).toHaveBeenCalledWith("/(app)/history");
-    pressNextUntil(getByTestId, "profile-shortcut-card");
+    pressNextUntil(getByTestId, "profile-goals");
     expect(mockPush).toHaveBeenCalledWith("/(app)/profile");
     pressNextUntil(getByTestId, "goals-editor");
     expect(mockPush).toHaveBeenCalledWith("/(app)/goals");
+    pressNextUntil(getByTestId, "profile-shortcut-card");
+    expect(mockPush).toHaveBeenLastCalledWith("/(app)/profile");
   });
 
   test("volta do Histórico pra Home com dismissTo no passo do avatar", () => {
@@ -221,14 +235,15 @@ describe("fim do tour", () => {
     fireEvent.press(getByTestId("start"));
     // Antes de chegar no último passo: o pathname entra no próximo render e o
     // finish() lê o valor renderizado (pathnameRef).
-    mockPathname = "/goals";
-    pressNextUntil(getByTestId, "goals-editor");
+    mockPathname = "/profile";
+    pressNextUntil(getByTestId, "profile-shortcut-card");
     mockDismissTo.mockReset();
     fireEvent.press(getByTestId("next"));
     expect(mockDismissTo).toHaveBeenCalledWith("/(app)");
   });
 
-  test("pular na Home não navega", () => {
+  test("sem atalho, pular na Home encerra sem navegar", () => {
+    mockInstallStatus = "native";
     const { getByTestId } = renderTour();
     fireEvent.press(getByTestId("start"));
     fireEvent.press(getByTestId("skip"));

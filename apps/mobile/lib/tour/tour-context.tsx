@@ -13,7 +13,13 @@ import { useWindowDimensions } from "react-native";
 import { patchAccountSettings } from "@/lib/api/account";
 import { useInstallPrompt } from "@/lib/hooks/useInstallPrompt";
 import { useProfile, useProfileActions } from "@/lib/profile/profile-context";
-import { tourLayout, visibleSteps, type TourScreen, type TourStepId } from "./steps";
+import {
+  SHORTCUT_STEP_ID,
+  tourLayout,
+  visibleSteps,
+  type TourScreen,
+  type TourStepId,
+} from "./steps";
 
 export type Rect = { x: number; y: number; width: number; height: number };
 
@@ -89,10 +95,20 @@ export function TourProvider({ children }: { children: ReactNode }) {
     });
   }, [steps.length, finish]);
 
+  // Índice do atalho no roteiro atual (-1 quando não há) — número, não o
+  // array `steps`, pra `skip` manter a identidade entre renders.
+  const shortcutIndex = steps.findIndex((s) => s.id === SHORTCUT_STEP_ID);
+
   const skip = useCallback(() => {
     if (stepIndex === null) return;
+    // Pular antes do atalho leva a ele (o tour sempre oferece a instalação);
+    // no atalho, ou sem atalho, encerra.
+    if (shortcutIndex !== -1 && stepIndex < shortcutIndex) {
+      setStepIndex(shortcutIndex);
+      return;
+    }
     finish();
-  }, [stepIndex, finish]);
+  }, [stepIndex, shortcutIndex, finish]);
 
   const startTour = useCallback(() => {
     if (stepIndex !== null) return;
