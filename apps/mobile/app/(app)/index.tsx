@@ -1,3 +1,4 @@
+import type { TourStepId } from "@/lib/tour/steps";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Keyboard,
@@ -135,6 +136,16 @@ function detectLocale(): string {
   return tag ?? "pt-BR";
 }
 
+/** Aba mostrada em cada passo do tour: reflete o último toque (tocar em
+ * Social mostra o feed no passo seguinte, etc.) — ver spec do tour ampliado. */
+const TOUR_TAB: Partial<Record<TourStepId, HomeTab>> = {
+  "home-tab": "home",
+  "social-tab": "home",
+  "analises-tab": "feed",
+  "composer-plus": "analises",
+  streak: "analises",
+};
+
 export default function HomeScreen() {
   const router = useRouter();
   const profile = useProfile();
@@ -170,13 +181,11 @@ export default function HomeScreen() {
   const [activeTab, setActiveTab] = useState<HomeTab>("home");
   const tour = useTour();
 
-  // O tour comanda a troca de aba durante os passos 1-3 (ver
-  // lib/tour/steps.ts) — as abas em si continuam sendo estado local desta
-  // tela, o tour só reage a elas.
+  // O tour comanda a aba mostrada em cada passo — ver TOUR_TAB. As abas em si
+  // continuam sendo estado local desta tela.
   useEffect(() => {
-    if (tour.currentStepId === "home-tab") setActiveTab("home");
-    else if (tour.currentStepId === "social-tab") setActiveTab("feed");
-    else if (tour.currentStepId === "analises-tab") setActiveTab("analises");
+    const tab = tour.currentStepId ? TOUR_TAB[tour.currentStepId] : undefined;
+    if (tab) setActiveTab(tab);
   }, [tour.currentStepId]);
   const { width } = useWindowDimensions();
   const isDesktop = width >= 1024;

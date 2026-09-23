@@ -8,7 +8,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { useRouter, usePathname } from "expo-router";
+import { useRouter, usePathname, type Href } from "expo-router";
 import { useWindowDimensions } from "react-native";
 import { patchAccountSettings } from "@/lib/api/account";
 import { useInstallPrompt } from "@/lib/hooks/useInstallPrompt";
@@ -43,7 +43,7 @@ const TARGET_TIMEOUT_MS = 2000;
 
 /** Onde cada tela do roteiro mora: `pathname` como o `usePathname` devolve e
  * `href` pra navegar. */
-const SCREEN_ROUTE: Record<TourScreen, { pathname: string; href: string }> = {
+const SCREEN_ROUTE: Record<TourScreen, { pathname: string; href: Href }> = {
   home: { pathname: "/", href: "/(app)" },
   history: { pathname: "/history", href: "/(app)/history" },
   profile: { pathname: "/profile", href: "/(app)/profile" },

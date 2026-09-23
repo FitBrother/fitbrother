@@ -9,6 +9,12 @@ jest.mock("@/lib/audio/recorder", () => ({
   stopRecording: jest.fn(),
   cancelRecording: jest.fn(),
 }));
+// TourTarget usa useTour(); o módulo real arrasta lib/api/account →
+// lib/supabase. Fora do tour o TourTarget não mede nada, então este mock não
+// muda nada renderizado (mesmo corte do HomeHeader.test.tsx).
+jest.mock("@/lib/tour/tour-context", () => ({
+  useTour: () => ({ active: false, currentStepId: null, registerTarget: () => {} }),
+}));
 jest.mock("expo-haptics", () => ({
   ImpactFeedbackStyle: { Heavy: "heavy", Medium: "medium" },
   NotificationFeedbackType: { Warning: "warning", Success: "success" },

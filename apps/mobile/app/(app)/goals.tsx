@@ -1,3 +1,4 @@
+import { TourTarget } from "@/components/tour/TourTarget";
 import type { ActivityLevel, Goal, MacroKey, MacroPctBounds, MacroSplit } from "@fitbrother/shared";
 import {
   editableRange,
@@ -282,32 +283,34 @@ export default function GoalsScreen() {
       title="Metas e macros"
       subtitle="Ajuste suas calorias e macros — o resto se recalcula automaticamente."
     >
-      <View className="flex-row gap-1 rounded-full bg-neutral-100 p-1">
-        <Pressable
-          onPress={() => setTab("macros")}
-          accessibilityRole="tab"
-          accessibilityState={{ selected: tab === "macros" }}
-          className={`min-h-[36px] flex-1 items-center justify-center rounded-full ${tab === "macros" ? "bg-white" : ""}`}
-        >
-          <Text
-            className={`font-sans-semibold text-sm ${tab === "macros" ? "text-neutral-900" : "text-neutral-500"}`}
+      <TourTarget id="goals-editor">
+        <View className="flex-row gap-1 rounded-full bg-neutral-100 p-1">
+          <Pressable
+            onPress={() => setTab("macros")}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: tab === "macros" }}
+            className={`min-h-[36px] flex-1 items-center justify-center rounded-full ${tab === "macros" ? "bg-white" : ""}`}
           >
-            Calorias &amp; macros
-          </Text>
-        </Pressable>
-        <Pressable
-          onPress={() => setTab("body")}
-          accessibilityRole="tab"
-          accessibilityState={{ selected: tab === "body" }}
-          className={`min-h-[36px] flex-1 items-center justify-center rounded-full ${tab === "body" ? "bg-white" : ""}`}
-        >
-          <Text
-            className={`font-sans-semibold text-sm ${tab === "body" ? "text-neutral-900" : "text-neutral-500"}`}
+            <Text
+              className={`font-sans-semibold text-sm ${tab === "macros" ? "text-neutral-900" : "text-neutral-500"}`}
+            >
+              Calorias &amp; macros
+            </Text>
+          </Pressable>
+          <Pressable
+            onPress={() => setTab("body")}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: tab === "body" }}
+            className={`min-h-[36px] flex-1 items-center justify-center rounded-full ${tab === "body" ? "bg-white" : ""}`}
           >
-            Meu corpo
-          </Text>
-        </Pressable>
-      </View>
+            <Text
+              className={`font-sans-semibold text-sm ${tab === "body" ? "text-neutral-900" : "text-neutral-500"}`}
+            >
+              Meu corpo
+            </Text>
+          </Pressable>
+        </View>
+      </TourTarget>
 
       {tab === "macros" ? (
         <>

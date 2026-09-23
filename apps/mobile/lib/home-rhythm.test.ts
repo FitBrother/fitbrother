@@ -4,6 +4,12 @@ import { resolve } from "node:path";
 
 // O MealComposer arrasta lib/audio/recorder → expo-av, que precisa de módulo
 // nativo. Aqui só interessa uma função pura de espaçamento.
+// TourTarget usa useTour(); o módulo real arrasta lib/api/account →
+// lib/supabase. Fora do tour o TourTarget não mede nada, então este mock não
+// muda nada renderizado (mesmo corte do HomeHeader.test.tsx).
+jest.mock("@/lib/tour/tour-context", () => ({
+  useTour: () => ({ active: false, currentStepId: null, registerTarget: () => {} }),
+}));
 jest.mock("@/lib/audio/recorder", () => ({}));
 
 import { MEAL_CARD_GAP } from "@/components/domain/MealCardSwipeable";
