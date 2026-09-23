@@ -71,11 +71,6 @@ export const TOUR_STEPS: TourStep[] = [
     desktop: { copy: "Aqui você abre seu perfil e suas configurações." },
   },
   {
-    id: "profile-shortcut-card",
-    copy: "Adicione o Fitbrother à tela inicial.",
-    screen: "profile",
-  },
-  {
     id: "profile-goals",
     copy: "Em Metas e macros você ajusta suas metas.",
     screen: "profile",
@@ -85,7 +80,24 @@ export const TOUR_STEPS: TourStep[] = [
     copy: "Aqui você ajusta calorias, macros e seus dados do corpo manualmente.",
     screen: "goals",
   },
+  {
+    id: "profile-shortcut-card",
+    copy: "Adicione o Fitbrother à tela inicial.",
+    screen: "profile",
+  },
 ];
+
+export const SHORTCUT_STEP_ID: TourStepId = "profile-shortcut-card";
+
+/** Texto do passo do atalho por navegador — Chrome tem prompt nativo; Safari
+ * e iOS só instalam à mão, então o balão ensina o caminho. */
+const SHORTCUT_COPY: Partial<Record<InstallPromptState["status"], string>> = {
+  "installable-chrome": "Instale o Fitbrother para abrir direto da sua tela, como um app.",
+  "installable-mac-safari":
+    "Para instalar, clique em Compartilhar na barra de endereço e escolha “Adicionar ao Dock”.",
+  "installable-ios":
+    "Para instalar, toque em Compartilhar e depois em “Adicionar à Tela de Início”.",
+};
 
 const SHORTCUT_SKIPPED_STATUSES: ReadonlyArray<InstallPromptState["status"]> = [
   "native",
@@ -103,8 +115,12 @@ export function visibleSteps(
   layout: TourLayout = "compact",
 ): TourStep[] {
   const steps = SHORTCUT_SKIPPED_STATUSES.includes(installStatus)
-    ? TOUR_STEPS.filter((step) => step.id !== "profile-shortcut-card")
+    ? TOUR_STEPS.filter((step) => step.id !== SHORTCUT_STEP_ID)
     : TOUR_STEPS;
-  if (layout === "compact") return steps;
-  return steps.map(({ desktop, ...step }) => ({ ...step, ...desktop }));
+  const shortcutCopy = SHORTCUT_COPY[installStatus];
+  const withCopy = shortcutCopy
+    ? steps.map((s) => (s.id === SHORTCUT_STEP_ID ? { ...s, copy: shortcutCopy } : s))
+    : steps;
+  if (layout === "compact") return withCopy;
+  return withCopy.map(({ desktop, ...step }) => ({ ...step, ...desktop }));
 }

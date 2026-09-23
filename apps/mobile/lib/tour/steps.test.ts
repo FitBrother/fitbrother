@@ -24,9 +24,9 @@ describe("visibleSteps", () => {
       "streak",
       "history-day",
       "home-avatar",
-      "profile-shortcut-card",
       "profile-goals",
       "goals-editor",
+      "profile-shortcut-card",
     ]);
   });
 
@@ -39,9 +39,9 @@ describe("visibleSteps", () => {
       ["streak", "home"],
       ["history-day", "history"],
       ["home-avatar", "home"],
-      ["profile-shortcut-card", "profile"],
       ["profile-goals", "profile"],
       ["goals-editor", "goals"],
+      ["profile-shortcut-card", "profile"],
     ]);
   });
 
@@ -76,5 +76,26 @@ describe("layout desktop", () => {
   test("no compacto nada muda", () => {
     const steps = visibleSteps("installable-chrome", "compact");
     expect(steps.find((s) => s.id === "social-tab")?.screen).toBe("home");
+  });
+});
+
+describe("passo do atalho", () => {
+  test("é o último quando existe", () => {
+    expect(visibleSteps("installable-chrome").at(-1)?.id).toBe("profile-shortcut-card");
+    expect(visibleSteps("native").at(-1)?.id).toBe("goals-editor");
+  });
+
+  test("texto conforme o navegador", () => {
+    const copy = (status: Parameters<typeof visibleSteps>[0]) =>
+      visibleSteps(status).find((s) => s.id === "profile-shortcut-card")?.copy;
+    expect(copy("installable-chrome")).toBe(
+      "Instale o Fitbrother para abrir direto da sua tela, como um app.",
+    );
+    expect(copy("installable-mac-safari")).toBe(
+      "Para instalar, clique em Compartilhar na barra de endereço e escolha “Adicionar ao Dock”.",
+    );
+    expect(copy("installable-ios")).toBe(
+      "Para instalar, toque em Compartilhar e depois em “Adicionar à Tela de Início”.",
+    );
   });
 });
