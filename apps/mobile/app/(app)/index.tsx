@@ -179,10 +179,11 @@ export default function HomeScreen() {
   const [activeTab, setActiveTab] = useState<HomeTab>("home");
   const tour = useTour();
 
-  // O tour comanda a aba mostrada em cada passo — ver TOUR_TAB. As abas em si
+  // O tour comanda a aba mostrada em cada passo — ver TOUR_TAB — e, ao
+  // terminar (sem passo atual), devolve o usuário ao dashboard. As abas em si
   // continuam sendo estado local desta tela.
   useEffect(() => {
-    const tab = tour.currentStepId ? TOUR_TAB[tour.currentStepId] : undefined;
+    const tab = tour.currentStepId ? TOUR_TAB[tour.currentStepId] : "home";
     if (tab) setActiveTab(tab);
   }, [tour.currentStepId]);
   const { width } = useWindowDimensions();
