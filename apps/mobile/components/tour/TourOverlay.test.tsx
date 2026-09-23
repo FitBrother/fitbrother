@@ -21,7 +21,7 @@ jest.mock("@/lib/hooks/useInstallPrompt", () => ({
   useInstallPrompt: () => ({ status: "installable-chrome" }),
 }));
 
-const mockLarguraJanela = 375;
+let mockLarguraJanela = 375;
 jest.mock("react-native/Libraries/Utilities/useWindowDimensions", () => ({
   __esModule: true,
   default: () => ({ width: mockLarguraJanela, height: 812, scale: 2, fontScale: 1 }),
@@ -115,5 +115,23 @@ describe("TourOverlay", () => {
     };
     const { queryByText } = render(<TourOverlay />);
     expect(queryByText("Aqui você vê seu resumo do dia.")).toBeNull();
+  });
+
+  test("no desktop mostra o texto da variante", () => {
+    mockLarguraJanela = 1280;
+    mockTour = {
+      active: true,
+      currentStepId: "streak",
+      targets: { streak: { x: 900, y: 40, width: 80, height: 44 } },
+      next: mockNext,
+      skip: mockSkip,
+    };
+    const { getByText } = render(<TourOverlay />);
+    expect(
+      getByText(
+        "Sua ofensiva: dias seguidos registrando. O histórico completo fica em Histórico, no menu.",
+      ),
+    ).toBeTruthy();
+    mockLarguraJanela = 375;
   });
 });

@@ -1,10 +1,10 @@
-import { useRef, useState } from "react";
-import { View, Text, useWindowDimensions } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { Platform, View, Text, useWindowDimensions } from "react-native";
 import Svg, { Defs, Mask, Rect as SvgRect } from "react-native-svg";
 import { Button } from "@/components/Button";
 import { useInstallPrompt } from "@/lib/hooks/useInstallPrompt";
 import { useTour } from "@/lib/tour/tour-context";
-import { visibleSteps } from "@/lib/tour/steps";
+import { tourLayout, visibleSteps } from "@/lib/tour/steps";
 import { shadows } from "@/lib/shadows";
 
 /** Respiro entre o alvo real e a borda do recorte do spotlight. */
@@ -24,9 +24,20 @@ export function TourOverlay() {
   const rootRef = useRef<View>(null);
   const [origin, setOrigin] = useState({ x: 0, y: 0 });
 
+  // Web: a página rola por baixo com a roda do mouse e o destaque ficaria
+  // fora do lugar — trava a rolagem do documento enquanto o tour está ativo.
+  useEffect(() => {
+    if (Platform.OS !== "web" || !active) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, [active]);
+
   if (!active || !currentStepId) return null;
 
-  const steps = visibleSteps(install.status);
+  const steps = visibleSteps(install.status, tourLayout(width));
   const stepIndex = steps.findIndex((s) => s.id === currentStepId);
   const step = steps[stepIndex];
   if (!step) return null;
@@ -58,7 +69,16 @@ export function TourOverlay() {
           setOrigin((o) => (o.x === x && o.y === y ? o : { x, y })),
         )
       }
-      style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
+      style={{
+        // Web: `fixed` pra cobrir a viewport mesmo com o documento rolado
+        // (layout desktop usa sticky + rolagem de página). O tipo do RN não
+        // conhece "fixed"; o react-native-web aceita.
+        position: (Platform.OS === "web" ? "fixed" : "absolute") as "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+      }}
       accessibilityViewIsModal
     >
       <Svg width={width} height={height} style={{ position: "absolute" }} pointerEvents="none">
