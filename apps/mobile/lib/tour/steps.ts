@@ -12,12 +12,24 @@ export type TourStepId =
   | "profile-goals"
   | "goals-editor";
 
-export type TourScreen = "home" | "history" | "profile" | "goals";
+export type TourScreen = "home" | "history" | "profile" | "goals" | "feed" | "insights";
+
+export type TourLayout = "compact" | "desktop";
+
+/** A partir daqui a navegação é a Sidebar (mesmo corte do `isDesktop` da Home
+ * e do `lg` da Sidebar) e os passos usam a variante `desktop`. */
+export const DESKTOP_MIN_WIDTH = 1024;
+
+export function tourLayout(width: number): TourLayout {
+  return width >= DESKTOP_MIN_WIDTH ? "desktop" : "compact";
+}
 
 export type TourStep = {
   id: TourStepId;
   copy: string;
   screen: TourScreen;
+  /** Diferenças no layout desktop do web — ver spec do tour web. */
+  desktop?: { screen?: TourScreen; copy?: string };
 };
 
 export const TOUR_STEPS: TourStep[] = [
@@ -26,11 +38,13 @@ export const TOUR_STEPS: TourStep[] = [
     id: "social-tab",
     copy: "Veja o progresso dos seus amigos.",
     screen: "home",
+    desktop: { screen: "feed" },
   },
   {
     id: "analises-tab",
     copy: "Gráficos da sua evolução.",
     screen: "home",
+    desktop: { screen: "insights" },
   },
   {
     id: "composer-plus",
@@ -41,6 +55,9 @@ export const TOUR_STEPS: TourStep[] = [
     id: "streak",
     copy: "Sua ofensiva: dias seguidos registrando. Tocando nela você vê seu histórico.",
     screen: "home",
+    desktop: {
+      copy: "Sua ofensiva: dias seguidos registrando. O histórico completo fica em Histórico, no menu.",
+    },
   },
   {
     id: "history-day",
@@ -51,6 +68,7 @@ export const TOUR_STEPS: TourStep[] = [
     id: "home-avatar",
     copy: "Na sua foto você abre seu perfil e suas configurações.",
     screen: "home",
+    desktop: { copy: "Aqui você abre seu perfil e suas configurações." },
   },
   {
     id: "profile-shortcut-card",
@@ -77,11 +95,16 @@ const SHORTCUT_SKIPPED_STATUSES: ReadonlyArray<InstallPromptState["status"]> = [
 
 /**
  * O passo do atalho só entra quando `useInstallPrompt` tem algo pra mostrar —
- * mesmos status em que `InstallPrompt.tsx` já retorna `null`.
+ * mesmos status em que `InstallPrompt.tsx` já retorna `null`. No layout
+ * desktop, aplica a variante `desktop` de cada passo.
  */
-export function visibleSteps(installStatus: InstallPromptState["status"]): TourStep[] {
-  if (SHORTCUT_SKIPPED_STATUSES.includes(installStatus)) {
-    return TOUR_STEPS.filter((step) => step.id !== "profile-shortcut-card");
-  }
-  return TOUR_STEPS;
+export function visibleSteps(
+  installStatus: InstallPromptState["status"],
+  layout: TourLayout = "compact",
+): TourStep[] {
+  const steps = SHORTCUT_SKIPPED_STATUSES.includes(installStatus)
+    ? TOUR_STEPS.filter((step) => step.id !== "profile-shortcut-card")
+    : TOUR_STEPS;
+  if (layout === "compact") return steps;
+  return steps.map(({ desktop, ...step }) => ({ ...step, ...desktop }));
 }
