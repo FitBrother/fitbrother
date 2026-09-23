@@ -45,9 +45,9 @@ export function TourOverlay() {
       }
     : null;
 
-  // Sem retângulo ainda medido (tela recém-navegada), o balão fica no meio
-  // vertical da tela — melhor que travar sem nada visível.
-  const balloonBelow = !rect || rect.y < height / 2;
+  // Sem retângulo ainda (alvo animando/tela entrando — ver TourTarget), só o
+  // véu: o balão aparece junto com o recorte, já no lugar certo.
+  const balloonBelow = rect !== undefined && rect.y < height / 2;
 
   return (
     <View
@@ -87,37 +87,37 @@ export function TourOverlay() {
         />
       </Svg>
 
-      <View
-        style={{
-          position: "absolute",
-          left: BALLOON_SIDE_MARGIN,
-          right: BALLOON_SIDE_MARGIN,
-          ...(rect
-            ? balloonBelow
+      {rect ? (
+        <View
+          style={{
+            position: "absolute",
+            left: BALLOON_SIDE_MARGIN,
+            right: BALLOON_SIDE_MARGIN,
+            ...(balloonBelow
               ? { top: rect.y + rect.height + CUTOUT_PADDING + BALLOON_MARGIN }
-              : { bottom: height - rect.y + CUTOUT_PADDING + BALLOON_MARGIN }
-            : { top: height / 2 - 60 }),
-        }}
-      >
-        <View className="gap-3 rounded-2xl bg-white p-4" style={shadows.floating}>
-          <Text className="font-sans-medium text-base text-neutral-900">{step.copy}</Text>
-          <View className="flex-row justify-end gap-2">
-            <Button
-              label="Pular"
-              variant="ghost"
-              size="sm"
-              onPress={skip}
-              accessibilityLabel="Pular tour"
-            />
-            <Button
-              label={isLast ? "Entendi" : "Próximo"}
-              size="sm"
-              onPress={next}
-              accessibilityLabel={isLast ? "Concluir tour" : "Próximo passo"}
-            />
+              : { bottom: height - rect.y + CUTOUT_PADDING + BALLOON_MARGIN }),
+          }}
+        >
+          <View className="gap-3 rounded-2xl bg-white p-4" style={shadows.floating}>
+            <Text className="font-sans-medium text-base text-neutral-900">{step.copy}</Text>
+            <View className="flex-row justify-end gap-2">
+              <Button
+                label="Pular"
+                variant="ghost"
+                size="sm"
+                onPress={skip}
+                accessibilityLabel="Pular tour"
+              />
+              <Button
+                label={isLast ? "Entendi" : "Próximo"}
+                size="sm"
+                onPress={next}
+                accessibilityLabel={isLast ? "Concluir tour" : "Próximo passo"}
+              />
+            </View>
           </View>
         </View>
-      </View>
+      ) : null}
     </View>
   );
 }

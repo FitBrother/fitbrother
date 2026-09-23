@@ -86,7 +86,7 @@ describe("TourOverlay", () => {
     expect(getByLabelText("Concluir tour")).toBeTruthy();
   });
 
-  test("sem retângulo medido ainda, mostra só o véu (sem quebrar)", () => {
+  test("sem retângulo medido ainda, mostra só o véu (balão espera o recorte)", () => {
     mockTour = {
       active: true,
       currentStepId: "home-tab",
@@ -94,7 +94,7 @@ describe("TourOverlay", () => {
       next: mockNext,
       skip: mockSkip,
     };
-    const { getByText } = render(<TourOverlay />);
-    expect(getByText("Aqui você vê seu resumo do dia.")).toBeTruthy();
+    const { queryByText } = render(<TourOverlay />);
+    expect(queryByText("Aqui você vê seu resumo do dia.")).toBeNull();
   });
 });
