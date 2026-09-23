@@ -3,7 +3,7 @@ import { ActivityIndicator, Platform, Pressable, Text, View } from "react-native
 import type { LayoutChangeEvent, View as RNView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { ChevronLeft, Download, Share2 } from "lucide-react-native";
+import { ChevronLeft, Crop, Download, RotateCcw, Share2 } from "lucide-react-native";
 import { useQuery } from "@tanstack/react-query";
 import {
   fotoDoCard,
@@ -15,6 +15,9 @@ import { ShareCardSkeleton } from "@/components/domain/ShareCardSkeleton";
 import { SwipeableTabs } from "@/components/domain/SwipeableTabs";
 import { captureCard, saveCardToGallery, shareCard, toDisplayableImageUri } from "@/lib/share-card";
 import { SHARE_CARD_HEIGHT, SHARE_CARD_WIDTH } from "@/lib/share/geometry";
+import { ENQUADRAMENTO_PADRAO, type Enquadramento, type Tamanho } from "@/lib/media/crop";
+import { medirImagem } from "@/lib/media/measure-image";
+import { PhotoAdjuster } from "@/components/domain/PhotoAdjuster";
 import { DEFAULT_PRESET_INDEX, presetAt, presetsFor } from "@/lib/share/presets";
 import { getMeal } from "@/lib/api/meals";
 import { fetchPost } from "@/lib/api/posts";
@@ -144,6 +147,26 @@ export default function ShareScreen() {
   const escala = areaAltura > 0 ? Math.min(1, (areaAltura - 24) / SHARE_CARD_HEIGHT) : 0;
 
   const [preparando, setPreparando] = useState(false);
+  const [enquadramento, setEnquadramento] = useState<Enquadramento>(ENQUADRAMENTO_PADRAO);
+  const [ajustando, setAjustando] = useState(false);
+  const [fotoNatural, setFotoNatural] = useState<Tamanho | null>(null);
+
+  // Mede a foto uma vez: sem as dimensões naturais não dá para aplicar
+  // enquadramento nenhum, e o card cai no `cover` centrado de sempre.
+  const fotoDoPost = q.data ? fotoDoCard(q.data) : null;
+  useEffect(() => {
+    if (!fotoDoPost) {
+      setFotoNatural(null);
+      return;
+    }
+    let ativo = true;
+    medirImagem(fotoDoPost)
+      .then((t) => ativo && setFotoNatural(t))
+      .catch(() => ativo && setFotoNatural(null));
+    return () => {
+      ativo = false;
+    };
+  }, [fotoDoPost]);
 
   /**
    * Captura o preset em cena, na hora em que a pessoa pede.
@@ -209,6 +232,8 @@ export default function ShareScreen() {
   // estreitamento de `q.data` e obrigaria a um `!` que some com o aviso sem
   // resolver nada.
   const dados = q.data;
+  // Enquadrar só faz sentido se o preset em cena de fato desenha a foto.
+  const podeAjustar = Boolean(fotoDoPost && fotoNatural && preset.photo !== "none");
   const pronto = Boolean(dados);
 
   return (
@@ -235,12 +260,33 @@ export default function ShareScreen() {
               <ShareCardSkeleton />
             </CardPreview>
           </View>
+        ) : dados && ajustando && fotoDoPost && fotoNatural ? (
+          // O ajuste substitui o carrossel em vez de acontecer por cima dele:
+          // arrastar para enquadrar e arrastar para trocar de preset são o
+          // mesmo gesto, e deixar os dois ativos ao mesmo tempo faria o pager
+          // roubar metade dos arrastos do editor.
+          <View className="flex-1 justify-center px-4">
+            <View style={{ width: "100%", maxWidth: 360, alignSelf: "center" }}>
+              <PhotoAdjuster
+                uri={fotoDoPost}
+                aspect={SHARE_CARD_WIDTH / SHARE_CARD_HEIGHT}
+                value={enquadramento}
+                onChange={setEnquadramento}
+                radius={26}
+              />
+            </View>
+          </View>
         ) : dados ? (
           <SwipeableTabs index={presetIndex} onIndexChange={setPresetIndex}>
             {presets.map((p) => (
               <View key={p.id} className="flex-1 items-center justify-center">
                 <CardPreview escala={escala}>
-                  <ShareCard data={dados} preset={p} />
+                  <ShareCard
+                    data={dados}
+                    preset={p}
+                    enquadramento={enquadramento}
+                    fotoNatural={fotoNatural}
+                  />
                 </CardPreview>
               </View>
             ))}
@@ -254,7 +300,29 @@ export default function ShareScreen() {
         )}
       </View>
 
-      {pronto ? (
+      {pronto && ajustando ? (
+        <View className="flex-row items-center gap-3 px-4 pb-4 pt-3">
+          <Pressable
+            onPress={() => setEnquadramento(ENQUADRAMENTO_PADRAO)}
+            accessibilityRole="button"
+            accessibilityLabel="Restaurar enquadramento original"
+            style={shadows.card}
+            className="min-h-[56px] flex-row items-center justify-center gap-2 rounded-full bg-white px-5 active:opacity-70"
+          >
+            <RotateCcw size={18} color={colors.neutral[700]} />
+            <Text className="font-sans-semibold text-neutral-700">Restaurar</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => setAjustando(false)}
+            accessibilityRole="button"
+            accessibilityLabel="Concluir ajuste da foto"
+            style={shadows.card}
+            className="min-h-[56px] flex-1 items-center justify-center rounded-full bg-primary-400 active:bg-primary-500"
+          >
+            <Text className="text-base font-sans-bold text-white">Pronto</Text>
+          </Pressable>
+        </View>
+      ) : pronto ? (
         <View className="items-center pb-1 pt-3">
           <Text className="font-sans-medium text-sm text-neutral-600">{preset.label}</Text>
           <View className="mt-2 flex-row gap-1.5">
@@ -277,39 +345,55 @@ export default function ShareScreen() {
         </View>
       ) : null}
 
-      <View className="flex-row items-center gap-3 px-4 pb-4 pt-3">
-        <Pressable
-          onPress={onSave}
-          disabled={!pronto || preparando}
-          accessibilityRole="button"
-          accessibilityLabel={Platform.OS === "web" ? "Baixar imagem" : "Salvar na galeria"}
-          style={shadows.card}
-          className="min-h-[56px] min-w-[56px] items-center justify-center rounded-full bg-white disabled:opacity-50"
-        >
-          <Download size={22} color={colors.neutral[700]} />
-        </Pressable>
-        {/* Um primário só, largo e rotulado — a ação que a tela existe para
+      {ajustando ? null : (
+        <View className="flex-row items-center gap-3 px-4 pb-4 pt-3">
+          {/* Só aparece quando o preset em cena usa a foto: nos que a ignoram
+            (Pôster, e qualquer um quando o post não tem foto) não há o que
+            enquadrar, e um botão morto vale menos que nenhum botão. */}
+          {podeAjustar ? (
+            <Pressable
+              onPress={() => setAjustando(true)}
+              accessibilityRole="button"
+              accessibilityLabel="Ajustar enquadramento da foto"
+              style={shadows.card}
+              className="min-h-[56px] min-w-[56px] items-center justify-center rounded-full bg-white active:opacity-70"
+            >
+              <Crop size={22} color={colors.neutral[700]} />
+            </Pressable>
+          ) : null}
+          <Pressable
+            onPress={onSave}
+            disabled={!pronto || preparando}
+            accessibilityRole="button"
+            accessibilityLabel={Platform.OS === "web" ? "Baixar imagem" : "Salvar na galeria"}
+            style={shadows.card}
+            className="min-h-[56px] min-w-[56px] items-center justify-center rounded-full bg-white disabled:opacity-50"
+          >
+            <Download size={22} color={colors.neutral[700]} />
+          </Pressable>
+          {/* Um primário só, largo e rotulado — a ação que a tela existe para
             oferecer não pode disputar espaço igual com "salvar".
             Como a imagem só é gerada agora, no toque, o botão diz enquanto
             gera: sem isso o app parecia ter engasgado. */}
-        <Pressable
-          onPress={onShare}
-          disabled={!pronto || preparando}
-          accessibilityRole="button"
-          accessibilityLabel="Compartilhar imagem"
-          style={shadows.card}
-          className="min-h-[56px] flex-1 flex-row items-center justify-center gap-2 rounded-full bg-primary-400 active:bg-primary-500 disabled:opacity-50"
-        >
-          {preparando ? (
-            <ActivityIndicator color={colors.white} />
-          ) : (
-            <Share2 size={20} color={colors.white} />
-          )}
-          <Text className="text-base font-sans-bold text-white">
-            {preparando ? "Gerando imagem…" : "Compartilhar"}
-          </Text>
-        </Pressable>
-      </View>
+          <Pressable
+            onPress={onShare}
+            disabled={!pronto || preparando}
+            accessibilityRole="button"
+            accessibilityLabel="Compartilhar imagem"
+            style={shadows.card}
+            className="min-h-[56px] flex-1 flex-row items-center justify-center gap-2 rounded-full bg-primary-400 active:bg-primary-500 disabled:opacity-50"
+          >
+            {preparando ? (
+              <ActivityIndicator color={colors.white} />
+            ) : (
+              <Share2 size={20} color={colors.white} />
+            )}
+            <Text className="text-base font-sans-bold text-white">
+              {preparando ? "Gerando imagem…" : "Compartilhar"}
+            </Text>
+          </Pressable>
+        </View>
+      )}
 
       {/* Palco de captura: o card em tamanho cheio, fora da tela.
           Capturar o card do carrossel daria problema — ele vive dentro de um
@@ -331,7 +415,12 @@ export default function ShareScreen() {
             pointerEvents: "none",
           }}
         >
-          <ShareCard data={dados} preset={preset} />
+          <ShareCard
+            data={dados}
+            preset={preset}
+            enquadramento={enquadramento}
+            fotoNatural={fotoNatural}
+          />
         </View>
       ) : null}
     </SafeAreaView>

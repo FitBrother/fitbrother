@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Image, Text, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { colors } from "@/lib/colors";
@@ -10,6 +11,7 @@ import {
   STORY_SAFE_TOP,
 } from "@/lib/share/geometry";
 import { truncate, withAlpha, type SharePreset } from "@/lib/share/presets";
+import { transformarFoto, type Enquadramento, type Tamanho } from "@/lib/media/crop";
 import { ShareLogo } from "./share/ShareLogo";
 
 const NUM: { fontVariant: ["tabular-nums"] } = { fontVariant: ["tabular-nums"] };
@@ -202,6 +204,67 @@ function DateLine({ label, preset }: { label: string; preset: SharePreset }) {
   );
 }
 
+/**
+ * A foto dentro de um quadro, respeitando o enquadramento que a pessoa ajustou.
+ *
+ * Sem enquadramento (ou sem saber o tamanho natural da foto) cai no `cover`
+ * centrado, que é o padrão — é o mesmo resultado de `scale: 1, dx: 0, dy: 0`,
+ * só que sem precisar das medidas.
+ */
+function FotoEnquadrada({
+  uri,
+  quadro,
+  enquadramento,
+  natural,
+}: {
+  uri: string;
+  /** `null` enquanto o quadro ainda não foi medido. */
+  quadro: Tamanho | null;
+  enquadramento?: Enquadramento;
+  natural?: Tamanho | null;
+}) {
+  // Sem quadro, sem enquadramento ou sem as medidas da foto, cai no `cover`
+  // que preenche o pai — o mesmo resultado de `scale: 1, dx: 0, dy: 0`, só que
+  // sem precisar de medida nenhuma.
+  if (!quadro || !enquadramento || !natural) {
+    return (
+      <Image
+        source={{ uri }}
+        accessibilityIgnoresInvertColors
+        style={{ width: "100%", height: "100%" }}
+        resizeMode="cover"
+      />
+    );
+  }
+
+  const t = transformarFoto(enquadramento, natural, quadro);
+  return (
+    <View style={{ width: quadro.width, height: quadro.height }} className="overflow-hidden">
+      <Image
+        source={{ uri }}
+        accessibilityIgnoresInvertColors
+        style={{
+          position: "absolute",
+          left: (quadro.width - natural.width) / 2,
+          top: (quadro.height - natural.height) / 2,
+          width: natural.width,
+          height: natural.height,
+          transform: [{ translateX: t.x }, { translateY: t.y }, { scale: t.scale }],
+        }}
+      />
+    </View>
+  );
+}
+
+type ShareCardProps = {
+  data: ShareCardData;
+  preset: SharePreset;
+  /** Ajuste de enquadramento da foto. Ausente = `cover` centrado. */
+  enquadramento?: Enquadramento;
+  /** Medidas naturais da foto — necessárias para aplicar o enquadramento. */
+  fotoNatural?: Tamanho | null;
+};
+
 // ─── Quadro ──────────────────────────────────────────────────────────────────
 
 /**
@@ -218,7 +281,8 @@ function DateLine({ label, preset }: { label: string; preset: SharePreset }) {
  * O texto vive dentro da faixa segura (`STORY_SAFE_*`); a foto atravessa ela e
  * vai de ponta a ponta do quadro.
  */
-export function ShareCard({ data, preset }: { data: ShareCardData; preset: SharePreset }) {
+export function ShareCard({ data, preset, enquadramento, fotoNatural }: ShareCardProps) {
+  const [quadroMoldura, setQuadroMoldura] = useState<Tamanho | null>(null);
   const foto = preset.photo === "none" ? null : fotoDoCard(data);
   const preenche = Boolean(foto) && preset.photo === "fill";
   const emoldura = Boolean(foto) && preset.photo === "frame";
@@ -231,12 +295,17 @@ export function ShareCard({ data, preset }: { data: ShareCardData; preset: Share
     >
       {preenche ? (
         <>
-          <Image
-            source={{ uri: foto! }}
-            accessibilityIgnoresInvertColors
-            style={PREENCHE}
-            resizeMode="cover"
-          />
+          {/* Absoluta: a foto é FUNDO. No fluxo normal ela ocupa os 640px de
+              altura do card e empurra a coluna de texto para fora do quadro —
+              o card saía só com a foto, sem número, sem macros e sem marca. */}
+          <View style={PREENCHE}>
+            <FotoEnquadrada
+              uri={foto!}
+              quadro={{ width: SHARE_CARD_WIDTH, height: SHARE_CARD_HEIGHT }}
+              enquadramento={enquadramento}
+              natural={fotoNatural}
+            />
+          </View>
           <Scrim preset={preset} />
         </>
       ) : (
@@ -250,13 +319,31 @@ export function ShareCard({ data, preset }: { data: ShareCardData; preset: Share
 
       <View style={{ flex: 1, paddingTop: STORY_SAFE_TOP, paddingBottom: STORY_SAFE_BOTTOM }}>
         {emoldura ? (
-          <View style={{ flex: 1, paddingHorizontal: PAD, paddingBottom: 22 }}>
-            <Image
-              source={{ uri: foto! }}
-              accessibilityIgnoresInvertColors
-              style={{ flex: 1, borderRadius: 18 }}
-              resizeMode="cover"
-            />
+          // `flex: 1` com medição, e não um quadrado fixo: a foto ocupa o que
+          // sobra depois do texto, e quanto sobra depende de quantas linhas a
+          // legenda tomou. Fixando 308×308 (a largura útil) o bloco passava de
+          // 640px e a marca d'água ficava cortada fora do card.
+          //
+          // O `onLayout` é o que permite enquadrar aqui: sem saber o tamanho do
+          // quadro não há como aplicar o ajuste, e até a medida chegar a foto
+          // cai no `cover` de sempre.
+          <View
+            style={{ flex: 1, paddingHorizontal: PAD, paddingBottom: 22 }}
+            onLayout={(e) =>
+              setQuadroMoldura({
+                width: e.nativeEvent.layout.width - PAD * 2,
+                height: e.nativeEvent.layout.height - 22,
+              })
+            }
+          >
+            <View style={{ flex: 1, borderRadius: 18 }} className="overflow-hidden">
+              <FotoEnquadrada
+                uri={foto!}
+                quadro={quadroMoldura}
+                enquadramento={enquadramento}
+                natural={quadroMoldura ? fotoNatural : null}
+              />
+            </View>
           </View>
         ) : null}
 
