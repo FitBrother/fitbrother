@@ -27,7 +27,7 @@ jest.mock("react-native/Libraries/Utilities/useWindowDimensions", () => ({
   default: () => ({ width: mockLarguraJanela, height: 812, scale: 2, fontScale: 1 }),
 }));
 
-import { TourOverlay } from "./TourOverlay";
+import { TourOverlay, balloonPlacement } from "./TourOverlay";
 
 describe("TourOverlay", () => {
   test("não renderiza nada quando o tour está inativo", () => {
@@ -133,5 +133,53 @@ describe("TourOverlay", () => {
       ),
     ).toBeTruthy();
     mockLarguraJanela = 375;
+  });
+});
+
+describe("balloonPlacement", () => {
+  const screen = { width: 1280, height: 800 };
+
+  test("compacto: faixa com as margens laterais (como no celular)", () => {
+    const pos = balloonPlacement({ x: 10, y: 40, width: 100, height: 44 }, 375, 812, "compact");
+    expect(pos).toMatchObject({ left: 20, right: 20 });
+    expect(pos).not.toHaveProperty("maxWidth");
+  });
+
+  test("desktop, alvo no trilho da Sidebar: balão ao lado, com largura máxima", () => {
+    const pos = balloonPlacement(
+      { x: 16, y: 120, width: 216, height: 44 },
+      screen.width,
+      screen.height,
+      "desktop",
+    );
+    expect(pos).toMatchObject({ left: 16 + 216 + 8 + 16, top: 120 - 8, maxWidth: 360 });
+    expect(pos).not.toHaveProperty("right");
+  });
+
+  test("desktop, alvo do rodapé da Sidebar: balão ao lado, ancorado por baixo", () => {
+    const pos = balloonPlacement(
+      { x: 16, y: 730, width: 216, height: 44 },
+      screen.width,
+      screen.height,
+      "desktop",
+    );
+    expect(pos).toMatchObject({ left: 256, bottom: 800 - 774 - 8, maxWidth: 360 });
+  });
+
+  test("desktop, alvo no conteúdo: acima/abaixo, ancorado no alvo e dentro da tela", () => {
+    const below = balloonPlacement(
+      { x: 600, y: 100, width: 300, height: 44 },
+      1280,
+      800,
+      "desktop",
+    );
+    expect(below).toMatchObject({ left: 592, top: 100 + 44 + 8 + 16, maxWidth: 360 });
+    const nearRightEdge = balloonPlacement(
+      { x: 1200, y: 700, width: 52, height: 52 },
+      1280,
+      800,
+      "desktop",
+    );
+    expect(nearRightEdge).toMatchObject({ left: 1280 - 360 - 20, bottom: 800 - 700 + 8 + 16 });
   });
 });

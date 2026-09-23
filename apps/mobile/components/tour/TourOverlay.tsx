@@ -4,7 +4,8 @@ import Svg, { Defs, Mask, Rect as SvgRect } from "react-native-svg";
 import { Button } from "@/components/Button";
 import { useInstallPrompt } from "@/lib/hooks/useInstallPrompt";
 import { useTour } from "@/lib/tour/tour-context";
-import { tourLayout, visibleSteps } from "@/lib/tour/steps";
+import { tourLayout, visibleSteps, type TourLayout } from "@/lib/tour/steps";
+import type { Rect } from "@/lib/tour/tour-context";
 import { shadows } from "@/lib/shadows";
 
 /** Respiro entre o alvo real e a borda do recorte do spotlight. */
@@ -12,6 +13,45 @@ const CUTOUT_PADDING = 8;
 const CUTOUT_RADIUS = 16;
 const BALLOON_MARGIN = 16;
 const BALLOON_SIDE_MARGIN = 20;
+/** No desktop o balão encolhe até o texto, até este limite. */
+const BALLOON_MAX_WIDTH = 360;
+
+/**
+ * Onde o balão fica em relação ao alvo (`rect` já no sistema do overlay).
+ *
+ * Compacto: faixa com margens laterais, abaixo ou acima do alvo. Desktop:
+ * flutua perto do alvo com largura do texto — ao lado quando o alvo está no
+ * trilho da Sidebar (à esquerda), acima/abaixo e ancorado na borda esquerda do
+ * alvo no resto, sempre dentro da tela.
+ */
+export function balloonPlacement(rect: Rect, width: number, height: number, layout: TourLayout) {
+  const upperHalf = rect.y < height / 2;
+  const vertical = upperHalf
+    ? { top: rect.y + rect.height + CUTOUT_PADDING + BALLOON_MARGIN }
+    : { bottom: height - rect.y + CUTOUT_PADDING + BALLOON_MARGIN };
+
+  if (layout === "compact") {
+    return { left: BALLOON_SIDE_MARGIN, right: BALLOON_SIDE_MARGIN, ...vertical };
+  }
+
+  const inSidebarRail = rect.x + rect.width < width / 3;
+  if (inSidebarRail) {
+    return {
+      left: rect.x + rect.width + CUTOUT_PADDING + BALLOON_MARGIN,
+      maxWidth: BALLOON_MAX_WIDTH,
+      ...(upperHalf
+        ? { top: rect.y - CUTOUT_PADDING }
+        : { bottom: height - (rect.y + rect.height) - CUTOUT_PADDING }),
+    };
+  }
+
+  const maxLeft = width - BALLOON_MAX_WIDTH - BALLOON_SIDE_MARGIN;
+  return {
+    left: Math.max(BALLOON_SIDE_MARGIN, Math.min(rect.x - CUTOUT_PADDING, maxLeft)),
+    maxWidth: BALLOON_MAX_WIDTH,
+    ...vertical,
+  };
+}
 
 export function TourOverlay() {
   const { active, currentStepId, targets, next, skip } = useTour();
@@ -58,7 +98,6 @@ export function TourOverlay() {
 
   // Sem retângulo ainda (alvo animando/tela entrando — ver TourTarget), só o
   // véu: o balão aparece junto com o recorte, já no lugar certo.
-  const balloonBelow = rect !== undefined && rect.y < height / 2;
 
   return (
     <View
@@ -111,11 +150,7 @@ export function TourOverlay() {
         <View
           style={{
             position: "absolute",
-            left: BALLOON_SIDE_MARGIN,
-            right: BALLOON_SIDE_MARGIN,
-            ...(balloonBelow
-              ? { top: rect.y + rect.height + CUTOUT_PADDING + BALLOON_MARGIN }
-              : { bottom: height - rect.y + CUTOUT_PADDING + BALLOON_MARGIN }),
+            ...balloonPlacement(rect, width, height, tourLayout(width)),
           }}
         >
           <View className="gap-3 rounded-2xl bg-white p-4" style={shadows.floating}>
