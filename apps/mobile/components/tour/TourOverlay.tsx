@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { View, Text, useWindowDimensions } from "react-native";
+import { Pressable, View, Text, useWindowDimensions } from "react-native";
 import Svg, { Defs, Mask, Rect as SvgRect } from "react-native-svg";
 import { Button } from "@/components/Button";
 import { useInstallPrompt } from "@/lib/hooks/useInstallPrompt";
@@ -32,6 +32,7 @@ export function TourOverlay() {
   if (!step) return null;
 
   const isLast = stepIndex === steps.length - 1;
+  const isTap = step.action === "tap" && !isLast;
   const measured = targets[currentStepId];
   const rect = measured
     ? { ...measured, x: measured.x - origin.x, y: measured.y - origin.y }
@@ -87,6 +88,24 @@ export function TourOverlay() {
         />
       </Svg>
 
+      {hole && isTap ? (
+        // Passo de toque: o recorte vira o botão do tour (o item real embaixo
+        // não recebe o toque — ver spec, "O tour roteiriza").
+        <Pressable
+          onPress={next}
+          accessibilityRole="button"
+          accessibilityLabel={step.copy}
+          style={{
+            position: "absolute",
+            left: hole.x,
+            top: hole.y,
+            width: hole.width,
+            height: hole.height,
+            borderRadius: CUTOUT_RADIUS,
+          }}
+        />
+      ) : null}
+
       {rect ? (
         <View
           style={{
@@ -101,19 +120,32 @@ export function TourOverlay() {
           <View className="gap-3 rounded-2xl bg-white p-4" style={shadows.floating}>
             <Text className="font-sans-medium text-base text-neutral-900">{step.copy}</Text>
             <View className="flex-row justify-end gap-2">
-              <Button
-                label="Pular"
-                variant="ghost"
-                size="sm"
-                onPress={skip}
-                accessibilityLabel="Pular tour"
-              />
-              <Button
-                label={isLast ? "Entendi" : "Próximo"}
-                size="sm"
-                onPress={next}
-                accessibilityLabel={isLast ? "Concluir tour" : "Próximo passo"}
-              />
+              {isLast ? (
+                <Button
+                  label="Concluir"
+                  size="sm"
+                  onPress={next}
+                  accessibilityLabel="Concluir tour"
+                />
+              ) : (
+                <>
+                  <Button
+                    label="Pular"
+                    variant="ghost"
+                    size="sm"
+                    onPress={skip}
+                    accessibilityLabel="Pular tour"
+                  />
+                  {isTap ? null : (
+                    <Button
+                      label="Próximo"
+                      size="sm"
+                      onPress={next}
+                      accessibilityLabel="Próximo passo"
+                    />
+                  )}
+                </>
+              )}
             </View>
           </View>
         </View>

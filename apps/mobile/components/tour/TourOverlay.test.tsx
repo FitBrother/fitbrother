@@ -74,16 +74,35 @@ describe("TourOverlay", () => {
     expect(mockSkip).toHaveBeenCalled();
   });
 
-  test("no último passo o botão vira 'Concluir tour'", () => {
+  test("no último passo só aparece 'Concluir' (sem Pular)", () => {
     mockTour = {
       active: true,
-      currentStepId: "profile-shortcut-card",
-      targets: { "profile-shortcut-card": { x: 10, y: 500, width: 100, height: 40 } },
+      currentStepId: "goals-editor",
+      targets: { "goals-editor": { x: 10, y: 200, width: 300, height: 44 } },
       next: mockNext,
       skip: mockSkip,
     };
-    const { getByLabelText } = render(<TourOverlay />);
-    expect(getByLabelText("Concluir tour")).toBeTruthy();
+    const { getByLabelText, queryByLabelText, getByText } = render(<TourOverlay />);
+    expect(getByText("Concluir")).toBeTruthy();
+    fireEvent.press(getByLabelText("Concluir tour"));
+    expect(mockNext).toHaveBeenCalled();
+    expect(queryByLabelText("Pular tour")).toBeNull();
+  });
+
+  test("passo de toque: sem Próximo, e tocar no recorte avança", () => {
+    mockNext.mockReset();
+    mockTour = {
+      active: true,
+      currentStepId: "social-tab",
+      targets: { "social-tab": { x: 100, y: 40, width: 44, height: 44 } },
+      next: mockNext,
+      skip: mockSkip,
+    };
+    const { getByLabelText, queryByLabelText } = render(<TourOverlay />);
+    expect(queryByLabelText("Próximo passo")).toBeNull();
+    expect(getByLabelText("Pular tour")).toBeTruthy();
+    fireEvent.press(getByLabelText("Toque em Social para ver o progresso dos seus amigos."));
+    expect(mockNext).toHaveBeenCalled();
   });
 
   test("sem retângulo medido ainda, mostra só o véu (balão espera o recorte)", () => {
