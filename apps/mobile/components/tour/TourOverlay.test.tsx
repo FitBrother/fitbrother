@@ -89,7 +89,7 @@ describe("TourOverlay", () => {
     expect(queryByLabelText("Pular tour")).toBeNull();
   });
 
-  test("passo de toque: sem Próximo, e tocar no recorte avança", () => {
+  test("passo que não é o último tem Pular e Próximo, e o recorte não é botão", () => {
     mockNext.mockReset();
     mockTour = {
       active: true,
@@ -99,10 +99,10 @@ describe("TourOverlay", () => {
       skip: mockSkip,
     };
     const { getByLabelText, queryByLabelText } = render(<TourOverlay />);
-    expect(queryByLabelText("Próximo passo")).toBeNull();
     expect(getByLabelText("Pular tour")).toBeTruthy();
-    fireEvent.press(getByLabelText("Toque em Social para ver o progresso dos seus amigos."));
+    fireEvent.press(getByLabelText("Próximo passo"));
     expect(mockNext).toHaveBeenCalled();
+    expect(queryByLabelText("Veja o progresso dos seus amigos.")).toBeNull();
   });
 
   test("sem retângulo medido ainda, mostra só o véu (balão espera o recorte)", () => {

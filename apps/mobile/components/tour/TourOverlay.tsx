@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Pressable, View, Text, useWindowDimensions } from "react-native";
+import { View, Text, useWindowDimensions } from "react-native";
 import Svg, { Defs, Mask, Rect as SvgRect } from "react-native-svg";
 import { Button } from "@/components/Button";
 import { useInstallPrompt } from "@/lib/hooks/useInstallPrompt";
@@ -32,7 +32,6 @@ export function TourOverlay() {
   if (!step) return null;
 
   const isLast = stepIndex === steps.length - 1;
-  const isTap = step.action === "tap" && !isLast;
   const measured = targets[currentStepId];
   const rect = measured
     ? { ...measured, x: measured.x - origin.x, y: measured.y - origin.y }
@@ -88,24 +87,6 @@ export function TourOverlay() {
         />
       </Svg>
 
-      {hole && isTap ? (
-        // Passo de toque: o recorte vira o botão do tour (o item real embaixo
-        // não recebe o toque — ver spec, "O tour roteiriza").
-        <Pressable
-          onPress={next}
-          accessibilityRole="button"
-          accessibilityLabel={step.copy}
-          style={{
-            position: "absolute",
-            left: hole.x,
-            top: hole.y,
-            width: hole.width,
-            height: hole.height,
-            borderRadius: CUTOUT_RADIUS,
-          }}
-        />
-      ) : null}
-
       {rect ? (
         <View
           style={{
@@ -136,14 +117,12 @@ export function TourOverlay() {
                     onPress={skip}
                     accessibilityLabel="Pular tour"
                   />
-                  {isTap ? null : (
-                    <Button
-                      label="Próximo"
-                      size="sm"
-                      onPress={next}
-                      accessibilityLabel="Próximo passo"
-                    />
-                  )}
+                  <Button
+                    label="Próximo"
+                    size="sm"
+                    onPress={next}
+                    accessibilityLabel="Próximo passo"
+                  />
                 </>
               )}
             </View>

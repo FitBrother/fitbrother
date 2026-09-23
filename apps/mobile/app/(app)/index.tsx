@@ -136,14 +136,12 @@ function detectLocale(): string {
   return tag ?? "pt-BR";
 }
 
-/** Aba mostrada em cada passo do tour: reflete o último toque (tocar em
- * Social mostra o feed no passo seguinte, etc.) — ver spec do tour ampliado. */
+/** Aba mostrada em cada passo do tour: a do próprio passo. Nos passos do + e
+ * do streak a aba fica como estava (Análises). */
 const TOUR_TAB: Partial<Record<TourStepId, HomeTab>> = {
   "home-tab": "home",
-  "social-tab": "home",
-  "analises-tab": "feed",
-  "composer-plus": "analises",
-  streak: "analises",
+  "social-tab": "feed",
+  "analises-tab": "analises",
 };
 
 export default function HomeScreen() {

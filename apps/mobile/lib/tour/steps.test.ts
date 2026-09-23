@@ -30,18 +30,22 @@ describe("visibleSteps", () => {
     ]);
   });
 
-  test("tela e ação de cada passo", () => {
-    expect(TOUR_STEPS.map((s) => [s.id, s.screen, s.action])).toEqual([
-      ["home-tab", "home", "next"],
-      ["social-tab", "home", "tap"],
-      ["analises-tab", "home", "tap"],
-      ["composer-plus", "home", "tap"],
-      ["streak", "home", "tap"],
-      ["history-day", "history", "next"],
-      ["home-avatar", "home", "tap"],
-      ["profile-shortcut-card", "profile", "next"],
-      ["profile-goals", "profile", "tap"],
-      ["goals-editor", "goals", "next"],
+  test("tela de cada passo", () => {
+    expect(TOUR_STEPS.map((s) => [s.id, s.screen])).toEqual([
+      ["home-tab", "home"],
+      ["social-tab", "home"],
+      ["analises-tab", "home"],
+      ["composer-plus", "home"],
+      ["streak", "home"],
+      ["history-day", "history"],
+      ["home-avatar", "home"],
+      ["profile-shortcut-card", "profile"],
+      ["profile-goals", "profile"],
+      ["goals-editor", "goals"],
     ]);
+  });
+
+  test("nenhum texto pede pra tocar no item (o avanço é pelo Próximo)", () => {
+    for (const step of TOUR_STEPS) expect(step.copy).not.toMatch(/^Toque/);
   });
 });
