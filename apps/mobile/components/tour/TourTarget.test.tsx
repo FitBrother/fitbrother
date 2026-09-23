@@ -76,3 +76,16 @@ test("não mede quando o passo atual é outro", () => {
   advanceFrames(10);
   expect(measureInWindow).not.toHaveBeenCalled();
 });
+
+test("alvo invisível (0×0, display: none) nunca registra", () => {
+  measureInWindow.mockImplementation((cb) => cb(0, 0, 0, 0));
+  render(
+    <TourTarget id="home-tab">
+      <Text>Home</Text>
+    </TourTarget>,
+  );
+  act(() => {
+    jest.advanceTimersByTime(1500);
+  });
+  expect(mockRegisterTarget).not.toHaveBeenCalled();
+});

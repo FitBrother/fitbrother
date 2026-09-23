@@ -50,14 +50,23 @@ export function TourTarget({ id, children }: { id: TourStepId; children: ReactNo
         const same =
           last !== null &&
           width > 0 &&
+          height > 0 &&
           last.x === x &&
           last.y === y &&
           last.width === width &&
           last.height === height;
         stable = same ? stable + 1 : 0;
         last = rect;
-        if (stable >= STABLE_FRAMES || Date.now() - startedAt > MAX_WAIT_MS) {
+        if (stable >= STABLE_FRAMES) {
           registerTarget(id, rect);
+          return;
+        }
+        if (Date.now() - startedAt > MAX_WAIT_MS) {
+          // Alvo invisível (ex.: Sidebar com `display: none` no layout
+          // estreito, que divide o id com a aba do HomeHeader) mede 0×0 e não
+          // registra — o visível vence; sem nenhum, a rede de segurança de 2 s
+          // do provider avança o passo.
+          if (width > 0 && height > 0) registerTarget(id, rect);
           return;
         }
         raf = requestAnimationFrame(tick);
