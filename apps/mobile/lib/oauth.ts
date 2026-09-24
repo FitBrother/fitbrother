@@ -17,8 +17,12 @@ export class OAuthCallbackError extends Error {
  * O GoTrue às vezes manda o erro na query string, às vezes no fragment
  * (#) — espelha o parseParametersFromURL do próprio supabase-js: junta os
  * dois, com a query tendo prioridade.
+ *
+ * Exportada porque `app/(auth)/reset-password.tsx` reaproveita o mesmo
+ * parsing pro link de recuperação de senha, que chega no mesmo formato
+ * (tokens no fragment).
  */
-function paramsFromCallbackUrl(url: URL): URLSearchParams {
+export function paramsFromCallbackUrl(url: URL): URLSearchParams {
   const merged = new URLSearchParams(url.hash.replace(/^#/, ""));
   url.searchParams.forEach((value, key) => merged.set(key, value));
   return merged;

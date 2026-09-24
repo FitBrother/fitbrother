@@ -13,6 +13,7 @@ const AUTH_ERROR_MESSAGES: Record<string, string> = {
   email_exists: "Esse e-mail já tem uma conta cadastrada.",
   phone_exists: "Esse telefone já está em uso por outra conta.",
   weak_password: "Escolha uma senha mais forte (mínimo 8 caracteres).",
+  same_password: "A nova senha precisa ser diferente da atual.",
   validation_failed: "Verifique os dados informados.",
   user_banned: "Essa conta está temporariamente bloqueada.",
   over_email_send_rate_limit:

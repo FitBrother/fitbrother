@@ -102,6 +102,14 @@ export default function SignIn() {
               returnKeyType="go"
               onSubmitEditing={handleSubmit}
             />
+            <Text
+              className="self-end text-sm font-sans-medium text-primary-400"
+              onPress={() => router.push("/(auth)/forgot-password")}
+              accessibilityRole="button"
+              suppressHighlighting
+            >
+              Esqueceu sua senha?
+            </Text>
           </View>
 
           {error && (

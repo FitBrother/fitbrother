@@ -2,7 +2,7 @@ import { Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronLeft, Download, Pencil, Share2, Sparkles, Trash2 } from "lucide-react-native";
+import { ChevronLeft, ImageDown, Pencil, Share2, Sparkles, Trash2 } from "lucide-react-native";
 import type { MealResponse } from "@fitbrother/shared";
 import { getMeal } from "@/lib/api/meals";
 import { mealDetailKey } from "@/lib/hooks/useMealsForDay";
@@ -124,14 +124,6 @@ export default function MealDetailScreen() {
         </Pressable>
         <Text className="ml-2 flex-1 text-xl font-display-bold text-neutral-800">Refeição</Text>
         <Pressable
-          onPress={() => router.push(`/(app)/share/meal/${meal.id}` as never)}
-          accessibilityLabel="Exportar imagem"
-          accessibilityRole="button"
-          className="min-h-[44px] min-w-[44px] items-center justify-center"
-        >
-          <Download size={20} color={colors.neutral[800]} />
-        </Pressable>
-        <Pressable
           onPress={() =>
             router.push({
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -220,23 +212,44 @@ export default function MealDetailScreen() {
           </Pressable>
         )}
 
+        {/* Os dois destinos, um embaixo do outro e nomeados.
+            Antes o de fora do app era um ícone de download solto no header,
+            ao lado de editar e excluir — lia como "exportar meus dados", não
+            como "fazer uma imagem disso". E dividia a tela com um botão
+            "Compartilhar no feed" que usava justamente o ícone de compartilhar.
+            Os rótulos agora dizem para onde vai cada um; o primário é o de
+            dentro do app, que é o que alimenta o feed. */}
         {!meal.review_required && (
-          <Pressable
-            onPress={() =>
-              router.push({
-                pathname: "/(app)/post/new" as never,
-                params: { meal_id: meal.id },
-              })
-            }
-            accessibilityRole="button"
-            accessibilityLabel="Compartilhar no feed"
-            className="mx-4 mt-6 min-h-[52px] flex-row items-center justify-center rounded-full bg-primary-400 px-6 py-3 active:bg-primary-500"
-          >
-            <Share2 size={18} color={colors.neutral[50]} />
-            <Text className="ml-2 text-base font-sans-semibold text-white">
-              Compartilhar no feed
-            </Text>
-          </Pressable>
+          <View className="mt-6 gap-2 px-4">
+            <Pressable
+              onPress={() =>
+                router.push({
+                  pathname: "/(app)/post/new" as never,
+                  params: { meal_id: meal.id },
+                })
+              }
+              accessibilityRole="button"
+              accessibilityLabel="Compartilhar no feed do Fitbrother"
+              className="min-h-[52px] flex-row items-center justify-center rounded-full bg-primary-400 px-6 py-3 active:bg-primary-500"
+            >
+              <Share2 size={18} color={colors.neutral[50]} />
+              <Text className="ml-2 text-base font-sans-semibold text-white">
+                Compartilhar no feed
+              </Text>
+            </Pressable>
+            <Pressable
+              onPress={() => router.push(`/(app)/share/meal/${meal.id}` as never)}
+              accessibilityRole="button"
+              accessibilityLabel="Gerar imagem para outras redes"
+              style={shadows.card}
+              className="min-h-[52px] flex-row items-center justify-center rounded-full bg-white px-6 py-3 active:opacity-70"
+            >
+              <ImageDown size={18} color={colors.neutral[700]} />
+              <Text className="ml-2 text-base font-sans-semibold text-neutral-700">
+                Gerar imagem
+              </Text>
+            </Pressable>
+          </View>
         )}
       </ScrollView>
     </SafeAreaView>
