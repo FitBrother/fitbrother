@@ -33,6 +33,7 @@ React Native · Expo · TypeScript · NativeWind v4 · Tailwind v3 · Supabase (
 7. **Sem dark mode no MVP.** Não use `dark:` em código novo.
 8. **Ícones:** `lucide-react-native` apenas. Não usar `@expo/vector-icons` em código novo.
 9. **Sem tags HTML** (`<div>`, `<h1>`). Use `View`, `Text`, `Pressable`.
+10. **Loading = skeleton, nunca `ActivityIndicator` solto pra carregar uma seção/tela.** Componha com `<SkeletonBlock>` / `<SkeletonText>` / `<SkeletonCircle>` (`components/Skeleton.tsx`, DESIGN_SYSTEM §12.11) num componente `components/domain/<Tela>Skeleton.tsx` que espelha o shape real da tela (mesmos cards, mesmas alturas) — ver `ProfileSkeleton.tsx`/`MealEditSkeleton.tsx` como referência. `ActivityIndicator` só vale dentro de um `Button` (`loading` prop) ou outra ação pontual já em andamento, nunca como placeholder de tela/seção carregando.
 
 ---
 

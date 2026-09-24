@@ -21,6 +21,7 @@ import { newClientMealId, useCreateMealText } from "@/lib/hooks/useCreateMealTex
 import { shadows } from "@/lib/shadows";
 import { nutritionalToday } from "@/lib/time/nutritional-day";
 import { useProfile } from "@/lib/profile/profile-context";
+import { useTour } from "@/lib/tour/tour-context";
 import type { MealResponse } from "@fitbrother/shared";
 
 type MealType = MealResponse["meal_type"];
@@ -49,6 +50,7 @@ export default function ScanConfirmScreen() {
   const { data: product, isLoading, error } = useBarcodeProduct(barcode);
   const createMeal = useCreateMealBarcode();
   const createMealText = useCreateMealText();
+  const tour = useTour();
 
   const [quantity, setQuantity] = useState("100");
   const [unit, setUnit] = useState<"g" | "ml" | "unit">("g");
@@ -74,6 +76,7 @@ export default function ScanConfirmScreen() {
       },
       {
         onSuccess: () => {
+          tour.notifyMealCreated();
           router.replace("/(app)/" as never);
         },
         onError: () => {
@@ -95,6 +98,7 @@ export default function ScanConfirmScreen() {
       },
       {
         onSuccess: () => {
+          tour.notifyMealCreated();
           router.replace("/(app)/" as never);
         },
         onError: () => {
@@ -102,7 +106,7 @@ export default function ScanConfirmScreen() {
         },
       },
     );
-  }, [barcode, createMealText, profile, router]);
+  }, [barcode, createMealText, profile, router, tour]);
 
   useEffect(() => {
     if (isNotFound && !sentToAiRef.current) {

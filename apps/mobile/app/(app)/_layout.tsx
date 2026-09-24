@@ -11,6 +11,8 @@ import { useAuthSession } from "@/lib/hooks/useAuthSession";
 import { useAchievementsRealtime } from "@/lib/hooks/useAchievementsRealtime";
 import { registerForPushNotificationsAsync } from "@/lib/push";
 import { colors } from "@/lib/colors";
+import { TourProvider } from "@/lib/tour/tour-context";
+import { TourOverlay } from "@/components/tour/TourOverlay";
 
 const SHEET_BG = colors.neutral[50];
 
@@ -58,31 +60,34 @@ function GuardedStack() {
   }
 
   return (
-    // Linha só a partir de `lg`, casando com o breakpoint da Sidebar: abaixo
-    // disso ela não existe e a coluna é o layout do mobile.
-    <View className="flex-1 lg:flex-row">
-      <Sidebar />
-      <ScreenFade>
-        <Stack screenOptions={{ headerShown: false, animation: "fade" }}>
-          <Stack.Screen name="meal/[id]/edit" options={{ presentation: "modal" }} />
-          {/* Compartilhar é tarefa de ida e volta, não um lugar do app: sobe
-              como modal para que voltar seja o gesto de fechar, e não o de
-              desfazer a navegação. (Na web o expo-router ignora e empilha
-              normalmente.) */}
-          <Stack.Screen name="share/[type]/[id]" options={{ presentation: "modal" }} />
-          <Stack.Screen
-            name="history/[day]/new"
-            options={{
-              presentation: "formSheet",
-              sheetAllowedDetents: "fitToContents",
-              sheetCornerRadius: 24,
-              contentStyle: { backgroundColor: SHEET_BG },
-              gestureEnabled: false,
-            }}
-          />
-        </Stack>
-      </ScreenFade>
-    </View>
+    <TourProvider>
+      {/* Linha só a partir de `lg`, casando com o breakpoint da Sidebar: abaixo
+          disso ela não existe e a coluna é o layout do mobile. */}
+      <View className="flex-1 lg:flex-row">
+        <Sidebar />
+        <ScreenFade>
+          <Stack screenOptions={{ headerShown: false, animation: "fade" }}>
+            <Stack.Screen name="meal/[id]/edit" options={{ presentation: "modal" }} />
+            {/* Compartilhar é tarefa de ida e volta, não um lugar do app: sobe
+                como modal para que voltar seja o gesto de fechar, e não o de
+                desfazer a navegação. (Na web o expo-router ignora e empilha
+                normalmente.) */}
+            <Stack.Screen name="share/[type]/[id]" options={{ presentation: "modal" }} />
+            <Stack.Screen
+              name="history/[day]/new"
+              options={{
+                presentation: "formSheet",
+                sheetAllowedDetents: "fitToContents",
+                sheetCornerRadius: 24,
+                contentStyle: { backgroundColor: SHEET_BG },
+                gestureEnabled: false,
+              }}
+            />
+          </Stack>
+        </ScreenFade>
+      </View>
+      <TourOverlay />
+    </TourProvider>
   );
 }
 

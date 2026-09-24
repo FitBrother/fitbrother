@@ -30,6 +30,12 @@ jest.mock("@/lib/hooks/useAuthSession", () => ({
     session: { user: { email: "ana@exemplo.com" } },
   }),
 }));
+// TourTarget usa useTour(); o módulo real arrasta lib/api/account →
+// lib/supabase, mesma cadeia cortada acima. Fora do tour (`active: false`)
+// TourTarget só repassa os filhos, então este mock não muda nada renderizado.
+jest.mock("@/lib/tour/tour-context", () => ({
+  useTour: () => ({ active: false, registerTarget: () => {} }),
+}));
 
 // A largura da janela decide entre `compact` e `wide`. Fixar aqui em vez de
 // herdar o default do ambiente de teste: sem isso, os testes de rótulo passam

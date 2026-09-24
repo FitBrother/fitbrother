@@ -13,6 +13,7 @@ import {
   LogOut,
   Settings,
   ShieldCheck,
+  Target,
   UserRound,
   Users,
 } from "lucide-react-native";
@@ -26,6 +27,7 @@ import { EmailConfirmationBanner } from "@/components/domain/EmailConfirmationBa
 import { PullToRefresh } from "@/components/PullToRefresh";
 import { InstallPrompt } from "@/components/domain/InstallPrompt";
 import { ProfileSkeleton } from "@/components/domain/ProfileSkeleton";
+import { TourTarget } from "@/components/tour/TourTarget";
 import { patchAccountAvatar } from "@/lib/api/account";
 import { profileInitials } from "@/lib/account-utils";
 import { colors } from "@/lib/colors";
@@ -161,7 +163,9 @@ export default function ProfileScreen() {
       <PullToRefresh onRefresh={reloadApp}>
         <ScrollView contentContainerClassName="gap-6 px-5 pb-10 pt-3">
           <EmailConfirmationBanner />
-          <InstallPrompt />
+          <TourTarget id="profile-shortcut-card">
+            <InstallPrompt />
+          </TourTarget>
           <View className="items-center">
             <Pressable
               onPress={() => setAvatarModal("actions")}
@@ -201,6 +205,13 @@ export default function ProfileScreen() {
               label="Ver perfil público"
               onPress={() => router.push(`/(app)/users/${user.id}` as never)}
             />
+            <TourTarget id="profile-goals">
+              <MenuItem
+                icon={Target}
+                label="Metas e macros"
+                onPress={() => router.push("/goals" as never)}
+              />
+            </TourTarget>
             <MenuItem
               icon={Clock3}
               label="Histórico"

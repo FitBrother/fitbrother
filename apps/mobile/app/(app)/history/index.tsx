@@ -1,3 +1,4 @@
+import { TourTarget } from "@/components/tour/TourTarget";
 import { useMemo } from "react";
 import { FlatList, Pressable, Text, useWindowDimensions, View } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
@@ -103,18 +104,22 @@ export default function HistoryScreen() {
               data={entries}
               numColumns={numColumns}
               keyExtractor={(e) => e.day}
-              renderItem={({ item, index }) => (
-                <Animated.View
-                  style={{ flex: 1 }}
-                  entering={FadeInDown.duration(250).delay(Math.min(index, 9) * 40)}
-                >
-                  {item.type === "filled" ? (
+              renderItem={({ item, index }) => {
+                const card =
+                  item.type === "filled" ? (
                     <HistoryDayCard summary={item.summary} softMode={profile.soft_mode} />
                   ) : (
                     <HistoryEmptyDayCard day={item.day} />
-                  )}
-                </Animated.View>
-              )}
+                  );
+                return (
+                  <Animated.View
+                    style={{ flex: 1 }}
+                    entering={FadeInDown.duration(250).delay(Math.min(index, 9) * 40)}
+                  >
+                    {index === 0 ? <TourTarget id="history-day">{card}</TourTarget> : card}
+                  </Animated.View>
+                );
+              }}
               contentContainerStyle={{ paddingBottom: 24 }}
               onEndReached={() => {
                 if (query.hasNextPage && !query.isFetchingNextPage) {

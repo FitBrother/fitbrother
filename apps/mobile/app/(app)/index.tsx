@@ -1,3 +1,5 @@
+import { TourTarget } from "@/components/tour/TourTarget";
+import type { TourStepId } from "@/lib/tour/steps";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Keyboard,
@@ -72,6 +74,7 @@ import { SummaryCollapseSpacer, TodaySummaryHeader } from "@/components/domain/T
 import { GoalsDisclaimer } from "@/components/domain/GoalsDisclaimer";
 import { StreakCounter } from "@/components/domain/StreakCounter";
 import { useStreak } from "@/lib/hooks/useStreak";
+import { useTour } from "@/lib/tour/tour-context";
 
 /** Sobra entre o último card e o começo do degradê do composer. */
 const LIST_BREATHING_ROOM = 28;
@@ -135,6 +138,14 @@ function detectLocale(): string {
   return tag ?? "pt-BR";
 }
 
+/** Aba mostrada em cada passo do tour: a do próprio passo. Nos passos do + e
+ * do streak a aba fica como estava (Análises). */
+const TOUR_TAB: Partial<Record<TourStepId, HomeTab>> = {
+  "home-tab": "home",
+  "social-tab": "feed",
+  "analises-tab": "analises",
+};
+
 export default function HomeScreen() {
   const router = useRouter();
   const profile = useProfile();
@@ -168,6 +179,15 @@ export default function HomeScreen() {
   const [banner, setBanner] = useState<ErrorBannerVariant | null>(null);
   const [disclaimerOpen, setDisclaimerOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<HomeTab>("home");
+  const tour = useTour();
+
+  // O tour comanda a aba mostrada em cada passo — ver TOUR_TAB — e, ao
+  // terminar (sem passo atual), devolve o usuário ao dashboard. As abas em si
+  // continuam sendo estado local desta tela.
+  useEffect(() => {
+    const tab = tour.currentStepId ? TOUR_TAB[tour.currentStepId] : "home";
+    if (tab) setActiveTab(tab);
+  }, [tour.currentStepId]);
   const { width } = useWindowDimensions();
   const isDesktop = width >= 1024;
   const [composerHeight, setComposerHeight] = useState(0);
@@ -267,6 +287,16 @@ export default function HomeScreen() {
   });
 
   const items = (mealsQuery.data ?? []) as OptimisticMeal[];
+
+  // Gatilho do tour: primeira refeição persistida visível na Home. Cobre o
+  // composer daqui e o registro feito no último passo do onboarding
+  // (FirstMealBlock), que roda fora do TourProvider. Depende só do booleano
+  // pra não re-disparar enquanto o PATCH de tutorial_completed está em voo.
+  const hasPersistedMeal = items.some((m) => m.__status !== "processing");
+  useEffect(() => {
+    if (hasPersistedMeal) tour.notifyMealCreated();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasPersistedMeal]);
 
   // Um lugar só para decidir se a refeição que acabou de entrar merece o
   // convite — as três origens (texto, áudio, foto) chamam isto.
@@ -481,10 +511,12 @@ export default function HomeScreen() {
               <Text className="mt-0.5 text-[28px] font-display-bold text-neutral-800">Hoje</Text>
             </View>
             {!profile.soft_mode && streakView && (
-              <StreakCounter
-                current={streakView.streak.current_streak}
-                atRisk={streakView.atRisk}
-              />
+              <TourTarget id="streak">
+                <StreakCounter
+                  current={streakView.streak.current_streak}
+                  atRisk={streakView.atRisk}
+                />
+              </TourTarget>
             )}
           </Card>
         </View>

@@ -23,7 +23,17 @@
 # `--ignore-scripts` evita o `prepare` (husky) do package.json raiz, que
 # depende de um repo git que não existe dentro do build isolado.
 # `--prefer-offline --no-audit --no-fund` evita round-trips de rede que não
-# mudam o resultado do build.
+# mudam o resultado do build — esse primeiro install resolve contra o
+# lockfile de verdade (package-lock.json), então "confiar no cache sem
+# checar a registry" é seguro.
+#
+# O segundo install (linha abaixo, dentro do pacote isolado da Lambda) NÃO
+# leva `--prefer-offline`: ali não existe lockfile nenhum, então esse install
+# resolve a árvore de dependências do zero a cada build — sem a flag o npm
+# ainda usa tarballs em cache quando o hash bate, só não deixa de validar a
+# resolução contra a registry. Reforço defensivo, não a causa de um bug real
+# que já aconteceu aqui — ver o comentário de `strip-dev-only-fields.mjs`
+# abaixo pra causa raiz de verdade.
 
 build-ApiFunction build-StreakTickFunction build-StreakAlertFunction \
 build-GoalReminderFunction build-DispatchNotificationFunction \
@@ -36,7 +46,17 @@ build-PurgeAbandonedSignupsFunction:
 	mkdir -p "$(ARTIFACTS_DIR)/apps/server" "$(ARTIFACTS_DIR)/packages/shared" "$(ARTIFACTS_DIR)/packages/db-types"
 	cp -R apps/server/dist "$(ARTIFACTS_DIR)/apps/server/dist"
 	cp -R packages/shared/dist "$(ARTIFACTS_DIR)/packages/shared/dist"
-	cp packages/shared/package.json "$(ARTIFACTS_DIR)/packages/shared/package.json"
+	# NÃO `cp` puro: o package.json de packages/shared tem devDependencies
+	# (typescript, vitest) que `--omit=dev` do install abaixo não filtra —
+	# essa flag só corta as devDependencies do package.json RAIZ do install
+	# (o gerado por lambda-package-json.mjs), não as de um dependency `file:`
+	# como este. O vitest copiado carrega uma cadeia de peerDependencies que,
+	# resolvida com o package-lock.json/workspaces da raiz do monorepo como
+	# ancestral (este pacote fica aninhado dentro do checkout), batia num bug
+	# do @npmcli/arborist: `npm error Cannot read properties of null
+	# (reading 'edgesOut')` em `#loadPeerSet`. Reproduzido localmente e
+	# confirmado corrigido removendo esse devDependencies daqui.
+	node scripts/strip-dev-only-fields.mjs packages/shared/package.json "$(ARTIFACTS_DIR)/packages/shared/package.json"
 	cp -R packages/db-types/. "$(ARTIFACTS_DIR)/packages/db-types/"
 	node scripts/lambda-package-json.mjs apps/server/package.json "$(ARTIFACTS_DIR)/package.json"
-	cd "$(ARTIFACTS_DIR)" && npm install --omit=dev --no-audit --no-fund --prefer-offline --ignore-scripts
+	cd "$(ARTIFACTS_DIR)" && npm install --omit=dev --no-audit --no-fund --ignore-scripts

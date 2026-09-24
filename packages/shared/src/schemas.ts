@@ -341,6 +341,8 @@ export const AccountProfileResponseSchema = z.object({
     timezone: z.string(),
     day_start_hour: z.number().int().min(0).max(23),
     locale: z.string(),
+    activity_level: ActivityLevelSchema,
+    goal: GoalSchema,
     created_at: z.string(),
     updated_at: z.string(),
   }),
@@ -358,6 +360,9 @@ export type AccountProfileResponse = z.infer<typeof AccountProfileResponseSchema
 export const PatchAccountSettingsRequestSchema = z.object({
   timezone: z.string().min(1).optional(),
   day_start_hour: z.number().int().min(0).max(23).optional(),
+  // Só `true`: não existe fluxo de "desmarcar" o tour pelo cliente — ver
+  // docs/superpowers/specs/2026-09-17-tour-guiado-primeiro-registro-design.md.
+  tutorial_completed: z.literal(true).optional(),
 });
 export type PatchAccountSettingsRequest = z.infer<typeof PatchAccountSettingsRequestSchema>;
 
@@ -371,6 +376,7 @@ export const AccountSettingsResponseSchema = z.object({
     timezone: z.string(),
     day_start_hour: z.number().int().min(0).max(23),
     updated_at: z.string(),
+    tutorial_completed_at: z.string().nullable(),
   }),
 });
 export type AccountSettingsResponse = z.infer<typeof AccountSettingsResponseSchema>;
@@ -414,6 +420,78 @@ export const ReactivateAccountResponseSchema = z.object({
   cancelled_at: z.string().nullable(),
 });
 export type ReactivateAccountResponse = z.infer<typeof ReactivateAccountResponseSchema>;
+
+// ── M20 — edição manual de metas/corpo no Perfil ───────────────────────────
+export const PatchBodyProfileRequestSchema = z.object({
+  activity_level: ActivityLevelSchema.optional(),
+  goal: GoalSchema.optional(),
+});
+export type PatchBodyProfileRequest = z.infer<typeof PatchBodyProfileRequestSchema>;
+
+export const BodyProfileResponseSchema = z.object({
+  activity_level: ActivityLevelSchema,
+  goal: GoalSchema,
+  updated_at: z.string(),
+});
+export type BodyProfileResponse = z.infer<typeof BodyProfileResponseSchema>;
+
+// Mesmos limites de `OnboardingPayloadSchema` (weight_kg/height_cm) — a
+// mesma tabela (`anthropometrics`), o mesmo CHECK de banco.
+export const PostAnthropometricsRequestSchema = z.object({
+  weight_kg: z.number().positive().max(500),
+  height_cm: z.number().positive().max(300),
+});
+export type PostAnthropometricsRequest = z.infer<typeof PostAnthropometricsRequestSchema>;
+
+export const AnthropometricsResponseSchema = z.object({
+  weight_kg: z.number(),
+  height_cm: z.number(),
+  bmr_kcal: z.number().nullable(),
+  tdee_kcal: z.number().nullable(),
+  measured_at: z.string(),
+});
+export type AnthropometricsResponse = z.infer<typeof AnthropometricsResponseSchema>;
+
+// Tetos generosos só pra barrar erro de digitação — não são limite
+// nutricional (isso é responsabilidade da tela, que aplica as faixas de
+// segurança da interface antes de deixar o usuário salvar).
+export const PostNutritionGoalsRequestSchema = z.object({
+  kcal: z.number().positive().max(8000),
+  protein_g: z.number().nonnegative().max(600),
+  carbs_g: z.number().nonnegative().max(900),
+  fat_g: z.number().nonnegative().max(400),
+  fiber_g: z.number().nonnegative().max(120).optional(),
+  // "manual" = usuário digitou os números; "recalculated" = aceitou a
+  // sugestão de `GET /account/nutrition-goals/suggested` (computeTargets).
+  source: z.enum(["manual", "recalculated"]).default("manual"),
+});
+export type PostNutritionGoalsRequest = z.infer<typeof PostNutritionGoalsRequestSchema>;
+
+export const NutritionGoalResponseSchema = z.object({
+  id: z.string().uuid(),
+  kcal: z.number(),
+  protein_g: z.number(),
+  carbs_g: z.number(),
+  fat_g: z.number(),
+  fiber_g: z.number().nullable(),
+  effective_from: z.string(),
+  tdee_source: z.string(),
+});
+export type NutritionGoalResponse = z.infer<typeof NutritionGoalResponseSchema>;
+
+export const SuggestedNutritionGoalsResponseSchema = z.object({
+  kcal: z.number(),
+  protein_g: z.number(),
+  carbs_g: z.number(),
+  fat_g: z.number(),
+  fiber_g: z.number(),
+  bmr_kcal: z.number(),
+  tdee_kcal: z.number(),
+  warnings: z.array(z.object({ code: z.string(), message: z.string() })),
+  blocked: z.boolean(),
+  block_reason: z.string().nullable(),
+});
+export type SuggestedNutritionGoalsResponse = z.infer<typeof SuggestedNutritionGoalsResponseSchema>;
 
 export const AuthorizeAccountDeletionPasswordRequestSchema = z.object({
   password: z.string().min(1).max(1024),

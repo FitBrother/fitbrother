@@ -24,7 +24,7 @@ mkdir -p "$STAGE_DIR"
 rsync -a package.json package-lock.json tsconfig.base.json Makefile "$STAGE_DIR/"
 
 mkdir -p "$STAGE_DIR/scripts"
-rsync -a scripts/lambda-package-json.mjs "$STAGE_DIR/scripts/"
+rsync -a scripts/lambda-package-json.mjs scripts/strip-dev-only-fields.mjs "$STAGE_DIR/scripts/"
 
 for pkg in apps/server packages/shared packages/db-types; do
   mkdir -p "$STAGE_DIR/$pkg"
