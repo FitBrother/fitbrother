@@ -135,6 +135,7 @@ export async function accountRoutes(app: FastifyInstance) {
     const patch: Record<string, unknown> = {};
     if (parsed.data.timezone) patch.timezone = parsed.data.timezone;
     if (parsed.data.day_start_hour !== undefined) patch.day_start_hour = parsed.data.day_start_hour;
+    if (parsed.data.tutorial_completed) patch.tutorial_completed_at = new Date().toISOString();
 
     req.log.info(
       { user_id: userId, request_id: req.id, action: "account_settings" },
@@ -146,7 +147,7 @@ export async function accountRoutes(app: FastifyInstance) {
       .from("profiles")
       .update(patch)
       .eq("user_id", userId)
-      .select("timezone, day_start_hour, updated_at")
+      .select("timezone, day_start_hour, updated_at, tutorial_completed_at")
       .single();
 
     if (error) {

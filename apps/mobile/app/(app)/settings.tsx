@@ -7,12 +7,14 @@ import { WheelPicker } from "@/components/WheelPicker";
 import { patchAccountSettings } from "@/lib/api/account";
 import { useAccountProfile } from "@/lib/hooks/useAccountProfile";
 import { useProfileActions } from "@/lib/profile/profile-context";
+import { useTour } from "@/lib/tour/tour-context";
 import { useToast } from "@/lib/toast/toast-context";
 
 export default function SettingsScreen() {
   const account = useAccountProfile();
   const toast = useToast();
   const { update } = useProfileActions();
+  const tour = useTour();
   const deviceTimezone = Localization.getCalendars()[0]?.timeZone ?? "UTC";
   const [hour, setHour] = useState(0);
   const [saving, setSaving] = useState(false);
@@ -65,6 +67,18 @@ export default function SettingsScreen() {
           loading={saving}
           disabled={!account.data || hour === account.data.profile.day_start_hour}
           onPress={() => save({ day_start_hour: hour })}
+        />
+      </AccountCard>
+      <AccountCard>
+        <Text className="font-sans-semibold text-base text-neutral-900">Tour guiado</Text>
+        <Text className="mt-1 font-sans text-sm text-neutral-600">
+          Reveja o passeio pelas abas do app e pelo atalho de instalação.
+        </Text>
+        <Button
+          className="mt-4"
+          label="Rever tutorial"
+          variant="outline"
+          onPress={() => tour.startTour()}
         />
       </AccountCard>
     </AccountScreen>

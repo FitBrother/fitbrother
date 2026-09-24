@@ -5,12 +5,27 @@ import { shadows } from "@/lib/shadows";
 import { colors } from "@/lib/colors";
 import { MacroLegendInline, MacroSplitBorder } from "./MacroSplitBar";
 
+/**
+ * O mesmo rótulo sem o emoji, para leitor de tela e para compor frases.
+ *
+ * O emoji é decoração: lido em voz alta, "🍽 Almoço" vira "garfo e faca
+ * Almoço", e dentro de uma frase maior ("Gerar imagem de 🍽 Almoço") ele
+ * atravessa o meio dela.
+ */
+export const MEAL_TYPE_NAME: Record<MealResponse["meal_type"], string> = {
+  breakfast: "Café da manhã",
+  lunch: "Almoço",
+  snack: "Lanche",
+  dinner: "Jantar",
+  other: "Refeição",
+};
+
 const MEAL_TYPE_LABEL: Record<MealResponse["meal_type"], string> = {
-  breakfast: "🍳 Café da manhã",
-  lunch: "🍽 Almoço",
-  snack: "🥪 Lanche",
-  dinner: "🌙 Jantar",
-  other: "🍴 Refeição",
+  breakfast: `🍳 ${MEAL_TYPE_NAME.breakfast}`,
+  lunch: `🍽 ${MEAL_TYPE_NAME.lunch}`,
+  snack: `🥪 ${MEAL_TYPE_NAME.snack}`,
+  dinner: `🌙 ${MEAL_TYPE_NAME.dinner}`,
+  other: `🍴 ${MEAL_TYPE_NAME.other}`,
 };
 
 // Per CLAUDE.md, only the home view truncates — the detail screen shows

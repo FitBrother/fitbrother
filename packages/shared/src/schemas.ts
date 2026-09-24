@@ -360,6 +360,9 @@ export type AccountProfileResponse = z.infer<typeof AccountProfileResponseSchema
 export const PatchAccountSettingsRequestSchema = z.object({
   timezone: z.string().min(1).optional(),
   day_start_hour: z.number().int().min(0).max(23).optional(),
+  // Só `true`: não existe fluxo de "desmarcar" o tour pelo cliente — ver
+  // docs/superpowers/specs/2026-09-17-tour-guiado-primeiro-registro-design.md.
+  tutorial_completed: z.literal(true).optional(),
 });
 export type PatchAccountSettingsRequest = z.infer<typeof PatchAccountSettingsRequestSchema>;
 
@@ -373,6 +376,7 @@ export const AccountSettingsResponseSchema = z.object({
     timezone: z.string(),
     day_start_hour: z.number().int().min(0).max(23),
     updated_at: z.string(),
+    tutorial_completed_at: z.string().nullable(),
   }),
 });
 export type AccountSettingsResponse = z.infer<typeof AccountSettingsResponseSchema>;

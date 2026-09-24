@@ -9,10 +9,10 @@ import Animated, {
   withSpring,
 } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
-import { Trash2 } from "lucide-react-native";
+import { ImageDown, Trash2 } from "lucide-react-native";
 import type { MealResponse } from "@fitbrother/shared";
 import { colors } from "@/lib/colors";
-import { MealCard } from "./MealCard";
+import { MealCard, MEAL_TYPE_NAME } from "./MealCard";
 
 /**
  * Espaço entre cards da lista, em px. É o mesmo passo do header da Home (o
@@ -21,8 +21,16 @@ import { MealCard } from "./MealCard";
  */
 export const MEAL_CARD_GAP = 8;
 
-const ACTION_WIDTH = 96;
-const OPEN_THRESHOLD = ACTION_WIDTH * 0.5;
+/**
+ * Largura revelada pelo arrasto: duas ações de 80 + as folgas laterais.
+ *
+ * Compartilhar mora aqui, e não num ícone no card, porque o card da Home foi
+ * apertado de propósito (a faixa de macros virou a borda dele justamente para
+ * economizar altura) — um botão a mais na frente desfaz isso. Atrás do arrasto
+ * é onde este card já guarda ação, e é de onde a pessoa já espera que saia.
+ */
+const ACTION_WIDTH = 180;
+const OPEN_THRESHOLD = ACTION_WIDTH * 0.4;
 // Stiffer than the default — fast snap, almost no oscillation, ~150ms settle.
 const SPRING = { damping: 26, stiffness: 320, mass: 0.5 };
 
@@ -30,11 +38,20 @@ type Props = {
   meal: MealResponse;
   onPress?: () => void;
   onDelete: () => void;
+  onShare: () => void;
 };
 
-export function MealCardSwipeable({ meal, onPress, onDelete }: Props) {
+export function MealCardSwipeable({ meal, onPress, onDelete, onShare }: Props) {
   const translateX = useSharedValue(0);
   const startX = useSharedValue(0);
+
+  const triggerShare = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    // Fecha o arrasto: ao voltar da tela de compartilhar, o card estaria
+    // aberto mostrando as ações, sem nada explicando por quê.
+    translateX.value = withSpring(0, SPRING);
+    onShare();
+  };
 
   const triggerDelete = () => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
@@ -83,12 +100,26 @@ export function MealCardSwipeable({ meal, onPress, onDelete }: Props) {
       exiting={SlideOutLeft.springify().damping(20).stiffness(180)}
     >
       <View>
-        {/* Delete action behind the card. Centered vertically by the absolute
-            container; horizontal position aligned to the card's right edge. */}
+        {/* Actions behind the card, revealed by the drag. Centered vertically
+            by the absolute container; aligned to the card's right edge. */}
         <View
           style={{ pointerEvents: "box-none" }}
-          className="absolute inset-0 items-end justify-center pr-1"
+          className="absolute inset-0 flex-row items-center justify-end gap-2 pr-1"
         >
+          <Animated.View style={actionStyle}>
+            <Pressable
+              onPress={triggerShare}
+              // Nomeia a refeição em vez de dizer "desta": um leitor de tela
+              // percorre a lista inteira, e três cards abertos anunciando o
+              // mesmo rótulo não dizem de qual refeição é cada botão.
+              accessibilityLabel={`Gerar imagem de ${MEAL_TYPE_NAME[meal.meal_type]}`}
+              accessibilityRole="button"
+              className="h-20 w-20 items-center justify-center rounded-2xl bg-primary-400 active:bg-primary-500"
+            >
+              <ImageDown size={22} color={colors.white} />
+              <Text className="mt-1 text-xs font-sans-semibold text-white">Imagem</Text>
+            </Pressable>
+          </Animated.View>
           <Animated.View style={actionStyle}>
             <Pressable
               onPress={triggerDelete}

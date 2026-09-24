@@ -12,7 +12,7 @@ declare global {
   }
 }
 
-type InstallPromptState =
+export type InstallPromptState =
   | { status: "native" }
   | { status: "installed" }
   | { status: "installable-chrome"; promptEvent: BeforeInstallPromptEvent }

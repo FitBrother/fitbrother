@@ -1,3 +1,5 @@
+import { TourTarget } from "@/components/tour/TourTarget";
+import type { TourStepId } from "@/lib/tour/steps";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Keyboard,
@@ -26,7 +28,7 @@ import { useFocusEffect, useRouter } from "expo-router";
 import * as Localization from "expo-localization";
 import { pickImage } from "@/lib/media/image-picker";
 import { Info } from "lucide-react-native";
-import { GOALS_DISCLAIMER_TEXT } from "@fitbrother/shared";
+import { GOALS_DISCLAIMER_TEXT, type MealResponse } from "@fitbrother/shared";
 import { reloadApp } from "@/lib/reload-app";
 import { useProfile } from "@/lib/profile/profile-context";
 import { useAvatarUrl } from "@/lib/hooks/useAvatarUrl";
@@ -61,6 +63,7 @@ import { MealCardSwipeable } from "@/components/domain/MealCardSwipeable";
 import { MealCardSkeleton } from "@/components/domain/MealCardSkeleton";
 import { HomeSkeleton } from "@/components/domain/HomeSkeleton";
 import { MealComposer } from "@/components/domain/MealComposer";
+import { ShareMealPrompt, valeCompartilhar } from "@/components/domain/ShareMealPrompt";
 import { ComposerBackdrop, COMPOSER_FADE_HEIGHT } from "@/components/domain/ComposerBackdrop";
 import { EmailConfirmationBanner } from "@/components/domain/EmailConfirmationBanner";
 import { NewVersionBanner } from "@/components/domain/NewVersionBanner";
@@ -71,6 +74,7 @@ import { SummaryCollapseSpacer, TodaySummaryHeader } from "@/components/domain/T
 import { GoalsDisclaimer } from "@/components/domain/GoalsDisclaimer";
 import { StreakCounter } from "@/components/domain/StreakCounter";
 import { useStreak } from "@/lib/hooks/useStreak";
+import { useTour } from "@/lib/tour/tour-context";
 
 /** Sobra entre o último card e o começo do degradê do composer. */
 const LIST_BREATHING_ROOM = 28;
@@ -134,6 +138,14 @@ function detectLocale(): string {
   return tag ?? "pt-BR";
 }
 
+/** Aba mostrada em cada passo do tour: a do próprio passo. Nos passos do + e
+ * do streak a aba fica como estava (Análises). */
+const TOUR_TAB: Partial<Record<TourStepId, HomeTab>> = {
+  "home-tab": "home",
+  "social-tab": "feed",
+  "analises-tab": "analises",
+};
+
 export default function HomeScreen() {
   const router = useRouter();
   const profile = useProfile();
@@ -167,9 +179,21 @@ export default function HomeScreen() {
   const [banner, setBanner] = useState<ErrorBannerVariant | null>(null);
   const [disclaimerOpen, setDisclaimerOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<HomeTab>("home");
+  const tour = useTour();
+
+  // O tour comanda a aba mostrada em cada passo — ver TOUR_TAB — e, ao
+  // terminar (sem passo atual), devolve o usuário ao dashboard. As abas em si
+  // continuam sendo estado local desta tela.
+  useEffect(() => {
+    const tab = tour.currentStepId ? TOUR_TAB[tour.currentStepId] : "home";
+    if (tab) setActiveTab(tab);
+  }, [tour.currentStepId]);
   const { width } = useWindowDimensions();
   const isDesktop = width >= 1024;
   const [composerHeight, setComposerHeight] = useState(0);
+  // Id da refeição recém-registrada, enquanto o convite a gerar a imagem está
+  // na tela. Vive só nesta sessão da tela — não é estado do servidor.
+  const [refeicaoRecente, setRefeicaoRecente] = useState<string | null>(null);
   const { data: streakView } = useStreak();
   const firstName = profile.full_name.split(" ")[0] ?? profile.full_name;
 
@@ -264,6 +288,26 @@ export default function HomeScreen() {
 
   const items = (mealsQuery.data ?? []) as OptimisticMeal[];
 
+  // Gatilho do tour: primeira refeição persistida visível na Home. Cobre o
+  // composer daqui e o registro feito no último passo do onboarding
+  // (FirstMealBlock), que roda fora do TourProvider. Depende só do booleano
+  // pra não re-disparar enquanto o PATCH de tutorial_completed está em voo.
+  const hasPersistedMeal = items.some((m) => m.__status !== "processing");
+  useEffect(() => {
+    if (hasPersistedMeal) tour.notifyMealCreated();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasPersistedMeal]);
+
+  // Um lugar só para decidir se a refeição que acabou de entrar merece o
+  // convite — as três origens (texto, áudio, foto) chamam isto.
+  const aoRegistrar = useCallback((meal: MealResponse) => {
+    setRefeicaoRecente(valeCompartilhar(meal) ? meal.id : null);
+  }, []);
+  // Estável de propósito: o `ShareMealPrompt` arma o timer de auto-dispensa
+  // num efeito que depende desta função. Recriada a cada render, o timer
+  // reiniciaria junto e o convite nunca sairia da tela.
+  const dispensarConvite = useCallback(() => setRefeicaoRecente(null), []);
+
   const handleSend = (text: string) => {
     setBanner(null);
     createMeal.mutate(
@@ -274,6 +318,7 @@ export default function HomeScreen() {
         day,
       },
       {
+        onSuccess: (r) => aoRegistrar(r.meal),
         onError: (err) => {
           if (err instanceof QuotaExceededError) {
             setBanner("quota_exceeded");
@@ -311,6 +356,7 @@ export default function HomeScreen() {
             day,
           },
           {
+            onSuccess: (r) => aoRegistrar(r.meal),
             onError: (err) => {
               // eslint-disable-next-line no-console
               console.warn("[handleAudioReady] mutation error:", err);
@@ -334,7 +380,7 @@ export default function HomeScreen() {
         setBanner("network");
       }
     },
-    [createMealAudio, day, userId],
+    [aoRegistrar, createMealAudio, day, userId],
   );
 
   const handlePhotoPress = useCallback(async () => {
@@ -357,6 +403,7 @@ export default function HomeScreen() {
           day,
         },
         {
+          onSuccess: (r) => aoRegistrar(r.meal),
           onError: (err) => {
             if (err instanceof QuotaExceededError) {
               setBanner("quota_exceeded");
@@ -375,7 +422,7 @@ export default function HomeScreen() {
       console.warn("[handlePhotoPress] photo error:", err);
       setBanner("network");
     }
-  }, [createMealPhoto, day, userId]);
+  }, [aoRegistrar, createMealPhoto, day, userId]);
 
   const handleDelete = useCallback(
     (id: string) => {
@@ -437,6 +484,7 @@ export default function HomeScreen() {
                 router.push({ pathname: "/(app)/meal/[id]" as any, params: { id: item.id } })
               }
               onDelete={() => handleDelete(item.id)}
+              onShare={() => router.push(`/(app)/share/meal/${item.id}` as never)}
             />
           </Animated.View>
         );
@@ -463,10 +511,12 @@ export default function HomeScreen() {
               <Text className="mt-0.5 text-[28px] font-display-bold text-neutral-800">Hoje</Text>
             </View>
             {!profile.soft_mode && streakView && (
-              <StreakCounter
-                current={streakView.streak.current_streak}
-                atRisk={streakView.atRisk}
-              />
+              <TourTarget id="streak">
+                <StreakCounter
+                  current={streakView.streak.current_streak}
+                  atRisk={streakView.atRisk}
+                />
+              </TourTarget>
             )}
           </Card>
         </View>
@@ -548,6 +598,16 @@ export default function HomeScreen() {
 
         <View className="sticky bottom-0 z-10 bg-neutral-50 px-6 pb-3 pt-4">
           <View className="mx-auto w-full max-w-[1120px]">
+            {refeicaoRecente ? (
+              <ShareMealPrompt
+                onPress={() => {
+                  const id = refeicaoRecente;
+                  setRefeicaoRecente(null);
+                  router.push(`/(app)/share/meal/${id}` as never);
+                }}
+                onDismiss={dispensarConvite}
+              />
+            ) : null}
             <MealComposer
               onSend={handleSend}
               onAudioReady={handleAudioReady}
@@ -763,6 +823,18 @@ export default function HomeScreen() {
             dele — e não dentro do MealComposer, onde se sobrepunha ao sólido e
             cruzava o topo dele ainda translúcido. */}
         <ComposerBackdrop />
+        {/* O convite fica acima do composer, dentro do mesmo bloco que sobe
+            com o teclado — assim não é encoberto por ele. */}
+        {refeicaoRecente ? (
+          <ShareMealPrompt
+            onPress={() => {
+              const id = refeicaoRecente;
+              setRefeicaoRecente(null);
+              router.push(`/(app)/share/meal/${id}` as never);
+            }}
+            onDismiss={dispensarConvite}
+          />
+        ) : null}
         {/* Sem padding próprio: o bloco sólido termina exatamente onde o
             MealComposer termina. O `pt-3`/`pb-2` que havia aqui duplicava o
             respiro que o composer já aplica internamente (e o de baixo é

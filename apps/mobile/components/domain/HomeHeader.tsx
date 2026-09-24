@@ -18,6 +18,8 @@ import { useStreak } from "@/lib/hooks/useStreak";
 import { useProfile } from "@/lib/profile/profile-context";
 import { StreakCounter } from "@/components/domain/StreakCounter";
 import { Avatar } from "@/components/Avatar";
+import { TourTarget } from "@/components/tour/TourTarget";
+import type { TourStepId } from "@/lib/tour/steps";
 
 export type HomeTab = "home" | "feed" | "analises";
 
@@ -26,6 +28,12 @@ export const TABS: { key: HomeTab; label: string; Icon: typeof HomeIcon }[] = [
   { key: "feed", label: "Social", Icon: Rss },
   { key: "analises", label: "Análises", Icon: BarChart3 },
 ];
+
+const TAB_STEP_ID: Record<HomeTab, TourStepId> = {
+  home: "home-tab",
+  feed: "social-tab",
+  analises: "analises-tab",
+};
 
 /** Padding interno da barra de abas, em px (equivale ao `p-[3px]`). */
 const TAB_BAR_PADDING = 3;
@@ -332,23 +340,25 @@ export function HomeHeader({
     // do painel de macros, para o gap não sair da soma de dois paddings.
     <View className="flex-row items-center gap-2 px-4 pt-2 lg:hidden">
       {!softMode && streakView ? (
-        <Pressable
-          onPress={() => router.push("/(app)/history" as never)}
-          accessibilityRole="button"
-          accessibilityLabel="Ver histórico de ofensivas"
-          style={shadows.floating}
-          className="rounded-full bg-white px-2.5 active:opacity-70"
-        >
-          {/* Chama e número no mesmo corpo (18): o número maior que o ícone
-              criava uma hierarquia de número-herói que competia com o avatar
-              e com a barra ao lado. */}
-          <StreakCounter
-            current={streakView.streak.current_streak}
-            atRisk={streakView.atRisk}
-            size={18}
-            height={AVATAR_SIZE}
-          />
-        </Pressable>
+        <TourTarget id="streak">
+          <Pressable
+            onPress={() => router.push("/(app)/history" as never)}
+            accessibilityRole="button"
+            accessibilityLabel="Ver histórico de ofensivas"
+            style={shadows.floating}
+            className="rounded-full bg-white px-2.5 active:opacity-70"
+          >
+            {/* Chama e número no mesmo corpo (18): o número maior que o ícone
+                criava uma hierarquia de número-herói que competia com o avatar
+                e com a barra ao lado. */}
+            <StreakCounter
+              current={streakView.streak.current_streak}
+              atRisk={streakView.atRisk}
+              size={18}
+              height={AVATAR_SIZE}
+            />
+          </Pressable>
+        </TourTarget>
       ) : null}
 
       <View
@@ -377,43 +387,46 @@ export function HomeHeader({
         {TABS.map(({ key, label, Icon }) => {
           const active = key === activeTab;
           return (
-            <Tab
-              key={key}
-              label={label}
-              Icon={Icon}
-              active={active}
-              wide={wide}
-              // Em `wide` as três dividem a barra por igual; em `compact` só a
-              // ativa cresce e as outras ficam quadradas.
-              width={wide || active ? largura : TAB_INACTIVE_WIDTH}
-              onPress={() => onChangeTab(key)}
-            />
+            <TourTarget key={key} id={TAB_STEP_ID[key]}>
+              <Tab
+                label={label}
+                Icon={Icon}
+                active={active}
+                wide={wide}
+                // Em `wide` as três dividem a barra por igual; em `compact` só a
+                // ativa cresce e as outras ficam quadradas.
+                width={wide || active ? largura : TAB_INACTIVE_WIDTH}
+                onPress={() => onChangeTab(key)}
+              />
+            </TourTarget>
           );
         })}
       </View>
 
-      <Pressable
-        onPress={() => router.push("/(app)/profile" as never)}
-        accessibilityLabel="Perfil"
-        accessibilityRole="button"
-      >
-        {/* O wrapper carrega a sombra e repete o fundo do Avatar porque o
-            `elevation` do Android não desenha sombra em View transparente —
-            precisa bater com o fundo real do Avatar (verde só quando vai
-            mostrar iniciais de fato), senão sobra um aro verde na borda
-            enquanto a foto ainda carrega. */}
-        <View
-          style={shadows.floating}
-          className={`rounded-full ${avatarUrl === null ? "bg-primary-100" : "bg-neutral-100"}`}
+      <TourTarget id="home-avatar">
+        <Pressable
+          onPress={() => router.push("/(app)/profile" as never)}
+          accessibilityLabel="Perfil"
+          accessibilityRole="button"
         >
-          <Avatar
-            uri={avatarUrl ?? null}
-            loading={avatarUrl === undefined}
-            initials={initials}
-            size={AVATAR_SIZE}
-          />
-        </View>
-      </Pressable>
+          {/* O wrapper carrega a sombra e repete o fundo do Avatar porque o
+              `elevation` do Android não desenha sombra em View transparente —
+              precisa bater com o fundo real do Avatar (verde só quando vai
+              mostrar iniciais de fato), senão sobra um aro verde na borda
+              enquanto a foto ainda carrega. */}
+          <View
+            style={shadows.floating}
+            className={`rounded-full ${avatarUrl === null ? "bg-primary-100" : "bg-neutral-100"}`}
+          >
+            <Avatar
+              uri={avatarUrl ?? null}
+              loading={avatarUrl === undefined}
+              initials={initials}
+              size={AVATAR_SIZE}
+            />
+          </View>
+        </Pressable>
+      </TourTarget>
     </View>
   );
 }

@@ -1,7 +1,7 @@
 import type { Insight } from "@fitbrother/shared";
 import { Pressable, Text, View } from "react-native";
 import { useRouter } from "expo-router";
-import { Share2 } from "lucide-react-native";
+import { ImageDown } from "lucide-react-native";
 import { colors } from "@/lib/colors";
 import { shadows } from "@/lib/shadows";
 
@@ -31,11 +31,11 @@ export function InsightCard({ insight }: { insight: Insight }) {
       <Pressable
         onPress={() => router.push(`/(app)/share/insight/${insight.id}` as never)}
         accessibilityRole="button"
-        accessibilityLabel="Exportar imagem"
+        accessibilityLabel="Gerar imagem desta análise"
         className="mt-3 min-h-[44px] flex-row items-center gap-2 self-start rounded-full bg-neutral-100 px-4"
       >
-        <Share2 size={18} color={colors.neutral[700]} />
-        <Text className="font-sans-medium text-neutral-700">Exportar imagem</Text>
+        <ImageDown size={18} color={colors.neutral[700]} />
+        <Text className="font-sans-medium text-neutral-700">Gerar imagem</Text>
       </Pressable>
     </View>
   );
