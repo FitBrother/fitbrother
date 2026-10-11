@@ -155,6 +155,23 @@ export const MealResponseSchema = z.object({
 });
 export type MealResponse = z.infer<typeof MealResponseSchema>;
 
+/**
+ * Onde mora a foto de uma refeição no bucket `post-images`.
+ *
+ * Vive aqui, e não no cliente, porque o upload é feito pelo app e a escrita de
+ * `meals.image_path` é feita pelo servidor (que deriva o path do `auth.uid()`
+ * em vez de aceitá-lo do cliente). Duas cópias desta convenção produziriam
+ * foto órfã: subida num lugar, apontada em outro.
+ *
+ * O primeiro segmento é o id do usuário porque a RLS de storage exige
+ * `(storage.foldername(name))[1] = auth.uid()`. A subpasta `meal-photos/` é o
+ * que a política da 0077 usa para separar o privado (foto de refeição) do
+ * publicado (`{userId}/post-{postId}.jpg`, legível por quem segue o autor).
+ */
+export function mealPhotoPath(userId: string, mealId: string): string {
+  return `${userId}/meal-photos/${mealId}.jpg`;
+}
+
 export const DailySummarySchema = z.object({
   user_id: z.string().uuid(),
   day: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
