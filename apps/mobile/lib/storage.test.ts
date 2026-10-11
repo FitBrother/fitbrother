@@ -45,8 +45,33 @@ describe("image storage uploads", () => {
 
     expect(mockUpload).toHaveBeenCalledWith("user-1/meal-photos/meal-1.jpg", blob, {
       contentType: "image/png",
-      upsert: false,
+      upsert: true,
     });
+  });
+
+  test("refotografar a mesma refeição sobrescreve em vez de conflitar", async () => {
+    Object.defineProperty(Platform, "OS", { configurable: true, value: "web" });
+    // Uma `Response` NOVA por chamada: o corpo de uma Response só pode ser
+    // lido uma vez, e reusar a mesma instância falha com "Body is unusable" no
+    // segundo upload — erro do teste, não do código.
+    jest
+      .spyOn(global, "fetch")
+      .mockImplementation(
+        async () =>
+          new Response(new Blob(["image-bytes"], { type: "image/jpeg" }), { status: 200 }),
+      );
+
+    await uploadMealPhoto({ userId: "user-1", mealId: "meal-1", fileUri: "blob:primeira" });
+    await uploadMealPhoto({ userId: "user-1", mealId: "meal-1", fileUri: "blob:segunda" });
+
+    // O path é determinístico (userId + mealId), então a segunda foto bate no
+    // mesmo objeto. Sem upsert isso é 409 — e tirar outra foto da mesma
+    // refeição é o caso normal da câmera no compartilhar.
+    expect(mockUpload).toHaveBeenCalledTimes(2);
+    for (const chamada of mockUpload.mock.calls) {
+      expect(chamada[0]).toBe("user-1/meal-photos/meal-1.jpg");
+      expect(chamada[2]).toMatchObject({ upsert: true });
+    }
   });
 
   test("rejects an empty image before uploading on web", async () => {
