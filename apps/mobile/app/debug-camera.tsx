@@ -8,37 +8,56 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { CameraLive, type CameraLiveHandle } from "@/components/domain/CameraLive.web";
 import { SHARE_CARD_HEIGHT, SHARE_CARD_WIDTH } from "@/lib/share/geometry";
 
+import { RESOLUCAO_ALVO } from "@/lib/media/camera-constraints";
+
 import type { CameraErro } from "@/lib/media/camera-constraints";
 import type { Tamanho } from "@/lib/media/crop";
 
 const NUM: { fontVariant: ["tabular-nums"] } = { fontVariant: ["tabular-nums"] };
 
-/** Lado curto mínimo para o export de 1080×1920 não virar upscale. */
-const LADO_CURTO_ALVO = 1080;
-
 /**
- * Medição de resolução de câmera. Temporária — sai assim que o número estiver
- * anotado no plano.
+ * Régua de uma pergunta só: o navegador HONRA constraint `ideal` de resolução?
  *
- * Não tem preset, não tem carrossel e não sobe nada. A única pergunta é qual
- * frame o aparelho entrega quando pedimos retrato 1080×1920.
+ * **Não mede "se o aparelho é bom o bastante".** O app funciona em qualquer
+ * resolução — `capturarFrame` usa o `videoWidth`/`videoHeight` que vier, e
+ * `aceitaDegradar` tenta de novo sem constraint quando a câmera recusa o
+ * tamanho. Frame pequeno dá foto mais mole, não falha.
+ *
+ * O que está em jogo é a premissa da decisão D1 do spec: a câmera própria (e a
+ * exceção de `<video>` que ela cobra) se justifica só porque permite PEDIR
+ * resolução, coisa que o `CameraView` do expo-camera não permite. Se o
+ * navegador ignora o pedido e entrega 640×480 de qualquer jeito, a justificativa
+ * cai e o certo é voltar para o `CameraView`.
+ *
+ * Por isso a tela compara PEDIDO contra ENTREGUE, em vez de julgar o número
+ * contra um limiar. Um aparelho real responde sim ou não; não é parâmetro por
+ * celular.
+ *
+ * Temporária — sai assim que a resposta estiver anotada no plano.
  *
  * **Fora do grupo `(app)`, de propósito.** Lá dentro a rota exigiria sessão e
  * onboarding completo (o `(app)` é guardado, e o auth do app passa por um proxy
- * no servidor Fastify), e medir a câmera do aparelho não depende de dado de
- * usuário nenhum. Quem for abrir isto no celular não devia ter que fazer login
- * primeiro.
+ * no servidor Fastify), e isto não depende de dado de usuário nenhum. Quem for
+ * abrir no celular não devia ter que fazer login primeiro.
  */
 export default function DebugCameraScreen() {
   const camera = useRef<CameraLiveHandle>(null);
   const [frame, setFrame] = useState<Tamanho | null>(null);
   const [erro, setErro] = useState<CameraErro | null>(null);
 
-  const curto = frame ? Math.min(frame.width, frame.height) : 0;
+  const pedidoCurto = Math.min(RESOLUCAO_ALVO.width, RESOLUCAO_ALVO.height);
+  const entregueCurto = frame ? Math.min(frame.width, frame.height) : 0;
+  // "Honrou" com folga: alguns sensores devolvem um degrau próximo (1082, 1056)
+  // em vez do número exato, e isso é honrar o pedido, não ignorá-lo. O que
+  // refuta a premissa é cair para um degrau MUITO abaixo — 640×480 é o default
+  // do `video: true`, e é esse o caso que interessa detectar.
+  const honrou = entregueCurto >= pedidoCurto * 0.9;
 
   return (
     <SafeAreaView className="flex-1 bg-neutral-50 px-4">
-      <Text className="py-3 text-xl font-display-bold text-neutral-800">Medir câmera</Text>
+      <Text className="py-3 text-xl font-display-bold text-neutral-800">
+        O navegador honra o pedido?
+      </Text>
 
       {erro ? (
         <Text className="font-sans-medium text-danger-500">{`Falhou: ${erro}`}</Text>
@@ -53,21 +72,31 @@ export default function DebugCameraScreen() {
 
       {frame ? (
         <View className="mt-4 rounded-2xl bg-white p-4">
-          <Text style={NUM} className="text-2xl font-display-bold text-neutral-800">
-            {`${frame.width}×${frame.height}`}
+          <Text style={NUM} className="font-sans text-neutral-500">
+            {`pedido   ${RESOLUCAO_ALVO.width}×${RESOLUCAO_ALVO.height}`}
           </Text>
-          <Text style={NUM} className="mt-1 font-sans text-neutral-600">
-            {`lado curto ${curto} · alvo ${LADO_CURTO_ALVO}`}
+          <Text style={NUM} className="mt-1 text-2xl font-display-bold text-neutral-800">
+            {`entregue ${frame.width}×${frame.height}`}
           </Text>
           <Text
             className={[
-              "mt-2 font-sans-semibold",
-              curto >= LADO_CURTO_ALVO ? "text-success-500" : "text-warning-500",
+              "mt-3 font-sans-semibold",
+              honrou ? "text-success-500" : "text-danger-500",
             ].join(" ")}
           >
-            {curto >= LADO_CURTO_ALVO
-              ? "Sem upscale no export."
-              : `Upscale de ${(LADO_CURTO_ALVO / curto).toFixed(2)}× no export.`}
+            {honrou ? "Honrou o pedido — D1 de pé." : "Ignorou o pedido — D1 cai."}
+          </Text>
+          <Text className="mt-2 font-sans text-sm text-neutral-600">
+            {honrou
+              ? "A câmera própria entrega o que o CameraView não entregaria."
+              : "Se é isto em todo navegador, a câmera própria e a exceção de tag HTML não se pagam: volte ao CameraView."}
+          </Text>
+          {/* O número em si é informação secundária: o app funciona nele de
+              qualquer jeito, só com foto mais mole. */}
+          <Text style={NUM} className="mt-3 font-sans text-xs text-neutral-400">
+            {entregueCurto >= 1080
+              ? "Export 1080×1920 sem upscale."
+              : `Export 1080×1920 com upscale de ${(1080 / entregueCurto).toFixed(2)}× — funciona, só mais mole.`}
           </Text>
         </View>
       ) : null}
@@ -75,7 +104,7 @@ export default function DebugCameraScreen() {
       <Pressable
         onPress={() => camera.current?.capturar()}
         accessibilityRole="button"
-        accessibilityLabel="Medir o frame da câmera"
+        accessibilityLabel="Capturar um frame e comparar com o pedido"
         className="mb-4 mt-auto min-h-[56px] items-center justify-center rounded-full bg-primary-400 active:bg-primary-500"
       >
         <Text className="text-base font-sans-bold text-white">Medir</Text>

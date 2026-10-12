@@ -225,7 +225,13 @@ Numeração a partir do ponto mais alto vigente quando a implementação começa
 
 **Verificação no navegador (Playwright/Browser pane):** fluxo inteiro com câmera falsa do Chrome, incluindo a queda para galeria com `getUserMedia` removido.
 
-**Medição obrigatória em aparelho, antes de construir o resto:** a resolução real que o iPhone entrega com `width: {ideal: 1080}, height: {ideal: 1920}`. O número que importa é o **lado curto ≥ 1080**, para não haver upscale no export de 1080×1920. Não é mensurável aqui — o Chrome desta máquina só tem câmera falsa em 640×480. Se vier 720, a feature ainda vale, mas com o número declarado em vez de descoberto depois.
+**Verificação obrigatória em aparelho, antes de construir o resto.** Não é mensurável na máquina de desenvolvimento — o Chrome daqui só tem câmera falsa em 640×480.
+
+A pergunta é **uma, sim ou não**: o navegador mobile *honra* constraint `ideal` de resolução? Essa é a premissa da D1. A câmera própria, e a segunda exceção de tag HTML que ela cobra, se justificam **apenas** porque permitem pedir resolução — se o pedido é ignorado e vem 640×480 de qualquer jeito, elas não entregam nada que o `CameraView` não entregasse, e a decisão certa passa a ser voltar para ele.
+
+**O aparelho de quem testa não é parâmetro do design.** O app funciona em qualquer resolução: `capturarFrame` usa o `videoWidth`/`videoHeight` que vier, `aceitaDegradar` tenta de novo sem constraint quando a câmera recusa o tamanho, e nenhum número fica gravado no caminho de runtime — `RESOLUCAO_ALVO` só alimenta o `ideal` do pedido. Frame pequeno dá foto mais mole no export de 1080×1920, não falha.
+
+Um aparelho real basta: se um iPhone honra, a premissa está provada; se um iPhone ignora tendo pedido, está refutada. O número medido entra como informação secundária (diz se haverá upscale), não como critério de a feature valer.
 
 ## Fora de escopo
 
@@ -246,7 +252,7 @@ Sem mover objeto. Vai separado porque é correção de segurança com risco pró
 
 ## Riscos
 
-1. **Resolução do stream na web** (alto, mensurável) — ver "Testes". É o risco que pode reduzir a feature a "funciona mas sai mole".
+1. **O navegador pode ignorar constraint `ideal` de resolução** (alto, mensurável) — ver "Testes". Não é risco de a feature quebrar: ela se adapta a qualquer frame. É risco de a decisão D1 não se pagar — pedido ignorado significa que a câmera própria e a exceção de `<video>` não entregam nada acima do `CameraView`.
 2. **Pinça e gesto em aparelho** (médio) — nada desta família de features rodou em device. Aqui o risco é menor que no editor, porque a câmera não usa pinça.
 3. **`<video>` dentro de `SwipeableTabs` na web** (médio) — o pager aplica `translateX` num `Animated.View` ancestral. Um `<video>` não é afetado por transform de ancestral de forma diferente de uma `<img>`, mas a camada de câmera fica **fora** do pager justamente para não depender disso.
 4. **iOS PWA standalone** (baixo) — `getUserMedia` em web app de tela de início funciona desde iOS 13.4. Verificar junto com a medição de resolução.

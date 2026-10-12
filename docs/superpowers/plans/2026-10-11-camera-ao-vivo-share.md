@@ -26,7 +26,7 @@ Valem para **toda** tarefa. Vêm do `CLAUDE.md` e do spec.
 - **RLS sempre** em tabela com `user_id`.
 - **Migrations imutáveis após merge.** Mudança nova = migration nova. Próximos números livres: **0077** e **0078**.
 - **Nunca** subir `service_role` key para o cliente.
-- **Resolução alvo do stream:** `{ width: { ideal: 1080 }, height: { ideal: 1920 } }`. O lado curto do frame precisa chegar a **1080** para não haver upscale no export de 1080×1920 (`SHARE_CARD_WIDTH 360 × SHARE_EXPORT_SCALE 3`).
+- **Resolução alvo do stream:** `{ width: { ideal: 1080 }, height: { ideal: 1920 } }` — casa com o export de 1080×1920 (`SHARE_CARD_WIDTH 360 × SHARE_EXPORT_SCALE 3`). É `ideal`, não requisito: o runtime usa o frame que vier e degrada para `CONSTRAINTS_MINIMAS` se a câmera recusar o tamanho. Nenhum código assume 1080.
 - **Commits:** mensagem em português, escopo convencional (`feat(share):`, `fix(storage):`, `docs(...)`), terminando com `Co-Authored-By: Claude <noreply@anthropic.com>`.
 - **Comandos:** `npm run lint`, `npm run typecheck`, `npm test` (roda os três workspaces). Mobile isolado: `npm test --workspace apps/mobile`. Server/shared: `vitest run`.
 
@@ -1191,15 +1191,33 @@ Medir **duas vezes**: no Safari normal e com o app adicionado à tela de início
 
 Substituir esta linha, abaixo, pelo que foi medido:
 
-> **Medição (preencher na Tarefa 6):** Safari: `____×____`, lado curto `____`. PWA standalone: `____×____`, lado curto `____`. Data: `____`.
+> **Medição (preencher na Tarefa 6):** pedido `1080×1920`. Safari: entregue `____×____`. PWA standalone: entregue `____×____`. Honrou? `___`. Data: `____`.
 
 - [ ] **Step 4: Decidir**
 
-| Lado curto medido | Decisão |
-|---|---|
-| ≥ 1080 | Seguir o plano como está. Sem upscale. |
-| 720–1079 | Seguir, **e** dizer o número ao dono antes da Fase D. Upscale de até 1,5× — a foto sai mole num story visto em tela cheia, mas o Instagram recomprime de todo jeito. É decisão dele, não do agente. |
-| < 720 | **Pare e reporte.** A feature entrega foto pior que a galeria, e o caminho honesto passa a ser outro (ex.: câmera só para enquadrar, e `<input capture>` para a foto de verdade). Não construa a Fase D por cima disso. |
+**Não é um limiar de qualidade por aparelho.** O app funciona em qualquer
+resolução: `capturarFrame` usa o `videoWidth`/`videoHeight` que vier, e
+`aceitaDegradar` tenta de novo sem constraint quando a câmera recusa o tamanho.
+Frame pequeno dá foto mais mole, não quebra nada — e nenhum número fica
+gravado no caminho de runtime (`RESOLUCAO_ALVO` só alimenta o `ideal` do
+pedido).
+
+A pergunta é **uma só, sim ou não**: o navegador *honra* constraint `ideal` de
+resolução? É a premissa da decisão D1 — a câmera própria, e a segunda exceção
+de tag HTML que ela cobra, se justificam **apenas** porque permitem pedir
+resolução, coisa que o `CameraView` não permite.
+
+| Resultado | Leitura | Decisão |
+|---|---|---|
+| Entregue ≥ ~90% do pedido (ex.: 1080×1920, 1056×1408) | o navegador honra `ideal` | D1 de pé. Seguir para a Fase D. |
+| Entregue muito abaixo, especialmente **640×480** (o default do `video: true`) | o navegador ignora `ideal` | **Pare e reporte.** D1 cai: a câmera própria não entrega nada que o `CameraView` não entregasse, e estaríamos carregando a exceção de `<video>` de graça. O caminho passa a ser usar o `CameraView` (ou câmera só para enquadrar + `<input capture>` para a foto). |
+
+Um aparelho real basta para responder isso — não é preciso varrer modelos. Se
+honrar num iPhone, a premissa está provada; se um iPhone ignorar tendo pedido,
+está refutada.
+
+Anote o número junto, mas como informação secundária: ele diz se o export de
+1080×1920 vai ter upscale (foto mais mole), não se a feature vale.
 
 Se o PWA standalone falhar e o Safari normal funcionar, **reporte** — a feature continua valendo, mas o fallback para galeria passa a ser o caminho principal de quem instalou o app, e isso muda o texto da UI.
 
@@ -3148,7 +3166,7 @@ EOF
 
 **Lacunas encontradas e fechadas durante a revisão:**
 
-1. O spec dizia "medição obrigatória antes de construir o resto", mas uma primeira versão deste plano deixava a medição no fim. Virou a Fase B, com gate explícito e tabela de decisão (Tarefa 6, Step 4) — incluindo o caso `< 720`, em que o plano manda **parar**.
+1. O spec dizia "medição obrigatória antes de construir o resto", mas uma primeira versão deste plano deixava a medição no fim. Virou a Fase B, com gate explícito (Tarefa 6, Step 4). **Corrigido depois:** a primeira redação do gate era uma tabela de limiares por resolução (`≥1080` / `720–1079` / `<720`), o que fazia parecer que o aparelho de quem testa é parâmetro do design. Não é — o runtime se adapta a qualquer frame. O gate é uma pergunta sim/não sobre o navegador honrar constraint `ideal`, que é a premissa da D1.
 2. O spec listava testes de rota (`PATCH` grava o path derivado) que o repositório não suporta: `apps/server` usa vitest sobre helpers puros, não rota montada. Virou `buildMealPatch` exportado, no molde de `isOwnedAvatarPath` em `account.test.ts`.
 3. `ShareCard` recebe a foto de `data`, não por prop — o palco de câmera não tinha como desenhar só o cromo. Virou a Tarefa 13 (`fotoExterna`), que o spec não previa explicitamente.
 4. O refator da tela estava no spec como observação; sem ele a Tarefa 16 editaria um arquivo de ~600 linhas. Virou tarefa própria (14), antes do modo novo, com a exigência de que nenhum teste mude.
