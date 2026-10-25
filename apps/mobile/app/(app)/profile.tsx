@@ -36,7 +36,7 @@ import { accountProfileKey, useAccountProfile } from "@/lib/hooks/useAccountProf
 import { avatarUrlKey, resolveAvatarUrl, useAvatarUrl } from "@/lib/hooks/useAvatarUrl";
 import { useBillingActions } from "@/lib/hooks/useBillingActions";
 import { useSubscription } from "@/lib/hooks/useSubscription";
-import { subscriptionLabel } from "@/lib/billing-labels";
+import { subscriptionLabel, subscriptionPressTarget } from "@/lib/billing-labels";
 import { backOrHome } from "@/lib/navigation";
 import { useProfileActions } from "@/lib/profile/profile-context";
 import { shadows } from "@/lib/shadows";
@@ -240,7 +240,7 @@ export default function ProfileScreen() {
               subtitle={subscription.data ? subscriptionLabel(subscription.data) : undefined}
               disabled={billingPending}
               onPress={() => {
-                if (subscription.data?.has_customer) void openPortal();
+                if (subscriptionPressTarget(subscription.data) === "portal") void openPortal();
                 else setPlanChoiceOpen(true);
               }}
             />

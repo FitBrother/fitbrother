@@ -7,3 +7,7 @@ export function subscriptionLabel(sub: SubscriptionResponse): string {
   if (sub.status === "past_due") return "Premium (pagamento pendente)";
   return "Plano gratuito";
 }
+
+export function subscriptionPressTarget(sub: SubscriptionResponse | undefined): "portal" | "plans" {
+  return sub?.plan === "pro" ? "portal" : "plans";
+}
