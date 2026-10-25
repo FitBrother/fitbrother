@@ -35,7 +35,7 @@ type Params = {
   cancel_url: string;
   customer_email?: string;
   return_url: string;
-  subscription_data: { trial_period_days?: number };
+  subscription_data: { trial_period_days?: number; metadata?: unknown };
 };
 
 function row(extra: Partial<BillingRow> = {}): BillingRow {
@@ -59,12 +59,15 @@ function makeDeps(initial: BillingRow | null) {
   }));
   const saveCustomerId = vi.fn(async () => {});
   const subscriptionsCancel = vi.fn(async (_id: string) => ({}));
+  const subscriptionsList = vi.fn(async (_p: Record<string, unknown>) => ({
+    data: [] as { status: string }[],
+  }));
   const deps: BillingDeps = {
     stripe: {
       customers: { create: customersCreate },
       checkout: { sessions: { create: sessionsCreate } },
       billingPortal: { sessions: { create: portalCreate } },
-      subscriptions: { cancel: subscriptionsCancel },
+      subscriptions: { cancel: subscriptionsCancel, list: subscriptionsList },
     } as unknown as Stripe,
     store: { getRow: async () => initial, saveCustomerId },
   };
@@ -75,6 +78,7 @@ function makeDeps(initial: BillingRow | null) {
     portalCreate,
     saveCustomerId,
     subscriptionsCancel,
+    subscriptionsList,
   };
 }
 
@@ -128,6 +132,7 @@ describe("createCheckoutUrl", () => {
     expect(p.line_items).toEqual([{ price, quantity: 1 }]);
     expect(p.client_reference_id).toBe(USER);
     expect(p.metadata).toEqual({ user_id: USER });
+    expect(p.subscription_data.metadata).toEqual({ user_id: USER });
     expect(p.success_url).toMatch(/^https:\/\/app\.test\/billing-return/);
     expect(p.cancel_url).toMatch(/^https:\/\/app\.test\/billing-return/);
     expect(p.customer_email).toBeUndefined();
@@ -161,6 +166,46 @@ describe("createCheckoutUrl", () => {
     });
     expect(m.customersCreate).not.toHaveBeenCalled();
     expect(m.sessionsCreate).not.toHaveBeenCalled();
+  });
+
+  it("rejects when Stripe already has a live subscription but the DB row is still free", async () => {
+    const m = makeDeps(row({ stripe_customer_id: "cus_old" }));
+    m.subscriptionsList.mockResolvedValueOnce({
+      data: [{ status: "canceled" }, { status: "active" }],
+    });
+    await expect(createCheckoutUrl(USER, null, "month", m.deps)).rejects.toMatchObject({
+      code: "already_subscribed",
+    });
+    expect(m.subscriptionsList).toHaveBeenCalledWith({
+      customer: "cus_old",
+      status: "all",
+      limit: 10,
+    });
+    expect(m.sessionsCreate).not.toHaveBeenCalled();
+  });
+
+  it.each(["trialing", "past_due"])("rejects a %s Stripe subscription", async (status) => {
+    const m = makeDeps(row({ stripe_customer_id: "cus_old" }));
+    m.subscriptionsList.mockResolvedValueOnce({ data: [{ status }] });
+    await expect(createCheckoutUrl(USER, null, "month", m.deps)).rejects.toMatchObject({
+      code: "already_subscribed",
+    });
+    expect(m.sessionsCreate).not.toHaveBeenCalled();
+  });
+
+  it("proceeds when Stripe only has ended subscriptions", async () => {
+    const m = makeDeps(row({ stripe_customer_id: "cus_old" }));
+    m.subscriptionsList.mockResolvedValueOnce({
+      data: [{ status: "canceled" }, { status: "incomplete_expired" }],
+    });
+    await expect(createCheckoutUrl(USER, null, "month", m.deps)).resolves.toBeTruthy();
+    expect(m.sessionsCreate).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not list subscriptions for a brand-new customer", async () => {
+    const m = makeDeps(row());
+    await createCheckoutUrl(USER, null, "month", m.deps);
+    expect(m.subscriptionsList).not.toHaveBeenCalled();
   });
 
   it("does not block free users with default active status", async () => {

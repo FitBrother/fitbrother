@@ -55,6 +55,8 @@ export function defaultBillingDeps(): BillingDeps {
   return { stripe: stripeClient(), store: supabaseBillingStore() };
 }
 
+const LIVE_STATUSES = new Set<string>(["active", "trialing", "past_due"]);
+
 function priceFor(interval: BillingInterval): string {
   const price = interval === "year" ? env.STRIPE_PRICE_ANNUAL : env.STRIPE_PRICE_MONTHLY;
   if (!price) throw new BillingError("billing_not_configured");
@@ -74,7 +76,16 @@ export async function createCheckoutUrl(
   const price = priceFor(interval);
 
   let customerId = row?.stripe_customer_id ?? null;
-  if (!customerId) {
+  if (customerId) {
+    const existing = await deps.stripe.subscriptions.list({
+      customer: customerId,
+      status: "all",
+      limit: 10,
+    });
+    if (existing.data.some((sub) => LIVE_STATUSES.has(sub.status))) {
+      throw new BillingError("already_subscribed");
+    }
+  } else {
     const customer = await deps.stripe.customers.create({
       ...(email ? { email } : {}),
       metadata: { user_id: userId },
