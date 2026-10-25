@@ -9,6 +9,7 @@ import { supabase } from "@/lib/supabase";
 import { ProfileProvider, useProfileState } from "@/lib/profile/profile-context";
 import { useAuthSession } from "@/lib/hooks/useAuthSession";
 import { useAchievementsRealtime } from "@/lib/hooks/useAchievementsRealtime";
+import { useSubscriptionRealtime } from "@/lib/hooks/useSubscription";
 import { registerForPushNotificationsAsync } from "@/lib/push";
 import { colors } from "@/lib/colors";
 
@@ -22,6 +23,7 @@ function GuardedStack() {
 
   // In-app conquista toast (instant, via Realtime).
   useAchievementsRealtime(userId);
+  useSubscriptionRealtime(userId);
 
   useEffect(() => {
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
