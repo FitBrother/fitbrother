@@ -1,4 +1,4 @@
--- Stripe billing: subscriptions vira somente leitura para clientes; escrita só via service_role.
+-- Stripe billing: subscriptions is read-only for clients; writes only via service_role.
 ALTER TABLE public.subscriptions
   ADD COLUMN stripe_customer_id text UNIQUE;
 
@@ -9,9 +9,10 @@ CREATE POLICY subscriptions_owner_select
   FOR SELECT
   USING (auth.uid() = user_id);
 
-REVOKE INSERT, UPDATE, DELETE ON public.subscriptions FROM authenticated, anon;
+REVOKE ALL ON public.subscriptions FROM authenticated, anon;
+GRANT SELECT ON public.subscriptions TO authenticated;
 
--- Idempotência de webhooks Stripe; acesso apenas service_role (sem policy).
+-- Stripe webhook idempotency; service_role only (no policy).
 CREATE TABLE public.stripe_events (
   event_id     text PRIMARY KEY,
   type         text NOT NULL,

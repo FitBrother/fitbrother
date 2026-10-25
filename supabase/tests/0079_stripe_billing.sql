@@ -80,6 +80,13 @@ BEGIN
   END;
 
   BEGIN
+    TRUNCATE public.subscriptions;
+    RAISE EXCEPTION 'FAIL truncate: authenticated TRUNCATE was not denied';
+  EXCEPTION WHEN insufficient_privilege THEN
+    RAISE NOTICE 'PASS authenticated TRUNCATE denied';
+  END;
+
+  BEGIN
     PERFORM 1 FROM public.stripe_events;
     RAISE EXCEPTION 'FAIL stripe_events: authenticated SELECT was not denied';
   EXCEPTION WHEN insufficient_privilege THEN
@@ -93,6 +100,12 @@ END $$;
 DO $$
 BEGIN
   SET LOCAL ROLE anon;
+  BEGIN
+    PERFORM 1 FROM public.subscriptions;
+    RAISE EXCEPTION 'FAIL anon SELECT was not denied';
+  EXCEPTION WHEN insufficient_privilege THEN
+    RAISE NOTICE 'PASS anon SELECT denied';
+  END;
   BEGIN
     UPDATE public.subscriptions SET plan = 'pro';
     RAISE EXCEPTION 'FAIL anon UPDATE was not denied';
