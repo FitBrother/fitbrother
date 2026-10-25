@@ -15,7 +15,7 @@ export async function stripeWebhookRoute(app: FastifyInstance, opts: Options) {
     done(null, body);
   });
 
-  app.post("/webhooks/stripe", async (req, reply) => {
+  app.post("/webhooks/stripe", { config: { rateLimit: false } }, async (req, reply) => {
     const signature = req.headers["stripe-signature"];
     if (typeof signature !== "string" || !signature || !Buffer.isBuffer(req.body)) {
       return reply.code(400).send({ error: "invalid_signature" });
