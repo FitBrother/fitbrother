@@ -243,6 +243,18 @@ describe("getSubscription", () => {
     });
   });
 
+  it("does not need the Stripe client when it is not configured", async () => {
+    mockEnv.STRIPE_SECRET_KEY = "";
+    const store = { getRow: async () => null, saveCustomerId: async () => {} };
+    await expect(getSubscription(USER, { store })).resolves.toEqual({
+      plan: "free",
+      status: "active",
+      current_period_end: null,
+      has_customer: false,
+    });
+    expect(stripeClientMock).not.toHaveBeenCalled();
+  });
+
   it("maps the row and has_customer", async () => {
     const m = makeDeps(
       row({

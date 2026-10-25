@@ -128,9 +128,10 @@ export async function createPortalUrl(
 
 export async function getSubscription(
   userId: string,
-  deps: BillingDeps = defaultBillingDeps(),
+  deps?: Partial<BillingDeps>,
 ): Promise<SubscriptionResponse> {
-  const row = await deps.store.getRow(userId);
+  const store = deps?.store ?? supabaseBillingStore();
+  const row = await store.getRow(userId);
   if (!row)
     return { plan: "free", status: "active", current_period_end: null, has_customer: false };
   return {
