@@ -8,9 +8,16 @@ interface PlanChoiceProps {
   onSubscribe: (interval: BillingInterval) => void;
   secondaryLabel: string;
   onSecondary: () => void;
+  secondaryDisabled?: boolean;
 }
 
-export function PlanChoice({ pending, onSubscribe, secondaryLabel, onSecondary }: PlanChoiceProps) {
+export function PlanChoice({
+  pending,
+  onSubscribe,
+  secondaryLabel,
+  onSecondary,
+  secondaryDisabled = false,
+}: PlanChoiceProps) {
   const [selected, setSelected] = useState<BillingInterval | null>(null);
 
   function subscribe(interval: BillingInterval) {
@@ -42,7 +49,7 @@ export function PlanChoice({ pending, onSubscribe, secondaryLabel, onSecondary }
         label={secondaryLabel}
         variant="outline"
         size="md"
-        disabled={pending}
+        disabled={secondaryDisabled}
         onPress={onSecondary}
         accessibilityRole="button"
       />

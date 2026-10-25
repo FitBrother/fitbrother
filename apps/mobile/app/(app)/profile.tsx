@@ -346,6 +346,7 @@ export default function ProfileScreen() {
                 void startCheckout(interval).then(() => setPlanChoiceOpen(false));
               }}
               secondaryLabel="Agora não"
+              secondaryDisabled={billingPending}
               onSecondary={() => setPlanChoiceOpen(false)}
             />
           </View>
