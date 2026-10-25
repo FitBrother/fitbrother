@@ -856,6 +856,14 @@ do usuário; `soft_mode=true` comprovadamente não manda kcal/macros pro prompt.
 
 **M18 concluído — Fase 4 (M14–M18) completa.**
 
+## M-Billing — Cobrança Stripe (Checkout)
+
+**Meta:** assinatura `pro` via Stripe Checkout (Supabase + Fastify + Expo). Banco como fonte de verdade do plano: `subscriptions` legível pelo dono e gravável só por `service_role`; webhooks Stripe idempotentes via `stripe_events`. Spec: `docs/superpowers/specs/2026-10-25-stripe-billing-design.md`.
+
+**Feito quando:** checkout cria/atualiza `subscriptions` via webhook assinado; evento repetido não reprocessa (`stripe_events`); cliente autenticado não consegue alterar o próprio plano; app reflete a mudança de plano via Realtime.
+
+**Status M-Billing (Cobrança Stripe):** ⏳ pendente. Task 1 (migration `0079` + RLS + docs): feita na branch `feat/stripe-billing`; demais tasks (servidor, webhook, mobile) pendentes.
+
 ---
 
 ## Verificação end-to-end (após M6)

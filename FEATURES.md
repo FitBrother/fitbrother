@@ -289,8 +289,8 @@ Endpoints (§7):
 - `GET /account/export` → dump JSON do usuário (LGPD Art. 18 II).
 - `DELETE /account` → soft delete + cascade físico após 30 dias.
 
-#### `subscriptions` — placeholder
-MVP: todos `plan='free'`. Estrutura pronta para integração futura.
+#### `subscriptions` — cobrança Stripe
+Todo usuário nasce `plan='free'` (via `complete_onboarding`). A integração Stripe Checkout (M-Billing) atualiza a linha via webhook.
 
 | Coluna | Tipo | Notas |
 |---|---|---|
@@ -300,6 +300,20 @@ MVP: todos `plan='free'`. Estrutura pronta para integração futura.
 | `current_period_start` / `current_period_end` | timestamptz | |
 | `provider` | text NULL | `stripe` \| `revenuecat`. |
 | `provider_subscription_id` | text NULL | |
+| `stripe_customer_id` | text NULL UNIQUE | Cliente Stripe do usuário (0079). |
+
+RLS: policy `subscriptions_owner_select` (SELECT com `auth.uid() = user_id`). INSERT/UPDATE/DELETE revogados de `anon`/`authenticated`: escrita só por `service_role` (webhook/servidor) ou funções `SECURITY DEFINER` (`complete_onboarding`). Tabela publicada no Realtime para o app reagir à mudança de plano.
+
+#### `stripe_events` — idempotência de webhooks Stripe
+
+| Coluna | Tipo | Notas |
+|---|---|---|
+| `event_id` | text PK | ID do evento Stripe (`evt_...`); conflito = já recebido. |
+| `type` | text NOT NULL | |
+| `received_at` | timestamptz NOT NULL DEFAULT now() | |
+| `processed_at` | timestamptz NULL | NULL = ainda não processado. |
+
+RLS ligado, sem policy, `REVOKE ALL` de `anon`/`authenticated`: só `service_role` acessa.
 
 ### 3.4 Índices Críticos
 
@@ -328,6 +342,8 @@ Exceções:
 - `foods`: SELECT público; INSERT/UPDATE só com `service_role`.
 - `follows`: SELECT permitido se `auth.uid()` é o `follower_id` ou o `followee_id`.
 - `contact_links`: SELECT só do `owner_id`.
+- `subscriptions`: só SELECT pelo dono (`subscriptions_owner_select`); escrita só `service_role`/`SECURITY DEFINER`.
+- `stripe_events`: sem `user_id`; RLS ligado sem policy, acesso só `service_role`.
 - `daily_summaries` da rede: view `following_summaries_view` (security_invoker) que filtra por quem o caller segue e expõe **apenas** `day`, `goal_hit`, `meals_count` (NUNCA macros absolutos — privacidade).
 
 ---
