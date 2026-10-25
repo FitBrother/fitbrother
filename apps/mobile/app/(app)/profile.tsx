@@ -409,7 +409,8 @@ function MenuItem({
       onPress={onPress}
       disabled={disabled}
       accessibilityRole="button"
-      accessibilityLabel={label}
+      accessibilityLabel={subtitle ? `${label}, ${subtitle}` : label}
+      accessibilityState={disabled ? { disabled: true } : undefined}
       className={`min-h-[56px] flex-row items-center px-4 active:bg-neutral-100 ${last ? "" : "border-b border-neutral-100"}`}
     >
       <IconComponent size={20} color={colors.primary[700]} />
