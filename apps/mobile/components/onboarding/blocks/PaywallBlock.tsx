@@ -1,22 +1,46 @@
-import { Sparkles } from "lucide-react-native";
-import { View } from "react-native";
+import { useEffect, useRef } from "react";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { PaywallSkeleton } from "@/components/domain/PaywallSkeleton";
+import { PlanChoice } from "@/components/domain/PlanChoice";
 import { OnboardingChapterShell } from "@/components/onboarding/OnboardingChapterShell";
-import { colors } from "@/lib/colors";
+import { useBillingActions } from "@/lib/hooks/useBillingActions";
+import { useSubscription } from "@/lib/hooks/useSubscription";
 import type { OnboardingBlockProps } from "@/lib/onboarding/types";
 
 export function PaywallBlock({ onNext, chapter }: OnboardingBlockProps) {
+  const subscription = useSubscription();
+  const { startCheckout, pending } = useBillingActions();
+  const advanced = useRef(false);
+  const isPro = subscription.data?.plan === "pro";
+
+  useEffect(() => {
+    if (isPro && !advanced.current) {
+      advanced.current = true;
+      onNext();
+    }
+  }, [isPro, onNext]);
+
+  if (subscription.isLoading || isPro) {
+    return (
+      <SafeAreaView className="flex-1 bg-neutral-50">
+        <PaywallSkeleton />
+      </SafeAreaView>
+    );
+  }
+
   return (
     <OnboardingChapterShell
       chapter={chapter}
-      title="Fitbrother Premium — em breve"
-      subtitle="Estamos preparando recursos extras. Por enquanto, aproveite o Fitbrother completo, de graça."
-      onNext={onNext}
+      title="Fitbrother Premium"
+      subtitle="Escolha um plano para assinar ou siga com o plano gratuito. Você pode mudar isso depois, no seu perfil."
+      showNav={false}
     >
-      <View className="flex-1 items-center justify-center py-8">
-        <View className="h-20 w-20 items-center justify-center rounded-full bg-primary-50">
-          <Sparkles size={36} color={colors.primary[400]} />
-        </View>
-      </View>
+      <PlanChoice
+        pending={pending}
+        onSubscribe={(interval) => void startCheckout(interval)}
+        secondaryLabel="Continuar grátis"
+        onSecondary={onNext}
+      />
     </OnboardingChapterShell>
   );
 }

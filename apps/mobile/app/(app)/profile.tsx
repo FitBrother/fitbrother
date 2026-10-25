@@ -9,6 +9,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Clock3,
+  CreditCard,
   Info,
   LogOut,
   Settings,
@@ -24,6 +25,7 @@ import { Avatar } from "@/components/Avatar";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { useDialog } from "@/lib/dialog/dialog-context";
 import { EmailConfirmationBanner } from "@/components/domain/EmailConfirmationBanner";
+import { PlanChoice } from "@/components/domain/PlanChoice";
 import { PullToRefresh } from "@/components/PullToRefresh";
 import { InstallPrompt } from "@/components/domain/InstallPrompt";
 import { ProfileSkeleton } from "@/components/domain/ProfileSkeleton";
@@ -32,6 +34,9 @@ import { profileInitials } from "@/lib/account-utils";
 import { colors } from "@/lib/colors";
 import { accountProfileKey, useAccountProfile } from "@/lib/hooks/useAccountProfile";
 import { avatarUrlKey, resolveAvatarUrl, useAvatarUrl } from "@/lib/hooks/useAvatarUrl";
+import { useBillingActions } from "@/lib/hooks/useBillingActions";
+import { useSubscription } from "@/lib/hooks/useSubscription";
+import { subscriptionLabel } from "@/lib/billing-labels";
 import { backOrHome } from "@/lib/navigation";
 import { useProfileActions } from "@/lib/profile/profile-context";
 import { shadows } from "@/lib/shadows";
@@ -56,6 +61,9 @@ export default function ProfileScreen() {
   const [avatarBusy, setAvatarBusy] = useState(false);
   const [avatarModal, setAvatarModal] = useState<"actions" | "confirm-remove" | null>(null);
   const [logoutConfirm, setLogoutConfirm] = useState(false);
+  const [planChoiceOpen, setPlanChoiceOpen] = useState(false);
+  const subscription = useSubscription();
+  const { startCheckout, openPortal, pending: billingPending } = useBillingActions();
   const profile = account.data?.profile;
   const user = account.data?.user;
   const avatarUrl = useAvatarUrl(profile?.avatar_url);
@@ -227,6 +235,16 @@ export default function ProfileScreen() {
           </MenuSection>
           <MenuSection>
             <MenuItem
+              icon={CreditCard}
+              label="Assinatura"
+              subtitle={subscription.data ? subscriptionLabel(subscription.data) : undefined}
+              disabled={billingPending}
+              onPress={() => {
+                if (subscription.data?.has_customer) void openPortal();
+                else setPlanChoiceOpen(true);
+              }}
+            />
+            <MenuItem
               icon={Settings}
               label="Configurações"
               onPress={() => router.push("/settings" as never)}
@@ -305,6 +323,35 @@ export default function ProfileScreen() {
         </View>
       </Modal>
 
+      <Modal
+        visible={planChoiceOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setPlanChoiceOpen(false)}
+      >
+        <View className="flex-1 items-center justify-center px-6">
+          <Pressable
+            onPress={() => setPlanChoiceOpen(false)}
+            accessibilityRole="button"
+            accessibilityLabel="Fechar escolha de plano"
+            className="absolute inset-0 bg-black/40"
+          />
+          <View style={shadows.card} className="w-full max-w-sm rounded-2xl bg-white p-5">
+            <Text className="mb-5 text-center font-display-bold text-xl text-neutral-900">
+              Assinar Fitbrother Premium
+            </Text>
+            <PlanChoice
+              pending={billingPending}
+              onSubscribe={(interval) => {
+                void startCheckout(interval).then(() => setPlanChoiceOpen(false));
+              }}
+              secondaryLabel="Agora não"
+              onSecondary={() => setPlanChoiceOpen(false)}
+            />
+          </View>
+        </View>
+      </Modal>
+
       {/* Cancelar volta para a folha de opções, não fecha tudo: quem chegou
           aqui veio de lá e provavelmente ainda quer trocar a foto. */}
       <ConfirmDialog
@@ -344,23 +391,31 @@ function MenuSection({ children }: { children: ReactNode }) {
 function MenuItem({
   icon: IconComponent,
   label,
+  subtitle,
   onPress,
+  disabled = false,
   last = false,
 }: {
   icon: Icon;
   label: string;
+  subtitle?: string;
   onPress: () => void;
+  disabled?: boolean;
   last?: boolean;
 }) {
   return (
     <Pressable
       onPress={onPress}
+      disabled={disabled}
       accessibilityRole="button"
       accessibilityLabel={label}
       className={`min-h-[56px] flex-row items-center px-4 active:bg-neutral-100 ${last ? "" : "border-b border-neutral-100"}`}
     >
       <IconComponent size={20} color={colors.primary[700]} />
       <Text className="ml-3 flex-1 font-sans-medium text-base text-neutral-900">{label}</Text>
+      {subtitle ? (
+        <Text className="mr-2 font-sans text-sm text-neutral-500">{subtitle}</Text>
+      ) : null}
       <ChevronRight size={19} color={colors.neutral[400]} />
     </Pressable>
   );
