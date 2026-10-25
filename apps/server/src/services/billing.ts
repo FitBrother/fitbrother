@@ -1,6 +1,7 @@
 import type { BillingInterval, SubscriptionResponse } from "@fitbrother/shared";
 import type Stripe from "stripe";
 import { env } from "../lib/env.js";
+import { Sentry } from "../lib/sentry.js";
 import { stripeClient } from "../lib/stripe.js";
 import { supabaseService } from "../lib/supabase.js";
 import { BillingError } from "./billing-status.js";
@@ -144,10 +145,27 @@ export async function cancelUserSubscription(
   const store = deps?.store ?? supabaseBillingStore();
   const row = await store.getRow(userId);
   if (!row?.provider_subscription_id || !row.stripe_customer_id) return;
-  const stripe = deps?.stripe ?? stripeClient();
+  const cancel = async () => {
+    const stripe = deps?.stripe ?? stripeClient();
+    await stripe.subscriptions.cancel(row.provider_subscription_id!);
+  };
+  if (row.plan === "pro") {
+    try {
+      await cancel();
+    } catch (err) {
+      if (!isResourceMissing(err)) throw err;
+    }
+    return;
+  }
   try {
-    await stripe.subscriptions.cancel(row.provider_subscription_id);
+    await cancel();
   } catch (err) {
-    if (!isResourceMissing(err)) throw err;
+    if (isResourceMissing(err)) return;
+    const code = (err as { code?: unknown } | null)?.code;
+    console.warn(
+      "billing: best-effort subscription cancel failed",
+      typeof code === "string" ? code : "unknown",
+    );
+    Sentry.captureException(err);
   }
 }

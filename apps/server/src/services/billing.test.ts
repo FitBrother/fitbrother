@@ -9,6 +9,10 @@ const mockEnv = vi.hoisted(() => ({
   STRIPE_SECRET_KEY: "",
 }));
 vi.mock("../lib/env.js", () => ({ env: mockEnv }));
+const stripeClientMock = vi.hoisted(() => vi.fn());
+vi.mock("../lib/stripe.js", () => ({ stripeClient: stripeClientMock }));
+const captureException = vi.hoisted(() => vi.fn());
+vi.mock("../lib/sentry.js", () => ({ Sentry: { captureException } }));
 
 import {
   cancelUserSubscription,
@@ -77,6 +81,12 @@ function makeDeps(initial: BillingRow | null) {
 beforeEach(() => {
   mockEnv.STRIPE_TRIAL_DAYS = 7;
   mockEnv.STRIPE_SECRET_KEY = "";
+  captureException.mockClear();
+  stripeClientMock.mockReset();
+  stripeClientMock.mockImplementation(() => {
+    if (!mockEnv.STRIPE_SECRET_KEY) throw new BillingError("billing_not_configured");
+    return {};
+  });
 });
 
 describe("createCheckoutUrl", () => {
@@ -212,22 +222,27 @@ describe("cancelUserSubscription", () => {
   const subscribed = () =>
     row({ plan: "pro", stripe_customer_id: "cus_1", provider_subscription_id: "sub_1" });
 
+  const storeOnlyOf = (m: { deps: BillingDeps }) => ({ store: m.deps.store });
+
   it("does nothing without a row", async () => {
     const m = makeDeps(null);
-    await expect(cancelUserSubscription(USER, m.deps)).resolves.toBeUndefined();
+    await expect(cancelUserSubscription(USER, storeOnlyOf(m))).resolves.toBeUndefined();
     expect(m.subscriptionsCancel).not.toHaveBeenCalled();
+    expect(stripeClientMock).not.toHaveBeenCalled();
   });
 
   it("does nothing without a subscription id", async () => {
     const m = makeDeps(row({ stripe_customer_id: "cus_1" }));
-    await cancelUserSubscription(USER, m.deps);
+    await cancelUserSubscription(USER, storeOnlyOf(m));
     expect(m.subscriptionsCancel).not.toHaveBeenCalled();
+    expect(stripeClientMock).not.toHaveBeenCalled();
   });
 
   it("does nothing without a customer id", async () => {
     const m = makeDeps(row({ provider_subscription_id: "sub_1" }));
-    await cancelUserSubscription(USER, m.deps);
+    await cancelUserSubscription(USER, storeOnlyOf(m));
     expect(m.subscriptionsCancel).not.toHaveBeenCalled();
+    expect(stripeClientMock).not.toHaveBeenCalled();
   });
 
   it("cancels the subscription by id", async () => {
@@ -255,6 +270,51 @@ describe("cancelUserSubscription", () => {
     await expect(cancelUserSubscription(USER, m.deps)).rejects.toThrow("plain");
   });
 
+  describe("non-pro users (best-effort)", () => {
+    const ended = () =>
+      row({
+        plan: "free",
+        status: "canceled",
+        stripe_customer_id: "cus_1",
+        provider_subscription_id: "sub_1",
+      });
+
+    it("cancels when possible", async () => {
+      const m = makeDeps(ended());
+      await cancelUserSubscription(USER, m.deps);
+      expect(m.subscriptionsCancel).toHaveBeenCalledTimes(1);
+      expect(m.subscriptionsCancel).toHaveBeenCalledWith("sub_1");
+    });
+
+    it("swallows resource_missing silently", async () => {
+      const m = makeDeps(ended());
+      m.subscriptionsCancel.mockRejectedValueOnce(
+        Object.assign(new Error("gone"), { code: "resource_missing" }),
+      );
+      await expect(cancelUserSubscription(USER, m.deps)).resolves.toBeUndefined();
+      expect(captureException).not.toHaveBeenCalled();
+    });
+
+    it("never throws on a generic Stripe error and reports it", async () => {
+      const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+      const m = makeDeps(ended());
+      m.subscriptionsCancel.mockRejectedValueOnce(new Error("boom"));
+      await expect(cancelUserSubscription(USER, m.deps)).resolves.toBeUndefined();
+      expect(captureException).toHaveBeenCalledTimes(1);
+      expect(warn).toHaveBeenCalledTimes(1);
+      warn.mockRestore();
+    });
+
+    it("never throws when Stripe is not configured", async () => {
+      const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+      mockEnv.STRIPE_SECRET_KEY = "";
+      const m = makeDeps(ended());
+      await expect(cancelUserSubscription(USER, storeOnlyOf(m))).resolves.toBeUndefined();
+      expect(captureException).toHaveBeenCalledTimes(1);
+      warn.mockRestore();
+    });
+  });
+
   describe("with Stripe not configured", () => {
     const storeOnly = (r: BillingRow | null) => ({
       store: { getRow: async () => r, saveCustomerId: async () => {} },
@@ -271,9 +331,13 @@ describe("cancelUserSubscription", () => {
       await expect(cancelUserSubscription(USER, storeOnly(r))).resolves.toBeUndefined();
     });
 
-    it("fails with billing_not_configured for a subscribed user", async () => {
+    it("fails with billing_not_configured for a pro user", async () => {
       mockEnv.STRIPE_SECRET_KEY = "";
-      const r = row({ stripe_customer_id: "cus_1", provider_subscription_id: "sub_1" });
+      const r = row({
+        plan: "pro",
+        stripe_customer_id: "cus_1",
+        provider_subscription_id: "sub_1",
+      });
       await expect(cancelUserSubscription(USER, storeOnly(r))).rejects.toMatchObject({
         code: "billing_not_configured",
       });
