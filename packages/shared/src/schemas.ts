@@ -688,3 +688,22 @@ export type Insight = z.infer<typeof InsightSchema>;
 
 export const InsightsResponseSchema = z.object({ insights: z.array(InsightSchema) });
 export type InsightsResponse = z.infer<typeof InsightsResponseSchema>;
+
+/* ─── Billing ────────────────────────────────────────────────────────────── */
+
+export const BillingIntervalSchema = z.enum(["month", "year"]);
+export type BillingInterval = z.infer<typeof BillingIntervalSchema>;
+
+export const CreateCheckoutRequestSchema = z.object({ interval: BillingIntervalSchema });
+export type CreateCheckoutRequest = z.infer<typeof CreateCheckoutRequestSchema>;
+
+export const BillingUrlResponseSchema = z.object({ url: z.string().url() });
+export type BillingUrlResponse = z.infer<typeof BillingUrlResponseSchema>;
+
+export const SubscriptionResponseSchema = z.object({
+  plan: z.enum(["free", "pro"]),
+  status: z.enum(["active", "past_due", "canceled", "trialing"]),
+  current_period_end: z.string().nullable(),
+  has_customer: z.boolean(),
+});
+export type SubscriptionResponse = z.infer<typeof SubscriptionResponseSchema>;
