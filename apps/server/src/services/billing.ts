@@ -139,12 +139,14 @@ function isResourceMissing(err: unknown): boolean {
 
 export async function cancelUserSubscription(
   userId: string,
-  deps: BillingDeps = defaultBillingDeps(),
+  deps?: Partial<BillingDeps>,
 ): Promise<void> {
-  const row = await deps.store.getRow(userId);
+  const store = deps?.store ?? supabaseBillingStore();
+  const row = await store.getRow(userId);
   if (!row?.provider_subscription_id || !row.stripe_customer_id) return;
+  const stripe = deps?.stripe ?? stripeClient();
   try {
-    await deps.stripe.subscriptions.cancel(row.provider_subscription_id);
+    await stripe.subscriptions.cancel(row.provider_subscription_id);
   } catch (err) {
     if (!isResourceMissing(err)) throw err;
   }

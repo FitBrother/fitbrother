@@ -254,4 +254,29 @@ describe("cancelUserSubscription", () => {
     m.subscriptionsCancel.mockRejectedValueOnce(new Error("plain"));
     await expect(cancelUserSubscription(USER, m.deps)).rejects.toThrow("plain");
   });
+
+  describe("with Stripe not configured", () => {
+    const storeOnly = (r: BillingRow | null) => ({
+      store: { getRow: async () => r, saveCustomerId: async () => {} },
+    });
+
+    it("is a no-op for a missing row", async () => {
+      mockEnv.STRIPE_SECRET_KEY = "";
+      await expect(cancelUserSubscription(USER, storeOnly(null))).resolves.toBeUndefined();
+    });
+
+    it("is a no-op without a customer id", async () => {
+      mockEnv.STRIPE_SECRET_KEY = "";
+      const r = row({ provider_subscription_id: "sub_1" });
+      await expect(cancelUserSubscription(USER, storeOnly(r))).resolves.toBeUndefined();
+    });
+
+    it("fails with billing_not_configured for a subscribed user", async () => {
+      mockEnv.STRIPE_SECRET_KEY = "";
+      const r = row({ stripe_customer_id: "cus_1", provider_subscription_id: "sub_1" });
+      await expect(cancelUserSubscription(USER, storeOnly(r))).rejects.toMatchObject({
+        code: "billing_not_configured",
+      });
+    });
+  });
 });
