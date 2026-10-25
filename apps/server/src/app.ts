@@ -15,6 +15,7 @@ import { onboardingRoutes } from "./routes/onboarding.js";
 import { postsRoutes } from "./routes/posts.js";
 import { pushTokensRoutes } from "./routes/push-tokens.js";
 import { socialRoutes } from "./routes/social.js";
+import { stripeWebhookRoute } from "./routes/stripe-webhook.js";
 import { supabaseProxyRoute } from "./routes/supabase-proxy.js";
 import { usersRoutes } from "./routes/users.js";
 
@@ -98,6 +99,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(healthRoutes);
   await app.register(accountRoutes);
   await app.register(billingRoutes);
+  await app.register(stripeWebhookRoute);
   await app.register(onboardingRoutes);
   await app.register(meRoutes);
   await app.register(mealsRoutes);
