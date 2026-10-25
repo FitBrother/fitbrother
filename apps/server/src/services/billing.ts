@@ -67,7 +67,7 @@ export async function createCheckoutUrl(
   deps: BillingDeps = defaultBillingDeps(),
 ): Promise<string> {
   const row = await deps.store.getRow(userId);
-  if (row && row.plan === "pro" && (row.status === "active" || row.status === "trialing")) {
+  if (row?.plan === "pro") {
     throw new BillingError("already_subscribed");
   }
   const price = priceFor(interval);

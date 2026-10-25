@@ -49,7 +49,7 @@ Dependência nova: `stripe` (SDK oficial), somente no servidor.
 - Auth obrigatória. Body: `{ interval: 'month' | 'year' }` (schema zod em `packages/shared`).
 - Cria o Customer se `stripe_customer_id` for nulo e persiste o ID. Reaproveita se existir.
 - Cria a Checkout Session em modo `subscription` com o Price do intervalo, `client_reference_id = user_id`, `metadata.user_id` e URLs de retorno em `APP_URL` (página web do app, não deep link). `subscription_data.trial_period_days` (de env) só é enviado se o usuário nunca teve assinatura, para não conceder trial repetido.
-- Se já houver assinatura `active` ou `trialing`, responde erro tipado e não cria nova sessão.
+- O checkout é bloqueado com erro tipado (sem criar sessão) para qualquer plano `pro` (`active`, `trialing` ou `past_due`), e o `past_due` é resolvido pelo Portal.
 - Resposta: `{ url }`.
 
 ### 4.2 `POST /billing/portal`

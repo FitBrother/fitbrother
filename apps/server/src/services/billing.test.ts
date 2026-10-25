@@ -134,7 +134,7 @@ describe("createCheckoutUrl", () => {
     ).toBeUndefined();
   });
 
-  it.each(["active", "trialing"] as const)("rejects %s subscribers", async (status) => {
+  it.each(["active", "trialing", "past_due"] as const)("rejects %s subscribers", async (status) => {
     const m = makeDeps(row({ plan: "pro", status, stripe_customer_id: "cus_old" }));
     await expect(createCheckoutUrl(USER, null, "month", m.deps)).rejects.toMatchObject({
       code: "already_subscribed",
