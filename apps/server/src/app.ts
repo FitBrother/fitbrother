@@ -5,6 +5,7 @@ import Fastify, { type FastifyError, type FastifyInstance, type FastifyRequest }
 import { env } from "./lib/env.js";
 import { Sentry } from "./lib/sentry.js";
 import { accountRoutes } from "./routes/account.js";
+import { billingRoutes } from "./routes/billing.js";
 import { achievementsRoutes } from "./routes/achievements.js";
 import { contactsRoutes } from "./routes/contacts.js";
 import { healthRoutes } from "./routes/health.js";
@@ -96,6 +97,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(supabaseProxyRoute);
   await app.register(healthRoutes);
   await app.register(accountRoutes);
+  await app.register(billingRoutes);
   await app.register(onboardingRoutes);
   await app.register(meRoutes);
   await app.register(mealsRoutes);
