@@ -8,6 +8,9 @@ export type WebhookDeps = {
   claimEvent(id: string, type: string): Promise<"new" | "retry" | "done">;
   retrieveSubscription(id: string): Promise<Stripe.Subscription>;
   userIdForCustomer(customerId: string): Promise<string | null>;
+  getCurrentSubscription(
+    userId: string,
+  ): Promise<{ plan: "free" | "pro"; provider_subscription_id: string | null } | null>;
   applySubscription(userId: string, customerId: string, update: SubscriptionUpdate): Promise<void>;
   markProcessed(id: string): Promise<void>;
 };
@@ -49,6 +52,15 @@ export function defaultWebhookDeps(): WebhookDeps {
         .maybeSingle();
       if (error) throw new Error(error.message);
       return data?.user_id ?? null;
+    },
+    async getCurrentSubscription(userId) {
+      const { data, error } = await supabaseService()
+        .from("subscriptions")
+        .select("plan, provider_subscription_id")
+        .eq("user_id", userId)
+        .maybeSingle();
+      if (error) throw new Error(error.message);
+      return data ?? null;
     },
     async applySubscription(userId, customerId, update) {
       const admin = supabaseService();
@@ -117,6 +129,14 @@ async function syncSubscription(
     (customer ? await deps.userIdForCustomer(customer) : null);
   if (!userId || !customer) return false;
   const update = sub ? mapStripeSubscription(sub) : canceledUpdate(subscriptionId);
+  if (update.plan === "free") {
+    const current = await deps.getCurrentSubscription(userId);
+    const staleDowngrade =
+      current?.plan === "pro" &&
+      current.provider_subscription_id !== null &&
+      current.provider_subscription_id !== update.provider_subscription_id;
+    if (staleDowngrade) return true;
+  }
   await deps.applySubscription(userId, customer, update);
   return true;
 }

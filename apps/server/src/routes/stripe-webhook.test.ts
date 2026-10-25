@@ -22,6 +22,7 @@ function fakeDeps(over: Partial<WebhookDeps> = {}): WebhookDeps {
       items: { data: [] },
     })) as unknown as WebhookDeps["retrieveSubscription"],
     userIdForCustomer: vi.fn(async () => "user-1"),
+    getCurrentSubscription: vi.fn(async () => null),
     applySubscription: vi.fn(async () => {}),
     markProcessed: vi.fn(async () => {}),
     ...over,

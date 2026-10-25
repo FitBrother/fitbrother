@@ -32,6 +32,9 @@ function makeDeps(over: Partial<WebhookDeps> = {}) {
       return sub("active");
     }),
     userIdForCustomer: vi.fn(async () => "user-1" as string | null),
+    getCurrentSubscription: vi.fn(
+      async () => null as { plan: "free" | "pro"; provider_subscription_id: string | null } | null,
+    ),
     applySubscription: vi.fn(async () => {
       calls.push("apply");
     }),
@@ -271,5 +274,68 @@ describe("processStripeEvent", () => {
       ),
     ).rejects.toThrow("db down");
     expect(deps.markProcessed).not.toHaveBeenCalled();
+  });
+
+  describe("stale subscription events", () => {
+    const upd = (id: string) => evt("customer.subscription.deleted", { id, customer: "cus_1" });
+    const current = (plan: "free" | "pro", id: string | null) =>
+      vi.fn(async () => ({ plan, provider_subscription_id: id }));
+
+    it("skips a canceled read of an old subscription while another is pro, still processed", async () => {
+      const { deps } = makeDeps({
+        getCurrentSubscription: current("pro", "sub_B"),
+        retrieveSubscription: vi.fn(async () => sub("canceled", { id: "sub_A" })),
+      });
+      const res = await processStripeEvent(upd("sub_A"), deps);
+      expect(res).toBe("processed");
+      expect(deps.applySubscription).not.toHaveBeenCalled();
+      expect(deps.markProcessed).toHaveBeenCalledWith("evt_1");
+    });
+
+    it("downgrades when the canceled read is for the current subscription", async () => {
+      const { deps } = makeDeps({
+        getCurrentSubscription: current("pro", "sub_B"),
+        retrieveSubscription: vi.fn(async () => sub("canceled", { id: "sub_B" })),
+      });
+      await processStripeEvent(upd("sub_B"), deps);
+      expect(deps.applySubscription).toHaveBeenCalledWith(
+        "user-1",
+        "cus_1",
+        expect.objectContaining({ plan: "free", provider_subscription_id: "sub_B" }),
+      );
+    });
+
+    it("lets a new subscription become pro over a canceled one", async () => {
+      const { deps } = makeDeps({
+        getCurrentSubscription: current("free", "sub_A"),
+        retrieveSubscription: vi.fn(async () => sub("active", { id: "sub_B" })),
+      });
+      await processStripeEvent(
+        evt("customer.subscription.created", { id: "sub_B", customer: "cus_1" }),
+        deps,
+      );
+      expect(deps.applySubscription).toHaveBeenCalledWith(
+        "user-1",
+        "cus_1",
+        expect.objectContaining({
+          plan: "pro",
+          status: "active",
+          provider_subscription_id: "sub_B",
+        }),
+      );
+    });
+
+    it("downgrades the same subscription id", async () => {
+      const { deps } = makeDeps({
+        getCurrentSubscription: current("pro", "sub_A"),
+        retrieveSubscription: vi.fn(async () => sub("canceled", { id: "sub_A" })),
+      });
+      await processStripeEvent(upd("sub_A"), deps);
+      expect(deps.applySubscription).toHaveBeenCalledWith(
+        "user-1",
+        "cus_1",
+        expect.objectContaining({ plan: "free", provider_subscription_id: "sub_A" }),
+      );
+    });
   });
 });
