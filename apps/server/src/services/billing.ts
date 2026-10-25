@@ -128,3 +128,24 @@ export async function getSubscription(
     has_customer: Boolean(row.stripe_customer_id),
   };
 }
+
+function isResourceMissing(err: unknown): boolean {
+  return (
+    typeof err === "object" &&
+    err !== null &&
+    (err as { code?: unknown }).code === "resource_missing"
+  );
+}
+
+export async function cancelUserSubscription(
+  userId: string,
+  deps: BillingDeps = defaultBillingDeps(),
+): Promise<void> {
+  const row = await deps.store.getRow(userId);
+  if (!row?.provider_subscription_id || !row.stripe_customer_id) return;
+  try {
+    await deps.stripe.subscriptions.cancel(row.provider_subscription_id);
+  } catch (err) {
+    if (!isResourceMissing(err)) throw err;
+  }
+}

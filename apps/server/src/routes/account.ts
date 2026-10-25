@@ -20,6 +20,7 @@ import { activeAccountRequired, authTokenRequired } from "../lib/auth.js";
 import { internalError } from "../lib/errors.js";
 import { Sentry } from "../lib/sentry.js";
 import { supabaseAnonymous, supabaseFromJwt, supabaseService } from "../lib/supabase.js";
+import { cancelUserSubscription } from "../services/billing.js";
 import { buildTargetsInputFromAccountState, computeTargets } from "../services/targets.js";
 
 const CONSENT_SCOPES = [
@@ -740,6 +741,14 @@ export async function accountRoutes(app: FastifyInstance) {
       "account_action",
     );
     Sentry.addBreadcrumb({ category: "account", message: "delete_requested" });
+
+    try {
+      await cancelUserSubscription(userId);
+    } catch (err) {
+      req.log.error({ err, user_id: userId, request_id: req.id }, "account_delete_billing_failed");
+      Sentry.captureException(err);
+      return reply.code(502).send({ error: "billing_cancel_failed" });
+    }
 
     const { data, error } = await supabaseForToken(req).rpc("fitbrother_request_account_deletion", {
       p_reason: parsed.data.reason ?? null,

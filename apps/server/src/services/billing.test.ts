@@ -11,6 +11,7 @@ const mockEnv = vi.hoisted(() => ({
 vi.mock("../lib/env.js", () => ({ env: mockEnv }));
 
 import {
+  cancelUserSubscription,
   createCheckoutUrl,
   createPortalUrl,
   getSubscription,
@@ -53,15 +54,24 @@ function makeDeps(initial: BillingRow | null) {
     url: "https://portal.test/p",
   }));
   const saveCustomerId = vi.fn(async () => {});
+  const subscriptionsCancel = vi.fn(async (_id: string) => ({}));
   const deps: BillingDeps = {
     stripe: {
       customers: { create: customersCreate },
       checkout: { sessions: { create: sessionsCreate } },
       billingPortal: { sessions: { create: portalCreate } },
+      subscriptions: { cancel: subscriptionsCancel },
     } as unknown as Stripe,
     store: { getRow: async () => initial, saveCustomerId },
   };
-  return { deps, customersCreate, sessionsCreate, portalCreate, saveCustomerId };
+  return {
+    deps,
+    customersCreate,
+    sessionsCreate,
+    portalCreate,
+    saveCustomerId,
+    subscriptionsCancel,
+  };
 }
 
 beforeEach(() => {
@@ -195,5 +205,53 @@ describe("getSubscription", () => {
     });
     const none = makeDeps(row());
     expect((await getSubscription(USER, none.deps)).has_customer).toBe(false);
+  });
+});
+
+describe("cancelUserSubscription", () => {
+  const subscribed = () =>
+    row({ plan: "pro", stripe_customer_id: "cus_1", provider_subscription_id: "sub_1" });
+
+  it("does nothing without a row", async () => {
+    const m = makeDeps(null);
+    await expect(cancelUserSubscription(USER, m.deps)).resolves.toBeUndefined();
+    expect(m.subscriptionsCancel).not.toHaveBeenCalled();
+  });
+
+  it("does nothing without a subscription id", async () => {
+    const m = makeDeps(row({ stripe_customer_id: "cus_1" }));
+    await cancelUserSubscription(USER, m.deps);
+    expect(m.subscriptionsCancel).not.toHaveBeenCalled();
+  });
+
+  it("does nothing without a customer id", async () => {
+    const m = makeDeps(row({ provider_subscription_id: "sub_1" }));
+    await cancelUserSubscription(USER, m.deps);
+    expect(m.subscriptionsCancel).not.toHaveBeenCalled();
+  });
+
+  it("cancels the subscription by id", async () => {
+    const m = makeDeps(subscribed());
+    await cancelUserSubscription(USER, m.deps);
+    expect(m.subscriptionsCancel).toHaveBeenCalledTimes(1);
+    expect(m.subscriptionsCancel).toHaveBeenCalledWith("sub_1");
+  });
+
+  it("swallows resource_missing", async () => {
+    const m = makeDeps(subscribed());
+    m.subscriptionsCancel.mockRejectedValueOnce(
+      Object.assign(new Error("No such subscription"), { code: "resource_missing" }),
+    );
+    await expect(cancelUserSubscription(USER, m.deps)).resolves.toBeUndefined();
+  });
+
+  it("propagates other errors", async () => {
+    const m = makeDeps(subscribed());
+    m.subscriptionsCancel.mockRejectedValueOnce(
+      Object.assign(new Error("boom"), { code: "api_connection_error" }),
+    );
+    await expect(cancelUserSubscription(USER, m.deps)).rejects.toThrow("boom");
+    m.subscriptionsCancel.mockRejectedValueOnce(new Error("plain"));
+    await expect(cancelUserSubscription(USER, m.deps)).rejects.toThrow("plain");
   });
 });
