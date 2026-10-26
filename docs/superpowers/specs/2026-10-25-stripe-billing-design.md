@@ -22,7 +22,7 @@ Premissas a confirmar:
 
 ## 3. Banco de dados
 
-Migration nova `0079_stripe_billing.sql`. Nenhuma migration anterior é editada.
+Migration nova `0080_stripe_billing.sql`. Nenhuma migration anterior é editada.
 
 - `subscriptions`: adicionar `stripe_customer_id text UNIQUE NULL`.
 - `subscriptions`: hoje a policy `subscriptions_owner_all` (`0006_subscriptions.sql`) é `FOR ALL`, ou seja, o cliente pode escrever na própria linha. A migration remove essa policy e cria uma de SELECT (`auth.uid() = user_id`). INSERT/UPDATE/DELETE passam a ser só do servidor com `service_role`. Registrar como exceção à policy padrão em `FEATURES.md` §3.5.

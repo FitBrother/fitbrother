@@ -14,7 +14,7 @@
 
 - Comentários só se estritamente necessário, sempre em inglês e com no máximo 1 linha.
 - Commits em Conventional Commits, sem nome de agente e sem trailer `Co-Authored-By`. Nunca commitar na `main`: criar branch antes (Task 1, Step 1).
-- Migrations imutáveis: tudo vai em `0079_stripe_billing.sql`, sem editar anteriores.
+- Migrations imutáveis: tudo vai em `0080_stripe_billing.sql`, sem editar anteriores.
 - Webhook idempotente: `INSERT` em `stripe_events` com `event_id` UNIQUE **antes** de qualquer efeito (regra de ouro de backend nº 2).
 - `service_role` e chaves Stripe nunca vão ao cliente. Nenhuma chave real no repo; só placeholders em `.env.example`.
 - Valores comerciais (Price IDs, dias de trial) vêm de env, nunca fixos no código.
@@ -36,19 +36,19 @@
 ### Task 1: Migration, RLS e docs
 
 **Files:**
-- Create: `supabase/migrations/0079_stripe_billing.sql`
+- Create: `supabase/migrations/0080_stripe_billing.sql`
 - Modify: `FEATURES.md` (§ `subscriptions`, §3.5), `docs/PLAN.md` (novo milestone), `packages/db-types/index.ts` (regenerado)
 
 **Interfaces:**
 - Produces: coluna `subscriptions.stripe_customer_id text UNIQUE NULL`; tabela `stripe_events(event_id text PK, type text NOT NULL, received_at timestamptz NOT NULL DEFAULT now(), processed_at timestamptz NULL)`; `subscriptions` legível só pelo dono e gravável só por `service_role`.
 
 - [ ] **Step 1: Criar a branch.** `git switch -c feat/stripe-billing` (a `main` tem mudanças locais não relacionadas em `supabase/config.toml`; não incluí-las nos commits desta feature).
-- [ ] **Step 2: Escrever o smoke test SQL primeiro** em `supabase/tests/0079_stripe_billing.sql`, em transação com `ROLLBACK`: como `authenticated` com `request.jwt.claims` de um usuário, `SELECT` na própria linha funciona, `UPDATE subscriptions SET plan='pro'` falha ou afeta 0 linhas, `SELECT` em `stripe_events` falha; como `service_role`, `UPDATE` e `INSERT` em `stripe_events` funcionam; `SELECT public.complete_onboarding(...)` ainda insere a linha de `subscriptions` (reaproveitar payload do smoke de M16).
-- [ ] **Step 3: Rodar contra o banco local e ver falhar.** `supabase db reset` (antes da migration) e `psql "$DATABASE_URL" -f supabase/tests/0079_stripe_billing.sql`. Esperado: falha, pois `authenticated` ainda consegue escrever.
-- [ ] **Step 4: Implementar `0079_stripe_billing.sql`.** Adicionar `stripe_customer_id`; `DROP POLICY subscriptions_owner_all`; `CREATE POLICY subscriptions_owner_select ... FOR SELECT USING (auth.uid() = user_id)`; `REVOKE INSERT, UPDATE, DELETE ON public.subscriptions FROM authenticated, anon`; criar `stripe_events` com RLS ligado, sem policy e `REVOKE ALL ... FROM anon, authenticated`; `ALTER PUBLICATION supabase_realtime ADD TABLE public.subscriptions`.
+- [ ] **Step 2: Escrever o smoke test SQL primeiro** em `supabase/tests/0080_stripe_billing.sql`, em transação com `ROLLBACK`: como `authenticated` com `request.jwt.claims` de um usuário, `SELECT` na própria linha funciona, `UPDATE subscriptions SET plan='pro'` falha ou afeta 0 linhas, `SELECT` em `stripe_events` falha; como `service_role`, `UPDATE` e `INSERT` em `stripe_events` funcionam; `SELECT public.complete_onboarding(...)` ainda insere a linha de `subscriptions` (reaproveitar payload do smoke de M16).
+- [ ] **Step 3: Rodar contra o banco local e ver falhar.** `supabase db reset` (antes da migration) e `psql "$DATABASE_URL" -f supabase/tests/0080_stripe_billing.sql`. Esperado: falha, pois `authenticated` ainda consegue escrever.
+- [ ] **Step 4: Implementar `0080_stripe_billing.sql`.** Adicionar `stripe_customer_id`; `DROP POLICY subscriptions_owner_all`; `CREATE POLICY subscriptions_owner_select ... FOR SELECT USING (auth.uid() = user_id)`; `REVOKE INSERT, UPDATE, DELETE ON public.subscriptions FROM authenticated, anon`; criar `stripe_events` com RLS ligado, sem policy e `REVOKE ALL ... FROM anon, authenticated`; `ALTER PUBLICATION supabase_realtime ADD TABLE public.subscriptions`.
 - [ ] **Step 5: Rodar de novo.** `supabase db reset` e o smoke test. Esperado: todas as asserções passam.
 - [ ] **Step 6: Regenerar tipos e atualizar docs.** `npm run db:types`. Em `FEATURES.md`: coluna nova, a policy SELECT-only e `stripe_events` como exceção em §3.5. Em `docs/PLAN.md`: novo milestone "M-Billing" com meta, "Feito quando" e Status.
-- [ ] **Step 7: Commit.** `git add supabase/migrations/0079_stripe_billing.sql supabase/tests packages/db-types FEATURES.md docs/PLAN.md docs/superpowers && git commit -m "feat(db): schema de cobrança Stripe e RLS somente leitura em subscriptions"`
+- [ ] **Step 7: Commit.** `git add supabase/migrations/0080_stripe_billing.sql supabase/tests packages/db-types FEATURES.md docs/PLAN.md docs/superpowers && git commit -m "feat(db): schema de cobrança Stripe e RLS somente leitura em subscriptions"`
 
 ---
 

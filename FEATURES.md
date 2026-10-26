@@ -306,7 +306,7 @@ Endpoints de cobrança:
 | `current_period_start` / `current_period_end` | timestamptz | |
 | `provider` | text NULL | `stripe` \| `revenuecat`. |
 | `provider_subscription_id` | text NULL | |
-| `stripe_customer_id` | text NULL UNIQUE | Cliente Stripe do usuário (0079). |
+| `stripe_customer_id` | text NULL UNIQUE | Cliente Stripe do usuário (0080). |
 
 RLS: policy `subscriptions_owner_select` (SELECT com `auth.uid() = user_id`). INSERT/UPDATE/DELETE revogados de `anon`/`authenticated`: escrita só por `service_role` (webhook/servidor) ou funções `SECURITY DEFINER` (`complete_onboarding`). Tabela publicada no Realtime para o app reagir à mudança de plano.
 

@@ -1,4 +1,4 @@
--- Smoke test 0079: subscriptions read-only for clients, stripe_events service-only.
+-- Smoke test 0080: subscriptions read-only for clients, stripe_events service-only.
 \set ON_ERROR_STOP on
 BEGIN;
 
