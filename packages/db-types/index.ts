@@ -1120,6 +1120,27 @@ export type Database = {
         };
         Relationships: [];
       };
+      stripe_events: {
+        Row: {
+          event_id: string;
+          processed_at: string | null;
+          received_at: string;
+          type: string;
+        };
+        Insert: {
+          event_id: string;
+          processed_at?: string | null;
+          received_at?: string;
+          type: string;
+        };
+        Update: {
+          event_id?: string;
+          processed_at?: string | null;
+          received_at?: string;
+          type?: string;
+        };
+        Relationships: [];
+      };
       subscriptions: {
         Row: {
           created_at: string;
@@ -1129,6 +1150,7 @@ export type Database = {
           provider: string | null;
           provider_subscription_id: string | null;
           status: Database["public"]["Enums"]["subscription_status"];
+          stripe_customer_id: string | null;
           updated_at: string;
           user_id: string;
         };
@@ -1140,6 +1162,7 @@ export type Database = {
           provider?: string | null;
           provider_subscription_id?: string | null;
           status?: Database["public"]["Enums"]["subscription_status"];
+          stripe_customer_id?: string | null;
           updated_at?: string;
           user_id: string;
         };
@@ -1151,6 +1174,7 @@ export type Database = {
           provider?: string | null;
           provider_subscription_id?: string | null;
           status?: Database["public"]["Enums"]["subscription_status"];
+          stripe_customer_id?: string | null;
           updated_at?: string;
           user_id?: string;
         };

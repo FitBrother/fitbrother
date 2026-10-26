@@ -51,4 +51,10 @@ export const env = cleanEnv(process.env, {
   RESEND_API_KEY: str({ default: "" }),
   EMAIL_FROM: str({ default: "Fitbrother <onboarding@fitbrother.app>" }),
   APP_URL: str({ default: "https://app.fitbrother.app" }),
+
+  STRIPE_SECRET_KEY: str({ default: "" }),
+  STRIPE_WEBHOOK_SECRET: str({ default: "" }),
+  STRIPE_PRICE_MONTHLY: str({ default: "" }),
+  STRIPE_PRICE_ANNUAL: str({ default: "" }),
+  STRIPE_TRIAL_DAYS: num({ default: 0 }),
 });
