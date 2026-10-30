@@ -16,6 +16,40 @@ import type { Tamanho } from "@/lib/media/crop";
 const NUM: { fontVariant: ["tabular-nums"] } = { fontVariant: ["tabular-nums"] };
 const PREVIEW_WIDTH = 180;
 
+const TRASEIRA = { facingMode: { ideal: "environment" } };
+
+/**
+ * Os pedidos comparados.
+ *
+ * O iPhone respondeu 1920×1080 a um pedido de 1080×1920, em retrato, no Safari
+ * e no Vivaldi. Falta saber qual pedido devolve retrato de verdade — e isso só
+ * se descobre no aparelho, por isso a tela mede em vez de assumir.
+ */
+const PEDIDOS: { nome: string; video: MediaTrackConstraints }[] = [
+  { nome: "1080×1920", video: { ...TRASEIRA, width: { ideal: 1080 }, height: { ideal: 1920 } } },
+  { nome: "1920×1080", video: { ...TRASEIRA, width: { ideal: 1920 }, height: { ideal: 1080 } } },
+  { nome: "9:16", video: { ...TRASEIRA, aspectRatio: { ideal: 9 / 16 }, height: { ideal: 1920 } } },
+  { nome: "16:9", video: { ...TRASEIRA, aspectRatio: { ideal: 16 / 9 }, width: { ideal: 1920 } } },
+];
+
+/** Abre a câmera com um pedido, lê o tamanho real do frame e fecha. */
+async function medirPedido(video: MediaTrackConstraints): Promise<string> {
+  const stream = await navigator.mediaDevices.getUserMedia({ audio: false, video });
+  try {
+    const el = document.createElement("video");
+    el.playsInline = true;
+    el.muted = true;
+    el.srcObject = stream;
+    await el.play();
+    if (!el.videoWidth) {
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    }
+    return `${el.videoWidth}×${el.videoHeight}`;
+  } finally {
+    stream.getTracks().forEach((t) => t.stop());
+  }
+}
+
 /**
  * Régua de uma pergunta só: o navegador HONRA constraint `ideal` de resolução?
  *
@@ -45,6 +79,9 @@ export default function DebugCameraScreen() {
   const camera = useRef<CameraLiveHandle>(null);
   const [frame, setFrame] = useState<Tamanho | null>(null);
   const [erro, setErro] = useState<CameraErro | null>(null);
+  // A câmera ao vivo sai de cena durante a comparação: no iPhone, abrir um
+  // segundo stream da mesma câmera silencia o primeiro.
+  const [comparacao, setComparacao] = useState<{ nome: string; entregue: string }[] | null>(null);
 
   const pedidoCurto = Math.min(RESOLUCAO_ALVO.width, RESOLUCAO_ALVO.height);
   const entregueCurto = frame ? Math.min(frame.width, frame.height) : 0;
@@ -53,6 +90,18 @@ export default function DebugCameraScreen() {
   // refuta a premissa é cair para um degrau MUITO abaixo — 640×480 é o default
   // do `video: true`, e é esse o caso que interessa detectar.
   const honrou = entregueCurto >= pedidoCurto * 0.9;
+  // Largura que sobra para o card depois do recorte 9:16. É ela que decide o
+  // upscale: o lado curto sozinho dizia "sem upscale" para um frame em paisagem.
+  const larguraUtil = frame ? Math.min(frame.width, (frame.height * 9) / 16) : 0;
+
+  async function comparar() {
+    setFrame(null);
+    setComparacao([]);
+    for (const { nome, video } of PEDIDOS) {
+      const entregue = await medirPedido(video).catch((err: Error) => `falhou: ${err.name}`);
+      setComparacao((atual) => [...(atual ?? []), { nome, entregue }]);
+    }
+  }
 
   return (
     <SafeAreaView className="flex-1 bg-neutral-50 px-4">
@@ -63,7 +112,7 @@ export default function DebugCameraScreen() {
       <ScrollView className="flex-1">
         {erro ? (
           <Text className="font-sans-medium text-danger-500">{`Falhou: ${erro}`}</Text>
-        ) : (
+        ) : comparacao ? null : (
           // Largura fixa, não a da tela: em 9:16 a largura cheia dá ~690pt de
           // altura e empurra o resultado para fora do celular. A resolução
           // medida vem do stream, então o tamanho do preview não a afeta.
@@ -101,19 +150,37 @@ export default function DebugCameraScreen() {
             {/* O número em si é informação secundária: o app funciona nele de
               qualquer jeito, só com foto mais mole. */}
             <Text style={NUM} className="mt-3 font-sans text-xs text-neutral-400">
-              {entregueCurto >= 1080
+              {larguraUtil >= 1080
                 ? "Export 1080×1920 sem upscale."
-                : `Export 1080×1920 com upscale de ${(1080 / entregueCurto).toFixed(2)}× — funciona, só mais mole.`}
+                : `Export 1080×1920 com upscale de ${(1080 / larguraUtil).toFixed(2)}× — funciona, só mais mole.`}
             </Text>
+          </View>
+        ) : null}
+        {comparacao ? (
+          <View className="rounded-2xl bg-white p-4">
+            {comparacao.map(({ nome, entregue }) => (
+              <Text key={nome} style={NUM} className="py-1 font-sans text-base text-neutral-800">
+                {`${nome} → ${entregue}`}
+              </Text>
+            ))}
           </View>
         ) : null}
       </ScrollView>
 
       <Pressable
+        onPress={comparar}
+        accessibilityRole="button"
+        accessibilityLabel="Comparar pedidos de resolução"
+        className="mt-3 min-h-[56px] items-center justify-center rounded-full bg-white active:opacity-70"
+      >
+        <Text className="text-base font-sans-bold text-neutral-800">Comparar pedidos</Text>
+      </Pressable>
+
+      <Pressable
         onPress={() => camera.current?.capturar()}
         accessibilityRole="button"
         accessibilityLabel="Capturar um frame e comparar com o pedido"
-        className="mb-4 mt-3 min-h-[56px] items-center justify-center rounded-full bg-primary-400 active:bg-primary-500"
+        className="mb-4 mt-2 min-h-[56px] items-center justify-center rounded-full bg-primary-400 active:bg-primary-500"
       >
         <Text className="text-base font-sans-bold text-white">Medir</Text>
       </Pressable>
