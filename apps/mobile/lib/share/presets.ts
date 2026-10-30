@@ -191,6 +191,25 @@ export function presetsFor({
   });
 }
 
+/**
+ * Os presets que funcionam com a câmera aberta atrás.
+ *
+ * A camada de câmera é **única** e fica atrás do carrossel — não dá para montar
+ * uma câmera por cena. Isso restringe aos presets em que a foto PREENCHE o
+ * quadro:
+ *
+ * - "Moldura" desenha a foto num retângulo interno. No meio do arrasto a câmera
+ *   apareceria na área errada, e não existe buraco transparente dentro de uma
+ *   `View` com degradê.
+ * - "Pôster" não usa foto.
+ *
+ * A restrição não é só técnica: "enquadrar vendo o preset" só significa algo
+ * quando a foto É o quadro. Depois da captura o carrossel volta com os sete.
+ */
+export function presetsAoVivo(): readonly SharePreset[] {
+  return SHARE_PRESETS.filter((p) => p.photo === "fill");
+}
+
 export const DEFAULT_PRESET_INDEX = 0;
 
 /** Preset na posição pedida, presa ao intervalo da lista. Nunca devolve vazio. */
