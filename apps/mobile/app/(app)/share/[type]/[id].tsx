@@ -3,7 +3,15 @@ import { ActivityIndicator, Platform, Pressable, Text, View } from "react-native
 import type { LayoutChangeEvent, View as RNView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { ChevronLeft, Crop, Download, RotateCcw, Share2 } from "lucide-react-native";
+import {
+  Camera,
+  ChevronLeft,
+  Crop,
+  Download,
+  Image as ImageIcon,
+  RotateCcw,
+  Share2,
+} from "lucide-react-native";
 import { useQuery } from "@tanstack/react-query";
 import {
   fotoDoCard,
@@ -15,16 +23,26 @@ import { ShareCardSkeleton } from "@/components/domain/ShareCardSkeleton";
 import { CardPreview } from "@/components/domain/share/CardPreview";
 import { ShareAdjustStage } from "@/components/domain/share/ShareAdjustStage";
 import { SharePresetCarousel } from "@/components/domain/share/SharePresetCarousel";
+import { ShareCameraStage } from "@/components/domain/share/ShareCameraStage";
 import { captureCard, saveCardToGallery, shareCard, toDisplayableImageUri } from "@/lib/share-card";
 import { SHARE_CARD_HEIGHT, SHARE_CARD_WIDTH } from "@/lib/share/geometry";
 import { ENQUADRAMENTO_PADRAO, type Enquadramento, type Tamanho } from "@/lib/media/crop";
 import { medirImagem } from "@/lib/media/measure-image";
-import { DEFAULT_PRESET_INDEX, presetAt, presetsFor } from "@/lib/share/presets";
-import { getMeal } from "@/lib/api/meals";
+import {
+  DEFAULT_PRESET_INDEX,
+  presetAt,
+  presetsFor,
+  type SharePresetId,
+} from "@/lib/share/presets";
+import { getMeal, patchMeal } from "@/lib/api/meals";
 import { fetchPost } from "@/lib/api/posts";
 import { fetchInsight } from "@/lib/api/insights";
 import { useToast } from "@/lib/toast/toast-context";
-import { getPostImageSignedUrl } from "@/lib/storage";
+import { getPostImageSignedUrl, uploadMealPhoto } from "@/lib/storage";
+import { pickImage } from "@/lib/media/image-picker";
+import { useAuthSession } from "@/lib/hooks/useAuthSession";
+
+import type { CameraErro } from "@/lib/media/camera-constraints";
 import { shadows } from "@/lib/shadows";
 import { colors } from "@/lib/colors";
 import { Sentry } from "@/lib/sentry";
@@ -103,6 +121,17 @@ async function loadCardData(type: string, id: string): Promise<ShareCardData> {
   };
 }
 
+/**
+ * Troca a foto do dado pela que acabou de ser tirada.
+ *
+ * A foto local vence a do servidor de propósito: ela existe agora, e o export
+ * não tem por que esperar o upload terminar para usar o que já está na mão.
+ */
+function comFoto(data: ShareCardData, uri: string | null): ShareCardData {
+  if (!uri || data.kind !== "meal") return data;
+  return { ...data, imageUrl: uri };
+}
+
 export default function ShareScreen() {
   const router = useRouter();
   const toast = useToast();
@@ -110,6 +139,14 @@ export default function ShareScreen() {
   const cardRef = useRef<RNView>(null);
 
   const [presetIndex, setPresetIndex] = useState(DEFAULT_PRESET_INDEX);
+
+  // A foto tirada agora. Tem prioridade sobre a do servidor, e vive só nesta
+  // visita à tela: o export usa esta uri, sem esperar upload.
+  const [fotoLocal, setFotoLocal] = useState<string | null>(null);
+  const [camera, setCamera] = useState(false);
+  const [semCamera, setSemCamera] = useState(false);
+  const session = useAuthSession();
+  const userId = session.status === "signed_in" ? session.session.user.id : undefined;
 
   const q = useQuery({
     queryKey: ["share-card", type, id],
@@ -121,22 +158,28 @@ export default function ShareScreen() {
     gcTime: 0,
   });
 
+  // Derivado, e não `q.data` cru: a foto da câmera entra por aqui, então tudo
+  // que depende da foto (medição, revogação do blob, lista de presets) vale
+  // para ela também.
+  const dados = q.data ? comFoto(q.data, fotoLocal) : undefined;
+  // Uma só: a foto do card, venha do servidor ou da câmera.
+  const foto = dados ? fotoDoCard(dados) : null;
+
   // Libera o blob da foto ao sair. `URL.createObjectURL` prende os bytes até
   // alguém revogar — sem isso, cada visita à tela deixa uma foto na memória
   // da aba até o reload.
-  const fotoBlob = q.data ? fotoDoCard(q.data) : null;
   useEffect(() => {
-    if (!fotoBlob?.startsWith("blob:")) return;
-    return () => URL.revokeObjectURL(fotoBlob);
-  }, [fotoBlob]);
+    if (!foto?.startsWith("blob:")) return;
+    return () => URL.revokeObjectURL(foto);
+  }, [foto]);
 
   // A lista depende do conteúdo: "Moldura" precisa de foto para emoldurar, e os
   // minimalistas precisam de foto e de macros. `presetAt` prende o índice,
   // então a lista pode encolher entre renders (dado chegando) sem deixar o
   // carrossel apontando para o vazio.
   const presets = presetsFor({
-    temFoto: Boolean(q.data && fotoDoCard(q.data)),
-    temMacros: Boolean(q.data && temMacros(q.data)),
+    temFoto: Boolean(foto),
+    temMacros: Boolean(dados && temMacros(dados)),
   });
   const preset = presetAt(presets, presetIndex);
 
@@ -156,20 +199,77 @@ export default function ShareScreen() {
 
   // Mede a foto uma vez: sem as dimensões naturais não dá para aplicar
   // enquadramento nenhum, e o card cai no `cover` centrado de sempre.
-  const fotoDoPost = q.data ? fotoDoCard(q.data) : null;
   useEffect(() => {
-    if (!fotoDoPost) {
+    if (!foto) {
       setFotoNatural(null);
       return;
     }
     let ativo = true;
-    medirImagem(fotoDoPost)
+    medirImagem(foto)
       .then((t) => ativo && setFotoNatural(t))
       .catch(() => ativo && setFotoNatural(null));
     return () => {
       ativo = false;
     };
-  }, [fotoDoPost]);
+  }, [foto]);
+
+  /**
+   * Sobe a foto e aponta a refeição para ela, em paralelo.
+   *
+   * Deliberadamente não bloqueia: o card já funciona com a uri local, e quem
+   * abriu esta tela queria compartilhar, não salvar. Falha de rede só custa a
+   * persistência.
+   *
+   * Só vale para `type === "meal"` — um post já tem foto própria, e trocá-la
+   * aqui mudaria o que foi publicado no feed.
+   */
+  const persistirFoto = useCallback(
+    (uri: string) => {
+      if (type !== "meal" || !id || !userId) return;
+      (async () => {
+        try {
+          await uploadMealPhoto({ userId, mealId: id, fileUri: uri });
+          await patchMeal(id, { has_photo: true });
+        } catch (err) {
+          console.warn("[share-card] persistir foto falhou:", err);
+          Sentry.captureException(err);
+          toast({ variant: "error", message: "A foto não foi salva na refeição." });
+        }
+      })();
+    },
+    [type, id, userId, toast],
+  );
+
+  const aoCapturar = useCallback(
+    (uri: string, tamanho: Tamanho, presetId: SharePresetId) => {
+      setFotoLocal(uri);
+      setFotoNatural(tamanho);
+      setEnquadramento(ENQUADRAMENTO_PADRAO);
+      setCamera(false);
+      // Volta ao carrossel completo já no estilo que estava em cena, em vez de
+      // jogar a pessoa de volta no primeiro preset.
+      const i = presetsFor({ temFoto: true, temMacros: true }).findIndex((p) => p.id === presetId);
+      if (i >= 0) setPresetIndex(i);
+      persistirFoto(uri);
+    },
+    [persistirFoto],
+  );
+
+  const aoFaltarCamera = useCallback((motivo: CameraErro) => {
+    setCamera(false);
+    setSemCamera(true);
+    console.warn("[share-card] câmera indisponível:", motivo);
+  }, []);
+
+  async function daGaleria() {
+    const uri = await pickImage();
+    if (!uri) return;
+    const tamanho = await medirImagem(uri).catch(() => null);
+    setFotoLocal(uri);
+    setFotoNatural(tamanho);
+    setEnquadramento(ENQUADRAMENTO_PADRAO);
+    persistirFoto(uri);
+  }
 
   /**
    * Captura o preset em cena, na hora em que a pessoa pede.
@@ -231,12 +331,8 @@ export default function ShareScreen() {
     }
   }
 
-  // Numa const: dentro do callback do `.map()` o TypeScript perde o
-  // estreitamento de `q.data` e obrigaria a um `!` que some com o aviso sem
-  // resolver nada.
-  const dados = q.data;
   // Enquadrar só faz sentido se o preset em cena de fato desenha a foto.
-  const podeAjustar = Boolean(fotoDoPost && fotoNatural && preset.photo !== "none");
+  const podeAjustar = Boolean(foto && fotoNatural && preset.photo !== "none");
   const pronto = Boolean(dados);
 
   return (
@@ -263,8 +359,15 @@ export default function ShareScreen() {
               <ShareCardSkeleton />
             </CardPreview>
           </View>
-        ) : dados && ajustando && fotoDoPost && fotoNatural ? (
-          <ShareAdjustStage uri={fotoDoPost} value={enquadramento} onChange={setEnquadramento} />
+        ) : dados && camera ? (
+          <ShareCameraStage
+            data={dados}
+            escala={escala}
+            onCapture={aoCapturar}
+            onIndisponivel={aoFaltarCamera}
+          />
+        ) : dados && ajustando && foto && fotoNatural ? (
+          <ShareAdjustStage uri={foto} value={enquadramento} onChange={setEnquadramento} />
         ) : dados ? (
           <SharePresetCarousel
             presets={presets}
@@ -306,7 +409,10 @@ export default function ShareScreen() {
             <Text className="text-base font-sans-bold text-white">Pronto</Text>
           </Pressable>
         </View>
-      ) : pronto ? (
+      ) : pronto && !camera ? (
+        // No modo câmera o próprio palco desenha label e bolinhas, da lista ao
+        // vivo (cinco), não desta (até sete) — deixar as duas aparecendo
+        // mostraria contagens diferentes para o mesmo carrossel.
         <View className="items-center pb-1 pt-3">
           <Text className="font-sans-medium text-sm text-neutral-600">{preset.label}</Text>
           <View className="mt-2 flex-row gap-1.5">
@@ -329,8 +435,31 @@ export default function ShareScreen() {
         </View>
       ) : null}
 
-      {ajustando ? null : (
+      {semCamera ? (
+        <Text className="px-4 pb-1 text-center font-sans text-xs text-neutral-500">
+          Sem câmera aqui — escolha uma foto da galeria.
+        </Text>
+      ) : null}
+
+      {ajustando || camera ? null : (
         <View className="flex-row items-center gap-3 px-4 pb-4 pt-3">
+          {/* Só para refeição: post já tem foto própria, e trocá-la aqui
+              mudaria o que foi publicado no feed. */}
+          {type === "meal" ? (
+            <Pressable
+              onPress={() => (semCamera ? daGaleria() : setCamera(true))}
+              accessibilityRole="button"
+              accessibilityLabel={semCamera ? "Escolher foto da galeria" : "Tirar foto da refeição"}
+              style={shadows.card}
+              className="min-h-[56px] min-w-[56px] items-center justify-center rounded-full bg-white active:opacity-70"
+            >
+              {semCamera ? (
+                <ImageIcon size={22} color={colors.neutral[700]} />
+              ) : (
+                <Camera size={22} color={colors.neutral[700]} />
+              )}
+            </Pressable>
+          ) : null}
           {/* Só aparece quando o preset em cena usa a foto: nos que a ignoram
             (Pôster, e qualquer um quando o post não tem foto) não há o que
             enquadrar, e um botão morto vale menos que nenhum botão. */}
