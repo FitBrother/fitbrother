@@ -12,8 +12,12 @@ export function useStreak() {
     queryKey: [...streakKey, userId],
     queryFn: fetchStreak,
     enabled: userId !== null,
-    // The streak only changes once a day (cron at the user's day boundary), so
-    // a generous staleTime avoids refetching on every Home focus.
+    // O streak muda na hora que uma refeição é logada (trigger em
+    // daily_summaries, ver migration 0075), não só uma vez por dia — quem
+    // dispara o refetch é a invalidação explícita (mutations de meal +
+    // useDailySummaryRealtime), não o polling deste staleTime. Ele só evita
+    // um refetch redundante toda vez que a Home ganha foco sem nada ter
+    // mudado.
     staleTime: 5 * 60_000,
   });
 }

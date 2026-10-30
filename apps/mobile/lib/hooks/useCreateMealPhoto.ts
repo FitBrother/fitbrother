@@ -4,6 +4,7 @@ import { createMealPhoto } from "@/lib/api/meals";
 import { dailySummariesHistoryKey } from "./useDailySummaries";
 import { dailySummaryKey } from "./useDailySummary";
 import { mealDetailKey, mealsForDayKey } from "./useMealsForDay";
+import { streakKey } from "./useStreak";
 import type { OptimisticMeal } from "./useCreateMealText";
 
 type Args = {
@@ -71,6 +72,7 @@ export function useCreateMealPhoto() {
       queryClient.setQueryData(mealDetailKey(result.meal.id), result.meal);
       queryClient.invalidateQueries({ queryKey: dailySummaryKey(args.day) });
       queryClient.invalidateQueries({ queryKey: dailySummariesHistoryKey });
+      queryClient.invalidateQueries({ queryKey: streakKey });
     },
     onError: (_err, args, ctx) => {
       if (ctx?.previous !== undefined) {

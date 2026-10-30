@@ -52,6 +52,13 @@ Parameters:
   SentryDsn:
     Type: String
     Default: ""
+  SentryEnvironment:
+    Type: String
+    Description: >
+      Tag de ambiente do Sentry (ex. "development"). Vazio = usa NODE_ENV
+      (sempre "production" nesta Global) — não mexe em CORS/rotas dev-only,
+      só separa os alertas de uma stack de dev dos de produção no mesmo DSN.
+    Default: ""
   CorsOrigin:
     Type: String
     Description: Origens do PWA web liberadas pra chamar a API (separadas por vírgula).
@@ -78,6 +85,7 @@ Globals:
     Environment:
       Variables:
         NODE_ENV: production
+        SENTRY_ENVIRONMENT: !Ref SentryEnvironment
         SUPABASE_URL: !Ref SupabaseUrl
         SUPABASE_ANON_KEY: !Ref SupabaseAnonKey
         SUPABASE_SERVICE_ROLE_KEY: !Ref SupabaseServiceRoleKey

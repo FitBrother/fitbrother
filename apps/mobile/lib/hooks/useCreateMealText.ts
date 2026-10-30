@@ -5,6 +5,7 @@ import { createMealText } from "@/lib/api/meals";
 import { mealsForDayKey, mealDetailKey } from "./useMealsForDay";
 import { dailySummariesHistoryKey } from "./useDailySummaries";
 import { dailySummaryKey } from "./useDailySummary";
+import { streakKey } from "./useStreak";
 
 export type OptimisticMeal = MealResponse & { __status?: "processing" };
 
@@ -73,6 +74,7 @@ export function useCreateMealText() {
       qc.setQueryData(mealDetailKey(result.meal.id), result.meal);
       qc.invalidateQueries({ queryKey: dailySummaryKey(args.day) });
       qc.invalidateQueries({ queryKey: dailySummariesHistoryKey });
+      qc.invalidateQueries({ queryKey: streakKey });
     },
     onError: (_err, args, ctx) => {
       if (ctx?.previous !== undefined) {
