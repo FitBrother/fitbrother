@@ -121,6 +121,26 @@ describe("createCheckoutUrl", () => {
     expect(m.sessionsCreate.mock.calls[0]![0]).toMatchObject({ customer: "cus_old" });
   });
 
+  it("applies the Checkout Studio parameters and keeps the webhook routing keys", async () => {
+    const m = makeDeps(row());
+    await createCheckoutUrl(USER, "a@b.co", "month", m.deps);
+    expect(m.sessionsCreate.mock.calls[0]![0]).toMatchObject({
+      ui_mode: "hosted_page",
+      mode: "subscription",
+      billing_address_collection: "auto",
+      phone_number_collection: { enabled: false },
+      automatic_tax: { enabled: false },
+      allow_promotion_codes: false,
+      payment_method_collection: "always",
+      submit_type: "auto",
+      integration_identifier: "hosted_mobile_app_0001",
+      origin_context: "mobile_app",
+      client_reference_id: USER,
+      metadata: { user_id: USER },
+      subscription_data: { metadata: { user_id: USER } },
+    });
+  });
+
   it.each([
     ["month", "price_month"],
     ["year", "price_year"],

@@ -98,7 +98,16 @@ export async function createCheckoutUrl(
   const eligibleForTrial = trialDays > 0 && !row?.provider_subscription_id;
 
   const session = await deps.stripe.checkout.sessions.create({
+    ui_mode: "hosted_page",
     mode: "subscription",
+    billing_address_collection: "auto",
+    phone_number_collection: { enabled: false },
+    automatic_tax: { enabled: false },
+    allow_promotion_codes: false,
+    payment_method_collection: "always",
+    submit_type: "auto",
+    integration_identifier: "hosted_mobile_app_0001",
+    origin_context: "mobile_app",
     customer: customerId,
     client_reference_id: userId,
     metadata: { user_id: userId },
