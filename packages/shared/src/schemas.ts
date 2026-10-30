@@ -170,7 +170,7 @@ export type MealResponse = z.infer<typeof MealResponseSchema>;
  *
  * O primeiro segmento é o id do usuário porque a RLS de storage exige
  * `(storage.foldername(name))[1] = auth.uid()`. A subpasta `meal-photos/` é o
- * que a política da 0077 usa para separar o privado (foto de refeição) do
+ * que a política da 0081 usa para separar o privado (foto de refeição) do
  * publicado (`{userId}/post-{postId}.jpg`, legível por quem segue o autor).
  */
 export function mealPhotoPath(userId: string, mealId: string): string {

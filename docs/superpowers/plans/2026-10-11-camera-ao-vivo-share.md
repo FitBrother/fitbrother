@@ -24,7 +24,7 @@ Valem para **toda** tarefa. Vêm do `CLAUDE.md` e do spec.
 - **Sem tags HTML**, com as exceções registradas em `apps/mobile/lib/no-html-tags.test.ts`. Este plano adiciona a segunda e **só** ela.
 - **NativeWind não processa `className` em componente do Reanimated.** Layout em `style`, nunca em `className`, em `Animated.*`.
 - **RLS sempre** em tabela com `user_id`.
-- **Migrations imutáveis após merge.** Mudança nova = migration nova. Próximos números livres: **0077** e **0078**.
+- **Migrations imutáveis após merge.** Mudança nova = migration nova. Próximos números livres: **0081** e **0082**.
 - **Nunca** subir `service_role` key para o cliente.
 - **Resolução alvo do stream:** `{ width: { ideal: 1080 }, height: { ideal: 1920 } }` — casa com o export de 1080×1920 (`SHARE_CARD_WIDTH 360 × SHARE_EXPORT_SCALE 3`). É `ideal`, não requisito: o runtime usa o frame que vier e degrada para `CONSTRAINTS_MINIMAS` se a câmera recusar o tamanho. Nenhum código assume 1080.
 - **Commits:** mensagem em português, escopo convencional (`feat(share):`, `fix(storage):`, `docs(...)`), terminando com `Co-Authored-By: Claude <noreply@anthropic.com>`.
@@ -38,7 +38,7 @@ Valem para **toda** tarefa. Vêm do `CLAUDE.md` e do spec.
 
 | Arquivo | Responsabilidade |
 |---|---|
-| `supabase/migrations/0077_post_images_meal_photo_leak.sql` | restringe o SELECT de seguidor ao arquivo de post, em vez da pasta inteira do autor |
+| `supabase/migrations/0081_post_images_meal_photo_leak.sql` | restringe o SELECT de seguidor ao arquivo de post, em vez da pasta inteira do autor |
 | `scripts/checks/share-camera-0-rls.sql` | prova o vazamento antes e a correção depois |
 | `scripts/checks/share-camera-0-rls.sh` | runner, no molde de `m7-1-identity.sh` |
 
@@ -61,7 +61,7 @@ Valem para **toda** tarefa. Vêm do `CLAUDE.md` e do spec.
 |---|---|
 | `packages/shared/src/schemas.ts` | `mealPhotoPath`, `image_path` no `MealResponseSchema`, `has_photo` no `PatchMealRequestSchema` |
 | `packages/shared/src/meal-photo.test.ts` | — |
-| `supabase/migrations/0078_meals_image_path.sql` | coluna + backfill do `raw_input` |
+| `supabase/migrations/0082_meals_image_path.sql` | coluna + backfill do `raw_input` |
 | `apps/server/src/services/meals.ts` | `image_path` no `MEAL_DETAIL_SELECT` |
 | `apps/server/src/routes/meals.ts` | `buildMealPatch` exportado; o `PATCH` passa a usá-lo |
 | `apps/server/src/routes/meals.test.ts` | — |
@@ -89,7 +89,7 @@ Valem para **toda** tarefa. Vêm do `CLAUDE.md` e do spec.
 **Branch e PR separados** — `fix/post-images-meal-photo-leak`, a partir de `dev`. Não misturar com o resto do plano.
 
 **Files:**
-- Create: `supabase/migrations/0077_post_images_meal_photo_leak.sql`
+- Create: `supabase/migrations/0081_post_images_meal_photo_leak.sql`
 - Create: `scripts/checks/share-camera-0-rls.sql`
 - Create: `scripts/checks/share-camera-0-rls.sh`
 
@@ -187,7 +187,7 @@ O `f` do check 1 **é o vazamento**, reproduzido. Se vier `t`, **pare e reporte*
 
 - [ ] **Step 4: Escrever a migration**
 
-Cria `supabase/migrations/0077_post_images_meal_photo_leak.sql`:
+Cria `supabase/migrations/0081_post_images_meal_photo_leak.sql`:
 
 ```sql
 -- Correção da 0076. A política de seguidor casava com QUALQUER objeto sob
@@ -236,7 +236,7 @@ Se não houver follow com post no seed local, crie um antes. **Não marque este 
 - [ ] **Step 7: Commit**
 
 ```bash
-git add supabase/migrations/0077_post_images_meal_photo_leak.sql scripts/checks/share-camera-0-rls.sql scripts/checks/share-camera-0-rls.sh
+git add supabase/migrations/0081_post_images_meal_photo_leak.sql scripts/checks/share-camera-0-rls.sql scripts/checks/share-camera-0-rls.sh
 git commit -m "$(cat <<'EOF'
 fix(storage): foto de refeição não vaza para quem segue
 
@@ -256,7 +256,7 @@ EOF
 )"
 ```
 
-Abra o PR desta branch e **espere o merge** antes de seguir para a Tarefa 2 noutra branch (`feat/camera-ao-vivo-share`, a partir de `dev` já com a 0077).
+Abra o PR desta branch e **espere o merge** antes de seguir para a Tarefa 2 noutra branch (`feat/camera-ao-vivo-share`, a partir de `dev` já com a 0081).
 
 ---
 
@@ -1343,7 +1343,7 @@ EOF
 ### Task 8: Migration — `meals.image_path` + backfill
 
 **Files:**
-- Create: `supabase/migrations/0078_meals_image_path.sql`
+- Create: `supabase/migrations/0082_meals_image_path.sql`
 - Create: `scripts/checks/share-camera-1-image-path.sql`
 - Create: `scripts/checks/share-camera-1-image-path.sh`
 
@@ -1439,7 +1439,7 @@ Esperado: `check_1_coluna | f`, e os checks 2 e 3 estourando com `column "image_
 
 - [ ] **Step 3: Escrever a migration**
 
-Cria `supabase/migrations/0078_meals_image_path.sql`:
+Cria `supabase/migrations/0082_meals_image_path.sql`:
 
 ```sql
 -- Foto de refeição deixa de viver só no storage.
@@ -1493,7 +1493,7 @@ npm run lint && npm run typecheck
 - [ ] **Step 7: Commit**
 
 ```bash
-git add supabase/migrations/0078_meals_image_path.sql scripts/checks/share-camera-1-image-path.sql scripts/checks/share-camera-1-image-path.sh packages/db-types/index.ts
+git add supabase/migrations/0082_meals_image_path.sql scripts/checks/share-camera-1-image-path.sql scripts/checks/share-camera-1-image-path.sh packages/db-types/index.ts
 git commit -m "$(cat <<'EOF'
 feat(db): meals.image_path, com backfill do raw_input
 
@@ -1874,7 +1874,7 @@ EOF
 Em `loadCardData`, no ramo `type === "meal"`, trocar as três linhas do `imageUrl`:
 
 ```ts
-      // Foto de refeição deixou de viver só no storage: a 0078 criou
+      // Foto de refeição deixou de viver só no storage: a 0082 criou
       // `meals.image_path` e fez backfill de quem já registrou por foto. Sem
       // isto, `presetsFor` continuava descartando Moldura, Etiqueta e Discreto
       // em toda refeição.
@@ -1924,7 +1924,7 @@ git add "apps/mobile/app/(app)/share/[type]/[id].tsx"
 git commit -m "$(cat <<'EOF'
 feat(share): refeição com foto destrava os presets com foto
 
-loadCardData passa a ler meals.image_path. Com o backfill da 0078, quem
+loadCardData passa a ler meals.image_path. Com o backfill da 0082, quem
 já registrou por foto ganha Moldura, Etiqueta e Discreto ao compartilhar
 uma refeição — de 4 presets para 7, sem câmera nenhuma.
 

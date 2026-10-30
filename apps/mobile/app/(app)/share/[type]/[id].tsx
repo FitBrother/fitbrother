@@ -64,7 +64,7 @@ async function loadCardData(type: string, id: string): Promise<ShareCardData> {
       // um terço de um prato que também tinha arroz e salada. O `truncate` do
       // card corta o excedente, então a lista pode entrar inteira.
       headline: m.items.map((i) => i.description).join(" · ") || null,
-      // Foto de refeição deixou de viver só no storage: a 0078 criou
+      // Foto de refeição deixou de viver só no storage: a 0082 criou
       // `meals.image_path` e fez backfill de quem já registrou por foto. Sem
       // isto, `presetsFor` continuava descartando Moldura, Etiqueta e Discreto
       // em TODA refeição — 4 presets de 7, sempre.

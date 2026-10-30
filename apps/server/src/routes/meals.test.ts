@@ -11,7 +11,7 @@ describe("buildMealPatch", () => {
   });
 
   it("ignora image_path vindo do corpo", () => {
-    // O cliente não manda caminho. Com o vazamento que a 0077 corrigiu ele
+    // O cliente não manda caminho. Com o vazamento que a 0081 corrigiu ele
     // poderia apontar para a foto de alguém que segue, e a URL assinada
     // funcionaria. Mesmo corrigido, validar path do cliente é superfície que
     // não precisa existir — a RLS de storage governa quem LÊ o objeto, não o
