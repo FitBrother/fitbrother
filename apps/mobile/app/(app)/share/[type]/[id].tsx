@@ -12,12 +12,13 @@ import {
   type ShareCardData,
 } from "@/components/domain/ShareCard";
 import { ShareCardSkeleton } from "@/components/domain/ShareCardSkeleton";
-import { SwipeableTabs } from "@/components/domain/SwipeableTabs";
+import { CardPreview } from "@/components/domain/share/CardPreview";
+import { ShareAdjustStage } from "@/components/domain/share/ShareAdjustStage";
+import { SharePresetCarousel } from "@/components/domain/share/SharePresetCarousel";
 import { captureCard, saveCardToGallery, shareCard, toDisplayableImageUri } from "@/lib/share-card";
 import { SHARE_CARD_HEIGHT, SHARE_CARD_WIDTH } from "@/lib/share/geometry";
 import { ENQUADRAMENTO_PADRAO, type Enquadramento, type Tamanho } from "@/lib/media/crop";
 import { medirImagem } from "@/lib/media/measure-image";
-import { PhotoAdjuster } from "@/components/domain/PhotoAdjuster";
 import { DEFAULT_PRESET_INDEX, presetAt, presetsFor } from "@/lib/share/presets";
 import { getMeal } from "@/lib/api/meals";
 import { fetchPost } from "@/lib/api/posts";
@@ -263,36 +264,17 @@ export default function ShareScreen() {
             </CardPreview>
           </View>
         ) : dados && ajustando && fotoDoPost && fotoNatural ? (
-          // O ajuste substitui o carrossel em vez de acontecer por cima dele:
-          // arrastar para enquadrar e arrastar para trocar de preset são o
-          // mesmo gesto, e deixar os dois ativos ao mesmo tempo faria o pager
-          // roubar metade dos arrastos do editor.
-          <View className="flex-1 justify-center px-4">
-            <View style={{ width: "100%", maxWidth: 360, alignSelf: "center" }}>
-              <PhotoAdjuster
-                uri={fotoDoPost}
-                aspect={SHARE_CARD_WIDTH / SHARE_CARD_HEIGHT}
-                value={enquadramento}
-                onChange={setEnquadramento}
-                radius={26}
-              />
-            </View>
-          </View>
+          <ShareAdjustStage uri={fotoDoPost} value={enquadramento} onChange={setEnquadramento} />
         ) : dados ? (
-          <SwipeableTabs index={presetIndex} onIndexChange={setPresetIndex}>
-            {presets.map((p) => (
-              <View key={p.id} className="flex-1 items-center justify-center">
-                <CardPreview escala={escala}>
-                  <ShareCard
-                    data={dados}
-                    preset={p}
-                    enquadramento={enquadramento}
-                    fotoNatural={fotoNatural}
-                  />
-                </CardPreview>
-              </View>
-            ))}
-          </SwipeableTabs>
+          <SharePresetCarousel
+            presets={presets}
+            index={presetIndex}
+            onIndexChange={setPresetIndex}
+            data={dados}
+            enquadramento={enquadramento}
+            fotoNatural={fotoNatural}
+            escala={escala}
+          />
         ) : (
           <View className="flex-1 items-center justify-center px-8">
             <Text className="text-center font-sans text-neutral-600">
@@ -426,39 +408,5 @@ export default function ShareScreen() {
         </View>
       ) : null}
     </SafeAreaView>
-  );
-}
-
-/**
- * Encolhe o card para caber no preview.
- *
- * O `scale` do RN parte do centro, então o filho em tamanho cheio é ancorado
- * meio quadro acima e à esquerda — assim o conteúdo escalado acaba exatamente
- * preenchendo o contêiner já reduzido. O raio e a sombra ficam AQUI, e não no
- * card: dentro da captura, o raio deixaria os cantos do PNG transparentes.
- */
-function CardPreview({ escala, children }: { escala: number; children: React.ReactNode }) {
-  if (escala <= 0) return null;
-  const largura = SHARE_CARD_WIDTH * escala;
-  const altura = SHARE_CARD_HEIGHT * escala;
-
-  return (
-    <View
-      style={[shadows.floating, { width: largura, height: altura, borderRadius: 26 }]}
-      className="overflow-hidden bg-white"
-    >
-      <View
-        style={{
-          position: "absolute",
-          width: SHARE_CARD_WIDTH,
-          height: SHARE_CARD_HEIGHT,
-          left: -(SHARE_CARD_WIDTH - largura) / 2,
-          top: -(SHARE_CARD_HEIGHT - altura) / 2,
-          transform: [{ scale: escala }],
-        }}
-      >
-        {children}
-      </View>
-    </View>
   );
 }
