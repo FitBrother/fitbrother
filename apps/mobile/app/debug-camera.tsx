@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Pressable, Text, View } from "react-native";
+import { Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 // Import do `.web` explícito, não `@/components/domain/CameraLive`: o
 // `CameraLive.tsx` nativo só existe mais adiante no plano, e o TypeScript (ao
@@ -14,6 +14,7 @@ import type { CameraErro } from "@/lib/media/camera-constraints";
 import type { Tamanho } from "@/lib/media/crop";
 
 const NUM: { fontVariant: ["tabular-nums"] } = { fontVariant: ["tabular-nums"] };
+const PREVIEW_WIDTH = 180;
 
 /**
  * Régua de uma pergunta só: o navegador HONRA constraint `ideal` de resolução?
@@ -59,53 +60,60 @@ export default function DebugCameraScreen() {
         O navegador honra o pedido?
       </Text>
 
-      {erro ? (
-        <Text className="font-sans-medium text-danger-500">{`Falhou: ${erro}`}</Text>
-      ) : (
-        <CameraLive
-          ref={camera}
-          aspect={SHARE_CARD_WIDTH / SHARE_CARD_HEIGHT}
-          onCapture={(_uri, tamanho) => setFrame(tamanho)}
-          onError={setErro}
-        />
-      )}
+      <ScrollView className="flex-1">
+        {erro ? (
+          <Text className="font-sans-medium text-danger-500">{`Falhou: ${erro}`}</Text>
+        ) : (
+          // Largura fixa, não a da tela: em 9:16 a largura cheia dá ~690pt de
+          // altura e empurra o resultado para fora do celular. A resolução
+          // medida vem do stream, então o tamanho do preview não a afeta.
+          <View style={{ width: PREVIEW_WIDTH, alignSelf: "center" }}>
+            <CameraLive
+              ref={camera}
+              aspect={SHARE_CARD_WIDTH / SHARE_CARD_HEIGHT}
+              onCapture={(_uri, tamanho) => setFrame(tamanho)}
+              onError={setErro}
+            />
+          </View>
+        )}
 
-      {frame ? (
-        <View className="mt-4 rounded-2xl bg-white p-4">
-          <Text style={NUM} className="font-sans text-neutral-500">
-            {`pedido   ${RESOLUCAO_ALVO.width}×${RESOLUCAO_ALVO.height}`}
-          </Text>
-          <Text style={NUM} className="mt-1 text-2xl font-display-bold text-neutral-800">
-            {`entregue ${frame.width}×${frame.height}`}
-          </Text>
-          <Text
-            className={[
-              "mt-3 font-sans-semibold",
-              honrou ? "text-success-500" : "text-danger-500",
-            ].join(" ")}
-          >
-            {honrou ? "Honrou o pedido — D1 de pé." : "Ignorou o pedido — D1 cai."}
-          </Text>
-          <Text className="mt-2 font-sans text-sm text-neutral-600">
-            {honrou
-              ? "A câmera própria entrega o que o CameraView não entregaria."
-              : "Se é isto em todo navegador, a câmera própria e a exceção de tag HTML não se pagam: volte ao CameraView."}
-          </Text>
-          {/* O número em si é informação secundária: o app funciona nele de
+        {frame ? (
+          <View className="mt-4 rounded-2xl bg-white p-4">
+            <Text style={NUM} className="font-sans text-neutral-500">
+              {`pedido   ${RESOLUCAO_ALVO.width}×${RESOLUCAO_ALVO.height}`}
+            </Text>
+            <Text style={NUM} className="mt-1 text-2xl font-display-bold text-neutral-800">
+              {`entregue ${frame.width}×${frame.height}`}
+            </Text>
+            <Text
+              className={[
+                "mt-3 font-sans-semibold",
+                honrou ? "text-success-500" : "text-danger-500",
+              ].join(" ")}
+            >
+              {honrou ? "Honrou o pedido — D1 de pé." : "Ignorou o pedido — D1 cai."}
+            </Text>
+            <Text className="mt-2 font-sans text-sm text-neutral-600">
+              {honrou
+                ? "A câmera própria entrega o que o CameraView não entregaria."
+                : "Se é isto em todo navegador, a câmera própria e a exceção de tag HTML não se pagam: volte ao CameraView."}
+            </Text>
+            {/* O número em si é informação secundária: o app funciona nele de
               qualquer jeito, só com foto mais mole. */}
-          <Text style={NUM} className="mt-3 font-sans text-xs text-neutral-400">
-            {entregueCurto >= 1080
-              ? "Export 1080×1920 sem upscale."
-              : `Export 1080×1920 com upscale de ${(1080 / entregueCurto).toFixed(2)}× — funciona, só mais mole.`}
-          </Text>
-        </View>
-      ) : null}
+            <Text style={NUM} className="mt-3 font-sans text-xs text-neutral-400">
+              {entregueCurto >= 1080
+                ? "Export 1080×1920 sem upscale."
+                : `Export 1080×1920 com upscale de ${(1080 / entregueCurto).toFixed(2)}× — funciona, só mais mole.`}
+            </Text>
+          </View>
+        ) : null}
+      </ScrollView>
 
       <Pressable
         onPress={() => camera.current?.capturar()}
         accessibilityRole="button"
         accessibilityLabel="Capturar um frame e comparar com o pedido"
-        className="mb-4 mt-auto min-h-[56px] items-center justify-center rounded-full bg-primary-400 active:bg-primary-500"
+        className="mb-4 mt-3 min-h-[56px] items-center justify-center rounded-full bg-primary-400 active:bg-primary-500"
       >
         <Text className="text-base font-sans-bold text-white">Medir</Text>
       </Pressable>
