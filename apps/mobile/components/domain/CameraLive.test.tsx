@@ -7,7 +7,7 @@ let mockPermissao: Permissao = null;
 const mockPedirPermissao = jest.fn<() => Promise<{ granted: boolean }>>();
 
 jest.mock("expo-camera", () => {
-  const { View } = jest.requireActual("react-native");
+  const { View } = jest.requireActual<typeof import("react-native")>("react-native");
   return {
     CameraView: (props: Record<string, never>) => <View testID="camera-view" {...props} />,
     useCameraPermissions: () => [mockPermissao, mockPedirPermissao],
