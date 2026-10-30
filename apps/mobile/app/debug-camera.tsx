@@ -129,7 +129,7 @@ export default function DebugCameraScreen() {
         {frame ? (
           <View className="mt-4 rounded-2xl bg-white p-4">
             <Text style={NUM} className="font-sans text-neutral-500">
-              {`pedido   ${RESOLUCAO_ALVO.width}×${RESOLUCAO_ALVO.height}`}
+              {`alvo     ${RESOLUCAO_ALVO.width}×${RESOLUCAO_ALVO.height}`}
             </Text>
             <Text style={NUM} className="mt-1 text-2xl font-display-bold text-neutral-800">
               {`entregue ${frame.width}×${frame.height}`}

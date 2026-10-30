@@ -5,6 +5,9 @@ import {
   CONSTRAINTS_MINIMAS,
   constraintsDeCamera,
   erroDeCamera,
+  frameDeitado,
+  PEDIDO_INICIAL,
+  RESOLUCAO_ALVO,
   type CameraErro,
 } from "@/lib/media/camera-constraints";
 import { capturarFrame } from "@/lib/media/frame-capture.web";
@@ -25,6 +28,26 @@ export type CameraLiveProps = {
   onCapture: (uri: string, tamanho: Tamanho) => void;
   onError: (motivo: CameraErro) => void;
 };
+
+/** Quanto esperar pelo primeiro frame antes de seguir sem ele. */
+const ESPERA_FRAME_MS = 500;
+
+function esperar(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/** Pede o stream e, se a câmera recusar o tamanho, aceita o que ela tiver. */
+async function abrirStream(
+  pedir: (constraints: MediaStreamConstraints) => Promise<MediaStream>,
+  constraints: MediaStreamConstraints,
+): Promise<MediaStream> {
+  try {
+    return await pedir(constraints);
+  } catch (err) {
+    if (!aceitaDegradar(err)) throw err;
+    return pedir(CONSTRAINTS_MINIMAS);
+  }
+}
 
 /**
  * Preview ao vivo da câmera, na web.
@@ -55,36 +78,43 @@ export function CameraLive({ aspect, ref, onReady, onCapture, onError }: CameraL
         return;
       }
 
-      let s: MediaStream;
-      try {
-        s = await pedir(constraintsDeCamera());
-      } catch (err) {
-        if (!aceitaDegradar(err)) {
+      // Duas tentativas, não um laço aberto: se o pedido invertido também vier
+      // deitado, foto mais mole é melhor que câmera piscando sem parar.
+      for (const alvo of [PEDIDO_INICIAL, RESOLUCAO_ALVO]) {
+        // Fecha antes de abrir: no iPhone, dois streams da mesma câmera
+        // silenciam um ao outro.
+        stream.current?.getTracks().forEach((t) => t.stop());
+
+        let s: MediaStream;
+        try {
+          s = await abrirStream(pedir, constraintsDeCamera(alvo));
+        } catch (err) {
           onError(erroDeCamera(err));
           return;
         }
-        try {
-          s = await pedir(CONSTRAINTS_MINIMAS);
-        } catch (err2) {
-          onError(erroDeCamera(err2));
+
+        // Desmontou no meio do await: o stream já foi aberto e ninguém mais vai
+        // fechá-lo pelo cleanup, então fecha aqui.
+        if (!vivo) {
+          s.getTracks().forEach((t) => t.stop());
           return;
         }
-      }
 
-      // Desmontou no meio do await: o stream já foi aberto e ninguém mais vai
-      // fechá-lo pelo cleanup, então fecha aqui.
-      if (!vivo) {
-        s.getTracks().forEach((t) => t.stop());
-        return;
-      }
-
-      stream.current = s;
-      if (video.current) {
-        video.current.srcObject = s;
+        stream.current = s;
+        const el = video.current;
+        if (!el) break;
+        el.srcObject = s;
         // `play()` explícito: `autoPlay` sozinho não basta no Safari quando o
-        // elemento recebe o srcObject depois de montar.
-        video.current.play().catch(() => {});
+        // elemento recebe o srcObject depois de montar. O tamanho do frame é
+        // lido depois dele, na mesma ordem em que o iPhone foi medido.
+        await Promise.race([el.play().catch(() => {}), esperar(ESPERA_FRAME_MS)]);
+        if (!el.videoWidth) await esperar(ESPERA_FRAME_MS);
+        if (!vivo) return;
+
+        const frame = { width: el.videoWidth, height: el.videoHeight };
+        if (!frameDeitado(frame, { width: window.innerWidth, height: window.innerHeight })) break;
       }
+
       setPronto(true);
       onReady?.();
     }

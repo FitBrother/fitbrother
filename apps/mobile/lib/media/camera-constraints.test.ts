@@ -4,6 +4,8 @@ import {
   CONSTRAINTS_MINIMAS,
   constraintsDeCamera,
   erroDeCamera,
+  frameDeitado,
+  PEDIDO_INICIAL,
   RESOLUCAO_ALVO,
 } from "./camera-constraints";
 
@@ -13,20 +15,23 @@ function erroDom(name: string): DOMException {
 }
 
 describe("constraintsDeCamera", () => {
-  test("pede a câmera traseira e a resolução alvo", () => {
+  test("abre pedindo paisagem: no iPhone o pedido sai invertido", () => {
+    // Medido no aparelho, em retrato: pedir 1920×1080 entrega 1080×1920, e
+    // pedir 1080×1920 entrega 1920×1080.
     const c = constraintsDeCamera();
     expect(c.audio).toBe(false);
     expect(c.video).toEqual({
       facingMode: { ideal: "environment" },
-      width: { ideal: 1080 },
-      height: { ideal: 1920 },
+      width: { ideal: 1920 },
+      height: { ideal: 1080 },
     });
   });
 
-  test("o alvo é o retrato que casa com o card exportado", () => {
-    // 360×640 do card × SHARE_EXPORT_SCALE 3 = 1080×1920. Pedir paisagem faria
-    // o lado curto cair para 1080/1.78 e o export viraria upscale.
+  test("o frame que se quer é o retrato que casa com o card exportado", () => {
+    // 360×640 do card × SHARE_EXPORT_SCALE 3 = 1080×1920. Um frame em paisagem
+    // deixaria ~608px de largura no recorte 9:16, e o export viraria upscale.
     expect(RESOLUCAO_ALVO).toEqual({ width: 1080, height: 1920 });
+    expect(PEDIDO_INICIAL).toEqual({ width: 1920, height: 1080 });
   });
 
   test("aceita um alvo diferente sem mexer no resto", () => {
@@ -38,6 +43,28 @@ describe("constraintsDeCamera", () => {
     // É o fallback do OverconstrainedError: sem pedido de tamanho, o
     // navegador entrega o que tiver em vez de recusar o stream.
     expect(CONSTRAINTS_MINIMAS).toEqual({ audio: false, video: true });
+  });
+});
+
+describe("frameDeitado", () => {
+  const TELA_EM_PE = { width: 390, height: 844 };
+  const TELA_DEITADA = { width: 1280, height: 720 };
+
+  test("frame em paisagem com a tela em pé está deitado", () => {
+    expect(frameDeitado({ width: 1920, height: 1080 }, TELA_EM_PE)).toBe(true);
+  });
+
+  test("frame em retrato com a tela em pé está certo", () => {
+    expect(frameDeitado({ width: 1080, height: 1920 }, TELA_EM_PE)).toBe(false);
+  });
+
+  test("com a tela deitada, paisagem é o esperado", () => {
+    // Webcam de desktop e celular virado: reabrir só faria a câmera piscar.
+    expect(frameDeitado({ width: 1920, height: 1080 }, TELA_DEITADA)).toBe(false);
+  });
+
+  test("frame sem tamanho ainda não diz nada", () => {
+    expect(frameDeitado({ width: 0, height: 0 }, TELA_EM_PE)).toBe(false);
   });
 });
 

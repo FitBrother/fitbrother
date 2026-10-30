@@ -31,9 +31,25 @@ import type { ReactElement } from "react";
 const stopTrack = jest.fn();
 const getUserMedia = jest.fn<() => Promise<MediaStream>>();
 const originalMediaDevices = navigator.mediaDevices;
+const originalInnerWidth = window.innerWidth;
+const originalInnerHeight = window.innerHeight;
+
+type Tamanho = { width: number; height: number };
+
+const RETRATO: Tamanho = { width: 1080, height: 1920 };
+const PAISAGEM: Tamanho = { width: 1920, height: 1080 };
+
+// O frame que cada `getUserMedia` "entrega", em ordem. O último se repete.
+let filaDeFrames: Tamanho[] = [];
+let frameAtual: Tamanho = RETRATO;
 
 function streamFake() {
   return { getTracks: () => [{ stop: stopTrack }] } as unknown as MediaStream;
+}
+
+function definirTela(width: number, height: number) {
+  Object.defineProperty(window, "innerWidth", { configurable: true, value: width });
+  Object.defineProperty(window, "innerHeight", { configurable: true, value: height });
 }
 
 function erroDom(name: string) {
@@ -63,7 +79,22 @@ describe("CameraLive na web", () => {
     (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
     stopTrack.mockReset();
     getUserMedia.mockReset();
-    getUserMedia.mockResolvedValue(streamFake());
+    filaDeFrames = [];
+    frameAtual = RETRATO;
+    getUserMedia.mockImplementation(async () => {
+      frameAtual = filaDeFrames.shift() ?? frameAtual;
+      return streamFake();
+    });
+    definirTela(390, 844);
+    // O jsdom não decodifica vídeo: `videoWidth` seria sempre 0.
+    Object.defineProperty(HTMLVideoElement.prototype, "videoWidth", {
+      configurable: true,
+      get: () => frameAtual.width,
+    });
+    Object.defineProperty(HTMLVideoElement.prototype, "videoHeight", {
+      configurable: true,
+      get: () => frameAtual.height,
+    });
     mockCapturarFrame.mockReset();
     mockCapturarFrame.mockResolvedValue({
       uri: "blob:frame",
@@ -91,16 +122,43 @@ describe("CameraLive na web", () => {
     }
     container?.remove();
     container = null;
+    definirTela(originalInnerWidth, originalInnerHeight);
     Object.defineProperty(navigator, "mediaDevices", {
       configurable: true,
       value: originalMediaDevices,
     });
   });
 
-  test("pede a câmera traseira em 1080×1920", async () => {
-    await montar(<CameraLive aspect={ASPECTO} onCapture={jest.fn()} onError={jest.fn()} />);
+  test("abre a câmera traseira uma vez só quando o frame já vem em retrato", async () => {
+    const onReady = jest.fn();
 
+    await montar(
+      <CameraLive aspect={ASPECTO} onReady={onReady} onCapture={jest.fn()} onError={jest.fn()} />,
+    );
+
+    expect(getUserMedia).toHaveBeenCalledTimes(1);
     expect(getUserMedia).toHaveBeenCalledWith({
+      audio: false,
+      video: {
+        facingMode: { ideal: "environment" },
+        width: { ideal: 1920 },
+        height: { ideal: 1080 },
+      },
+    });
+    expect(stopTrack).not.toHaveBeenCalled();
+    expect(onReady).toHaveBeenCalledTimes(1);
+  });
+
+  test("frame deitado com a tela em pé: reabre uma vez com o pedido invertido", async () => {
+    filaDeFrames = [PAISAGEM, RETRATO];
+    const onReady = jest.fn();
+
+    await montar(
+      <CameraLive aspect={ASPECTO} onReady={onReady} onCapture={jest.fn()} onError={jest.fn()} />,
+    );
+
+    expect(getUserMedia).toHaveBeenCalledTimes(2);
+    expect(getUserMedia).toHaveBeenLastCalledWith({
       audio: false,
       video: {
         facingMode: { ideal: "environment" },
@@ -108,6 +166,52 @@ describe("CameraLive na web", () => {
         height: { ideal: 1920 },
       },
     });
+    // O primeiro stream fecha antes do segundo abrir: no iPhone, dois streams
+    // da mesma câmera silenciam um ao outro.
+    expect(stopTrack).toHaveBeenCalledTimes(1);
+    expect(onReady).toHaveBeenCalledTimes(1);
+  });
+
+  test("não insiste: se o pedido invertido também vier deitado, usa assim mesmo", async () => {
+    filaDeFrames = [PAISAGEM, PAISAGEM];
+    const onReady = jest.fn();
+    const onError = jest.fn();
+
+    await montar(
+      <CameraLive aspect={ASPECTO} onReady={onReady} onCapture={jest.fn()} onError={onError} />,
+    );
+
+    // Foto mais mole é melhor que câmera piscando sem parar.
+    expect(getUserMedia).toHaveBeenCalledTimes(2);
+    expect(onReady).toHaveBeenCalledTimes(1);
+    expect(onError).not.toHaveBeenCalled();
+  });
+
+  test("com a tela deitada, paisagem não reabre a câmera", async () => {
+    definirTela(1280, 720);
+    filaDeFrames = [PAISAGEM];
+
+    await montar(<CameraLive aspect={ASPECTO} onCapture={jest.fn()} onError={jest.fn()} />);
+
+    expect(getUserMedia).toHaveBeenCalledTimes(1);
+  });
+
+  test("se a reabertura falhar, avisa em vez de ficar sem câmera em silêncio", async () => {
+    filaDeFrames = [PAISAGEM];
+    getUserMedia.mockImplementationOnce(async () => {
+      frameAtual = filaDeFrames.shift() ?? frameAtual;
+      return streamFake();
+    });
+    getUserMedia.mockRejectedValueOnce(erroDom("NotReadableError"));
+    const onReady = jest.fn();
+    const onError = jest.fn();
+
+    await montar(
+      <CameraLive aspect={ASPECTO} onReady={onReady} onCapture={jest.fn()} onError={onError} />,
+    );
+
+    expect(onError).toHaveBeenCalledWith("indisponivel");
+    expect(onReady).not.toHaveBeenCalled();
   });
 
   test("tenta de novo sem resolução quando a câmera recusa o tamanho", async () => {

@@ -8,22 +8,34 @@
  * `video: true` sem constraint é 640×480 no Safari e no Chrome Android.
  */
 
+import type { Tamanho } from "./crop";
+
 export type CameraErro = "indisponivel" | "negada" | "sem_camera";
 
 /**
- * Retrato, não paisagem.
+ * O frame que se quer: retrato.
  *
- * O card exporta 1080×1920 (`SHARE_CARD_WIDTH 360 × SHARE_EXPORT_SCALE 3`).
- * Pedir 1920×1080 deixaria o lado curto em 1080 só na horizontal, e o recorte
- * 9:16 sobraria ~608px de largura — upscale de 1,78× no export. Pedindo retrato
- * o celular tende a entregar o sensor já na orientação certa.
+ * O card exporta 1080×1920 (`SHARE_CARD_WIDTH 360 × SHARE_EXPORT_SCALE 3`). Um
+ * frame em paisagem deixaria ~608px de largura no recorte 9:16 — upscale de
+ * 1,78× no export.
  */
 export const RESOLUCAO_ALVO = { width: 1080, height: 1920 } as const;
 
-/** O pedido normal: traseira, na resolução alvo. */
-export function constraintsDeCamera(
-  alvo: { width: number; height: number } = RESOLUCAO_ALVO,
-): MediaStreamConstraints {
+/**
+ * O primeiro pedido: paisagem, para receber retrato.
+ *
+ * Medido num iPhone em pé, no Safari e no Vivaldi: pedir 1920×1080 entrega
+ * 1080×1920, e pedir 1080×1920 entrega 1920×1080. O pedido sai invertido. Quem
+ * não inverte (o Android não foi medido) é coberto por `frameDeitado`, que faz
+ * o `CameraLive` reabrir com `RESOLUCAO_ALVO`.
+ */
+export const PEDIDO_INICIAL = {
+  width: RESOLUCAO_ALVO.height,
+  height: RESOLUCAO_ALVO.width,
+} as const;
+
+/** O pedido normal: traseira, no tamanho pedido. */
+export function constraintsDeCamera(alvo: Tamanho = PEDIDO_INICIAL): MediaStreamConstraints {
   return {
     audio: false,
     video: {
@@ -44,6 +56,16 @@ export function constraintsDeCamera(
  * nenhum.
  */
 export const CONSTRAINTS_MINIMAS: MediaStreamConstraints = { audio: false, video: true };
+
+/**
+ * Se o frame veio na orientação contrária à da tela em pé.
+ *
+ * Tela deitada fica de fora: webcam de desktop e celular virado entregam
+ * paisagem de propósito, e reabrir só faria a câmera piscar.
+ */
+export function frameDeitado(frame: Tamanho, tela: Tamanho): boolean {
+  return tela.height > tela.width && frame.width > frame.height;
+}
 
 /**
  * O `name` da rejeição, lido estruturalmente.
