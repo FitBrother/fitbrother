@@ -24,11 +24,26 @@ const EXCECOES: Record<string, string> = {
     "exportação, e o lockup saía borrado no PNG de 1080×1920. Com uma `<img>` " +
     "ele usa `drawImage` na resolução da fonte. Medido: 27% de pixels em " +
     "meio-tom pelo primeiro caminho contra 5,2% pelo segundo.",
+  "components/domain/CameraLive.web.tsx":
+    "A pré-visualização ao vivo precisa consumir um MediaStream, e `<video>` é " +
+    "o único elemento que consome. O `CameraView` do expo-camera, que monta " +
+    "esse vídeo por dentro, nunca passa width/height ao getUserMedia " +
+    "(`useWebCameraStream` → `getIdealConstraints(type, undefined, undefined)` " +
+    "→ `MinimumConstraints = { audio: false, video: true }`), e isso é 640×480 " +
+    "no Safari contra um card exportado em 1080×1920. Com constraints próprias " +
+    "pedimos o sensor de verdade.",
 };
 
-/** Tags HTML que alguém escreveria por engano num componente RN. */
+/**
+ * Tags HTML que alguém escreveria por engano num componente RN.
+ *
+ * `video` e `canvas` entraram depois de FALTAREM: a lista não as vigiava, então
+ * um `<video>` teria passado batido. Fechar o buraco veio antes de registrar a
+ * exceção que precisa dele — aproveitar a falha do guard para escapar dele é o
+ * oposto do que ele existe para fazer.
+ */
 const TAGS_HTML =
-  /<\/?(?:div|span|img|p|a|h[1-6]|button|input|section|header|footer|ul|ol|li|table|form|label)[\s/>]/;
+  /<\/?(?:div|span|img|video|canvas|p|a|h[1-6]|button|input|section|header|footer|ul|ol|li|table|form|label)[\s/>]/;
 
 /**
  * Tira comentários antes de procurar tag.
@@ -75,6 +90,20 @@ describe("sem tags HTML em componentes", () => {
   test("toda exceção é de um arquivo só da web", () => {
     for (const caminho of Object.keys(EXCECOES)) {
       expect(caminho.endsWith(".web.tsx")).toBe(true);
+    }
+  });
+
+  /**
+   * Sem isto, uma exceção apontando para arquivo inexistente é ignorada em
+   * silêncio: o `test.each` roda sobre os arquivos ENCONTRADOS, então uma
+   * entrada órfã simplesmente nunca é checada. Duas consequências ruins —
+   * apagar o arquivo deixa a entrada fóssil na lista para sempre, e registrar a
+   * exceção ANTES de escrever o arquivo dá um verde que não significa nada.
+   */
+  test("toda exceção aponta para um arquivo que existe e é vigiado", () => {
+    const vigiados = new Set(arquivos.map((f) => relative(ROOT, f).split("\\").join("/")));
+    for (const caminho of Object.keys(EXCECOES)) {
+      expect(vigiados.has(caminho)).toBe(true);
     }
   });
 });

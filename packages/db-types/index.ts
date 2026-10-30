@@ -590,6 +590,7 @@ export type Database = {
           created_at: string;
           deleted_at: string | null;
           id: string;
+          image_path: string | null;
           meal_type: Database["public"]["Enums"]["meal_type"];
           raw_input: string | null;
           review_required: boolean;
@@ -611,6 +612,7 @@ export type Database = {
           created_at?: string;
           deleted_at?: string | null;
           id: string;
+          image_path?: string | null;
           meal_type: Database["public"]["Enums"]["meal_type"];
           raw_input?: string | null;
           review_required?: boolean;
@@ -632,6 +634,7 @@ export type Database = {
           created_at?: string;
           deleted_at?: string | null;
           id?: string;
+          image_path?: string | null;
           meal_type?: Database["public"]["Enums"]["meal_type"];
           raw_input?: string | null;
           review_required?: boolean;

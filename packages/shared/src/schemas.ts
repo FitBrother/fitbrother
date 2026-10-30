@@ -140,6 +140,11 @@ export const MealResponseSchema = z.object({
   ]),
   raw_input: z.string().nullable(),
   audio_path: z.string().nullable(),
+  // `.optional()` além de `.nullable()`: web e servidor sobem em deploys
+  // separados, e um cliente novo falando com um servidor que ainda não tem a
+  // coluna receberia o campo AUSENTE, não nulo. Sem o `.optional()` isso seria
+  // erro de parse em vez de "sem foto".
+  image_path: z.string().nullable().optional(),
   meal_type: MealTypeSchema,
   consumed_at: z.string(),
   total_kcal: z.number(),
@@ -154,6 +159,23 @@ export const MealResponseSchema = z.object({
   items: z.array(MealItemResponseSchema),
 });
 export type MealResponse = z.infer<typeof MealResponseSchema>;
+
+/**
+ * Onde mora a foto de uma refeição no bucket `post-images`.
+ *
+ * Vive aqui, e não no cliente, porque o upload é feito pelo app e a escrita de
+ * `meals.image_path` é feita pelo servidor (que deriva o path do `auth.uid()`
+ * em vez de aceitá-lo do cliente). Duas cópias desta convenção produziriam
+ * foto órfã: subida num lugar, apontada em outro.
+ *
+ * O primeiro segmento é o id do usuário porque a RLS de storage exige
+ * `(storage.foldername(name))[1] = auth.uid()`. A subpasta `meal-photos/` é o
+ * que a política da 0081 usa para separar o privado (foto de refeição) do
+ * publicado (`{userId}/post-{postId}.jpg`, legível por quem segue o autor).
+ */
+export function mealPhotoPath(userId: string, mealId: string): string {
+  return `${userId}/meal-photos/${mealId}.jpg`;
+}
 
 export const DailySummarySchema = z.object({
   user_id: z.string().uuid(),
@@ -274,6 +296,11 @@ export const PatchMealRequestSchema = z.object({
   // If provided, server replaces all items with this list (full PUT semantics
   // for items). Easier client logic than mixing patch + delete + add.
   items: z.array(PatchMealItemSchema).min(1).optional(),
+  // Foto: o cliente só diz QUE subiu uma, nunca PARA ONDE. O servidor monta o
+  // path com `mealPhotoPath(auth.uid(), id)` — ver `buildMealPatch`. Aceitar
+  // `image_path` do cliente seria superfície de ataque sem ganho: ele já sabe
+  // o path, porque é a mesma função que o upload usa.
+  has_photo: z.boolean().optional(),
 });
 export type PatchMealRequest = z.infer<typeof PatchMealRequestSchema>;
 
