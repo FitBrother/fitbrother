@@ -610,7 +610,8 @@ e o arrasto troca de estilo com a câmera aberta.
   upload grava `post-images/{uid}/meal-photos/{mealId}.jpg` e o PATCH deriva o
   `image_path`; export sai PNG 1080×1920 com a foto dentro. A queda também: com a
   câmera bloqueada, erro classificado como `negada`, aviso na tela e o botão virando
-  galeria. `lint`, `typecheck` e 763+90+96 testes passam (mobile+server+shared).
+  galeria. Refeito em viewport de celular (375×812) depois da revisão, que é onde
+  o palco estourava o vão: card 72→642, cabeçalho acabando em 44, label em 666. `lint`, `typecheck` e 771+90+96 testes passam (mobile+server+shared).
 - **O que NÃO foi verificado.** (a) **O gate da medição em aparelho continua
   aberto** — a pergunta sim/não de se o navegador honra constraint `ideal` de
   resolução, que é a premissa da decisão D1, exige um celular de verdade e não foi
