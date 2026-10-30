@@ -229,6 +229,7 @@ function FotoEnquadrada({
   if (!quadro || !enquadramento || !natural) {
     return (
       <Image
+        testID="foto-do-card"
         source={{ uri }}
         accessibilityIgnoresInvertColors
         style={{ width: "100%", height: "100%" }}
@@ -241,6 +242,7 @@ function FotoEnquadrada({
   return (
     <View style={{ width: quadro.width, height: quadro.height }} className="overflow-hidden">
       <Image
+        testID="foto-do-card"
         source={{ uri }}
         accessibilityIgnoresInvertColors
         style={{
@@ -263,6 +265,16 @@ type ShareCardProps = {
   enquadramento?: Enquadramento;
   /** Medidas naturais da foto — necessárias para aplicar o enquadramento. */
   fotoNatural?: Tamanho | null;
+  /**
+   * A foto vem de fora do card — hoje, da câmera ao vivo que fica ATRÁS dele.
+   *
+   * Desenha todo o cromo (scrim, corpo, marca) mas não a foto, e deixa o fundo
+   * transparente para a camada de trás aparecer. É o que permite UMA câmera só
+   * com o carrossel de presets deslizando por cima: montar uma câmera por cena
+   * não é viável.
+   */
+  fotoExterna?: boolean;
+  testID?: string;
 };
 
 // ─── Quadro ──────────────────────────────────────────────────────────────────
@@ -281,15 +293,26 @@ type ShareCardProps = {
  * O texto vive dentro da faixa segura (`STORY_SAFE_*`); a foto atravessa ela e
  * vai de ponta a ponta do quadro.
  */
-export function ShareCard({ data, preset, enquadramento, fotoNatural }: ShareCardProps) {
+export function ShareCard({
+  data,
+  preset,
+  enquadramento,
+  fotoNatural,
+  fotoExterna = false,
+  testID,
+}: ShareCardProps) {
   const [quadroMoldura, setQuadroMoldura] = useState<Tamanho | null>(null);
   const foto = preset.photo === "none" ? null : fotoDoCard(data);
-  const preenche = Boolean(foto) && preset.photo === "fill";
-  const emoldura = Boolean(foto) && preset.photo === "frame";
-  const fundo = preset.background[1];
+  // Com `fotoExterna` o quadro TEM foto, ela só não é desenhada aqui — sem
+  // isso o card cairia no layout de "sem foto" e o scrim sumiria.
+  const temFotoNoQuadro = fotoExterna || Boolean(foto);
+  const preenche = temFotoNoQuadro && preset.photo === "fill";
+  const emoldura = temFotoNoQuadro && preset.photo === "frame";
+  const fundo = fotoExterna ? "transparent" : preset.background[1];
 
   return (
     <View
+      testID={testID}
       style={{ width: SHARE_CARD_WIDTH, height: SHARE_CARD_HEIGHT, backgroundColor: fundo }}
       className="overflow-hidden"
     >
@@ -298,14 +321,16 @@ export function ShareCard({ data, preset, enquadramento, fotoNatural }: ShareCar
           {/* Absoluta: a foto é FUNDO. No fluxo normal ela ocupa os 640px de
               altura do card e empurra a coluna de texto para fora do quadro —
               o card saía só com a foto, sem número, sem macros e sem marca. */}
-          <View style={PREENCHE}>
-            <FotoEnquadrada
-              uri={foto!}
-              quadro={{ width: SHARE_CARD_WIDTH, height: SHARE_CARD_HEIGHT }}
-              enquadramento={enquadramento}
-              natural={fotoNatural}
-            />
-          </View>
+          {fotoExterna ? null : (
+            <View style={PREENCHE}>
+              <FotoEnquadrada
+                uri={foto!}
+                quadro={{ width: SHARE_CARD_WIDTH, height: SHARE_CARD_HEIGHT }}
+                enquadramento={enquadramento}
+                natural={fotoNatural}
+              />
+            </View>
+          )}
           <Scrim preset={preset} />
         </>
       ) : (
@@ -337,12 +362,18 @@ export function ShareCard({ data, preset, enquadramento, fotoNatural }: ShareCar
             }
           >
             <View style={{ flex: 1, borderRadius: 18 }} className="overflow-hidden">
-              <FotoEnquadrada
-                uri={foto!}
-                quadro={quadroMoldura}
-                enquadramento={enquadramento}
-                natural={quadroMoldura ? fotoNatural : null}
-              />
+              {/* Sem caso de uso hoje — `presetsAoVivo` exclui Moldura, porque a
+                  câmera atrás apareceria na área errada. Fica coerente de
+                  propósito: deixar a prop mentir num ramo é como se cria o
+                  próximo bug. */}
+              {fotoExterna ? null : (
+                <FotoEnquadrada
+                  uri={foto!}
+                  quadro={quadroMoldura}
+                  enquadramento={enquadramento}
+                  natural={quadroMoldura ? fotoNatural : null}
+                />
+              )}
             </View>
           </View>
         ) : null}

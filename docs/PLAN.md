@@ -553,6 +553,79 @@ deliberadamente deferido e não bloqueia o início do M10.
   Um profile de CPU mostrou o topo todo em html2canvas (`toDataURL` 574ms, `getPropertyValue` 473ms, clonagem do DOM). O A/B que fechou o diagnóstico foi desligar só a pré-captura: 3803ms → 843ms de thread bloqueada, 78% do total — e antes dele duas hipóteses minhas (tamanho da foto, tamanho da string da data URI) foram medidas e descartadas. **A captura virou sob demanda**, com o botão mostrando "Gerando imagem…"; o preço é o share poder cair fora da janela de ativação, e `shareCard` trata caindo para o download. Junto vieram três reduções menores: a foto é redimensionada uma vez para o maior lado de 1920 (foto de celular chega com 12 MP), ela e o PNG exportado viram **blob URL** em vez de data URI (o react-native-web põe a fonte no atributo `style`, e em data URI eram dezenas de KB repetidos por card), e a exportação usa `toBlob`, que deixa o navegador codificar fora da thread principal, em vez do `toDataURL` síncrono.
 - **Verificação:** e2e no navegador (registro → convite → arrasto → preview → exportação), os 7 presets exportando 1080×1920 válidos, o PNG conferido contra as faixas de 250px do story e o lockup inspecionado pixel a pixel no export; `lint`, `typecheck` e 601+14+166 testes passam. **Nativo não verificado** — o palco de captura fica fora da tela (`left: -9999`) e o `captureRef` com `width`/`height` não foi exercitado em aparelho.
 
+**Revisão M9.2 (editor de enquadramento):** 2026-10-05, branch `feat/camera-ao-vivo-share`
+(ficou sem registro na época; vai aqui junto). `PhotoAdjuster` + `lib/media/crop.ts`:
+arrastar e pinçar para escolher o recorte, com o mesmo enquadramento valendo no
+feed (foto 4:5 de ponta a ponta) e no card de story. O editor **substitui** o
+carrossel em vez de acontecer por cima dele — arrastar para enquadrar e arrastar
+para trocar de preset são o mesmo gesto, e os dois ativos fariam o pager roubar
+metade dos arrastos.
+
+**Revisão M9.3 (câmera ao vivo no compartilhar):** 2026-10-30, branch
+`feat/camera-ao-vivo-fase-d`, sobre a base mesclada em `f2a3f00`.
+
+A tela de compartilhar uma refeição abre a câmera com a moldura do preset
+desenhada por cima do vídeo: enquadra-se o prato já vendo como o story vai sair,
+e o arrasto troca de estilo com a câmera aberta.
+
+- **O que isto destrava.** `/share/meal/:id` mostrava 4 presets de 7, todos
+  tipográficos, porque `meals` não guardava foto — ela existia no storage, com
+  path determinístico, mas sobrevivia só como texto em `raw_input`. Com a coluna
+  `image_path` (migration **0082**, com backfill) e a câmera, os três presets com
+  foto passam a ser alcançáveis por esse caminho. O backfill destrava para quem já
+  registrou por foto, sem câmera nenhuma.
+- **Correção de segurança junto (migration 0081).** A política da 0076 liberava
+  SELECT em `post-images` para seguidores casando com **qualquer** objeto sob
+  `{authorId}/`, e `meal-photos/` mora na mesma pasta: foto de refeição, nunca
+  publicada, ficava legível — e como `storage.list()` também é SELECT, enumerável
+  por prefixo. Independia desta feature.
+- **Uma câmera, não uma por preset.** `CameraLive` fica **fora** do
+  `SwipeableTabs`, numa camada absoluta atrás; o pager carrega só o cromo
+  (`ShareCard` com `fotoExterna`, que desenha scrim/corpo/marca com fundo
+  transparente). Montar uma câmera por cena pediria permissão cinco vezes e
+  travaria o aparelho. `presetsAoVivo()` restringe aos cinco em que a foto
+  preenche o quadro: Moldura põe a foto num retângulo interno (a câmera apareceria
+  na área errada no meio do arrasto) e Pôster não usa foto. Depois da captura o
+  carrossel volta com os sete, no estilo que estava em cena.
+- **`CameraView` do expo-camera não serve na web.** A implementação web dele nunca
+  passa largura/altura e cai em `MinimumConstraints` (`{audio:false, video:true}`),
+  devolvendo o que o navegador quiser. Daí `CameraLive.web.tsx` com constraints
+  próprias — e a segunda exceção de tag HTML do app (`<video>`), presa pelo guard
+  `lib/no-html-tags.test.ts`. No nativo o `CameraView` serve e é o que `CameraLive.tsx`
+  usa: `takePictureAsync` entrega o sensor, não um frame de vídeo.
+- **Persistência não bloqueia.** Upload e `PATCH /meals/:id {has_photo:true}` (o
+  servidor deriva o path; o cliente nunca manda caminho) correm em paralelo à
+  exibição. Quem abriu a tela queria compartilhar, não salvar: falha de rede só
+  custa a persistência. Câmera indisponível cai para a galeria, **com o motivo
+  escrito na tela** — queda silenciosa é pior que queda explicada.
+- **Refator antes do modo novo.** A tela estava em 464 linhas com três modos numa
+  cadeia de ternários; o quarto levaria a ~600. `CardPreview`,
+  `SharePresetCarousel` e `ShareAdjustStage` saíram para
+  `components/domain/share/` sem nenhum teste mudar.
+- **Verificação (web):** e2e no navegador com um `MediaStream` real
+  (`canvas.captureStream`), que exercita o `getUserMedia` de verdade. Constraints
+  pedidas conferidas (`facingMode: environment` + 1080×1920 `ideal`); **um** `<video>`
+  no DOM; arrasto leva Noturno → Claro com o retângulo do vídeo **idêntico** antes e
+  depois (a premissa da camada única); captura volta ao carrossel no mesmo preset;
+  upload grava `post-images/{uid}/meal-photos/{mealId}.jpg` e o PATCH deriva o
+  `image_path`; export sai PNG 1080×1920 com a foto dentro. A queda também: com a
+  câmera bloqueada, erro classificado como `negada`, aviso na tela e o botão virando
+  galeria. Refeito em viewport de celular (375×812) depois da revisão, que é onde
+  o palco estourava o vão: card 72→642, cabeçalho acabando em 44, label em 666. `lint`, `typecheck` e 771+90+96 testes passam (mobile+server+shared).
+- **O que NÃO foi verificado.** (a) **O gate da medição em aparelho continua
+  aberto** — a pergunta sim/não de se o navegador honra constraint `ideal` de
+  resolução, que é a premissa da decisão D1, exige um celular de verdade e não foi
+  respondida; `app/debug-camera.tsx` é a rota de medição e sai quando for.
+  Se a resposta for não, a decisão certa é voltar ao `CameraView`, e o custo é
+  localizado no `CameraLive.web.tsx` — o palco e os presets não mudam.
+  (b) **Nada do caminho nativo** rodou em aparelho: `CameraLive.tsx`, o
+  `takePictureAsync`, e o `captureRef` com `width`/`height` no palco offscreen
+  (`left: -9999`), que nunca foi exercitado em device em nenhuma feature desta
+  série. (c) **PWA standalone** (câmera em web app da tela de início) não
+  exercitado. (d) A câmera real — o que foi exercitado é um stream sintético de
+  1080×1920, então nada diz como uma câmera de celular se comporta com `ideal`,
+  que é justamente o gate (a).
+
 ---
 
 # ═══ Fase 3 — Polish & Expansão (M10–M13) ═══
