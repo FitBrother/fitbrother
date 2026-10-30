@@ -205,9 +205,36 @@ export function presetsFor({
  *
  * A restrição não é só técnica: "enquadrar vendo o preset" só significa algo
  * quando a foto É o quadro. Depois da captura o carrossel volta com os sete.
+ *
+ * `temMacros` repete aqui a regra do `presetsFor`: Etiqueta e Discreto anotam
+ * macros por cima da foto e, sem elas, viram uma plaquinha com `0g 0g 0g`.
+ * Geometria é o que esta função decide, mas um preset que degenera não deve
+ * aparecer ao vivo pelo mesmo motivo que não aparece depois.
  */
-export function presetsAoVivo(): readonly SharePreset[] {
-  return SHARE_PRESETS.filter((p) => p.photo === "fill");
+export function presetsAoVivo({ temMacros }: { temMacros: boolean }): readonly SharePreset[] {
+  return SHARE_PRESETS.filter((p) => {
+    if (p.photo !== "fill") return false;
+    if (p.info !== "full" && !temMacros) return false;
+    return true;
+  });
+}
+
+/**
+ * Onde o preset capturado cai no carrossel completo.
+ *
+ * As duas listas encolhem de formas diferentes — `presetsAoVivo` tira Moldura e
+ * Pôster, `presetsFor` tira o que o conteúdo não sustenta — então o índice ao
+ * vivo não serve na completa: Menta é 4 ao vivo e 5 lá. Mapear pelo id é o que
+ * faz a pessoa voltar da câmera no estilo que estava enquadrando.
+ *
+ * `temMacros` tem que ser o do dado real. Cravá-lo em `true` manda procurar numa
+ * lista de 7 um id que vive numa de 5, e o índice resultante cai noutro preset.
+ */
+export function indiceAposCaptura(
+  presetId: SharePresetId,
+  { temMacros }: { temMacros: boolean },
+): number {
+  return presetsFor({ temFoto: true, temMacros }).findIndex((p) => p.id === presetId);
 }
 
 export const DEFAULT_PRESET_INDEX = 0;

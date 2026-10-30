@@ -30,6 +30,7 @@ import { ENQUADRAMENTO_PADRAO, type Enquadramento, type Tamanho } from "@/lib/me
 import { medirImagem } from "@/lib/media/measure-image";
 import {
   DEFAULT_PRESET_INDEX,
+  indiceAposCaptura,
   presetAt,
   presetsFor,
   type SharePresetId,
@@ -177,10 +178,8 @@ export default function ShareScreen() {
   // minimalistas precisam de foto e de macros. `presetAt` prende o índice,
   // então a lista pode encolher entre renders (dado chegando) sem deixar o
   // carrossel apontando para o vazio.
-  const presets = presetsFor({
-    temFoto: Boolean(foto),
-    temMacros: Boolean(dados && temMacros(dados)),
-  });
+  const macros = Boolean(dados && temMacros(dados));
+  const presets = presetsFor({ temFoto: Boolean(foto), temMacros: macros });
   const preset = presetAt(presets, presetIndex);
 
   // Escala do preview: o card mede 640dp de altura e quase nenhuma tela tem
@@ -247,12 +246,29 @@ export default function ShareScreen() {
       setEnquadramento(ENQUADRAMENTO_PADRAO);
       setCamera(false);
       // Volta ao carrossel completo já no estilo que estava em cena, em vez de
-      // jogar a pessoa de volta no primeiro preset.
-      const i = presetsFor({ temFoto: true, temMacros: true }).findIndex((p) => p.id === presetId);
+      // jogar a pessoa de volta no primeiro preset. Os macros são os do dado:
+      // cravá-los em `true` procura numa lista de 7 um id que vive numa de 5.
+      const i = indiceAposCaptura(presetId, { temMacros: macros });
       if (i >= 0) setPresetIndex(i);
       persistirFoto(uri);
     },
-    [persistirFoto],
+    [persistirFoto, macros],
+  );
+
+  /**
+   * Falha ao congelar o frame — não é câmera indisponível.
+   *
+   * Sem isto a promessa do obturador rejeitava sem dono: nada na tela, nada no
+   * Sentry, e a pessoa tocava de novo achando que não tinha registrado. A
+   * câmera continua aberta, porque tentar de novo costuma funcionar.
+   */
+  const aoFalharCaptura = useCallback(
+    (err: unknown) => {
+      console.error("[share-card] captura falhou:", err);
+      Sentry.captureException(err);
+      toast({ variant: "error", message: "Não foi possível capturar a foto. Tente de novo." });
+    },
+    [toast],
   );
 
   const aoFaltarCamera = useCallback((motivo: CameraErro) => {
@@ -362,9 +378,10 @@ export default function ShareScreen() {
         ) : dados && camera ? (
           <ShareCameraStage
             data={dados}
-            escala={escala}
+            temMacros={macros}
             onCapture={aoCapturar}
             onIndisponivel={aoFaltarCamera}
+            onErroCaptura={aoFalharCaptura}
           />
         ) : dados && ajustando && foto && fotoNatural ? (
           <ShareAdjustStage uri={foto} value={enquadramento} onChange={setEnquadramento} />

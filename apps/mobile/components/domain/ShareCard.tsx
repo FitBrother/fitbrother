@@ -229,6 +229,7 @@ function FotoEnquadrada({
   if (!quadro || !enquadramento || !natural) {
     return (
       <Image
+        testID="foto-do-card"
         source={{ uri }}
         accessibilityIgnoresInvertColors
         style={{ width: "100%", height: "100%" }}
@@ -241,6 +242,7 @@ function FotoEnquadrada({
   return (
     <View style={{ width: quadro.width, height: quadro.height }} className="overflow-hidden">
       <Image
+        testID="foto-do-card"
         source={{ uri }}
         accessibilityIgnoresInvertColors
         style={{

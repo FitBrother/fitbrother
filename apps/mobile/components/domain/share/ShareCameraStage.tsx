@@ -10,6 +10,7 @@ import { colors } from "@/lib/colors";
 import { shadows } from "@/lib/shadows";
 import { CardPreview } from "./CardPreview";
 
+import type { LayoutChangeEvent } from "react-native";
 import type { CameraErro } from "@/lib/media/camera-constraints";
 import type { Tamanho } from "@/lib/media/crop";
 
@@ -26,20 +27,33 @@ import type { Tamanho } from "@/lib/media/crop";
  */
 export function ShareCameraStage({
   data,
-  escala,
+  temMacros,
   onCapture,
   onIndisponivel,
+  onErroCaptura,
 }: {
   data: ShareCardData;
-  escala: number;
+  temMacros: boolean;
   onCapture: (uri: string, tamanho: Tamanho, presetId: SharePresetId) => void;
   onIndisponivel: (motivo: CameraErro) => void;
+  onErroCaptura: (err: unknown) => void;
 }) {
   const camera = useRef<CameraLiveHandle>(null);
-  const presets = presetsAoVivo();
+  const presets = presetsAoVivo({ temMacros });
   const [index, setIndex] = useState(0);
   const [pronta, setPronta] = useState(false);
+  const [capturando, setCapturando] = useState(false);
   const preset = presetAt(presets, index);
+
+  // Mede o próprio espaço do card em vez de receber a escala da tela: a tela
+  // calcula a dela com a área inteira, e este palco devolve parte dessa área
+  // ao label e ao obturador. Usar a escala de lá deixava o card ~135dp maior
+  // que o vão, sangrando por cima do cabeçalho em qualquer celular.
+  const [slot, setSlot] = useState(0);
+  const aoMedir = useCallback((e: LayoutChangeEvent) => {
+    setSlot(e.nativeEvent.layout.height);
+  }, []);
+  const escala = slot > 0 ? Math.min(1, (slot - 24) / SHARE_CARD_HEIGHT) : 0;
 
   // O preset em cena viaja com a captura: a tela volta ao carrossel completo
   // já naquele estilo, em vez de jogar a pessoa de volta para o primeiro.
@@ -48,10 +62,31 @@ export function ShareCameraStage({
     [onCapture, preset.id],
   );
 
+  /**
+   * O obturador.
+   *
+   * `capturando` faz duas coisas que o botão sozinho não faria. Impede a
+   * segunda captura de um toque duplo — no nativo `takePictureAsync` leva
+   * centenas de ms, e duas capturas viram dois uploads correndo no mesmo path,
+   * podendo salvar um frame diferente do que foi compartilhado. E dá dono à
+   * promessa: sem o catch, um frame sem dados rejeitava sem nada na tela.
+   */
+  const disparar = useCallback(async () => {
+    if (capturando || !camera.current) return;
+    setCapturando(true);
+    try {
+      await camera.current.capturar();
+    } catch (err) {
+      onErroCaptura(err);
+    } finally {
+      setCapturando(false);
+    }
+  }, [capturando, onErroCaptura]);
+
   return (
     <View className="flex-1">
-      <View className="flex-1 items-center justify-center">
-        <CardPreview escala={escala}>
+      <View testID="slot-card" className="flex-1 items-center justify-center" onLayout={aoMedir}>
+        <CardPreview escala={escala} testID="card-preview">
           <View style={{ width: SHARE_CARD_WIDTH, height: SHARE_CARD_HEIGHT }}>
             {/* Camada única, atrás e fora do pager: o translateX do carrossel
                 não a alcança, então a imagem não desliza junto com o cromo. */}
@@ -66,7 +101,7 @@ export function ShareCameraStage({
             </View>
             <SwipeableTabs index={index} onIndexChange={setIndex}>
               {presets.map((p) => (
-                <View key={p.id} className="flex-1">
+                <View key={p.id} testID="cena-preset" className="flex-1">
                   <ShareCard data={data} preset={p} fotoExterna />
                 </View>
               ))}
@@ -95,15 +130,18 @@ export function ShareCameraStage({
 
       <View className="px-4 pb-4 pt-3">
         <Pressable
-          onPress={() => camera.current?.capturar()}
-          disabled={!pronta}
+          onPress={disparar}
+          disabled={!pronta || capturando}
           accessibilityRole="button"
           accessibilityLabel="Tirar foto"
+          accessibilityState={{ disabled: !pronta || capturando, busy: capturando }}
           style={shadows.card}
           className="min-h-[56px] flex-row items-center justify-center gap-2 rounded-full bg-primary-400 active:bg-primary-500 disabled:opacity-50"
         >
           <Camera size={20} color={colors.white} />
-          <Text className="text-base font-sans-bold text-white">Tirar foto</Text>
+          <Text className="text-base font-sans-bold text-white">
+            {capturando ? "Capturando…" : "Tirar foto"}
+          </Text>
         </Pressable>
       </View>
     </View>

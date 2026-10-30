@@ -14,7 +14,7 @@ const DADOS: ShareCardData = {
   dateLabel: "11 out",
 };
 
-const NOTURNO = presetAt(presetsAoVivo(), 0);
+const NOTURNO = presetAt(presetsAoVivo({ temMacros: true }), 0);
 
 describe("ShareCard com fotoExterna", () => {
   test("trata o quadro como tendo foto, e a legenda vira apoio", () => {
@@ -44,6 +44,20 @@ describe("ShareCard com fotoExterna", () => {
 
     const style = getByTestId("share-card").props.style;
     expect(style).toMatchObject({ backgroundColor: "transparent" });
+  });
+
+  test("com fotoExterna não pinta a foto do dado por cima da câmera", () => {
+    // O caso de produção: a refeição JÁ tem foto (image_path, backfill da 0082)
+    // e a pessoa abre a câmera para tirar outra. Sem o guard, o card desenharia
+    // a foto velha por cima do vídeo ao vivo — todos os fixtures usavam
+    // imageUrl: null, então nada pegava isso.
+    const comFoto = { ...DADOS, imageUrl: "https://exemplo.test/prato.jpg" };
+
+    const camera = render(<ShareCard data={comFoto} preset={NOTURNO} fotoExterna />);
+    expect(camera.queryAllByTestId("foto-do-card")).toHaveLength(0);
+
+    const normal = render(<ShareCard data={comFoto} preset={NOTURNO} />);
+    expect(normal.queryAllByTestId("foto-do-card")).toHaveLength(1);
   });
 
   test("sem fotoExterna o fundo continua opaco", () => {

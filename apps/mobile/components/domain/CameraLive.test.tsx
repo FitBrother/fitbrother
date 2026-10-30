@@ -10,7 +10,10 @@ jest.mock("expo-camera", () => {
   const { View } = jest.requireActual<typeof import("react-native")>("react-native");
   return {
     CameraView: (props: Record<string, never>) => <View testID="camera-view" {...props} />,
-    useCameraPermissions: () => [mockPermissao, mockPedirPermissao],
+    // Objeto NOVO a cada chamada, como o expo-camera devolve depois que
+    // `requestPermission` roda `setStatus`. Com uma identidade estável o efeito
+    // nunca reexecuta e a guarda `pediu` passaria sem ser exercitada.
+    useCameraPermissions: () => [mockPermissao && { ...mockPermissao }, mockPedirPermissao],
   };
 });
 
