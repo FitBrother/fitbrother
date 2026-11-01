@@ -54,11 +54,11 @@ function cantosGirados(s: Sticker, c: Caixa) {
   const hw = (c.width * s.scale) / 2;
   const hh = (c.height * s.scale) / 2;
   return [
-    [-hw, -hh],
-    [hw, -hh],
-    [hw, hh],
-    [-hw, hh],
-  ].map(([x, y]) => ({ x: cx + x * cos - y * sen, y: cy + x * sen + y * cos }));
+    { x: -hw, y: -hh },
+    { x: hw, y: -hh },
+    { x: hw, y: hh },
+    { x: -hw, y: hh },
+  ].map(({ x, y }) => ({ x: cx + x * cos - y * sen, y: cy + x * sen + y * cos }));
 }
 
 describe("stickersDoPreset", () => {

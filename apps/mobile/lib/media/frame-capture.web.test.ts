@@ -64,8 +64,8 @@ describe("capturarFrame", () => {
 
     expect(translate).toHaveBeenCalledWith(1080, 0);
     expect(scale).toHaveBeenCalledWith(-1, 1);
-    expect(translate.mock.invocationCallOrder[0]).toBeLessThan(
-      drawImage.mock.invocationCallOrder[0],
+    expect(translate.mock.invocationCallOrder[0]!).toBeLessThan(
+      drawImage.mock.invocationCallOrder[0]!,
     );
   });
 
