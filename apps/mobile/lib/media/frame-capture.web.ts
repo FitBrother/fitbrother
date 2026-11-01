@@ -13,9 +13,13 @@ import type { Tamanho } from "./crop";
  * elemento na tela. É ele que vira o `fotoNatural` do card, e o `Enquadramento`
  * normalizado depende dessa medida para o recorte bater nos três tamanhos
  * (preview, palco de captura e imagem final).
+ *
+ * `espelhar` é para a câmera frontal: a tela mostra o reflexo, e a foto tem que
+ * sair igual ao que a pessoa estava vendo.
  */
 export async function capturarFrame(
   video: HTMLVideoElement,
+  { espelhar = false }: { espelhar?: boolean } = {},
 ): Promise<{ uri: string; tamanho: Tamanho }> {
   const width = video.videoWidth;
   const height = video.videoHeight;
@@ -31,6 +35,10 @@ export async function capturarFrame(
   const ctx = canvas.getContext("2d", { alpha: false });
   if (!ctx) throw new Error("canvas_sem_contexto");
 
+  if (espelhar) {
+    ctx.translate(width, 0);
+    ctx.scale(-1, 1);
+  }
   ctx.drawImage(video, 0, 0, width, height);
 
   const blob = await new Promise<Blob | null>((resolve) => {

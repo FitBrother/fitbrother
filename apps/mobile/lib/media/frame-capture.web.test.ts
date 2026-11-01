@@ -14,6 +14,8 @@ import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 import { capturarFrame } from "./frame-capture.web";
 
 const drawImage = jest.fn();
+const translate = jest.fn();
+const scale = jest.fn();
 const toBlob = jest.fn<(cb: (b: Blob | null) => void, tipo?: string, q?: number) => void>();
 const getContext = jest.fn();
 
@@ -30,8 +32,10 @@ function videoFake(width: number, height: number) {
 describe("capturarFrame", () => {
   beforeEach(() => {
     drawImage.mockReset();
+    translate.mockReset();
+    scale.mockReset();
     getContext.mockReset();
-    getContext.mockReturnValue({ drawImage } as never);
+    getContext.mockReturnValue({ drawImage, translate, scale } as never);
     toBlob.mockReset();
     toBlob.mockImplementation((cb) => cb(new Blob(["jpeg"], { type: "image/jpeg" })));
     jest.spyOn(document, "createElement").mockReturnValue(canvasFake() as never);
@@ -53,6 +57,22 @@ describe("capturarFrame", () => {
     // Guardamos o frame inteiro de propósito: a mesma foto serve o card 9:16,
     // a Home e um share futuro. Gravar o recorte aqui destruiria os outros.
     expect(drawImage).toHaveBeenCalledWith(expect.anything(), 0, 0, 1280, 720);
+  });
+
+  test("com espelhar, desenha invertido, como a pessoa via na tela", async () => {
+    await capturarFrame(videoFake(1080, 1920), { espelhar: true });
+
+    expect(translate).toHaveBeenCalledWith(1080, 0);
+    expect(scale).toHaveBeenCalledWith(-1, 1);
+    expect(translate.mock.invocationCallOrder[0]).toBeLessThan(
+      drawImage.mock.invocationCallOrder[0],
+    );
+  });
+
+  test("sem espelhar, não inverte", async () => {
+    await capturarFrame(videoFake(1080, 1920));
+
+    expect(scale).not.toHaveBeenCalled();
   });
 
   test("pede JPEG, não PNG", async () => {

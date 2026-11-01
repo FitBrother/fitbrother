@@ -3,7 +3,7 @@ import { StyleSheet, View } from "react-native";
 import { CameraView, useCameraPermissions } from "expo-camera";
 
 import type { Ref } from "react";
-import type { CameraErro } from "@/lib/media/camera-constraints";
+import type { CameraErro, Lado } from "@/lib/media/camera-constraints";
 import type { Tamanho } from "@/lib/media/crop";
 
 export type CameraLiveHandle = {
@@ -14,6 +14,8 @@ export type CameraLiveHandle = {
 export type CameraLiveProps = {
   /** Proporção do quadro visível. O card de story é 360/640. */
   aspect: number;
+  /** Qual câmera abrir. */
+  facing?: Lado;
   ref?: Ref<CameraLiveHandle>;
   onReady?: () => void;
   onCapture: (uri: string, tamanho: Tamanho) => void;
@@ -33,7 +35,14 @@ export type CameraLiveProps = {
  * latência ao toque, e o som de obturador é estranho num fluxo que a pessoa
  * entende como "ajustar imagem".
  */
-export function CameraLive({ aspect, ref, onReady, onCapture, onError }: CameraLiveProps) {
+export function CameraLive({
+  aspect,
+  facing = "back",
+  ref,
+  onReady,
+  onCapture,
+  onError,
+}: CameraLiveProps) {
   const [permissao, pedirPermissao] = useCameraPermissions();
   const camera = useRef<CameraView>(null);
   const [pronta, setPronta] = useState(false);
@@ -79,7 +88,7 @@ export function CameraLive({ aspect, ref, onReady, onCapture, onError }: CameraL
         <CameraView
           ref={camera}
           style={StyleSheet.absoluteFillObject}
-          facing="back"
+          facing={facing}
           onCameraReady={() => {
             setPronta(true);
             onReady?.();

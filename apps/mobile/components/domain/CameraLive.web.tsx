@@ -9,6 +9,7 @@ import {
   PEDIDO_INICIAL,
   RESOLUCAO_ALVO,
   type CameraErro,
+  type Lado,
 } from "@/lib/media/camera-constraints";
 import { capturarFrame } from "@/lib/media/frame-capture.web";
 
@@ -23,6 +24,8 @@ export type CameraLiveHandle = {
 export type CameraLiveProps = {
   /** Proporção do quadro visível. O card de story é 360/640. */
   aspect: number;
+  /** Qual câmera abrir. Trocar reabre o stream, sem remontar o `<video>`. */
+  facing?: Lado;
   ref?: Ref<CameraLiveHandle>;
   onReady?: () => void;
   onCapture: (uri: string, tamanho: Tamanho) => void;
@@ -61,13 +64,22 @@ async function abrirStream(
  * `capturarFrame`): o recorte continua sendo decisão do `Enquadramento`, por
  * uso, e não algo gravado na captura.
  */
-export function CameraLive({ aspect, ref, onReady, onCapture, onError }: CameraLiveProps) {
+export function CameraLive({
+  aspect,
+  facing = "back",
+  ref,
+  onReady,
+  onCapture,
+  onError,
+}: CameraLiveProps) {
   const video = useRef<HTMLVideoElement | null>(null);
   const stream = useRef<MediaStream | null>(null);
   const [pronto, setPronto] = useState(false);
+  const espelhar = facing === "front";
 
   useEffect(() => {
     let vivo = true;
+    setPronto(false);
 
     async function abrir() {
       const pedir = navigator.mediaDevices?.getUserMedia?.bind(navigator.mediaDevices);
@@ -87,7 +99,7 @@ export function CameraLive({ aspect, ref, onReady, onCapture, onError }: CameraL
 
         let s: MediaStream;
         try {
-          s = await abrirStream(pedir, constraintsDeCamera(alvo));
+          s = await abrirStream(pedir, constraintsDeCamera(alvo, facing));
         } catch (err) {
           onError(erroDeCamera(err));
           return;
@@ -126,16 +138,19 @@ export function CameraLive({ aspect, ref, onReady, onCapture, onError }: CameraL
       stream.current?.getTracks().forEach((t) => t.stop());
       stream.current = null;
     };
-    // Monta uma vez: reabrir a câmera a cada render do pai faria a imagem
+    // Só `facing` reabre: reabrir a câmera a cada render do pai faria a imagem
     // piscar e pediria permissão de novo em alguns navegadores.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [facing]);
 
   const capturar = useCallback(async () => {
     if (!video.current || !pronto) return;
-    const { uri, tamanho } = await capturarFrame(video.current);
+    const { uri, tamanho } = await capturarFrame(
+      video.current,
+      espelhar ? { espelhar } : undefined,
+    );
     onCapture(uri, tamanho);
-  }, [pronto, onCapture]);
+  }, [pronto, espelhar, onCapture]);
 
   useImperativeHandle(ref, () => ({ capturar }), [capturar]);
 
@@ -146,7 +161,13 @@ export function CameraLive({ aspect, ref, onReady, onCapture, onError }: CameraL
         autoPlay
         playsInline
         muted
-        style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+        style={{
+          width: "100%",
+          height: "100%",
+          objectFit: "cover",
+          display: "block",
+          transform: espelhar ? "scaleX(-1)" : undefined,
+        }}
       />
     </View>
   );

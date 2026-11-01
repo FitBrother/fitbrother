@@ -97,3 +97,15 @@ describe("aceitaDegradar", () => {
     expect(aceitaDegradar(erroDom("NotFoundError"))).toBe(false);
   });
 });
+
+describe("constraintsDeCamera com lado", () => {
+  test("a frontal pede facingMode user", () => {
+    const video = constraintsDeCamera(PEDIDO_INICIAL, "front").video as MediaTrackConstraints;
+    expect(video.facingMode).toEqual({ ideal: "user" });
+  });
+
+  test("o padrão continua sendo a traseira", () => {
+    const video = constraintsDeCamera().video as MediaTrackConstraints;
+    expect(video.facingMode).toEqual({ ideal: "environment" });
+  });
+});

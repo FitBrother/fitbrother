@@ -12,6 +12,9 @@ import type { Tamanho } from "./crop";
 
 export type CameraErro = "indisponivel" | "negada" | "sem_camera";
 
+/** Qual câmera do aparelho. Na web vira `facingMode`. */
+export type Lado = "back" | "front";
+
 /**
  * O frame que se quer: retrato.
  *
@@ -34,14 +37,17 @@ export const PEDIDO_INICIAL = {
   height: RESOLUCAO_ALVO.width,
 } as const;
 
-/** O pedido normal: traseira, no tamanho pedido. */
-export function constraintsDeCamera(alvo: Tamanho = PEDIDO_INICIAL): MediaStreamConstraints {
+/** O pedido normal: a câmera do lado pedido, no tamanho pedido. */
+export function constraintsDeCamera(
+  alvo: Tamanho = PEDIDO_INICIAL,
+  lado: Lado = "back",
+): MediaStreamConstraints {
   return {
     audio: false,
     video: {
       // `ideal`, não `exact`: em desktop sem traseira o `exact` rejeita o
       // stream inteiro, e aí nem a webcam de testes funciona.
-      facingMode: { ideal: "environment" },
+      facingMode: { ideal: lado === "front" ? "user" : "environment" },
       width: { ideal: alvo.width },
       height: { ideal: alvo.height },
     },
