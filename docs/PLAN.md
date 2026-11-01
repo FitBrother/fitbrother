@@ -653,6 +653,14 @@ e a original fica intacta. Refeição sem foto ganha a foto no primeiro export.
   resolve para o próprio arquivo, e os valores importados chegam `undefined`. O
   logo saía com altura NaN, sem `tsc` nem `jest` reclamarem; só o navegador
   mostrou. `lib/web-self-import.test.ts` prende esse caso.
+- **Revisão final, achados só do nativo** (lidos no código das bibliotecas, ainda
+  não confirmados em aparelho). No nativo a escrita num shared value vinda do JS
+  só vale depois da tarefa, e os `onLayout` de um commit chegam juntos: só o último
+  sticker ficava medido e os outros ignoravam o toque, por isso as medidas se
+  acumulam num ref. A rota de compartilhar deixou de ser `fullScreenModal`: o
+  `ConfirmDialog` e os toasts moram na raiz, e um modal nativo os cobriria, com o
+  `confirm` nunca resolvendo. No Android o tamanho da foto vem do EXIF cru, então
+  ela é medida depois da captura.
 - **Verificado no navegador** (375×812 e 1280×800, usuário local, stream sintético
   no `getUserMedia`, toque por `PointerEvent` sintético): refeição sem foto até o
   PNG de 1080×1920 e a foto gravada; refeição com foto, com a pergunta e sem montar

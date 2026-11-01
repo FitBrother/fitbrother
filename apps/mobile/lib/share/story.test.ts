@@ -24,6 +24,8 @@ import {
   type Caixa,
   type ConteudoStory,
   type Sticker,
+  arranjoMexido,
+  CENTRO_Y_MAX,
 } from "./story";
 import { SHARE_CARD_HEIGHT, SHARE_CARD_WIDTH } from "./geometry";
 import { ZOOM_MAXIMO } from "@/lib/media/crop";
@@ -367,5 +369,48 @@ describe("deveSalvarFoto", () => {
 
   test("sem foto local não há o que salvar", () => {
     expect(deveSalvarFoto({ ...base, fotoLocal: null })).toBe(false);
+  });
+});
+
+describe("limite da fila de presets", () => {
+  const caixa = { x: 20, y: 400, width: 100, height: 40 };
+
+  test("sticker solto embaixo fica acima da fila", () => {
+    const s = prenderSticker({ ...sticker({ id: "calorias" }), dy: 600 }, caixa);
+    expect(caixa.y + caixa.height / 2 + s.dy).toBe(CENTRO_Y_MAX);
+  });
+
+  test("logo solto embaixo também", () => {
+    const s = prenderLogo({ ...sticker({ id: "logo" }), dy: 600 }, caixa);
+    expect(caixa.y + caixa.height / 2 + s.dy).toBe(CENTRO_Y_MAX);
+  });
+
+  test("logo enorme continua inteiro no quadro", () => {
+    const s = prenderLogo(
+      { ...sticker({ id: "logo" }), scale: 4, dy: 600 },
+      { ...caixa, width: 300 },
+    );
+    const meiaA = (40 * s.scale) / 2;
+    expect(400 + 20 + s.dy + meiaA).toBeLessThanOrEqual(640);
+  });
+});
+
+describe("arranjoMexido", () => {
+  test("arranjo recém-feito não conta como mexido", () => {
+    expect(arranjoMexido([sticker({ id: "calorias" }), sticker({ id: "logo" })])).toBe(false);
+  });
+
+  test("só trazer para a frente não conta", () => {
+    expect(arranjoMexido([{ ...sticker({ id: "calorias" }), z: 9 }])).toBe(false);
+  });
+
+  test.each([
+    ["dx", { dx: 1 }],
+    ["dy", { dy: -1 }],
+    ["escala", { scale: 1.2 }],
+    ["giro", { rotation: 0.1 }],
+    ["remoção", { removido: true }],
+  ])("%s conta", (_, mudanca) => {
+    expect(arranjoMexido([{ ...sticker({ id: "calorias" }), ...mudanca }])).toBe(true);
   });
 });

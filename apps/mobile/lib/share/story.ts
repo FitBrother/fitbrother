@@ -134,7 +134,14 @@ export function moverSticker(s: Sticker, d: PassoDeGesto): Sticker {
   };
 }
 
-/** Mantém o centro dentro do quadro, para o sticker não sumir de vez. */
+/**
+ * Até onde o centro de um sticker desce: abaixo disso fica a fila de presets.
+ *
+ * Solto ali, ele ficaria embaixo da fila e não haveria mais como pegá-lo.
+ */
+export const CENTRO_Y_MAX = 524;
+
+/** Mantém o centro no quadro e acima da fila, para o sticker não sumir de vez. */
 export function prenderSticker(s: Sticker, caixa: Caixa): Sticker {
   "worklet";
   const cx = caixa.x + caixa.width / 2;
@@ -142,7 +149,7 @@ export function prenderSticker(s: Sticker, caixa: Caixa): Sticker {
   return {
     ...s,
     dx: limitar(s.dx, -cx, SHARE_CARD_WIDTH - cx),
-    dy: limitar(s.dy, -cy, SHARE_CARD_HEIGHT - cy),
+    dy: limitar(s.dy, -cy, CENTRO_Y_MAX - cy),
   };
 }
 
@@ -170,8 +177,20 @@ export function prenderLogo(s: Sticker, caixa: Caixa): Sticker {
     ...s,
     scale,
     dx: limitar(cx + s.dx, meiaL, SHARE_CARD_WIDTH - meiaL) - cx,
-    dy: limitar(cy + s.dy, meiaA, SHARE_CARD_HEIGHT - meiaA) - cy,
+    dy:
+      limitar(
+        cy + s.dy,
+        meiaA,
+        Math.max(meiaA, Math.min(CENTRO_Y_MAX, SHARE_CARD_HEIGHT - meiaA)),
+      ) - cy,
   };
+}
+
+/** Se a pessoa já mexeu em algo. Só trazer para a frente não conta. */
+export function arranjoMexido(stickers: readonly Sticker[]): boolean {
+  return stickers.some(
+    (s) => s.dx !== 0 || s.dy !== 0 || s.scale !== 1 || s.rotation !== 0 || s.removido,
+  );
 }
 
 export function moverFoto(f: FotoLivre, d: PassoDeGesto): FotoLivre {

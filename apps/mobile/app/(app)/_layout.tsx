@@ -70,11 +70,14 @@ function GuardedStack() {
         <ScreenFade>
           <Stack screenOptions={{ headerShown: false, animation: "fade" }}>
             <Stack.Screen name="meal/[id]/edit" options={{ presentation: "modal" }} />
-            {/* Compartilhar é tarefa de ida e volta, não um lugar do app, e a
-                câmera ocupa a tela toda: `fullScreenModal` sobe por cima de tudo
-                e voltar é o gesto de fechar. (Na web o expo-router ignora e
-                empilha normalmente.) */}
-            <Stack.Screen name="share/[type]/[id]" options={{ presentation: "fullScreenModal" }} />
+            {/* Tela comum, sem `presentation`: um modal nativo cobriria o
+                ConfirmDialog e os toasts, que moram na raiz, e no iOS a pergunta
+                da foto salva nunca apareceria. Sem o gesto de voltar porque
+                arrastar da borda brigaria com o arrasto de foto e sticker. */}
+            <Stack.Screen
+              name="share/[type]/[id]"
+              options={{ animation: "slide_from_bottom", gestureEnabled: false }}
+            />
             <Stack.Screen
               name="history/[day]/new"
               options={{

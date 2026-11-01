@@ -16,6 +16,11 @@ jest.mock("@/lib/share-card", () => ({
   podeCompartilharArquivos: () => mockPodeCompartilhar(),
 }));
 
+const mockConfirm = jest.fn<(o: unknown) => Promise<boolean>>();
+jest.mock("@/lib/dialog/dialog-context", () => ({
+  useDialog: () => ({ confirm: mockConfirm }),
+}));
+
 const mockToast = jest.fn();
 jest.mock("@/lib/toast/toast-context", () => ({ useToast: () => mockToast }));
 
@@ -129,13 +134,14 @@ describe("StoryEditor", () => {
     expect(r.queryAllByTestId("vinheta")).toHaveLength(0);
   });
 
-  test("tocar no preset selecionado devolve o sticker removido", () => {
+  test("tocar no preset selecionado devolve o sticker removido", async () => {
     const r = montar();
     const stickers = mockValoresStickers.value;
     act(() => mockFim("itens", stickers, FOTO_PADRAO));
     expect(mockValoresStickers.value.find((s) => s.id === "itens")?.removido).toBe(true);
 
-    fireEvent.press(r.getByLabelText("Refazer Completo"));
+    mockConfirm.mockResolvedValue(true);
+    await act(async () => fireEvent.press(r.getByLabelText("Refazer Completo")));
     expect(mockValoresStickers.value.find((s) => s.id === "itens")?.removido).toBe(false);
   });
 
@@ -181,5 +187,52 @@ describe("StoryEditor", () => {
   test("preset que não cabe no conteúdo cai no primeiro da lista", () => {
     const { getByText } = montar({ foto: null, presetInicial: "etiqueta" });
     expect(getByText("Pôster")).toBeTruthy();
+  });
+
+  describe("refazer o arranjo", () => {
+    function mexer() {
+      act(() =>
+        mockFim(
+          null,
+          mockValoresStickers.value.map((x) => ({ ...x, dy: -30 })),
+          FOTO_PADRAO,
+        ),
+      );
+    }
+
+    test("arranjo intacto refaz sem perguntar", async () => {
+      const r = montar();
+      await act(async () => fireEvent.press(r.getByLabelText("Refazer Completo")));
+      expect(mockConfirm).not.toHaveBeenCalled();
+    });
+
+    test("toque por engano no centro não apaga o que foi mexido", async () => {
+      mockConfirm.mockResolvedValue(false);
+      const r = montar();
+      mexer();
+      await act(async () => fireEvent.press(r.getByLabelText("Refazer Completo")));
+
+      expect(mockConfirm).toHaveBeenCalledTimes(1);
+      expect(mockValoresStickers.value.every((x) => x.dy === -30)).toBe(true);
+    });
+
+    test("confirmar devolve tudo ao lugar", async () => {
+      mockConfirm.mockResolvedValue(true);
+      const r = montar();
+      mexer();
+      await act(async () => fireEvent.press(r.getByLabelText("Refazer Completo")));
+
+      expect(mockValoresStickers.value.every((x) => x.dy === 0)).toBe(true);
+    });
+
+    test("trocar de preset depois de mexer também pergunta", async () => {
+      mockConfirm.mockResolvedValue(false);
+      const r = montar();
+      mexer();
+      await act(async () => fireEvent.press(r.getByLabelText("Preset Etiqueta")));
+
+      expect(mockConfirm).toHaveBeenCalledTimes(1);
+      expect(r.getByText("Completo")).toBeTruthy();
+    });
   });
 });

@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 import { act, fireEvent, render, waitFor } from "@testing-library/react-native";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { focusManager, QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { StyleSheet } from "react-native";
 import type { ReactElement } from "react";
 
 const mockConfirm = jest.fn<(o: Record<string, unknown>) => Promise<boolean>>();
@@ -83,8 +84,8 @@ async function abrirCamera(r: ReturnType<typeof render>) {
   act(() => mockAoPronta?.());
 }
 
-async function tirarFoto(uri = "blob:nova") {
-  await act(async () => mockAoCapturar?.(uri, { width: 1080, height: 1920 }));
+async function tirarFoto(uri = "blob:nova", tamanho = { width: 1080, height: 1920 }) {
+  await act(async () => mockAoCapturar?.(uri, tamanho));
 }
 
 async function exportar(r: ReturnType<typeof render>) {
@@ -218,6 +219,16 @@ describe("ShareFlow", () => {
     expect(mockUpload).not.toHaveBeenCalled();
   });
 
+  test("o tamanho da foto vem da imagem, não do que a câmera relatou", async () => {
+    const r = montar(<ShareFlow type="meal" id="m1" />);
+    await abrirCamera(r);
+    await tirarFoto("file:///foto.jpg", { width: 1920, height: 1080 });
+    await r.findByTestId("area-editor");
+
+    const foto = r.getByTestId("foto-do-card", { includeHiddenElements: true });
+    expect(StyleSheet.flatten(foto.props.style).width).toBe(1080);
+  });
+
   test("sem foto, mesmo havendo foto salva, abre o editor sem foto", async () => {
     mockGetMeal.mockResolvedValue({ ...REFEICAO, image_path: "u1/m1.jpg" });
     const r = montar(<ShareFlow type="meal" id="m1" />);
@@ -292,6 +303,40 @@ describe("ShareFlow", () => {
 
     await r.findByTestId("area-editor");
     expect(r.getByText("Pôster")).toBeTruthy();
+  });
+
+  test("voltar ao app não recarrega nem joga o editor fora", async () => {
+    mockFetchPost.mockResolvedValueOnce({
+      caption: "Almoço",
+      image_path: null,
+      total_kcal: 500,
+      total_protein_g: 30,
+      total_carbs_g: 50,
+      total_fat_g: 10,
+      created_at: "2026-10-11T12:00:00Z",
+    });
+    const r = montar(<ShareFlow type="post" id="p1" />);
+    await r.findByTestId("area-editor");
+
+    mockFetchPost.mockRejectedValue(new Error("offline"));
+    await act(async () => {
+      focusManager.setFocused(false);
+      focusManager.setFocused(true);
+    });
+    await act(async () => {});
+    focusManager.setFocused(undefined);
+
+    expect(mockFetchPost).toHaveBeenCalledTimes(1);
+    expect(r.queryByText(/Não foi possível carregar/)).toBeNull();
+    expect(r.getByTestId("area-editor")).toBeTruthy();
+  });
+
+  test("enquanto carrega dá para sair", async () => {
+    mockGetMeal.mockReturnValue(new Promise(() => {}));
+    const r = montar(<ShareFlow type="meal" id="m1" />);
+
+    fireEvent.press(await r.findByLabelText("Voltar"));
+    expect(mockBack).toHaveBeenCalledTimes(1);
   });
 
   test("falha ao carregar avisa e deixa voltar", async () => {

@@ -160,6 +160,11 @@ export function ShareFlow({ type, id }: { type: string; id: string }) {
     // ao sair da tela. Um dado em cache apontando para um blob já revogado
     // renderizaria o card sem foto, em silêncio.
     gcTime: 0,
+    // Uma carga só por visita. Com o foco de volta (vir do WhatsApp, por exemplo)
+    // um refetch falho viraria a tela de erro por cima do que a pessoa montou.
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
   const dados = q.data;
   const fotoDoDado = dados ? fotoDoCard(dados) : null;
@@ -241,6 +246,17 @@ export function ShareFlow({ type, id }: { type: string; id: string }) {
   }, []);
 
   /**
+   * Mede a imagem em vez de confiar no que a câmera relatou: no Android o
+   * tamanho vem do EXIF cru, deitado, e a foto em pé abriria cortada e ampliada.
+   */
+  const aoCapturar = useCallback(
+    async (uri: string, relatado: Tamanho) => {
+      abrirComFotoLocal(uri, await medirImagem(uri).catch(() => relatado));
+    },
+    [abrirComFotoLocal],
+  );
+
+  /**
    * Falha ao congelar o frame — não é câmera indisponível.
    *
    * A câmera continua aberta, porque tentar de novo costuma funcionar.
@@ -292,14 +308,18 @@ export function ShareFlow({ type, id }: { type: string; id: string }) {
   );
   const presetEmCena = presetPorId(presets[indiceCamera]?.id ?? "completo");
 
+  const voltar = (
+    <View className="absolute left-2 top-2">
+      <BotaoRedondo rotulo="Voltar" onPress={() => router.back()}>
+        <ChevronLeft size={24} color={colors.white} />
+      </BotaoRedondo>
+    </View>
+  );
+
   if (q.isError) {
     return (
       <SafeAreaView className="flex-1 bg-ink">
-        <View className="flex-row px-2 pt-2">
-          <BotaoRedondo rotulo="Voltar" onPress={() => router.back()}>
-            <ChevronLeft size={24} color={colors.white} />
-          </BotaoRedondo>
-        </View>
+        {voltar}
         <View className="flex-1 items-center justify-center px-8">
           <Text className="text-center font-sans text-neutral-300">
             Não foi possível carregar este card.
@@ -316,6 +336,7 @@ export function ShareFlow({ type, id }: { type: string; id: string }) {
         <CardPreview escala={quadro.width / SHARE_CARD_WIDTH}>
           <ShareCardSkeleton />
         </CardPreview>
+        {voltar}
       </SafeAreaView>
     );
   }
@@ -340,7 +361,7 @@ export function ShareFlow({ type, id }: { type: string; id: string }) {
     <CameraStage
       aspect={ASPECTO}
       rotulo="Compartilhar"
-      onCapture={abrirComFotoLocal}
+      onCapture={aoCapturar}
       onGaleria={daGaleria}
       onSemFoto={semFoto}
       onFechar={() => router.back()}

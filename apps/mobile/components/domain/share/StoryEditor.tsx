@@ -15,6 +15,7 @@ import { Sentry } from "@/lib/sentry";
 import { SHARE_CARD_HEIGHT, SHARE_CARD_WIDTH } from "@/lib/share/geometry";
 import {
   arranjoInicial,
+  arranjoMexido,
   estiloFoto,
   estiloSticker,
   FOTO_PADRAO,
@@ -28,6 +29,7 @@ import {
   type StoryPresetId,
 } from "@/lib/share/story";
 import { presetPorId, presetsDoStory } from "@/lib/share/story-presets";
+import { useDialog } from "@/lib/dialog/dialog-context";
 import { useToast } from "@/lib/toast/toast-context";
 import { BotaoRedondo } from "./CameraStage";
 import { CardPreview } from "./CardPreview";
@@ -120,6 +122,7 @@ export function StoryEditor({
   onExportar: () => void;
 }) {
   const toast = useToast();
+  const { confirm } = useDialog();
   const conteudo = conteudoDoStory(data);
   const presets = presetsDoStory({ temFoto: Boolean(foto), temMacros: temMacros(data) });
   const [presetId, setPresetId] = useState<StoryPresetId>(() =>
@@ -151,9 +154,14 @@ export function StoryEditor({
     setArea({ width, height });
   }, []);
 
+  // As medidas se acumulam num ref, não lendo o shared value de volta. No nativo
+  // a escrita vinda do JS só vale depois da tarefa, e os `onLayout` de um commit
+  // chegam todos na mesma: cada um leria o objeto vazio, e só o último ficaria.
+  const medidas = useRef<Partial<Record<StickerId, Caixa>>>({});
   const aoMedirSticker = useCallback(
     (id: StickerId, caixa: Caixa) => {
-      caixasSV.value = { ...caixasSV.value, [id]: caixa };
+      medidas.current[id] = caixa;
+      caixasSV.value = { ...medidas.current };
     },
     [caixasSV],
   );
@@ -186,8 +194,22 @@ export function StoryEditor({
     transform: [{ scale: sobreLixeira.value ? 1.25 : 1 }],
   }));
 
-  /** Refaz o arranjo: é assim que um sticker removido volta. A foto fica. */
-  function aplicarPreset(id: StoryPresetId) {
+  /**
+   * Refaz o arranjo: é assim que um sticker removido volta. A foto fica.
+   *
+   * Pergunta antes se a pessoa já mexeu em algo. O anel do centro parece o
+   * disparo da tela anterior, e tocar nele por engano não tem desfazer.
+   */
+  async function aplicarPreset(id: StoryPresetId) {
+    if (arranjoMexido(stickers)) {
+      const refazer = await confirm({
+        title: "Refazer os elementos?",
+        description: "O que você moveu ou removeu volta para o lugar.",
+        confirmLabel: "Refazer",
+        cancelLabel: "Manter",
+      });
+      if (!refazer) return;
+    }
     const arranjo = arranjoInicial(stickersDoPreset(id, conteudo));
     setPresetId(id);
     setStickers(arranjo);
@@ -344,9 +366,9 @@ export function StoryEditor({
               )}
               onSelecionar={(i) => {
                 const p = presets[i];
-                if (p) aplicarPreset(p.id);
+                if (p) void aplicarPreset(p.id);
               }}
-              onCentro={() => aplicarPreset(presetId)}
+              onCentro={() => void aplicarPreset(presetId)}
               rotuloCentro={`Refazer ${preset.label}`}
             />
           </View>
