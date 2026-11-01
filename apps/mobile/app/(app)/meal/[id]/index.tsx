@@ -2,7 +2,7 @@ import { Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronLeft, ImageDown, Pencil, Share2, Sparkles, Trash2 } from "lucide-react-native";
+import { ChevronLeft, ImagePlus, Pencil, Share2, Sparkles, Trash2 } from "lucide-react-native";
 import type { MealResponse } from "@fitbrother/shared";
 import { getMeal } from "@/lib/api/meals";
 import { mealDetailKey } from "@/lib/hooks/useMealsForDay";
@@ -213,14 +213,20 @@ export default function MealDetailScreen() {
         )}
 
         {/* Os dois destinos, um embaixo do outro e nomeados.
-            Antes o de fora do app era um ícone de download solto no header,
-            ao lado de editar e excluir — lia como "exportar meus dados", não
-            como "fazer uma imagem disso". E dividia a tela com um botão
-            "Compartilhar no feed" que usava justamente o ícone de compartilhar.
-            Os rótulos agora dizem para onde vai cada um; o primário é o de
-            dentro do app, que é o que alimenta o feed. */}
+            Compartilhar sai do app como imagem, pela câmera de story; Novo post
+            fica dentro dele, no feed. O primário é o de fora porque é o que
+            leva a marca para quem ainda não está aqui. */}
         {!meal.review_required && (
           <View className="mt-6 gap-2 px-4">
+            <Pressable
+              onPress={() => router.push(`/(app)/share/meal/${meal.id}` as never)}
+              accessibilityRole="button"
+              accessibilityLabel="Compartilhar"
+              className="min-h-[52px] flex-row items-center justify-center rounded-full bg-primary-400 px-6 py-3 active:bg-primary-500"
+            >
+              <Share2 size={18} color={colors.neutral[50]} />
+              <Text className="ml-2 text-base font-sans-semibold text-white">Compartilhar</Text>
+            </Pressable>
             <Pressable
               onPress={() =>
                 router.push({
@@ -229,25 +235,12 @@ export default function MealDetailScreen() {
                 })
               }
               accessibilityRole="button"
-              accessibilityLabel="Compartilhar no feed do Fitbrother"
-              className="min-h-[52px] flex-row items-center justify-center rounded-full bg-primary-400 px-6 py-3 active:bg-primary-500"
-            >
-              <Share2 size={18} color={colors.neutral[50]} />
-              <Text className="ml-2 text-base font-sans-semibold text-white">
-                Compartilhar no feed
-              </Text>
-            </Pressable>
-            <Pressable
-              onPress={() => router.push(`/(app)/share/meal/${meal.id}` as never)}
-              accessibilityRole="button"
-              accessibilityLabel="Gerar imagem para outras redes"
+              accessibilityLabel="Novo post"
               style={shadows.card}
               className="min-h-[52px] flex-row items-center justify-center rounded-full bg-white px-6 py-3 active:opacity-70"
             >
-              <ImageDown size={18} color={colors.neutral[700]} />
-              <Text className="ml-2 text-base font-sans-semibold text-neutral-700">
-                Gerar imagem
-              </Text>
+              <ImagePlus size={18} color={colors.neutral[700]} />
+              <Text className="ml-2 text-base font-sans-semibold text-neutral-700">Novo post</Text>
             </Pressable>
           </View>
         )}

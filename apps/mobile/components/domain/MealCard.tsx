@@ -9,7 +9,7 @@ import { MacroLegendInline, MacroSplitBorder } from "./MacroSplitBar";
  * O mesmo rótulo sem o emoji, para leitor de tela e para compor frases.
  *
  * O emoji é decoração: lido em voz alta, "🍽 Almoço" vira "garfo e faca
- * Almoço", e dentro de uma frase maior ("Gerar imagem de 🍽 Almoço") ele
+ * Almoço", e dentro de uma frase maior ("Compartilhar 🍽 Almoço") ele
  * atravessa o meio dela.
  */
 export const MEAL_TYPE_NAME: Record<MealResponse["meal_type"], string> = {
