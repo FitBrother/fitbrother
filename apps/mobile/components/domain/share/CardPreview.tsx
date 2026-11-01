@@ -13,10 +13,13 @@ import type { ReactNode } from "react";
  */
 export function CardPreview({
   escala,
+  transparente = false,
   children,
   testID,
 }: {
   escala: number;
+  /** Sem fundo próprio, para a câmera aparecer por trás. */
+  transparente?: boolean;
   children: ReactNode;
   testID?: string;
 }) {
@@ -28,7 +31,7 @@ export function CardPreview({
     <View
       testID={testID}
       style={{ width: largura, height: altura, borderRadius: 18 }}
-      className="overflow-hidden bg-ink"
+      className={transparente ? "overflow-hidden" : "overflow-hidden bg-ink"}
     >
       <View
         style={{

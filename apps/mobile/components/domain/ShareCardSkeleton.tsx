@@ -8,8 +8,7 @@ import {
 } from "@/lib/share/geometry";
 
 /**
- * Espelha o quadro do `ShareCard` enquanto os dados carregam em
- * `share/[type]/[id].tsx`.
+ * Espelha o quadro do `StoryCard` enquanto os dados carregam no `ShareFlow`.
  *
  * A composição segue a do card: o respiro em cima (onde a foto vai), e embaixo
  * o bloco ancorado — data, legenda, número de kcal, barra de macros e a marca
@@ -17,8 +16,8 @@ import {
  * conteúdo real só se sabem depois do fetch.
  *
  * Sem raio e nas medidas de `geometry`: quem arredonda e encolhe é o
- * `CardPreview` da tela, o mesmo que envolve o card de verdade — assim os dois
- * ocupam exatamente o mesmo espaço e a troca não empurra nada.
+ * `CardPreview`, o mesmo que envolve o card de verdade — assim os dois ocupam
+ * exatamente o mesmo espaço e a troca não empurra nada.
  */
 export function ShareCardSkeleton() {
   return (

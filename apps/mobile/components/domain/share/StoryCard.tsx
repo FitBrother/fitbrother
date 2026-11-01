@@ -9,7 +9,6 @@ import {
   STORY_SAFE_BOTTOM,
   STORY_SAFE_TOP,
 } from "@/lib/share/geometry";
-import { truncate, withAlpha } from "@/lib/share/presets";
 import {
   estiloFoto,
   estiloSticker,
@@ -20,12 +19,12 @@ import {
   type Sticker,
   type StickerId,
 } from "@/lib/share/story";
+import { truncate, withAlpha, type StoryPreset } from "@/lib/share/story-presets";
 import { ShareLogo } from "./ShareLogo";
 
 import type { ComponentType, ReactNode } from "react";
 import type { LayoutChangeEvent, ViewStyle } from "react-native";
 import type { Tamanho } from "@/lib/media/crop";
-import type { StoryPreset } from "@/lib/share/story-presets";
 
 const NUM: { fontVariant: ["tabular-nums"] } = { fontVariant: ["tabular-nums"] };
 

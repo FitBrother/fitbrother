@@ -1,6 +1,21 @@
 import { colors } from "@/lib/colors";
 import type { StoryPresetId } from "./story";
 
+/**
+ * Converte um token hexadecimal em `rgba()` com a opacidade pedida.
+ *
+ * Existe por causa dos scrims: um degradê de `"transparent"` até uma cor opaca
+ * passa por cinza no meio (o `transparent` do CSS é preto com alpha 0, e a
+ * interpolação acontece em RGB não-premultiplicado). Partindo da MESMA cor com
+ * alpha 0, o degradê só muda de opacidade e o meio fica limpo.
+ */
+export function withAlpha(hex: string, alpha: number): string {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
 export type StoryPreset = {
   id: StoryPresetId;
   /** Nome mostrado acima da fila de presets. */
@@ -101,4 +116,19 @@ export function presetsDoStory({
 export function presetPorId(id: StoryPresetId): StoryPreset {
   // `!`: o tipo do id garante que ele está na lista.
   return STORY_PRESETS.find((p) => p.id === id)!;
+}
+
+/**
+ * Corta o texto em `max` caracteres, terminando numa palavra inteira.
+ *
+ * A captura não pode confiar só no `numberOfLines`: o `react-native-web` o
+ * implementa com `-webkit-line-clamp`, que o html2canvas não interpreta — no
+ * PNG o texto sairia inteiro e estouraria o quadro. Cortar na origem garante o
+ * mesmo resultado nas duas plataformas.
+ */
+export function truncate(text: string, max: number): string {
+  if (text.length <= max) return text;
+  const corte = text.slice(0, max);
+  const ultimoEspaco = corte.lastIndexOf(" ");
+  return `${(ultimoEspaco > max * 0.6 ? corte.slice(0, ultimoEspaco) : corte).trimEnd()}…`;
 }
