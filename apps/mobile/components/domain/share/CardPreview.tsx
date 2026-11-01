@@ -1,16 +1,15 @@
 import { View } from "react-native";
 import { SHARE_CARD_HEIGHT, SHARE_CARD_WIDTH } from "@/lib/share/geometry";
-import { shadows } from "@/lib/shadows";
 
 import type { ReactNode } from "react";
 
 /**
- * Encolhe o card para caber no preview.
+ * Encolhe o card para caber no quadro da tela.
  *
  * O `scale` do RN parte do centro, então o filho em tamanho cheio é ancorado
  * meio quadro acima e à esquerda — assim o conteúdo escalado acaba exatamente
- * preenchendo o contêiner já reduzido. O raio e a sombra ficam AQUI, e não no
- * card: dentro da captura, o raio deixaria os cantos do PNG transparentes.
+ * preenchendo o contêiner já reduzido. O raio fica AQUI, e não no card: dentro
+ * da captura, ele deixaria os cantos do PNG transparentes.
  */
 export function CardPreview({
   escala,
@@ -28,8 +27,8 @@ export function CardPreview({
   return (
     <View
       testID={testID}
-      style={[shadows.floating, { width: largura, height: altura, borderRadius: 26 }]}
-      className="overflow-hidden bg-white"
+      style={{ width: largura, height: altura, borderRadius: 18 }}
+      className="overflow-hidden bg-ink"
     >
       <View
         style={{

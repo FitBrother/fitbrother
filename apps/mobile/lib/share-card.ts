@@ -96,6 +96,18 @@ function arquivoDoCard(uri: string): File | null {
   return blob ? new File([blob], NOME_ARQUIVO, { type: blob.type || "image/png" }) : null;
 }
 
+/**
+ * Se dá para oferecer o botão de compartilhar.
+ *
+ * Testa com um arquivo de verdade: `navigator.share` existir não basta, porque
+ * o desktop costuma compartilhar link e recusar arquivo.
+ */
+export function podeCompartilharArquivos(): boolean {
+  if (Platform.OS !== "web") return true;
+  if (!navigator.canShare) return false;
+  return navigator.canShare({ files: [new File([""], NOME_ARQUIVO, { type: "image/png" })] });
+}
+
 /** Baixa o uri como arquivo via um <a download> temporário. */
 function baixarUri(uri: string, filename: string): void {
   const link = document.createElement("a");

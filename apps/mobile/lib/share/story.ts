@@ -80,6 +80,10 @@ export const LOGO_ESCALA_MIN = 0.8;
 /** Sempre a camada de cima: nenhum sticker pode cobrir o logo. */
 export const Z_LOGO = 1000;
 
+/** Onde a lixeira fica no card, e até onde soltar conta como "em cima dela". */
+export const LIXEIRA: Ponto = { x: SHARE_CARD_WIDTH / 2, y: SHARE_CARD_HEIGHT - 60 };
+export const RAIO_LIXEIRA = 44;
+
 /** Meia área de toque mínima, em dp do card: 44×44, a regra do resto do app. */
 const MEIA_AREA_MINIMA = 22;
 
@@ -220,6 +224,11 @@ export function trazerParaFrente(stickers: Sticker[], id: StickerId): Sticker[] 
   for (const s of stickers) if (s.id !== "logo" && s.id !== id) topo = Math.max(topo, s.z);
   const z = Math.min(topo + 1, Z_LOGO - 1);
   return stickers.map((s) => (s.id === id ? { ...s, z } : s));
+}
+
+export function dentroDaLixeira(p: Ponto): boolean {
+  "worklet";
+  return Math.hypot(p.x - LIXEIRA.x, p.y - LIXEIRA.y) <= RAIO_LIXEIRA;
 }
 
 /**

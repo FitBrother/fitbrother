@@ -3,10 +3,12 @@ import {
   alvoDoToque,
   arranjoInicial,
   deveSalvarFoto,
+  dentroDaLixeira,
   estiloFoto,
   estiloSticker,
   FOTO_ESCALA_MIN,
   FOTO_PADRAO,
+  LIXEIRA,
   LOGO_ESCALA_MIN,
   moverFoto,
   moverSticker,
@@ -323,6 +325,16 @@ describe("tamanhoDoQuadro", () => {
       width: 400,
       height: 500,
     });
+  });
+});
+
+describe("dentroDaLixeira", () => {
+  test("no centro da lixeira, sim", () => {
+    expect(dentroDaLixeira(LIXEIRA)).toBe(true);
+  });
+
+  test("longe dela, não", () => {
+    expect(dentroDaLixeira({ x: LIXEIRA.x, y: LIXEIRA.y - 120 })).toBe(false);
   });
 });
 

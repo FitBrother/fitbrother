@@ -34,7 +34,7 @@ const PAD = 26;
 
 const PREENCHE = { position: "absolute", left: 0, right: 0, top: 0, bottom: 0 } as const;
 
-const QUADRO: Tamanho = { width: SHARE_CARD_WIDTH, height: SHARE_CARD_HEIGHT };
+export const QUADRO_STORY: Tamanho = { width: SHARE_CARD_WIDTH, height: SHARE_CARD_HEIGHT };
 
 /**
  * Os macros na ordem fixa proteína → carboidrato → gordura, a mesma do resto do
@@ -454,7 +454,7 @@ function CaixaEstatica({ sticker, style, onLayout, children }: CaixaStickerProps
 
 /** A foto no tamanho natural, centrada: quem encaixa no quadro é o transform. */
 export function estiloBaseDaFoto(natural: Tamanho | null) {
-  const n = natural ?? QUADRO;
+  const n = natural ?? QUADRO_STORY;
   return {
     position: "absolute" as const,
     left: (SHARE_CARD_WIDTH - n.width) / 2,
@@ -470,7 +470,10 @@ function FotoEstatica({ uri, natural, foto }: CamadaFotoProps) {
       testID="foto-do-card"
       source={{ uri }}
       accessibilityIgnoresInvertColors
-      style={[estiloBaseDaFoto(natural), estiloFoto(foto, natural ?? QUADRO, QUADRO) as never]}
+      style={[
+        estiloBaseDaFoto(natural),
+        estiloFoto(foto, natural ?? QUADRO_STORY, QUADRO_STORY) as never,
+      ]}
     />
   );
 }
