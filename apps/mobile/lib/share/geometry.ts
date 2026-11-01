@@ -10,6 +10,12 @@ export const SHARE_CARD_WIDTH = 360;
 export const SHARE_CARD_HEIGHT = 640;
 export const SHARE_EXPORT_SCALE = 3;
 
+/** Proporção do PNG do logo com sombra (1230 × 239 px), margem incluída. */
+export const LOGO_SOMBRA_ASPECT = 1230 / 239;
+
+/** Quanto a margem da sombra representa da altura do lockup (24 de 191 px). */
+export const LOGO_SOMBRA_MARGEM = 24 / 191;
+
 /**
  * Faixa que o Instagram cobre com a própria interface, no topo e embaixo.
  *

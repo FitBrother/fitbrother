@@ -71,4 +71,4 @@ for (let y = 0; y < h; y++) {
   }
 }
 writeFileSync("assets/brand/logo-horizontal-branco-sombra.png", PNG.sync.write(saida));
-console.log(`${w}×${h}`);
+process.stdout.write(`${w}×${h}\n`);

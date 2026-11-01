@@ -1,7 +1,8 @@
 import logoMenta from "@/assets/brand/logo-horizontal-menta.png";
 import logoBranco from "@/assets/brand/logo-horizontal-branco.png";
 import logoSombra from "@/assets/brand/logo-horizontal-branco-sombra.png";
-import { LOGO_SOMBRA_ASPECT, LOGO_SOMBRA_MARGEM, type ShareLogoVariant } from "./ShareLogo";
+import { LOGO_SOMBRA_ASPECT, LOGO_SOMBRA_MARGEM } from "@/lib/share/geometry";
+import type { ShareLogoVariant } from "./ShareLogo";
 
 /** Proporção do lockup horizontal (1182 × 191 px), a mesma de `Logo.tsx`. */
 const ASPECT_RATIO = 1182 / 191;

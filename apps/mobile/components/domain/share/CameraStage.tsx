@@ -148,10 +148,7 @@ export function CameraStage({
           {topoDireita}
         </View>
 
-        <View
-          style={{ pointerEvents: "box-none" }}
-          className="absolute bottom-0 left-2 top-0 justify-center"
-        >
+        <View style={{ pointerEvents: "box-none" }} className="absolute left-2 top-16">
           <Pressable
             onPress={onSemFoto}
             accessibilityRole="button"

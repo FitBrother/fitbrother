@@ -1,15 +1,10 @@
 import { Image } from "react-native";
 import { Logo } from "@/components/Logo";
+import { LOGO_SOMBRA_ASPECT, LOGO_SOMBRA_MARGEM } from "@/lib/share/geometry";
 
 import logoSombra from "@/assets/brand/logo-horizontal-branco-sombra.png";
 
 export type ShareLogoVariant = "white" | "menta" | "sombra";
-
-/** Proporção do PNG com sombra (1230 × 239 px), margem incluída. */
-export const LOGO_SOMBRA_ASPECT = 1230 / 239;
-
-/** Quanto a margem da sombra representa da altura do lockup (24 de 191 px). */
-export const LOGO_SOMBRA_MARGEM = 24 / 191;
 
 /**
  * O lockup da marca dentro do card compartilhável.

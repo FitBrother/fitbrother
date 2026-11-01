@@ -119,6 +119,9 @@ export function useStoryGestos({
     const arrastar = Gesture.Pan()
       .minPointers(1)
       .maxPointers(2)
+      // O padrão de 10dp deixaria o sticker para trás do dedo, e aqui não há
+      // toque simples para o arrasto competir.
+      .minDistance(1)
       .onBegin((e) => {
         ativos.value |= PAN;
         if (alvo.value !== SEM_ALVO) return;
