@@ -4,6 +4,29 @@ import type { View } from "react-native";
 import { SHARE_CARD_HEIGHT, SHARE_CARD_WIDTH, SHARE_EXPORT_SCALE } from "./geometry";
 
 /**
+ * Devolve o baseline certo ao texto da imagem exportada.
+ *
+ * Para saber onde desenhar cada linha, o html2canvas (`FontMetrics`) põe uma
+ * `<img>` inline ao lado de um texto, num `<div>` invisível preso ao `body`, e
+ * lê a altura dela. O preflight do Tailwind deixa toda `<img>` com
+ * `display: block`, então ela cai para a linha de baixo e o baseline medido vira
+ * a altura da linha inteira: todo texto do PNG saía mais baixo que na tela.
+ * Medido com texto de 30dp e uma barra logo abaixo: a barra cortava o número no
+ * PNG, com ou sem transform, e esta regra pôs os seis casos no lugar.
+ *
+ * O seletor pega só esse `<div>` de medição, que é o único filho direto do
+ * `body` com `visibility: hidden` e uma `<img>` dentro.
+ */
+export function garantirMetricasDeFonte(doc: Document = document): void {
+  if (doc.head.querySelector("style[data-share-metricas]")) return;
+  const estilo = doc.createElement("style");
+  estilo.setAttribute("data-share-metricas", "");
+  estilo.textContent =
+    'body > div[style*="visibility: hidden"] > img { display: inline !important; }';
+  doc.head.appendChild(estilo);
+}
+
+/**
  * Captura o card como PNG e devolve uma data URI.
  *
  * **Por que a web não usa `react-native-view-shot`:** a lib até tem uma
@@ -25,6 +48,7 @@ export async function captureCard(ref: RefObject<View | null>): Promise<string> 
   const node = ref.current as unknown as HTMLElement | null;
   if (!node) throw new Error("share_card_ref_missing");
 
+  garantirMetricasDeFonte();
   const canvas = await html2canvas(node, {
     scale: SHARE_EXPORT_SCALE,
     // `null` deixa o próprio card pintar o fundo. O quadro é opaco de ponta a
