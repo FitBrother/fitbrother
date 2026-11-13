@@ -17,11 +17,17 @@ import { act, createRef } from "react";
 import { createRoot, type Root } from "react-dom/client";
 
 const mockCapturarFrame =
-  jest.fn<() => Promise<{ uri: string; tamanho: { width: number; height: number } }>>();
+  jest.fn<
+    (
+      video: unknown,
+      opcoes?: { espelhar?: boolean },
+    ) => Promise<{ uri: string; tamanho: { width: number; height: number } }>
+  >();
 // `mock` no nome não é estilo: o jest hoista a factory acima dos imports e
 // recusa referência a variável de fora do escopo, exceto com esse prefixo.
 jest.mock("@/lib/media/frame-capture.web", () => ({
-  capturarFrame: () => mockCapturarFrame(),
+  capturarFrame: (video: unknown, opcoes?: { espelhar?: boolean }) =>
+    mockCapturarFrame(video, opcoes),
 }));
 
 import { CameraLive, type CameraLiveHandle } from "./CameraLive.web";
@@ -29,7 +35,7 @@ import { CameraLive, type CameraLiveHandle } from "./CameraLive.web";
 import type { ReactElement } from "react";
 
 const stopTrack = jest.fn();
-const getUserMedia = jest.fn<() => Promise<MediaStream>>();
+const getUserMedia = jest.fn<(c?: MediaStreamConstraints) => Promise<MediaStream>>();
 const originalMediaDevices = navigator.mediaDevices;
 const originalInnerWidth = window.innerWidth;
 const originalInnerHeight = window.innerHeight;
@@ -269,6 +275,50 @@ describe("CameraLive na web", () => {
     });
 
     expect(onCapture).toHaveBeenCalledWith("blob:frame", { width: 1080, height: 1920 });
+  });
+
+  test("virar a câmera troca o stream sem remontar o <video>", async () => {
+    await montar(<CameraLive aspect={ASPECTO} onCapture={jest.fn()} onError={jest.fn()} />);
+    const video = container!.querySelector("video");
+    stopTrack.mockClear();
+    getUserMedia.mockClear();
+
+    await act(async () => {
+      root!.render(
+        <CameraLive aspect={ASPECTO} facing="front" onCapture={jest.fn()} onError={jest.fn()} />,
+      );
+    });
+
+    expect(stopTrack).toHaveBeenCalled();
+    const pedido = getUserMedia.mock.calls[0]?.[0]?.video as MediaTrackConstraints;
+    expect(pedido.facingMode).toEqual({ ideal: "user" });
+    expect(container!.querySelector("video")).toBe(video);
+  });
+
+  test("a frontal aparece espelhada, e a foto sai como foi vista", async () => {
+    const ref = createRef<CameraLiveHandle>();
+    mockCapturarFrame.mockResolvedValue({ uri: "blob:x", tamanho: RETRATO });
+    await montar(
+      <CameraLive
+        ref={ref}
+        aspect={ASPECTO}
+        facing="front"
+        onCapture={jest.fn()}
+        onError={jest.fn()}
+      />,
+    );
+
+    expect(container!.querySelector("video")?.style.transform).toBe("scaleX(-1)");
+    await act(async () => {
+      await ref.current?.capturar();
+    });
+    expect(mockCapturarFrame).toHaveBeenCalledWith(expect.anything(), { espelhar: true });
+  });
+
+  test("a traseira não espelha", async () => {
+    await montar(<CameraLive aspect={ASPECTO} onCapture={jest.fn()} onError={jest.fn()} />);
+
+    expect(container!.querySelector("video")?.style.transform).toBe("");
   });
 
   test("para os tracks ao desmontar", async () => {

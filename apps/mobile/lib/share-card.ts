@@ -60,7 +60,7 @@ export async function toDisplayableImageUri(url: string): Promise<string> {
     // tem algumas dezenas de caracteres. Continua sendo mesma origem, então
     // não tainta o canvas do html2canvas — que é o motivo de tudo isso.
     //
-    // Quem criou revoga: ver `useEffect` de limpeza em `share/[type]/[id]`.
+    // Quem criou revoga: ver `useRevogarBlob` no `ShareFlow`.
     return await new Promise<string>((resolve, reject) => {
       canvas.toBlob(
         (b) => (b ? resolve(URL.createObjectURL(b)) : reject(new Error("canvas_to_blob_failed"))),
@@ -94,6 +94,18 @@ const NOME_ARQUIVO = "fitbrother-card.png";
 function arquivoDoCard(uri: string): File | null {
   const blob = blobCapturado(uri);
   return blob ? new File([blob], NOME_ARQUIVO, { type: blob.type || "image/png" }) : null;
+}
+
+/**
+ * Se dá para oferecer o botão de compartilhar.
+ *
+ * Testa com um arquivo de verdade: `navigator.share` existir não basta, porque
+ * o desktop costuma compartilhar link e recusar arquivo.
+ */
+export function podeCompartilharArquivos(): boolean {
+  if (Platform.OS !== "web") return true;
+  if (!navigator.canShare) return false;
+  return navigator.canShare({ files: [new File([""], NOME_ARQUIVO, { type: "image/png" })] });
 }
 
 /** Baixa o uri como arquivo via um <a download> temporário. */

@@ -616,6 +616,7 @@ e o arrasto troca de estilo com a câmera aberta.
   aberto** — a pergunta sim/não de se o navegador honra constraint `ideal` de
   resolução, que é a premissa da decisão D1, exige um celular de verdade e não foi
   respondida; `app/debug-camera.tsx` é a rota de medição e sai quando for.
+  (Respondido em 2026-11-01: ver a Revisão M9.4. A rota saiu.)
   Se a resposta for não, a decisão certa é voltar ao `CameraView`, e o custo é
   localizado no `CameraLive.web.tsx` — o palco e os presets não mudam.
   (b) **Nada do caminho nativo** rodou em aparelho: `CameraLive.tsx`, o
@@ -625,6 +626,53 @@ e o arrasto troca de estilo com a câmera aberta.
   exercitado. (d) A câmera real — o que foi exercitado é um stream sintético de
   1080×1920, então nada diz como uma câmera de celular se comporta com `ideal`,
   que é justamente o gate (a).
+
+**Revisão M9.4 (compartilhar como story):** 2026-11-01, branch
+`feat/compartilhar-stories`. Spec em
+[`docs/superpowers/specs/2026-10-31-compartilhar-stories-design.md`](superpowers/specs/2026-10-31-compartilhar-stories-design.md).
+
+A refeição mantém dois botões: **Compartilhar** abre a câmera em tela cheia, no
+jeito dos stories do Instagram, e **Novo post** abre a mesma câmera no quadro 4:5
+do feed, sem presets. Depois da foto vem um editor: dois dedos mexem na foto, cada
+elemento do card é um sticker que arrasta, redimensiona, gira e vai para a
+lixeira. O logo fica sempre. Os gradientes coloridos saíram; sobra só a vinheta
+preta, com botão para ligar e desligar. Refeição que já tem foto pergunta antes
+("Usar a foto salva" ou "Tirar outra"); a foto nova só vai para a imagem exportada
+e a original fica intacta. Refeição sem foto ganha a foto no primeiro export.
+
+- **Gate da câmera respondido.** No iPhone, Safari e Vivaldi entregam 1080×1920
+  pedindo 1920×1080: o WebKit inverte a orientação pedida, e o `PEDIDO_INICIAL`
+  já conta com isso. A decisão D1 (`getUserMedia` direto, sem `CameraView`) fica de
+  pé. **Android não foi medido.** `app/debug-camera.tsx` foi removido.
+- **Defeito de baseline do html2canvas.** O preflight do Tailwind põe
+  `img { display: block }`, e isso alcança a `<img>` que o html2canvas usa para
+  medir fonte: todo texto exportado saía deslocado para baixo.
+  `garantirMetricasDeFonte` (`lib/share/capture.web.ts`) corrige só o nó de medida.
+  `tabular-nums` não chega ao canvas; aceito.
+- **Armadilha do Metro.** Na web, `./ShareLogo` dentro de `ShareLogo.web.tsx`
+  resolve para o próprio arquivo, e os valores importados chegam `undefined`. O
+  logo saía com altura NaN, sem `tsc` nem `jest` reclamarem; só o navegador
+  mostrou. `lib/web-self-import.test.ts` prende esse caso.
+- **Revisão final, achados só do nativo** (lidos no código das bibliotecas, ainda
+  não confirmados em aparelho). No nativo a escrita num shared value vinda do JS
+  só vale depois da tarefa, e os `onLayout` de um commit chegam juntos: só o último
+  sticker ficava medido e os outros ignoravam o toque, por isso as medidas se
+  acumulam num ref. A rota de compartilhar deixou de ser `fullScreenModal`: o
+  `ConfirmDialog` e os toasts moram na raiz, e um modal nativo os cobriria, com o
+  `confirm` nunca resolvendo. No Android o tamanho da foto vem do EXIF cru, então
+  ela é medida depois da captura.
+- **Verificado no navegador** (375×812 e 1280×800, usuário local, stream sintético
+  no `getUserMedia`, toque por `PointerEvent` sintético): refeição sem foto até o
+  PNG de 1080×1920 e a foto gravada; refeição com foto, com a pergunta e sem montar
+  a câmera; "Sem foto" em Pôster; análise em Pôster; Novo post até o formulário;
+  arrasto, pinça e giro; lixeira removendo sticker e recusando o logo; PNG sobreposto
+  ao editor; mouse e roda no desktop.
+- **O que NÃO foi verificado.** (a) **Nada no aparelho**: gesto com dedos de verdade
+  e todo o caminho nativo (`CameraLive.tsx`, `captureRef`, share sheet) dependem de
+  um build EAS. (b) **Ambiente hospedado:** `dev.fitbrother.app` aponta para o
+  Supabase e a Lambda de produção, onde falta a coluna `meals.image_path`; até isso
+  ser corrigido, a foto não é salva na refeição nos testes pela URL hospedada, e o
+  deploy de `f2a3f00` continua falho. (c) Android.
 
 ---
 

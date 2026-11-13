@@ -9,7 +9,7 @@ import Animated, {
   withSpring,
 } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
-import { ImageDown, Trash2 } from "lucide-react-native";
+import { Share2, Trash2 } from "lucide-react-native";
 import type { MealResponse } from "@fitbrother/shared";
 import { colors } from "@/lib/colors";
 import { MealCard, MEAL_TYPE_NAME } from "./MealCard";
@@ -112,12 +112,14 @@ export function MealCardSwipeable({ meal, onPress, onDelete, onShare }: Props) {
               // Nomeia a refeição em vez de dizer "desta": um leitor de tela
               // percorre a lista inteira, e três cards abertos anunciando o
               // mesmo rótulo não dizem de qual refeição é cada botão.
-              accessibilityLabel={`Gerar imagem de ${MEAL_TYPE_NAME[meal.meal_type]}`}
+              accessibilityLabel={`Compartilhar ${MEAL_TYPE_NAME[meal.meal_type]}`}
               accessibilityRole="button"
               className="h-20 w-20 items-center justify-center rounded-2xl bg-primary-400 active:bg-primary-500"
             >
-              <ImageDown size={22} color={colors.white} />
-              <Text className="mt-1 text-xs font-sans-semibold text-white">Imagem</Text>
+              <Share2 size={22} color={colors.white} />
+              <Text numberOfLines={1} className="mt-1 text-xs font-sans-semibold text-white">
+                Compartilhar
+              </Text>
             </Pressable>
           </Animated.View>
           <Animated.View style={actionStyle}>

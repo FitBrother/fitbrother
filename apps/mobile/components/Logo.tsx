@@ -22,8 +22,7 @@ const ASPECT_RATIO = 1182 / 191;
 const SOURCES: Record<LogoVariant, number> = {
   menta: logoMenta,
   // Derivada do menta com o RGB pintado de branco e o alpha preservado, para
-  // superfícies onde o verde da marca não teria contraste (ex.: o gradiente do
-  // ShareCard).
+  // superfícies onde o verde da marca não teria contraste (ex.: sobre uma foto).
   white: logoWhite,
 };
 

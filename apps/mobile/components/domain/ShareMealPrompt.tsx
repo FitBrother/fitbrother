@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { Pressable, Text, View } from "react-native";
 import Animated, { FadeInDown, FadeOutDown } from "react-native-reanimated";
-import { ImageDown, X } from "lucide-react-native";
+import { Share2, X } from "lucide-react-native";
 import { colors } from "@/lib/colors";
 import { shadows } from "@/lib/shadows";
 
@@ -15,7 +15,7 @@ import { shadows } from "@/lib/shadows";
 const VISIVEL_MS = 8000;
 
 /**
- * Convite a gerar a imagem, logo depois de registrar a refeição.
+ * Convite a compartilhar, logo depois de registrar a refeição.
  *
  * Este é o instante em que a pessoa acabou de ver os macros do que comeu e
  * está com a tela na mão — e era o único momento do app que não oferecia nada.
@@ -48,11 +48,11 @@ export function ShareMealPrompt({ onPress, onDismiss }: Props) {
         <Pressable
           onPress={onPress}
           accessibilityRole="button"
-          accessibilityLabel="Gerar imagem desta refeição"
+          accessibilityLabel="Compartilhar"
           className="min-h-[40px] flex-row items-center gap-1.5 rounded-full bg-primary-400 px-4 active:bg-primary-500"
         >
-          <ImageDown size={16} color={colors.white} />
-          <Text className="font-sans-semibold text-sm text-white">Gerar imagem</Text>
+          <Share2 size={16} color={colors.white} />
+          <Text className="font-sans-semibold text-sm text-white">Compartilhar</Text>
         </Pressable>
         <Pressable
           onPress={onDismiss}

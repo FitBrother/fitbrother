@@ -1,5 +1,7 @@
 import logoMenta from "@/assets/brand/logo-horizontal-menta.png";
 import logoBranco from "@/assets/brand/logo-horizontal-branco.png";
+import logoSombra from "@/assets/brand/logo-horizontal-branco-sombra.png";
+import { LOGO_SOMBRA_ASPECT, LOGO_SOMBRA_MARGEM } from "@/lib/share/geometry";
 import type { ShareLogoVariant } from "./ShareLogo";
 
 /** Proporção do lockup horizontal (1182 × 191 px), a mesma de `Logo.tsx`. */
@@ -14,6 +16,7 @@ type AssetWeb = string | { uri: string };
 const FONTES: Record<ShareLogoVariant, AssetWeb> = {
   menta: logoMenta as unknown as AssetWeb,
   white: logoBranco as unknown as AssetWeb,
+  sombra: logoSombra as unknown as AssetWeb,
 };
 
 function urlDo(asset: AssetWeb): string {
@@ -42,6 +45,21 @@ function urlDo(asset: AssetWeb): string {
  */
 export function ShareLogo({ height, variant }: { height: number; variant: ShareLogoVariant }) {
   const src = urlDo(FONTES[variant]);
+  if (variant === "sombra") {
+    const altura = height * (1 + 2 * LOGO_SOMBRA_MARGEM);
+    return (
+      <img
+        src={src}
+        alt="Fitbrother"
+        style={{
+          height: altura,
+          width: altura * LOGO_SOMBRA_ASPECT,
+          margin: -height * LOGO_SOMBRA_MARGEM,
+          display: "block",
+        }}
+      />
+    );
+  }
   return (
     <img
       src={src}
