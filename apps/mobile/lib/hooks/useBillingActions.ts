@@ -1,14 +1,18 @@
 import { useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import { useCallback, useState } from "react";
+import { Platform } from "react-native";
 import type { BillingInterval } from "@fitbrother/shared";
 import { createCheckout, createPortal } from "@/lib/api/billing";
+import { checkoutHref, embeddedCheckoutSupported } from "@/lib/billing-checkout";
 import { billingErrorMessage, BILLING_UNAVAILABLE_MESSAGE } from "@/lib/billing-errors";
 import { subscriptionKey } from "@/lib/hooks/useSubscription";
 import { useToast } from "@/lib/toast/toast-context";
 
 export function useBillingActions() {
   const qc = useQueryClient();
+  const router = useRouter();
   const toast = useToast();
   const [pending, setPending] = useState(false);
 
@@ -49,12 +53,17 @@ export function useBillingActions() {
   );
 
   const startCheckout = useCallback(
-    (interval: BillingInterval) =>
-      run(async () => {
+    async (interval: BillingInterval) => {
+      if (embeddedCheckoutSupported(Platform.OS)) {
+        router.push(checkoutHref(interval) as never);
+        return;
+      }
+      await run(async () => {
         const { url } = await createCheckout(interval);
         await openUrl(url);
-      }),
-    [run, openUrl],
+      });
+    },
+    [run, openUrl, router],
   );
 
   const openPortal = useCallback(() => run(portal), [run, portal]);
