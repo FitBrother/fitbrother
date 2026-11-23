@@ -16,7 +16,7 @@ vi.mock("../lib/sentry.js", () => ({ Sentry: { captureException } }));
 
 import {
   cancelUserSubscription,
-  createCheckoutUrl,
+  createCheckout,
   createPortalUrl,
   getSubscription,
   type BillingDeps,
@@ -93,11 +93,11 @@ beforeEach(() => {
   });
 });
 
-describe("createCheckoutUrl", () => {
+describe("createCheckout", () => {
   it("creates the customer and saves it on first checkout", async () => {
     const m = makeDeps(row());
-    const url = await createCheckoutUrl(USER, "a@b.co", "month", m.deps);
-    expect(url).toBe("https://checkout.test/s");
+    const result = await createCheckout(USER, "a@b.co", "month", "hosted", m.deps);
+    expect(result).toEqual({ url: "https://checkout.test/s" });
     expect(m.customersCreate).toHaveBeenCalledWith({
       email: "a@b.co",
       metadata: { user_id: USER },
@@ -108,14 +108,14 @@ describe("createCheckoutUrl", () => {
 
   it("creates the customer when no row exists", async () => {
     const m = makeDeps(null);
-    await createCheckoutUrl(USER, null, "month", m.deps);
+    await createCheckout(USER, null, "month", "hosted", m.deps);
     expect(m.customersCreate).toHaveBeenCalledWith({ metadata: { user_id: USER } });
     expect(m.saveCustomerId).toHaveBeenCalledWith(USER, "cus_new");
   });
 
   it("reuses an existing customer", async () => {
     const m = makeDeps(row({ stripe_customer_id: "cus_old" }));
-    await createCheckoutUrl(USER, "a@b.co", "month", m.deps);
+    await createCheckout(USER, "a@b.co", "month", "hosted", m.deps);
     expect(m.customersCreate).not.toHaveBeenCalled();
     expect(m.saveCustomerId).not.toHaveBeenCalled();
     expect(m.sessionsCreate.mock.calls[0]![0]).toMatchObject({ customer: "cus_old" });
@@ -123,7 +123,7 @@ describe("createCheckoutUrl", () => {
 
   it("applies the Checkout Studio parameters and keeps the webhook routing keys", async () => {
     const m = makeDeps(row());
-    await createCheckoutUrl(USER, "a@b.co", "month", m.deps);
+    await createCheckout(USER, "a@b.co", "month", "hosted", m.deps);
     expect(m.sessionsCreate.mock.calls[0]![0]).toMatchObject({
       ui_mode: "hosted_page",
       mode: "subscription",
@@ -141,12 +141,47 @@ describe("createCheckoutUrl", () => {
     });
   });
 
+  it("creates an embedded session and returns the client secret", async () => {
+    const m = makeDeps(row());
+    m.sessionsCreate.mockResolvedValueOnce({ client_secret: "cs_test_1" } as never);
+    const result = await createCheckout(USER, "a@b.co", "month", "embedded", m.deps);
+    expect(result).toEqual({ client_secret: "cs_test_1" });
+    const params = m.sessionsCreate.mock.calls[0]![0];
+    expect(params).toMatchObject({
+      ui_mode: "embedded_page",
+      mode: "subscription",
+      return_url: "https://app.test/billing-return?session_id={CHECKOUT_SESSION_ID}",
+      redirect_on_completion: "always",
+      origin_context: "web",
+      client_reference_id: USER,
+      metadata: { user_id: USER },
+      subscription_data: { metadata: { user_id: USER } },
+    });
+    expect(params).not.toHaveProperty("success_url");
+    expect(params).not.toHaveProperty("cancel_url");
+  });
+
+  it("keeps the already_subscribed guard for embedded", async () => {
+    const m = makeDeps(row({ plan: "pro" }));
+    await expect(createCheckout(USER, null, "month", "embedded", m.deps)).rejects.toMatchObject({
+      code: "already_subscribed",
+    });
+  });
+
+  it("throws when an embedded session has no client secret", async () => {
+    const m = makeDeps(row());
+    m.sessionsCreate.mockResolvedValueOnce({ client_secret: null } as never);
+    await expect(createCheckout(USER, null, "month", "embedded", m.deps)).rejects.toThrow(
+      "stripe_checkout_without_client_secret",
+    );
+  });
+
   it.each([
     ["month", "price_month"],
     ["year", "price_year"],
   ] as const)("builds the session for interval %s", async (interval, price) => {
     const m = makeDeps(row());
-    await createCheckoutUrl(USER, "a@b.co", interval, m.deps);
+    await createCheckout(USER, "a@b.co", interval, "hosted", m.deps);
     const p = m.sessionsCreate.mock.calls[0]![0] as Params;
     expect(p.mode).toBe("subscription");
     expect(p.line_items).toEqual([{ price, quantity: 1 }]);
@@ -160,20 +195,20 @@ describe("createCheckoutUrl", () => {
 
   it("adds the trial only when configured and never subscribed before", async () => {
     const first = makeDeps(row());
-    await createCheckoutUrl(USER, null, "month", first.deps);
+    await createCheckout(USER, null, "month", "hosted", first.deps);
     expect(first.sessionsCreate.mock.calls[0]![0]).toMatchObject({
       subscription_data: { trial_period_days: 7 },
     });
 
     const again = makeDeps(row({ status: "canceled", provider_subscription_id: "sub_1" }));
-    await createCheckoutUrl(USER, null, "month", again.deps);
+    await createCheckout(USER, null, "month", "hosted", again.deps);
     expect(
       (again.sessionsCreate.mock.calls[0]![0] as Params).subscription_data.trial_period_days,
     ).toBeUndefined();
 
     mockEnv.STRIPE_TRIAL_DAYS = 0;
     const off = makeDeps(row());
-    await createCheckoutUrl(USER, null, "month", off.deps);
+    await createCheckout(USER, null, "month", "hosted", off.deps);
     expect(
       (off.sessionsCreate.mock.calls[0]![0] as Params).subscription_data.trial_period_days,
     ).toBeUndefined();
@@ -181,7 +216,7 @@ describe("createCheckoutUrl", () => {
 
   it.each(["active", "trialing", "past_due"] as const)("rejects %s subscribers", async (status) => {
     const m = makeDeps(row({ plan: "pro", status, stripe_customer_id: "cus_old" }));
-    await expect(createCheckoutUrl(USER, null, "month", m.deps)).rejects.toMatchObject({
+    await expect(createCheckout(USER, null, "month", "hosted", m.deps)).rejects.toMatchObject({
       code: "already_subscribed",
     });
     expect(m.customersCreate).not.toHaveBeenCalled();
@@ -193,7 +228,7 @@ describe("createCheckoutUrl", () => {
     m.subscriptionsList.mockResolvedValueOnce({
       data: [{ status: "canceled" }, { status: "active" }],
     });
-    await expect(createCheckoutUrl(USER, null, "month", m.deps)).rejects.toMatchObject({
+    await expect(createCheckout(USER, null, "month", "hosted", m.deps)).rejects.toMatchObject({
       code: "already_subscribed",
     });
     expect(m.subscriptionsList).toHaveBeenCalledWith({
@@ -207,7 +242,7 @@ describe("createCheckoutUrl", () => {
   it.each(["trialing", "past_due"])("rejects a %s Stripe subscription", async (status) => {
     const m = makeDeps(row({ stripe_customer_id: "cus_old" }));
     m.subscriptionsList.mockResolvedValueOnce({ data: [{ status }] });
-    await expect(createCheckoutUrl(USER, null, "month", m.deps)).rejects.toMatchObject({
+    await expect(createCheckout(USER, null, "month", "hosted", m.deps)).rejects.toMatchObject({
       code: "already_subscribed",
     });
     expect(m.sessionsCreate).not.toHaveBeenCalled();
@@ -218,19 +253,19 @@ describe("createCheckoutUrl", () => {
     m.subscriptionsList.mockResolvedValueOnce({
       data: [{ status: "canceled" }, { status: "incomplete_expired" }],
     });
-    await expect(createCheckoutUrl(USER, null, "month", m.deps)).resolves.toBeTruthy();
+    await expect(createCheckout(USER, null, "month", "hosted", m.deps)).resolves.toBeTruthy();
     expect(m.sessionsCreate).toHaveBeenCalledTimes(1);
   });
 
   it("does not list subscriptions for a brand-new customer", async () => {
     const m = makeDeps(row());
-    await createCheckoutUrl(USER, null, "month", m.deps);
+    await createCheckout(USER, null, "month", "hosted", m.deps);
     expect(m.subscriptionsList).not.toHaveBeenCalled();
   });
 
   it("does not block free users with default active status", async () => {
     const m = makeDeps(row({ plan: "free", status: "active" }));
-    await expect(createCheckoutUrl(USER, null, "month", m.deps)).resolves.toBeTruthy();
+    await expect(createCheckout(USER, null, "month", "hosted", m.deps)).resolves.toBeTruthy();
   });
 });
 

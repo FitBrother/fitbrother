@@ -725,8 +725,20 @@ export type InsightsResponse = z.infer<typeof InsightsResponseSchema>;
 export const BillingIntervalSchema = z.enum(["month", "year"]);
 export type BillingInterval = z.infer<typeof BillingIntervalSchema>;
 
-export const CreateCheckoutRequestSchema = z.object({ interval: BillingIntervalSchema });
+export const CheckoutUiSchema = z.enum(["hosted", "embedded"]);
+export type CheckoutUi = z.infer<typeof CheckoutUiSchema>;
+
+export const CreateCheckoutRequestSchema = z.object({
+  interval: BillingIntervalSchema,
+  ui: CheckoutUiSchema.default("hosted"),
+});
 export type CreateCheckoutRequest = z.infer<typeof CreateCheckoutRequestSchema>;
+
+export const CheckoutResponseSchema = z.union([
+  z.object({ url: z.string().url() }),
+  z.object({ client_secret: z.string().min(1) }),
+]);
+export type CheckoutResponse = z.infer<typeof CheckoutResponseSchema>;
 
 export const BillingUrlResponseSchema = z.object({ url: z.string().url() });
 export type BillingUrlResponse = z.infer<typeof BillingUrlResponseSchema>;
