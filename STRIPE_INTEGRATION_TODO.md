@@ -50,6 +50,15 @@ As instruções originais mandavam remover parâmetros ausentes da lista. Estes 
 
 **Ainda falta no deploy:** o `template.yaml` e o `.github/workflows/ci.yml` não repassam as variáveis do Stripe ao Lambda. Sem elas, o checkout responde 503 `billing_not_configured` e o webhook responde 400.
 
+### Checkout embutido (web)
+
+Na web (PWA) o checkout é embutido na rota `/checkout` (`app/checkout.web.tsx`); no iOS/Android segue o fluxo hospedado.
+
+- Defina `EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY` (`pk_test_...` em dev) no projeto web da Vercel do ambiente e refaça o build. Sem ela, `/checkout` mostra "Assinatura indisponível".
+- O app chama `POST /billing/checkout` com `ui: "embedded"` e recebe o `client_secret`. A sessão usa `ui_mode: "embedded_page"`, `origin_context: "web"` e `integration_identifier: "embedded_web_app_0001"`, sem `success_url`/`cancel_url`.
+- Ao concluir, o Stripe redireciona para `${APP_URL}/billing-return?session_id={CHECKOUT_SESSION_ID}`; o plano muda pelo webhook e chega ao app por Realtime.
+- Em 3DS com redirecionamento fora do iframe, o PWA do iOS pode sair do escopo do app: validar no teste real.
+
 ### Webhook
 
 Cadastre um endpoint em <https://dashboard.stripe.com/workbench/webhooks> apontando para `POST /webhooks/stripe` da API, com os eventos `checkout.session.completed`, `customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted` e `invoice.payment_failed`. Copie o `whsec_...` para `STRIPE_WEBHOOK_SECRET`. Em desenvolvimento local: `stripe listen --forward-to localhost:3000/webhooks/stripe`.

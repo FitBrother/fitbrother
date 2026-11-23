@@ -293,7 +293,7 @@ Endpoints (§7):
 Todo usuário nasce `plan='free'` (via `complete_onboarding`). A integração Stripe Checkout (M-Billing) atualiza a linha via webhook.
 
 Endpoints de cobrança:
-- `POST /billing/checkout` `{interval:'month'|'year'}` → `{url}` do Stripe Checkout. `409 already_subscribed`, `503 billing_not_configured`.
+- `POST /billing/checkout` `{interval:'month'|'year', ui?:'hosted'|'embedded'}` → `{url}` (hosted, padrão, usado no nativo) ou `{client_secret}` (embedded, usado pela web em `/checkout`). `409 already_subscribed`, `503 billing_not_configured`.
 - `POST /billing/portal` → `{url}` do Customer Portal. `404 no_customer`.
 - `GET /billing/subscription` → `{plan, status, current_period_end, has_customer}`.
 - `POST /webhooks/stripe` → assinatura obrigatória (`Stripe-Signature`); idempotente via `stripe_events`.
