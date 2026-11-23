@@ -32,6 +32,8 @@ writeFileSync(
       private: true,
       type: "module",
       dependencies,
+      // Install has no lockfile: pin to the root lockfile version (6.8.x pulls ESM-only cookie@2).
+      overrides: { "light-my-request": "6.6.0" },
     },
     null,
     2,
