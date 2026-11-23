@@ -183,7 +183,12 @@ jobs:
               CorsOrigin="${{ vars.SAM_CORS_ORIGIN }}" \
               ResendApiKey="${{ secrets.SAM_RESEND_API_KEY }}" \
               EmailFrom="${{ vars.SAM_EMAIL_FROM }}" \
-              AppUrl="${{ vars.SAM_APP_URL }}"
+              AppUrl="${{ vars.SAM_APP_URL }}" \
+              StripeSecretKey="${{ secrets.SAM_STRIPE_SECRET_KEY }}" \
+              StripeWebhookSecret="${{ secrets.SAM_STRIPE_WEBHOOK_SECRET }}" \
+              StripePriceMonthly="${{ vars.SAM_STRIPE_PRICE_MONTHLY }}" \
+              StripePriceAnnual="${{ vars.SAM_STRIPE_PRICE_ANNUAL }}" \
+              StripeTrialDays="${{ vars.SAM_STRIPE_TRIAL_DAYS || '0' }}"
 
       - name: Smoke test
         run: |
