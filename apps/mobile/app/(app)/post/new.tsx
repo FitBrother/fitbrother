@@ -1,8 +1,8 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ChevronLeft, ImagePlus, X } from "lucide-react-native";
 import { randomUUID } from "expo-crypto";
-import { useState } from "react";
-import { Image, Pressable, Text, TextInput, View } from "react-native";
+import { useEffect, useState } from "react";
+import { Pressable, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/Button";
@@ -12,6 +12,12 @@ import { friendlyApiError } from "@/lib/errors";
 import { mealDetailKey } from "@/lib/hooks/useMealsForDay";
 import { useCreatePost } from "@/lib/hooks/useCreatePost";
 import { pickImage } from "@/lib/media/image-picker";
+import { medirImagem } from "@/lib/media/measure-image";
+import { recortarFoto } from "@/lib/media/crop-image";
+import { FEED_PHOTO_ASPECT } from "@/lib/media/feed-photo";
+import { ENQUADRAMENTO_PADRAO, type Enquadramento } from "@/lib/media/crop";
+import { PhotoAdjuster } from "@/components/domain/PhotoAdjuster";
+import { PostCameraStep } from "@/components/domain/share/PostCameraStep";
 import { uploadPostImage } from "@/lib/storage";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/lib/toast/toast-context";
@@ -21,16 +27,37 @@ const NUM: { fontVariant: ["tabular-nums"] } = { fontVariant: ["tabular-nums"] }
 export default function NewPostScreen() {
   const router = useRouter();
   const { meal_id } = useLocalSearchParams<{ meal_id: string }>();
+  const [etapa, setEtapa] = useState<"camera" | "form">("camera");
   const [caption, setCaption] = useState("");
   const [photoUri, setPhotoUri] = useState<string | null>(null);
+  const [enquadramento, setEnquadramento] = useState<Enquadramento>(ENQUADRAMENTO_PADRAO);
   const [uploading, setUploading] = useState(false);
   const create = useCreatePost();
   const toast = useToast();
 
+  // Sem `allowsEditing`/`aspect`: aquilo abria o recorte do SISTEMA no iOS e
+  // Android e não fazia absolutamente nada na web, onde o picker é um
+  // `<input type="file">`. Resultado: quem postava pelo navegador nunca via
+  // opção de enquadrar, e a foto era cortada pelo `cover` do card. O recorte
+  // agora é o `PhotoAdjuster`, igual nas duas plataformas e na proporção do
+  // feed. `quality: 1` porque quem comprime é o recorte, no fim.
   async function pickPhoto() {
-    const uri = await pickImage({ allowsEditing: true, aspect: [4, 3], quality: 0.7 });
-    if (uri) setPhotoUri(uri);
+    const uri = await pickImage({ quality: 1 });
+    if (uri) escolherFoto(uri);
   }
+
+  function escolherFoto(uri: string) {
+    setPhotoUri(uri);
+    setEnquadramento(ENQUADRAMENTO_PADRAO);
+    setEtapa("form");
+  }
+
+  // Na web a câmera entrega um blob, que prende os bytes até ser revogado.
+  useEffect(() => {
+    if (!photoUri?.startsWith("blob:")) return;
+    return () => URL.revokeObjectURL(photoUri);
+  }, [photoUri]);
+
   const mealQuery = useQuery({
     queryKey: mealDetailKey(meal_id ?? ""),
     queryFn: () => getMeal(meal_id!),
@@ -49,7 +76,16 @@ export default function NewPostScreen() {
         const { data } = await supabase.auth.getUser();
         const userId = data.user?.id;
         if (!userId) throw new Error("not_authenticated");
-        const uploaded = await uploadPostImage({ userId, postId, fileUri: photoUri });
+        // Grava o enquadramento na imagem antes de subir: o feed passa a
+        // receber a foto já em 4:5, sem campo novo no banco e sem baixar
+        // pixels que nenhum card mostra.
+        const recortada = await recortarFoto({
+          uri: photoUri,
+          natural: await medirImagem(photoUri),
+          aspect: FEED_PHOTO_ASPECT,
+          enquadramento,
+        });
+        const uploaded = await uploadPostImage({ userId, postId, fileUri: recortada });
         imagePath = uploaded.path;
       }
       create.mutate(
@@ -69,6 +105,16 @@ export default function NewPostScreen() {
     } finally {
       setUploading(false);
     }
+  }
+
+  if (etapa === "camera") {
+    return (
+      <PostCameraStep
+        onFoto={escolherFoto}
+        onSemFoto={() => setEtapa("form")}
+        onFechar={() => router.back()}
+      />
+    );
   }
 
   return (
@@ -107,12 +153,16 @@ export default function NewPostScreen() {
 
         {photoUri ? (
           <View className="relative">
-            <Image
-              source={{ uri: photoUri }}
-              accessibilityIgnoresInvertColors
-              className="h-56 w-full rounded-2xl"
-              resizeMode="cover"
+            <PhotoAdjuster
+              uri={photoUri}
+              aspect={FEED_PHOTO_ASPECT}
+              value={enquadramento}
+              onChange={setEnquadramento}
+              radius={16}
             />
+            <Text className="mt-2 text-center font-sans text-xs text-neutral-400">
+              Arraste para enquadrar · dois dedos para aproximar
+            </Text>
             <Pressable
               onPress={() => setPhotoUri(null)}
               accessibilityLabel="Remover foto"

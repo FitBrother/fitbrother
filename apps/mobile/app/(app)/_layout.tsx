@@ -9,8 +9,11 @@ import { supabase } from "@/lib/supabase";
 import { ProfileProvider, useProfileState } from "@/lib/profile/profile-context";
 import { useAuthSession } from "@/lib/hooks/useAuthSession";
 import { useAchievementsRealtime } from "@/lib/hooks/useAchievementsRealtime";
+import { useSubscriptionRealtime } from "@/lib/hooks/useSubscription";
 import { registerForPushNotificationsAsync } from "@/lib/push";
 import { colors } from "@/lib/colors";
+import { TourProvider } from "@/lib/tour/tour-context";
+import { TourOverlay } from "@/components/tour/TourOverlay";
 
 const SHEET_BG = colors.neutral[50];
 
@@ -22,6 +25,7 @@ function GuardedStack() {
 
   // In-app conquista toast (instant, via Realtime).
   useAchievementsRealtime(userId);
+  useSubscriptionRealtime(userId);
 
   useEffect(() => {
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -58,26 +62,40 @@ function GuardedStack() {
   }
 
   return (
-    // Linha só a partir de `lg`, casando com o breakpoint da Sidebar: abaixo
-    // disso ela não existe e a coluna é o layout do mobile.
-    <View className="flex-1 lg:flex-row">
-      <Sidebar />
-      <ScreenFade>
-        <Stack screenOptions={{ headerShown: false, animation: "fade" }}>
-          <Stack.Screen name="meal/[id]/edit" options={{ presentation: "modal" }} />
-          <Stack.Screen
-            name="history/[day]/new"
-            options={{
-              presentation: "formSheet",
-              sheetAllowedDetents: "fitToContents",
-              sheetCornerRadius: 24,
-              contentStyle: { backgroundColor: SHEET_BG },
-              gestureEnabled: false,
-            }}
-          />
-        </Stack>
-      </ScreenFade>
-    </View>
+    <TourProvider>
+      {/* Linha só a partir de `lg`, casando com o breakpoint da Sidebar: abaixo
+          disso ela não existe e a coluna é o layout do mobile. */}
+      <View className="flex-1 lg:flex-row">
+        <Sidebar />
+        <ScreenFade>
+          <Stack screenOptions={{ headerShown: false, animation: "fade" }}>
+            {/* Edição e compartilhar são telas comuns, sem `presentation`: um
+                modal nativo cobriria o ConfirmDialog e os toasts, que moram na
+                raiz (o Modal do RN apresenta a partir do VC raiz, que já está
+                apresentando o modal da tela), e no iOS a pergunta nunca
+                apareceria. */}
+            <Stack.Screen name="meal/[id]/edit" options={{ animation: "slide_from_bottom" }} />
+            {/* Sem o gesto de voltar porque arrastar da borda brigaria com o
+                arrasto de foto e sticker. */}
+            <Stack.Screen
+              name="share/[type]/[id]"
+              options={{ animation: "slide_from_bottom", gestureEnabled: false }}
+            />
+            <Stack.Screen
+              name="history/[day]/new"
+              options={{
+                presentation: "formSheet",
+                sheetAllowedDetents: "fitToContents",
+                sheetCornerRadius: 24,
+                contentStyle: { backgroundColor: SHEET_BG },
+                gestureEnabled: false,
+              }}
+            />
+          </Stack>
+        </ScreenFade>
+      </View>
+      <TourOverlay />
+    </TourProvider>
   );
 }
 

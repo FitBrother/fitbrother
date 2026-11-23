@@ -1,3 +1,4 @@
+import { TourTarget } from "@/components/tour/TourTarget";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Linking, Modal, Platform, Pressable, Text, TextInput, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
@@ -601,19 +602,21 @@ export function MealComposer({
           )}
 
           {!hasText && !isRecording && onPhotoPress && onScanPress ? (
-            <Pressable
-              onPress={() => setAttachMenuOpen(true)}
-              accessibilityLabel="Mais opções de registro"
-              accessibilityRole="button"
-              disabled={disabled || processing}
-              style={shadows.floating}
-              className={[
-                "h-[52px] w-[52px] items-center justify-center rounded-full",
-                disabled || processing ? "bg-neutral-200" : "bg-white active:bg-neutral-100",
-              ].join(" ")}
-            >
-              <Plus size={20} color={colors.neutral[800]} />
-            </Pressable>
+            <TourTarget id="composer-plus">
+              <Pressable
+                onPress={() => setAttachMenuOpen(true)}
+                accessibilityLabel="Mais opções de registro"
+                accessibilityRole="button"
+                disabled={disabled || processing}
+                style={shadows.floating}
+                className={[
+                  "h-[52px] w-[52px] items-center justify-center rounded-full",
+                  disabled || processing ? "bg-neutral-200" : "bg-white active:bg-neutral-100",
+                ].join(" ")}
+              >
+                <Plus size={20} color={colors.neutral[800]} />
+              </Pressable>
+            </TourTarget>
           ) : !hasText && !isRecording && onPhotoPress ? (
             <Pressable
               onPress={onPhotoPress}

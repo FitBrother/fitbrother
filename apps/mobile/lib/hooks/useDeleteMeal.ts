@@ -3,6 +3,7 @@ import type { MealResponse } from "@fitbrother/shared";
 import { deleteMeal } from "@/lib/api/meals";
 import { dailySummaryKey } from "./useDailySummary";
 import { mealsForDayKey, mealDetailKey } from "./useMealsForDay";
+import { streakKey } from "./useStreak";
 
 type Args = { id: string; day: string };
 type Context = { previous?: MealResponse[] };
@@ -26,6 +27,10 @@ export function useDeleteMeal() {
       // e perder o evento — invalidar aqui garante que os macros do dia
       // sempre refletem a exclusão assim que o servidor confirma.
       void qc.invalidateQueries({ queryKey: dailySummaryKey(args.day) });
+      // Apagar uma refeição pode zerar ou restaurar o streak do dia (mesmo
+      // trigger de daily_summaries que o recomputa ao logar) — sem isso o
+      // usuário só via o streak certo depois de sair e voltar pra tela.
+      void qc.invalidateQueries({ queryKey: streakKey });
     },
     onError: (_err, args, ctx) => {
       if (ctx?.previous !== undefined) {

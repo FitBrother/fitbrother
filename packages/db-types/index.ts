@@ -590,6 +590,7 @@ export type Database = {
           created_at: string;
           deleted_at: string | null;
           id: string;
+          image_path: string | null;
           meal_type: Database["public"]["Enums"]["meal_type"];
           raw_input: string | null;
           review_required: boolean;
@@ -611,6 +612,7 @@ export type Database = {
           created_at?: string;
           deleted_at?: string | null;
           id: string;
+          image_path?: string | null;
           meal_type: Database["public"]["Enums"]["meal_type"];
           raw_input?: string | null;
           review_required?: boolean;
@@ -632,6 +634,7 @@ export type Database = {
           created_at?: string;
           deleted_at?: string | null;
           id?: string;
+          image_path?: string | null;
           meal_type?: Database["public"]["Enums"]["meal_type"];
           raw_input?: string | null;
           review_required?: boolean;
@@ -772,18 +775,21 @@ export type Database = {
         Row: {
           answers: Json;
           current_block: string;
+          reminder_sent_at: string | null;
           updated_at: string;
           user_id: string;
         };
         Insert: {
           answers?: Json;
           current_block: string;
+          reminder_sent_at?: string | null;
           updated_at?: string;
           user_id: string;
         };
         Update: {
           answers?: Json;
           current_block?: string;
+          reminder_sent_at?: string | null;
           updated_at?: string;
           user_id?: string;
         };
@@ -991,6 +997,7 @@ export type Database = {
           sex: Database["public"]["Enums"]["sex"] | null;
           soft_mode: boolean;
           timezone: string;
+          tutorial_completed_at: string | null;
           updated_at: string;
           user_id: string;
           username: string | null;
@@ -1010,6 +1017,7 @@ export type Database = {
           sex?: Database["public"]["Enums"]["sex"] | null;
           soft_mode?: boolean;
           timezone: string;
+          tutorial_completed_at?: string | null;
           updated_at?: string;
           user_id: string;
           username?: string | null;
@@ -1029,6 +1037,7 @@ export type Database = {
           sex?: Database["public"]["Enums"]["sex"] | null;
           soft_mode?: boolean;
           timezone?: string;
+          tutorial_completed_at?: string | null;
           updated_at?: string;
           user_id?: string;
           username?: string | null;
@@ -1114,6 +1123,27 @@ export type Database = {
         };
         Relationships: [];
       };
+      stripe_events: {
+        Row: {
+          event_id: string;
+          processed_at: string | null;
+          received_at: string;
+          type: string;
+        };
+        Insert: {
+          event_id: string;
+          processed_at?: string | null;
+          received_at?: string;
+          type: string;
+        };
+        Update: {
+          event_id?: string;
+          processed_at?: string | null;
+          received_at?: string;
+          type?: string;
+        };
+        Relationships: [];
+      };
       subscriptions: {
         Row: {
           created_at: string;
@@ -1123,6 +1153,7 @@ export type Database = {
           provider: string | null;
           provider_subscription_id: string | null;
           status: Database["public"]["Enums"]["subscription_status"];
+          stripe_customer_id: string | null;
           updated_at: string;
           user_id: string;
         };
@@ -1134,6 +1165,7 @@ export type Database = {
           provider?: string | null;
           provider_subscription_id?: string | null;
           status?: Database["public"]["Enums"]["subscription_status"];
+          stripe_customer_id?: string | null;
           updated_at?: string;
           user_id: string;
         };
@@ -1145,6 +1177,7 @@ export type Database = {
           provider?: string | null;
           provider_subscription_id?: string | null;
           status?: Database["public"]["Enums"]["subscription_status"];
+          stripe_customer_id?: string | null;
           updated_at?: string;
           user_id?: string;
         };
@@ -1291,6 +1324,12 @@ export type Database = {
       complete_onboarding: { Args: { payload: Json }; Returns: Json };
       complete_onboarding_impl: { Args: { payload: Json }; Returns: Json };
       create_meal_with_items: { Args: { payload: Json }; Returns: Json };
+      fitbrother_abandoned_signups: {
+        Args: never;
+        Returns: {
+          user_id: string;
+        }[];
+      };
       fitbrother_account_is_active: {
         Args: { p_user_id: string };
         Returns: boolean;
@@ -1326,6 +1365,15 @@ export type Database = {
         Args: { p_user_id: string };
         Returns: undefined;
       };
+      fitbrother_find_signup_conflict: {
+        Args: { p_email: string; p_user_id: string };
+        Returns: {
+          email_change_sent_at: string;
+          has_profile: boolean;
+          is_anonymous: boolean;
+          user_id: string;
+        }[];
+      };
       fitbrother_foods_fuzzy_match: {
         Args: { p_needle: string; p_threshold?: number };
         Returns: {
@@ -1356,6 +1404,7 @@ export type Database = {
         Args: { p_ts?: string; p_user_id: string };
         Returns: string;
       };
+      fitbrother_onboarding_reminder: { Args: never; Returns: number };
       fitbrother_recompute_daily_summary: {
         Args: { p_day: string; p_user_id: string };
         Returns: undefined;
@@ -1425,7 +1474,7 @@ export type Database = {
         | "app_photo"
         | "app_barcode";
       meal_type: "breakfast" | "lunch" | "snack" | "dinner" | "other";
-      notification_channel: "push" | "wa";
+      notification_channel: "push" | "wa" | "email";
       notification_kind:
         | "streak_alert"
         | "goal_reminder"
@@ -1434,7 +1483,8 @@ export type Database = {
         | "achievement"
         | "post_like"
         | "post_comment"
-        | "insight_ready";
+        | "insight_ready"
+        | "onboarding_reminder";
       sex: "male" | "female" | "other";
       subscription_plan: "free" | "pro";
       subscription_status: "active" | "past_due" | "canceled" | "trialing";
@@ -1593,7 +1643,7 @@ export const Constants = {
         "app_barcode",
       ],
       meal_type: ["breakfast", "lunch", "snack", "dinner", "other"],
-      notification_channel: ["push", "wa"],
+      notification_channel: ["push", "wa", "email"],
       notification_kind: [
         "streak_alert",
         "goal_reminder",
@@ -1603,6 +1653,7 @@ export const Constants = {
         "post_like",
         "post_comment",
         "insight_ready",
+        "onboarding_reminder",
       ],
       sex: ["male", "female", "other"],
       subscription_plan: ["free", "pro"],

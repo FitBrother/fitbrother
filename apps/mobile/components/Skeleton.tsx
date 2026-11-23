@@ -30,7 +30,10 @@ export function SkeletonBlock({
   style,
 }: {
   width: DimensionValue;
-  height: number;
+  // `DimensionValue` como a largura, e não `number`: um bloco que preenche um
+  // contêiner de proporção fixa (a foto 4:5 do feed) precisa de "100%" — a
+  // altura em pixel só é conhecida depois do layout.
+  height: DimensionValue;
   radius?: number;
   style?: ViewStyle;
 }) {

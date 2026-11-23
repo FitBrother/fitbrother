@@ -12,6 +12,7 @@
       "bundleIdentifier": "com.fitbrother.app",
       "infoPlist": {
         "NSMicrophoneUsageDescription": "O Fitbrother usa o microfone para gravar a descrição da sua refeição.",
+        "NSCameraUsageDescription": "O Fitbrother usa a câmera para fotografar suas refeições.",
         "ITSAppUsesNonExemptEncryption": false
       }
     },
@@ -30,7 +31,16 @@
       "themeColor": "#06D59F",
       "backgroundColor": "#F8FAFC"
     },
-    "plugins": ["expo-router", "expo-font", "expo-secure-store", "expo-localization"],
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      "expo-secure-store",
+      "expo-localization",
+      [
+        "expo-camera",
+        { "cameraPermission": "O Fitbrother usa a câmera para fotografar suas refeições." }
+      ]
+    ],
     "experiments": {
       "typedRoutes": true
     },

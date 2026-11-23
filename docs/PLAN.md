@@ -535,6 +535,145 @@ deliberadamente deferido e não bloqueia o início do M10.
 
 **Status M9 (Compartilhamento externo):** ✅ implementado em 2026-06-19 na branch `feat/m9-share-cards` (empilhada em `feat/m8-2-insights`). Client-side, sem backend: deps `react-native-view-shot` + `expo-sharing` + `expo-media-library`. `ShareCard` 9:16 (variantes refeição/post com foto+macros e insight com título/headline/bullets/score, marca d'água wordmark+folha). `lib/share-card.ts` (`captureCard`/`shareCard`/`saveCardToGallery` com pedido de permissão). Tela de preview `share/[type]/[id]` busca o dado (`getMeal`/`fetchPost`/`fetchInsight`) e oferece **Compartilhar** (share sheet) + **Salvar** (galeria). Pontos de entrada: `PostCard`, `InsightCard` e detalhe da refeição (distinto do "Compartilhar no feed"). Verificação: `typecheck`/`lint` passam. **Não rodado em device** — os módulos nativos exigem um **novo dev build** (o dev client atual não os tem); sem checks SQL (UI pura). **M9 e a Fase 2 (rede social) concluídos.**
 
+**Revisão M9.1 (presets + captura na web):** 2026-09-22. Duas coisas: o card foi redesenhado e a exportação na **web estava quebrada desde o M9**.
+
+- **Captura na web.** `react-native-view-shot@4` tem implementação web (html2canvas), mas o wrapper `captureRef` de `src/index.js` chama `findNodeHandle()` sem checar plataforma, e o `react-native-web` lança ali — nenhuma captura chegava na implementação web, e salvar/compartilhar só produziam toast de erro. Agora `lib/share/capture.ts` + `capture.web.ts` (resolução por plataforma do Metro): nativo segue no view-shot, web chama html2canvas direto (declarado no `package.json` do mobile). Saída fixada em **1080×1920** (`lib/share/geometry.ts`).
+- **Presets folheáveis.** `lib/share/presets.ts` define 7 estilos, trocados por arrasto na tela de preview (`SwipeableTabs`). Cada preset combina um modo de foto (`fill`/`frame`/`none`) com um modo de informação (`full`/`chip`/`line`): Noturno e Claro (foto no quadro inteiro, scrim escuro ou claro, info completa), **Etiqueta** e **Discreto** (minimalistas — foto intacta, o dado entrando como plaquinha ou como uma linha com a barra de macros virando fio), Moldura (foto recortada), Menta (marca) e Pôster (ignora a foto, número gigante). `presetsFor({temFoto, temMacros})` esconde o que degeneraria: sem foto, Moldura sai idêntica a Claro e os minimalistas viram anotação solta num fundo liso. O card ganhou a barra de macros e perdeu o raio nos cantos, que ficava dentro da captura e deixava o PNG com as pontas transparentes.
+- **Formato de story.** O card **não tem cabeçalho de autor**: o destino normal é o story, que já desenha quem postou — na mesma faixa onde o cabeçalho ficava. Todo texto respeita `STORY_SAFE_TOP`/`STORY_SAFE_BOTTOM` (84/96dp = 252/288px num quadro de 1920; a recomendação do Instagram é 250px livres em cada ponta). A foto atravessa as faixas de propósito: ela é fundo. Medido no nó de captura — com foto 910px/288px de folga, insight (o conteúdo mais alto) 270px/288px.
+- **Armadilhas do html2canvas** (todas comentadas no código): desenha nós de texto adjacentes separados, então `{n}g` (dois nós) saía "41 g"; não interpreta `-webkit-line-clamp`, então o corte de texto é feito em JS (`truncate`); e rasteriza `background-image` no tamanho CSS **antes** de aplicar o scale — como o react-native-web desenha toda `Image` assim, o lockup de 18dp saía borrado no PNG. Medido reproduzindo os dois caminhos sobre o mesmo PNG de 1182×191: via pattern, 27% dos pixels em meio-tom; via `drawImage` de uma `<img>`, 5,2%. Daí `components/domain/share/ShareLogo.web.tsx` — **a única tag HTML do app**, presa pelo guard `lib/no-html-tags.test.ts`, que também falha se a exceção deixar de ser necessária.
+- **Caminho até compartilhar.** Convite logo depois de registrar (`ShareMealPrompt`, acima do composer), ação "Imagem" no arrasto do card da Home, rótulos distinguindo "Compartilhar no feed" de "Gerar imagem" no detalhe da refeição, e a tela de preview em fundo claro com um primário só.
+- **Desempenho ao folhear** (2026-09-22, depois de teste em aparelho: travava). A causa era a **pré-captura** — o card era rasterizado em 1080×1920 a cada troca de preset, para ter o arquivo pronto dentro da janela de ativação do clique que o `navigator.share()` exige. Medido com `PerformanceObserver` de `longtask` e CPU estrangulada por CDP, três arrastos:
+
+  | | travadas | maior | soma |
+  |---|---|---|---|
+  | antes (6×) | 18 | 698ms | 4846ms |
+  | depois (6×) | 5 | 205ms | 662ms |
+  | depois (4×) | 3 | 156ms | 393ms |
+
+  Um profile de CPU mostrou o topo todo em html2canvas (`toDataURL` 574ms, `getPropertyValue` 473ms, clonagem do DOM). O A/B que fechou o diagnóstico foi desligar só a pré-captura: 3803ms → 843ms de thread bloqueada, 78% do total — e antes dele duas hipóteses minhas (tamanho da foto, tamanho da string da data URI) foram medidas e descartadas. **A captura virou sob demanda**, com o botão mostrando "Gerando imagem…"; o preço é o share poder cair fora da janela de ativação, e `shareCard` trata caindo para o download. Junto vieram três reduções menores: a foto é redimensionada uma vez para o maior lado de 1920 (foto de celular chega com 12 MP), ela e o PNG exportado viram **blob URL** em vez de data URI (o react-native-web põe a fonte no atributo `style`, e em data URI eram dezenas de KB repetidos por card), e a exportação usa `toBlob`, que deixa o navegador codificar fora da thread principal, em vez do `toDataURL` síncrono.
+- **Verificação:** e2e no navegador (registro → convite → arrasto → preview → exportação), os 7 presets exportando 1080×1920 válidos, o PNG conferido contra as faixas de 250px do story e o lockup inspecionado pixel a pixel no export; `lint`, `typecheck` e 601+14+166 testes passam. **Nativo não verificado** — o palco de captura fica fora da tela (`left: -9999`) e o `captureRef` com `width`/`height` não foi exercitado em aparelho.
+
+**Revisão M9.2 (editor de enquadramento):** 2026-10-05, branch `feat/camera-ao-vivo-share`
+(ficou sem registro na época; vai aqui junto). `PhotoAdjuster` + `lib/media/crop.ts`:
+arrastar e pinçar para escolher o recorte, com o mesmo enquadramento valendo no
+feed (foto 4:5 de ponta a ponta) e no card de story. O editor **substitui** o
+carrossel em vez de acontecer por cima dele — arrastar para enquadrar e arrastar
+para trocar de preset são o mesmo gesto, e os dois ativos fariam o pager roubar
+metade dos arrastos.
+
+**Revisão M9.3 (câmera ao vivo no compartilhar):** 2026-10-30, branch
+`feat/camera-ao-vivo-fase-d`, sobre a base mesclada em `f2a3f00`.
+
+A tela de compartilhar uma refeição abre a câmera com a moldura do preset
+desenhada por cima do vídeo: enquadra-se o prato já vendo como o story vai sair,
+e o arrasto troca de estilo com a câmera aberta.
+
+- **O que isto destrava.** `/share/meal/:id` mostrava 4 presets de 7, todos
+  tipográficos, porque `meals` não guardava foto — ela existia no storage, com
+  path determinístico, mas sobrevivia só como texto em `raw_input`. Com a coluna
+  `image_path` (migration **0082**, com backfill) e a câmera, os três presets com
+  foto passam a ser alcançáveis por esse caminho. O backfill destrava para quem já
+  registrou por foto, sem câmera nenhuma.
+- **Correção de segurança junto (migration 0081).** A política da 0076 liberava
+  SELECT em `post-images` para seguidores casando com **qualquer** objeto sob
+  `{authorId}/`, e `meal-photos/` mora na mesma pasta: foto de refeição, nunca
+  publicada, ficava legível — e como `storage.list()` também é SELECT, enumerável
+  por prefixo. Independia desta feature.
+- **Uma câmera, não uma por preset.** `CameraLive` fica **fora** do
+  `SwipeableTabs`, numa camada absoluta atrás; o pager carrega só o cromo
+  (`ShareCard` com `fotoExterna`, que desenha scrim/corpo/marca com fundo
+  transparente). Montar uma câmera por cena pediria permissão cinco vezes e
+  travaria o aparelho. `presetsAoVivo()` restringe aos cinco em que a foto
+  preenche o quadro: Moldura põe a foto num retângulo interno (a câmera apareceria
+  na área errada no meio do arrasto) e Pôster não usa foto. Depois da captura o
+  carrossel volta com os sete, no estilo que estava em cena.
+- **`CameraView` do expo-camera não serve na web.** A implementação web dele nunca
+  passa largura/altura e cai em `MinimumConstraints` (`{audio:false, video:true}`),
+  devolvendo o que o navegador quiser. Daí `CameraLive.web.tsx` com constraints
+  próprias — e a segunda exceção de tag HTML do app (`<video>`), presa pelo guard
+  `lib/no-html-tags.test.ts`. No nativo o `CameraView` serve e é o que `CameraLive.tsx`
+  usa: `takePictureAsync` entrega o sensor, não um frame de vídeo.
+- **Persistência não bloqueia.** Upload e `PATCH /meals/:id {has_photo:true}` (o
+  servidor deriva o path; o cliente nunca manda caminho) correm em paralelo à
+  exibição. Quem abriu a tela queria compartilhar, não salvar: falha de rede só
+  custa a persistência. Câmera indisponível cai para a galeria, **com o motivo
+  escrito na tela** — queda silenciosa é pior que queda explicada.
+- **Refator antes do modo novo.** A tela estava em 464 linhas com três modos numa
+  cadeia de ternários; o quarto levaria a ~600. `CardPreview`,
+  `SharePresetCarousel` e `ShareAdjustStage` saíram para
+  `components/domain/share/` sem nenhum teste mudar.
+- **Verificação (web):** e2e no navegador com um `MediaStream` real
+  (`canvas.captureStream`), que exercita o `getUserMedia` de verdade. Constraints
+  pedidas conferidas (`facingMode: environment` + 1080×1920 `ideal`); **um** `<video>`
+  no DOM; arrasto leva Noturno → Claro com o retângulo do vídeo **idêntico** antes e
+  depois (a premissa da camada única); captura volta ao carrossel no mesmo preset;
+  upload grava `post-images/{uid}/meal-photos/{mealId}.jpg` e o PATCH deriva o
+  `image_path`; export sai PNG 1080×1920 com a foto dentro. A queda também: com a
+  câmera bloqueada, erro classificado como `negada`, aviso na tela e o botão virando
+  galeria. Refeito em viewport de celular (375×812) depois da revisão, que é onde
+  o palco estourava o vão: card 72→642, cabeçalho acabando em 44, label em 666. `lint`, `typecheck` e 771+90+96 testes passam (mobile+server+shared).
+- **O que NÃO foi verificado.** (a) **O gate da medição em aparelho continua
+  aberto** — a pergunta sim/não de se o navegador honra constraint `ideal` de
+  resolução, que é a premissa da decisão D1, exige um celular de verdade e não foi
+  respondida; `app/debug-camera.tsx` é a rota de medição e sai quando for.
+  (Respondido em 2026-11-01: ver a Revisão M9.4. A rota saiu.)
+  Se a resposta for não, a decisão certa é voltar ao `CameraView`, e o custo é
+  localizado no `CameraLive.web.tsx` — o palco e os presets não mudam.
+  (b) **Nada do caminho nativo** rodou em aparelho: `CameraLive.tsx`, o
+  `takePictureAsync`, e o `captureRef` com `width`/`height` no palco offscreen
+  (`left: -9999`), que nunca foi exercitado em device em nenhuma feature desta
+  série. (c) **PWA standalone** (câmera em web app da tela de início) não
+  exercitado. (d) A câmera real — o que foi exercitado é um stream sintético de
+  1080×1920, então nada diz como uma câmera de celular se comporta com `ideal`,
+  que é justamente o gate (a).
+
+**Revisão M9.4 (compartilhar como story):** 2026-11-01, branch
+`feat/compartilhar-stories`. Spec em
+[`docs/superpowers/specs/2026-10-31-compartilhar-stories-design.md`](superpowers/specs/2026-10-31-compartilhar-stories-design.md).
+
+A refeição mantém dois botões: **Compartilhar** abre a câmera em tela cheia, no
+jeito dos stories do Instagram, e **Novo post** abre a mesma câmera no quadro 4:5
+do feed, sem presets. Depois da foto vem um editor: dois dedos mexem na foto, cada
+elemento do card é um sticker que arrasta, redimensiona, gira e vai para a
+lixeira. O logo fica sempre. Os gradientes coloridos saíram; sobra só a vinheta
+preta, com botão para ligar e desligar. Refeição que já tem foto pergunta antes
+("Usar a foto salva" ou "Tirar outra"); a foto nova só vai para a imagem exportada
+e a original fica intacta. Refeição sem foto ganha a foto no primeiro export.
+
+- **Gate da câmera respondido.** No iPhone, Safari e Vivaldi entregam 1080×1920
+  pedindo 1920×1080: o WebKit inverte a orientação pedida, e o `PEDIDO_INICIAL`
+  já conta com isso. A decisão D1 (`getUserMedia` direto, sem `CameraView`) fica de
+  pé. **Android não foi medido.** `app/debug-camera.tsx` foi removido.
+- **Defeito de baseline do html2canvas.** O preflight do Tailwind põe
+  `img { display: block }`, e isso alcança a `<img>` que o html2canvas usa para
+  medir fonte: todo texto exportado saía deslocado para baixo.
+  `garantirMetricasDeFonte` (`lib/share/capture.web.ts`) corrige só o nó de medida.
+  `tabular-nums` não chega ao canvas; aceito.
+- **Armadilha do Metro.** Na web, `./ShareLogo` dentro de `ShareLogo.web.tsx`
+  resolve para o próprio arquivo, e os valores importados chegam `undefined`. O
+  logo saía com altura NaN, sem `tsc` nem `jest` reclamarem; só o navegador
+  mostrou. `lib/web-self-import.test.ts` prende esse caso.
+- **Revisão final, achados só do nativo** (lidos no código das bibliotecas, ainda
+  não confirmados em aparelho). No nativo a escrita num shared value vinda do JS
+  só vale depois da tarefa, e os `onLayout` de um commit chegam juntos: só o último
+  sticker ficava medido e os outros ignoravam o toque, por isso as medidas se
+  acumulam num ref. A rota de compartilhar deixou de ser `fullScreenModal`: o
+  `ConfirmDialog` e os toasts moram na raiz, e um modal nativo os cobriria, com o
+  `confirm` nunca resolvendo. No Android o tamanho da foto vem do EXIF cru, então
+  ela é medida depois da captura.
+- **Verificado no navegador** (375×812 e 1280×800, usuário local, stream sintético
+  no `getUserMedia`, toque por `PointerEvent` sintético): refeição sem foto até o
+  PNG de 1080×1920 e a foto gravada; refeição com foto, com a pergunta e sem montar
+  a câmera; "Sem foto" em Pôster; análise em Pôster; Novo post até o formulário;
+  arrasto, pinça e giro; lixeira removendo sticker e recusando o logo; PNG sobreposto
+  ao editor; mouse e roda no desktop.
+- **O que NÃO foi verificado.** (a) **Nada no aparelho**: gesto com dedos de verdade
+  e todo o caminho nativo (`CameraLive.tsx`, `captureRef`, share sheet) dependem de
+  um build EAS. (b) **Ambiente hospedado:** `dev.fitbrother.app` aponta para o
+  Supabase e a Lambda de produção, onde falta a coluna `meals.image_path`; até isso
+  ser corrigido, a foto não é salva na refeição nos testes pela URL hospedada, e o
+  deploy de `f2a3f00` continua falho. (c) Android.
+
 ---
 
 # ═══ Fase 3 — Polish & Expansão (M10–M13) ═══
@@ -855,6 +994,14 @@ do usuário; `soft_mode=true` comprovadamente não manda kcal/macros pro prompt.
   escopo de CI.
 
 **M18 concluído — Fase 4 (M14–M18) completa.**
+
+## M-Billing — Cobrança Stripe (Checkout)
+
+**Meta:** assinatura `pro` via Stripe Checkout (Supabase + Fastify + Expo). Banco como fonte de verdade do plano: `subscriptions` legível pelo dono e gravável só por `service_role`; webhooks Stripe idempotentes via `stripe_events`. Spec: `docs/superpowers/specs/2026-10-25-stripe-billing-design.md`.
+
+**Feito quando:** checkout cria/atualiza `subscriptions` via webhook assinado; evento repetido não reprocessa (`stripe_events`); cliente autenticado não consegue alterar o próprio plano; app reflete a mudança de plano via Realtime.
+
+**Status M-Billing (Cobrança Stripe):** 🚧 implementado, não validado ponta a ponta. Servidor (checkout, portal, `GET /billing/subscription`, webhook Stripe idempotente, cancelamento na exclusão de conta) e mobile (paywall, gestão no perfil, página de retorno do checkout) implementados, com testes unitários. **Pendente:** smoke test e2e contra conta Stripe de teste (Task 8) não feito; UI não verificada visualmente; `packages/db-types` foi editado à mão (sem supabase CLI) e deve ser regenerado com `npm run db:types`; rollout em produção exige ambiente controlado, revisão de segunda pessoa e validação jurídica/produto da política das lojas.
 
 ---
 

@@ -2,7 +2,7 @@ import { Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronLeft, Download, Pencil, Share2, Sparkles, Trash2 } from "lucide-react-native";
+import { ChevronLeft, ImagePlus, Pencil, Share2, Sparkles, Trash2 } from "lucide-react-native";
 import type { MealResponse } from "@fitbrother/shared";
 import { getMeal } from "@/lib/api/meals";
 import { mealDetailKey } from "@/lib/hooks/useMealsForDay";
@@ -124,14 +124,6 @@ export default function MealDetailScreen() {
         </Pressable>
         <Text className="ml-2 flex-1 text-xl font-display-bold text-neutral-800">Refeição</Text>
         <Pressable
-          onPress={() => router.push(`/(app)/share/meal/${meal.id}` as never)}
-          accessibilityLabel="Exportar imagem"
-          accessibilityRole="button"
-          className="min-h-[44px] min-w-[44px] items-center justify-center"
-        >
-          <Download size={20} color={colors.neutral[800]} />
-        </Pressable>
-        <Pressable
           onPress={() =>
             router.push({
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -220,23 +212,37 @@ export default function MealDetailScreen() {
           </Pressable>
         )}
 
+        {/* Os dois destinos, um embaixo do outro e nomeados.
+            Compartilhar sai do app como imagem, pela câmera de story; Novo post
+            fica dentro dele, no feed. O primário é o de fora porque é o que
+            leva a marca para quem ainda não está aqui. */}
         {!meal.review_required && (
-          <Pressable
-            onPress={() =>
-              router.push({
-                pathname: "/(app)/post/new" as never,
-                params: { meal_id: meal.id },
-              })
-            }
-            accessibilityRole="button"
-            accessibilityLabel="Compartilhar no feed"
-            className="mx-4 mt-6 min-h-[52px] flex-row items-center justify-center rounded-full bg-primary-400 px-6 py-3 active:bg-primary-500"
-          >
-            <Share2 size={18} color={colors.neutral[50]} />
-            <Text className="ml-2 text-base font-sans-semibold text-white">
-              Compartilhar no feed
-            </Text>
-          </Pressable>
+          <View className="mt-6 gap-2 px-4">
+            <Pressable
+              onPress={() => router.push(`/(app)/share/meal/${meal.id}` as never)}
+              accessibilityRole="button"
+              accessibilityLabel="Compartilhar"
+              className="min-h-[52px] flex-row items-center justify-center rounded-full bg-primary-400 px-6 py-3 active:bg-primary-500"
+            >
+              <Share2 size={18} color={colors.neutral[50]} />
+              <Text className="ml-2 text-base font-sans-semibold text-white">Compartilhar</Text>
+            </Pressable>
+            <Pressable
+              onPress={() =>
+                router.push({
+                  pathname: "/(app)/post/new" as never,
+                  params: { meal_id: meal.id },
+                })
+              }
+              accessibilityRole="button"
+              accessibilityLabel="Novo post"
+              style={shadows.card}
+              className="min-h-[52px] flex-row items-center justify-center rounded-full bg-white px-6 py-3 active:opacity-70"
+            >
+              <ImagePlus size={18} color={colors.neutral[700]} />
+              <Text className="ml-2 text-base font-sans-semibold text-neutral-700">Novo post</Text>
+            </Pressable>
+          </View>
         )}
       </ScrollView>
     </SafeAreaView>

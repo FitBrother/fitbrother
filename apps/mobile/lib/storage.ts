@@ -1,4 +1,5 @@
 import { Platform } from "react-native";
+import { mealPhotoPath } from "@fitbrother/shared";
 import type { AudioExtension } from "./audio/recorder";
 import { supabase } from "./supabase";
 
@@ -124,17 +125,24 @@ export async function uploadAvatar(params: {
   return { path };
 }
 
+/**
+ * Sobe a foto de uma refeição.
+ *
+ * `upsert: true` porque o path é determinístico (ver `mealPhotoPath`): tirar
+ * outra foto da mesma refeição — o caso normal da câmera na tela de
+ * compartilhar — bate no mesmo objeto, e sem upsert isso é 409.
+ */
 export async function uploadMealPhoto(params: {
   userId: string;
   mealId: string;
   fileUri: string;
 }): Promise<{ path: string }> {
-  const path = `${params.userId}/meal-photos/${params.mealId}.jpg`;
+  const path = mealPhotoPath(params.userId, params.mealId);
   const { body, contentType } = await imageUploadBody(params.fileUri, `${params.mealId}.jpg`);
 
   const { error } = await supabase.storage
     .from(IMAGE_BUCKET)
-    .upload(path, body, { contentType, upsert: false });
+    .upload(path, body, { contentType, upsert: true });
 
   if (error) throw error;
   return { path };

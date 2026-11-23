@@ -26,7 +26,7 @@ import { matchFood, type FoodMatch } from "./foods.js";
  */
 
 export const MEAL_DETAIL_SELECT = `
-  id, source, raw_input, audio_path, meal_type, consumed_at,
+  id, source, raw_input, audio_path, image_path, meal_type, consumed_at,
   total_kcal, total_protein_g, total_carbs_g, total_fat_g,
   confidence, review_required, ai_feedback, created_at, deleted_at,
   items:meal_items(

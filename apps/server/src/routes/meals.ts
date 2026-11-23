@@ -4,7 +4,9 @@ import {
   CreateMealTextRequestSchema,
   CreateMealBarcodeRequestSchema,
   PatchMealRequestSchema,
+  mealPhotoPath,
 } from "@fitbrother/shared";
+import type { PatchMealRequest } from "@fitbrother/shared";
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import { authRequired, supabaseForRequest } from "../lib/auth.js";
 import { addDaysIso } from "../lib/dateMath.js";
@@ -602,9 +604,10 @@ export async function mealsRoutes(app: FastifyInstance) {
       return reply.code(400).send({ error: "invalid_payload", issues: parsed.error.issues });
     }
     const supabase = supabaseForRequest(req);
-    const patch: Record<string, unknown> = {};
-    if (parsed.data.meal_type) patch.meal_type = parsed.data.meal_type;
-    if (parsed.data.consumed_at) patch.consumed_at = parsed.data.consumed_at;
+    const patch = buildMealPatch(parsed.data, {
+      userId: req.user!.id,
+      mealId: req.params.id,
+    });
 
     if (Object.keys(patch).length > 0) {
       const { error } = await supabase.from("meals").update(patch).eq("id", req.params.id);
@@ -665,6 +668,32 @@ export async function mealsRoutes(app: FastifyInstance) {
     if (error) return internalError(reply, req.log, error, { where: "meal_delete" });
     return reply.code(204).send();
   });
+}
+
+/**
+ * Os campos que um PATCH de refeição vai escrever.
+ *
+ * Exportado para teste — mesmo molde de `isOwnedAvatarPath` em `account.ts`.
+ *
+ * `has_photo` NÃO carrega caminho: o path sai de `mealPhotoPath(userId, mealId)`,
+ * com o `userId` do token. Aceitar `image_path` do corpo deixaria um cliente
+ * apontar `meals.image_path` para o arquivo de outra pessoa — e a RLS de storage
+ * não protege disso, porque ela governa quem LÊ o objeto, não o que a linha de
+ * `meals` diz.
+ */
+export function buildMealPatch(
+  input: PatchMealRequest,
+  ctx: { userId: string; mealId: string },
+): Record<string, unknown> {
+  const patch: Record<string, unknown> = {};
+  if (input.meal_type) patch.meal_type = input.meal_type;
+  if (input.consumed_at) patch.consumed_at = input.consumed_at;
+  // Só `true` escreve. `false` significa "não estou falando de foto", não
+  // "apague a foto" — remover foto não é um caso que exista hoje.
+  if (input.has_photo === true) {
+    patch.image_path = mealPhotoPath(ctx.userId, ctx.mealId);
+  }
+  return patch;
 }
 
 async function loadMeal(
