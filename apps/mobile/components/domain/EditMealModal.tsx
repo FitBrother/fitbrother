@@ -13,55 +13,68 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Plus, Trash2, X } from "lucide-react-native";
-import { PatchMealItemSchema, type MealResponse, type PatchMealRequest } from "@fitbrother/shared";
+import {
+  macrosForQuantity,
+  PatchMealItemSchema,
+  type FoodSuggestion,
+  type Macros,
+  type MealResponse,
+  type PatchMealRequest,
+  type Unit,
+} from "@fitbrother/shared";
+import {
+  applySuggestion,
+  changeDescription,
+  changeMacro,
+  changeQuantity,
+  changeUnit,
+  draftFromSavedItem,
+  resetToCatalog,
+  toPatchItem,
+  type ItemDraft,
+} from "@/lib/meal-item-draft";
+import { UNIT_LABEL, UNIT_OPTIONS } from "@/lib/unit-labels";
 import { useUpdateMeal } from "@/lib/hooks/useUpdateMeal";
 import { useDeleteMeal } from "@/lib/hooks/useDeleteMeal";
 import { useDialog } from "@/lib/dialog/dialog-context";
 import { useToast } from "@/lib/toast/toast-context";
 import { colors } from "@/lib/colors";
 import { shadows } from "@/lib/shadows";
-
-type Unit = MealResponse["items"][number]["unit"];
-const UNIT_OPTIONS: Unit[] = ["g", "ml", "unit", "slice", "cup", "tbsp", "tsp"];
-const UNIT_LABEL: Record<Unit, string> = {
-  g: "g",
-  ml: "ml",
-  unit: "un",
-  slice: "fatia",
-  cup: "xíc",
-  tbsp: "c. sopa",
-  tsp: "c. chá",
-};
-
-type ItemDraft = {
-  id?: string;
-  description: string;
-  quantity: number;
-  unit: Unit;
-  kcal: number;
-  protein_g: number;
-  carbs_g: number;
-  fat_g: number;
-};
+import { FoodAutocomplete } from "./FoodAutocomplete";
 
 type State = { items: ItemDraft[]; dirty: boolean };
 
 type Action =
   | { type: "init"; items: ItemDraft[] }
-  | { type: "update_item"; index: number; patch: Partial<ItemDraft> }
+  | { type: "select_suggestion"; index: number; suggestion: FoodSuggestion }
+  | { type: "change_quantity"; index: number; quantity: number }
+  | { type: "change_unit"; index: number; unit: Unit }
+  | { type: "change_macro"; index: number; patch: Partial<Macros> }
+  | { type: "change_description"; index: number; description: string }
+  | { type: "reset_catalog"; index: number }
   | { type: "add_item" }
   | { type: "remove_item"; index: number };
+
+function mapItem(state: State, index: number, fn: (d: ItemDraft) => ItemDraft): State {
+  return { items: state.items.map((it, i) => (i === index ? fn(it) : it)), dirty: true };
+}
 
 function reducer(state: State, action: Action): State {
   switch (action.type) {
     case "init":
       return { items: action.items, dirty: false };
-    case "update_item": {
-      const items = state.items.map((it, i) =>
-        i === action.index ? { ...it, ...action.patch } : it,
-      );
-      return { items, dirty: true };
-    }
+    case "select_suggestion":
+      return mapItem(state, action.index, (d) => applySuggestion(d, action.suggestion));
+    case "change_quantity":
+      return mapItem(state, action.index, (d) => changeQuantity(d, action.quantity));
+    case "change_unit":
+      return mapItem(state, action.index, (d) => changeUnit(d, action.unit));
+    case "change_macro":
+      return mapItem(state, action.index, (d) => changeMacro(d, action.patch));
+    case "change_description":
+      return mapItem(state, action.index, (d) => changeDescription(d, action.description));
+    case "reset_catalog":
+      return mapItem(state, action.index, resetToCatalog);
     case "add_item":
       return {
         items: [
@@ -74,6 +87,9 @@ function reducer(state: State, action: Action): State {
             protein_g: 0,
             carbs_g: 0,
             fat_g: 0,
+            food_id: null,
+            link: { mode: "none" },
+            adjusted: false,
           },
         ],
         dirty: true,
@@ -101,16 +117,7 @@ export function EditMealModal({ meal, day }: Props) {
   const toast = useToast();
 
   const [state, dispatch] = useReducer(reducer, {
-    items: meal.items.map((it) => ({
-      id: it.id,
-      description: it.description,
-      quantity: it.quantity,
-      unit: it.unit,
-      kcal: it.kcal,
-      protein_g: it.protein_g,
-      carbs_g: it.carbs_g,
-      fat_g: it.fat_g,
-    })),
+    items: meal.items.map(draftFromSavedItem),
     dirty: false,
   });
   const [errorIndexes, setErrorIndexes] = useState<Set<number>>(new Set());
@@ -163,7 +170,7 @@ export function EditMealModal({ meal, day }: Props) {
 
     const errors = new Set<number>();
     state.items.forEach((it, i) => {
-      const parsed = PatchMealItemSchema.safeParse(it);
+      const parsed = PatchMealItemSchema.safeParse(toPatchItem(it));
       if (!parsed.success) errors.add(i);
     });
     if (errors.size > 0) {
@@ -183,26 +190,13 @@ export function EditMealModal({ meal, day }: Props) {
     setErrorIndexes(new Set());
 
     const patch: PatchMealRequest = {
-      items: state.items.map((it) => ({
-        id: it.id,
-        description: it.description.trim(),
-        quantity: it.quantity,
-        unit: it.unit,
-        kcal: it.kcal,
-        protein_g: it.protein_g,
-        carbs_g: it.carbs_g,
-        fat_g: it.fat_g,
-      })),
+      items: state.items.map((it) => ({ ...toPatchItem(it), description: it.description.trim() })),
     };
 
     update.mutate(patch, {
       onSuccess: () => router.back(),
       onError: () => toast({ variant: "error", message: "Não foi possível salvar" }),
     });
-  };
-
-  const updateItem = (index: number, patch: Partial<ItemDraft>) => {
-    dispatch({ type: "update_item", index, patch });
   };
 
   const isSaving = update.isPending || remove.isPending;
@@ -265,7 +259,8 @@ export function EditMealModal({ meal, day }: Props) {
               key={item.id ?? `new-${idx}`}
               item={item}
               hasError={errorIndexes.has(idx)}
-              onChange={(patch) => updateItem(idx, patch)}
+              dispatch={dispatch}
+              index={idx}
               onRemove={() => dispatch({ type: "remove_item", index: idx })}
             />
           ))}
@@ -302,49 +297,81 @@ export function EditMealModal({ meal, day }: Props) {
 
 type ItemEditorProps = {
   item: ItemDraft;
+  index: number;
   hasError: boolean;
-  onChange: (patch: Partial<ItemDraft>) => void;
+  dispatch: (action: Action) => void;
   onRemove: () => void;
 };
 
-function ItemEditor({ item, hasError, onChange, onRemove }: ItemEditorProps) {
+function unitConverts(item: ItemDraft): boolean {
+  const { link } = item;
+  if (link.mode === "food") {
+    return macrosForQuantity(link.food, item.quantity, item.unit) !== null;
+  }
+  if (link.mode === "anchor") return item.unit === link.unit;
+  return true;
+}
+
+function ItemEditor({ item, index, hasError, dispatch, onRemove }: ItemEditorProps) {
+  const macro = (patch: Partial<Macros>) => dispatch({ type: "change_macro", index, patch });
+  const showNoConversion = item.link.mode !== "none" && !unitConverts(item);
+
   return (
     <View
       style={shadows.card}
       className={`mx-4 mt-3 rounded-2xl bg-white p-4 ${hasError ? "border border-danger-500" : ""}`}
     >
-      <TextInput
+      <FoodAutocomplete
         value={item.description}
-        onChangeText={(t) => onChange({ description: t })}
-        placeholder="Descrição"
-        accessibilityLabel="Descrição do item"
-        maxLength={60}
-        className="text-base font-sans-medium text-neutral-800"
+        onChangeText={(description) => dispatch({ type: "change_description", index, description })}
+        onSelect={(suggestion) => dispatch({ type: "select_suggestion", index, suggestion })}
       />
 
       <View className="mt-3 flex-row items-center gap-2">
         <NumberInput
           label="Qtd"
           value={item.quantity}
-          onChange={(n) => onChange({ quantity: n })}
+          onChange={(quantity) => dispatch({ type: "change_quantity", index, quantity })}
         />
-        <UnitPicker value={item.unit} onChange={(u) => onChange({ unit: u })} />
+        <UnitPicker
+          value={item.unit}
+          onChange={(unit) => dispatch({ type: "change_unit", index, unit })}
+        />
       </View>
+      {showNoConversion ? (
+        <Text className="mt-1 text-xs font-sans text-neutral-500">
+          Sem conversão para esta unidade
+        </Text>
+      ) : null}
 
       <View className="mt-3 flex-row items-center gap-2">
-        <NumberInput label="kcal" value={item.kcal} onChange={(n) => onChange({ kcal: n })} />
+        <NumberInput label="kcal" value={item.kcal} onChange={(n) => macro({ kcal: n })} />
         <NumberInput
           label="P (g)"
           value={item.protein_g}
-          onChange={(n) => onChange({ protein_g: n })}
+          onChange={(n) => macro({ protein_g: n })}
         />
-        <NumberInput
-          label="C (g)"
-          value={item.carbs_g}
-          onChange={(n) => onChange({ carbs_g: n })}
-        />
-        <NumberInput label="G (g)" value={item.fat_g} onChange={(n) => onChange({ fat_g: n })} />
+        <NumberInput label="C (g)" value={item.carbs_g} onChange={(n) => macro({ carbs_g: n })} />
+        <NumberInput label="G (g)" value={item.fat_g} onChange={(n) => macro({ fat_g: n })} />
       </View>
+
+      {item.adjusted ? (
+        <View className="mt-3 flex-row items-center justify-between">
+          <View className="rounded-full bg-warning-50 px-2 py-1">
+            <Text className="text-xs font-sans-medium text-warning-700">Ajustado</Text>
+          </View>
+          {item.link.mode === "food" ? (
+            <Pressable
+              onPress={() => dispatch({ type: "reset_catalog", index })}
+              accessibilityRole="button"
+              accessibilityLabel="Voltar ao catálogo"
+              className="min-h-[44px] min-w-[44px] items-center justify-center px-2"
+            >
+              <Text className="text-sm font-sans-medium text-primary-500">Voltar ao catálogo</Text>
+            </Pressable>
+          ) : null}
+        </View>
+      ) : null}
 
       <Pressable
         onPress={onRemove}
