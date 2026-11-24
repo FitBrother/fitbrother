@@ -4,6 +4,7 @@ import { z } from "zod";
 
 export const MealTypeSchema = z.enum(["breakfast", "lunch", "snack", "dinner", "other"]);
 export const UnitSchema = z.enum(["g", "ml", "unit", "slice", "cup", "tbsp", "tsp"]);
+export type Unit = z.infer<typeof UnitSchema>;
 export const SexSchema = z.enum(["male", "female", "other"]);
 export const ActivityLevelSchema = z.enum([
   "sedentary",
