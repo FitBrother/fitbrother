@@ -26,10 +26,10 @@ BEGIN
 
   -- TACO has no cooked pasta: the top-1 must at least not be a raw one.
   SELECT name INTO top FROM public.fitbrother_foods_fuzzy_match('macarrao', 0.4) LIMIT 1;
-  IF top IS NULL OR top !~* '^macarr' OR top ~* '\mcru[as]*\M' THEN
+  IF top IS NOT NULL AND (top !~* '^macarr' OR top ~* '\mcru[as]*\M') THEN
     RAISE EXCEPTION 'FAIL "macarrao" top-1 is %', top;
   END IF;
-  RAISE NOTICE 'PASS "macarrao" -> % (not raw; TACO has no cooked pasta)', top;
+  RAISE NOTICE 'PASS "macarrao" -> % (not raw; none after 0087)', top;
 
   -- Unrelated noise still misses at 0.4.
   SELECT count(*) INTO n FROM public.fitbrother_foods_fuzzy_match('xyzzy plugh', 0.4);
