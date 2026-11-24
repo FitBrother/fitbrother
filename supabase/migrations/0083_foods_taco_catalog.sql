@@ -2,11 +2,13 @@
 --
 -- Fonte: http://www.cfn.org.br/wp-content/uploads/2017/03/taco_4_edicao_ampliada_e_revisada.pdf
 -- ("É permitida a reprodução parcial ou total desta obra, desde que citada a fonte.")
--- Dados versionados em supabase/seed/taco-4ed.json (595 alimentos; os nº 516 e 517,
--- sais, ficam de fora por não terem kcal na tabela).
+-- Dados versionados em supabase/seed/taco-4ed.json (591 alimentos). Ficam de fora:
+-- os nº 516 e 517 (sais, sem kcal na tabela) e os nº 450, 457, 458 e 591, marcados
+-- com "*" na TACO ("análises sendo reavaliadas", sem dados), para não gravar macros
+-- zerados.
 --
 -- O que esta migration faz com source='taco':
---   1. Insere os 595 alimentos da TACO / atualiza macros dos que já existem com o
+--   1. Insere os 591 alimentos da TACO / atualiza macros dos que já existem com o
 --      mesmo nome (corrige divergências do seed antigo). serving_label/serving_grams
 --      das linhas existentes são preservados.
 --   2. Remove as linhas source='taco' cujo nome não está na TACO (seed antigo com
@@ -297,7 +299,7 @@ INSERT INTO taco_import (name, name_normalized, kcal_per_100g, protein_per_100g,
   ('Óleo, de pequi', 'oleo de pequi', 884.00, 0.00, 0.00, 100.00),
   ('Óleo, de soja', 'oleo de soja', 884.00, 0.00, 0.00, 100.00),
   ('Abadejo, filé, congelado, assado', 'abadejo file congelado assado', 112.00, 23.50, 0.00, 1.20),
-  ('Abadejo, filé, congelado,cozido', 'abadejo file congeladocozido', 91.00, 19.30, 0.00, 0.90),
+  ('Abadejo, filé, congelado,cozido', 'abadejo file congelado cozido', 91.00, 19.30, 0.00, 0.90),
   ('Abadejo, filé, congelado, cru', 'abadejo file congelado cru', 59.00, 13.10, 0.00, 0.40),
   ('Abadejo, filé, congelado, grelhado', 'abadejo file congelado grelhado', 130.00, 27.60, 0.00, 1.30),
   ('Atum, conserva em óleo', 'atum conserva em oleo', 166.00, 26.20, 0.00, 6.00),
@@ -473,15 +475,12 @@ INSERT INTO taco_import (name, name_normalized, kcal_per_100g, protein_per_100g,
   ('Creme de Leite', 'creme de leite', 221.00, 1.50, 4.50, 22.50),
   ('Iogurte, natural', 'iogurte natural', 51.00, 4.10, 1.90, 3.00),
   ('Iogurte, natural, desnatado', 'iogurte natural desnatado', 41.00, 3.80, 5.80, 0.30),
-  ('Iogurte, sabor abacaxi', 'iogurte sabor abacaxi', 0.00, 0.00, 0.00, 0.00),
   ('Iogurte, sabor morango', 'iogurte sabor morango', 70.00, 2.70, 9.70, 2.30),
   ('Iogurte, sabor pêssego', 'iogurte sabor pessego', 68.00, 2.50, 9.40, 2.30),
   ('Leite, condensado', 'leite condensado', 313.00, 7.70, 57.00, 6.70),
   ('Leite, de cabra', 'leite de cabra', 66.00, 3.10, 5.20, 3.80),
   ('Leite, de vaca, achocolatado', 'leite de vaca achocolatado', 83.00, 2.10, 14.20, 2.20),
   ('Leite, de vaca, desnatado, pó', 'leite de vaca desnatado po', 362.00, 34.70, 53.00, 0.90),
-  ('Leite, de vaca, desnatado, UHT', 'leite de vaca desnatado uht', 0.00, 0.00, 0.00, 0.00),
-  ('Leite, de vaca, integral', 'leite de vaca integral', 0.00, 0.00, 0.00, 0.00),
   ('Leite, de vaca, integral, pó', 'leite de vaca integral po', 497.00, 25.40, 39.20, 26.90),
   ('Leite, fermentado', 'leite fermentado', 70.00, 1.90, 15.70, 0.10),
   ('Queijo, minas, frescal', 'queijo minas frescal', 264.00, 17.40, 3.20, 20.20),
@@ -612,7 +611,6 @@ INSERT INTO taco_import (name, name_normalized, kcal_per_100g, protein_per_100g,
   ('Castanha-de-caju, torrada, salgada', 'castanha-de-caju torrada salgada', 570.00, 18.50, 29.10, 46.30),
   ('Castanha-do-Brasil, crua', 'castanha-do-brasil crua', 643.00, 14.50, 15.10, 63.50),
   ('Coco, cru', 'coco cru', 406.00, 3.70, 10.40, 42.00),
-  ('Coco, verde, cru', 'coco verde cru', 0.00, 0.00, 0.00, 0.00),
   ('Farinha, de mesocarpo de babaçu, crua', 'farinha de mesocarpo de babacu crua', 329.00, 1.40, 79.20, 0.20),
   ('Gergelim, semente', 'gergelim semente', 584.00, 21.20, 21.60, 50.40),
   ('Linhaça, semente', 'linhaca semente', 495.00, 14.10, 43.30, 32.30),

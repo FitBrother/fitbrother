@@ -52,8 +52,6 @@ INSERT INTO alias_import (taco_name, alias, alias_normalized) VALUES
   ('Banana, prata, crua', 'banana', 'banana'),
   ('Banana, prata, crua', 'banana prata', 'banana prata'),
   ('Banana, nanica, crua', 'banana nanica', 'banana nanica'),
-  ('Leite, de vaca, integral', 'leite', 'leite'),
-  ('Leite, de vaca, integral', 'leite integral', 'leite integral'),
   ('Café, infusão 10%', 'café', 'cafe'),
   ('Café, infusão 10%', 'cafe preto', 'cafe preto'),
   ('Carne, bovina, patinho, sem gordura, grelhado', 'patinho grelhado', 'patinho grelhado'),

@@ -146,7 +146,7 @@ Constraint: por usuário, no máximo uma linha com `effective_to IS NULL`. Garan
 
 Índices: `name_normalized` com `gin_trgm_ops` (fuzzy), `(verified, source)`.
 
-Catálogo `source='taco'`: 595 alimentos da TACO 4ª ed. (migration `0083_foods_taco_catalog.sql`; dados em `supabase/seed/taco-4ed.json`), `verified=true`. A `0083` removeu as linhas `taco` do seed antigo cujo nome não consta na tabela oficial (`meal_items.food_id` vira NULL via `ON DELETE SET NULL`; macros históricos ficam, pois `meal_items` guarda snapshot).
+Catálogo `source='taco'`: 591 alimentos da TACO 4ª ed. (migration `0083_foods_taco_catalog.sql`; dados em `supabase/seed/taco-4ed.json`), `verified=true`. Ficam de fora os nº 516/517 (sem kcal) e os nº 450, 457, 458 e 591, marcados com `*` na TACO ("análises sendo reavaliadas"; inclui os leites de vaca integral e desnatado UHT): sem dado, não entram com macros zerados. A `0083` removeu as linhas `taco` do seed antigo cujo nome não consta na tabela oficial (`meal_items.food_id` vira NULL via `ON DELETE SET NULL`; macros históricos ficam, pois `meal_items` guarda snapshot).
 
 > **Pendência conhecida:** os alimentos que substituíram o seed antigo entram sem `serving_label`/`serving_grams` (só os que já existiam com o mesmo nome preservam). Sem `serving_grams`, unidades como "2 ovos" não convertem em gramas e o macro cai no valor da LLM até as porções serem curadas.
 
@@ -158,7 +158,7 @@ Catálogo `source='taco'`: 595 alimentos da TACO 4ª ed. (migration `0083_foods_
 | `alias` | text | Como o usuário digita ("arroz branco"). |
 | `alias_normalized` | text | lowercase + sem acento. |
 
-`UNIQUE (food_id, alias_normalized)`. Só texto de busca: os macros vêm sempre de `foods`. Migration `0084_food_aliases.sql` (47 aliases em `supabase/seed/taco-aliases.json`; o seed falha se algum nome TACO não for encontrado).
+`UNIQUE (food_id, alias_normalized)`. Só texto de busca: os macros vêm sempre de `foods`. Migration `0084_food_aliases.sql` (45 aliases em `supabase/seed/taco-aliases.json`; o seed falha se algum nome TACO não for encontrado).
 
 #### `meals` — eventos de refeição
 | Coluna | Tipo | Notas |

@@ -176,8 +176,8 @@ fitbrother/
 - `0017_ai_extractions.sql` (`input_hash` PK) + tabela `ai_extraction_hits` separada pra analytics per-user.
 - `0018_create_meal_with_items.sql` — RPC atômico (espelhando `complete_onboarding` do M1).
 - **Storage bucket `meal-audios`** privado, RLS `auth.uid()::text = (storage.foldername(name))[1]`.
-- **Seed `foods`** — feito: migration `0083_foods_taco_catalog.sql` carrega os 595 alimentos da TACO 4ª ed. (dados em `supabase/seed/taco-4ed.json`), `verified=true source='taco'`.
-- **Autocomplete de alimentos na edição** — feito (branch `feat/catalogo-taco`): `0084_food_aliases.sql` (tabela `food_aliases`, 47 aliases em `supabase/seed/taco-aliases.json`) e `0085_foods_autocomplete.sql` (RPC `fitbrother_foods_autocomplete`: catálogo + aliases + recentes). Server: `GET /foods/search` e `food_id` nos itens do `PATCH /meals/:id`. Mobile: `FoodAutocomplete` no `EditMealModal` com recálculo de macros (`packages/shared/src/food-macros.ts`). Detalhes em `FEATURES §4.2.1`. Pendências: curar `serving_grams` dos alimentos TACO novos (hoje "2 ovos" cai nos macros da LLM) e tornar o `PATCH` de itens atômico (delete-then-insert hoje).
+- **Seed `foods`** — feito: migration `0083_foods_taco_catalog.sql` carrega os 591 alimentos da TACO 4ª ed. (dados em `supabase/seed/taco-4ed.json`), `verified=true source='taco'`.
+- **Autocomplete de alimentos na edição** — feito (branch `feat/catalogo-taco`): `0084_food_aliases.sql` (tabela `food_aliases`, 45 aliases em `supabase/seed/taco-aliases.json`) e `0085_foods_autocomplete.sql` (RPC `fitbrother_foods_autocomplete`: catálogo + aliases + recentes). Server: `GET /foods/search` e `food_id` nos itens do `PATCH /meals/:id`. Mobile: `FoodAutocomplete` no `EditMealModal` com recálculo de macros (`packages/shared/src/food-macros.ts`). Detalhes em `FEATURES §4.2.1`. Pendências: curar `serving_grams` dos alimentos TACO novos (hoje "2 ovos" cai nos macros da LLM) e tornar o `PATCH` de itens atômico (delete-then-insert hoje).
 
 ### Backend
 

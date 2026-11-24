@@ -4041,15 +4041,6 @@
     "fat_per_100g": 0.3
   },
   {
-    "taco_num": 450,
-    "name": "Iogurte, sabor abacaxi",
-    "category": "Leite e derivados",
-    "kcal_per_100g": 0.0,
-    "protein_per_100g": 0.0,
-    "carbs_per_100g": 0.0,
-    "fat_per_100g": 0.0
-  },
-  {
     "taco_num": 451,
     "name": "Iogurte, sabor morango",
     "category": "Leite e derivados",
@@ -4102,24 +4093,6 @@
     "protein_per_100g": 34.7,
     "carbs_per_100g": 53.0,
     "fat_per_100g": 0.9
-  },
-  {
-    "taco_num": 457,
-    "name": "Leite, de vaca, desnatado, UHT",
-    "category": "Leite e derivados",
-    "kcal_per_100g": 0.0,
-    "protein_per_100g": 0.0,
-    "carbs_per_100g": 0.0,
-    "fat_per_100g": 0.0
-  },
-  {
-    "taco_num": 458,
-    "name": "Leite, de vaca, integral",
-    "category": "Leite e derivados",
-    "kcal_per_100g": 0.0,
-    "protein_per_100g": 0.0,
-    "carbs_per_100g": 0.0,
-    "fat_per_100g": 0.0
   },
   {
     "taco_num": 459,
@@ -5290,15 +5263,6 @@
     "protein_per_100g": 3.7,
     "carbs_per_100g": 10.4,
     "fat_per_100g": 42.0
-  },
-  {
-    "taco_num": 591,
-    "name": "Coco, verde, cru",
-    "category": "Nozes e sementes",
-    "kcal_per_100g": 0.0,
-    "protein_per_100g": 0.0,
-    "carbs_per_100g": 0.0,
-    "fat_per_100g": 0.0
   },
   {
     "taco_num": 592,

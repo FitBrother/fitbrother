@@ -3,13 +3,21 @@
 BEGIN;
 
 -- Expected alias count = total aliases in supabase/seed/taco-aliases.json.
+SELECT set_config('fb_test.expected_aliases', '45', true);
+
 DO $$
 DECLARE
   n int;
 BEGIN
   SELECT count(*) INTO n FROM public.food_aliases;
-  IF n <> 47 THEN RAISE EXCEPTION 'FAIL seed: expected 47 aliases, got %', n; END IF;
+  IF n <> current_setting('fb_test.expected_aliases')::int THEN
+    RAISE EXCEPTION 'FAIL seed: expected % aliases, got %', current_setting('fb_test.expected_aliases'), n;
+  END IF;
   RAISE NOTICE 'PASS every alias in taco-aliases.json resolved to a food';
+  SELECT count(*) INTO n FROM public.food_aliases a JOIN public.foods f ON f.id = a.food_id
+   WHERE f.kcal_per_100g = 0;
+  IF n <> 0 THEN RAISE EXCEPTION 'FAIL % aliases point to a 0-kcal food', n; END IF;
+  RAISE NOTICE 'PASS no alias points to a 0-kcal food';
 END $$;
 
 -- authenticated and anon can read aliases of verified foods; writes denied.
@@ -19,7 +27,9 @@ DECLARE
 BEGIN
   SET LOCAL ROLE authenticated;
   SELECT count(*) INTO n FROM public.food_aliases;
-  IF n <> 47 THEN RAISE EXCEPTION 'FAIL authenticated select: expected 47, got %', n; END IF;
+  IF n <> current_setting('fb_test.expected_aliases')::int THEN
+    RAISE EXCEPTION 'FAIL authenticated select: expected %, got %', current_setting('fb_test.expected_aliases'), n;
+  END IF;
   RAISE NOTICE 'PASS authenticated reads food_aliases';
 
   BEGIN
@@ -45,7 +55,9 @@ BEGIN
 
   SET LOCAL ROLE anon;
   SELECT count(*) INTO n FROM public.food_aliases;
-  IF n <> 47 THEN RAISE EXCEPTION 'FAIL anon select: expected 47, got %', n; END IF;
+  IF n <> current_setting('fb_test.expected_aliases')::int THEN
+    RAISE EXCEPTION 'FAIL anon select: expected %, got %', current_setting('fb_test.expected_aliases'), n;
+  END IF;
   RAISE NOTICE 'PASS anon reads food_aliases';
   BEGIN
     INSERT INTO public.food_aliases (food_id, alias, alias_normalized)
