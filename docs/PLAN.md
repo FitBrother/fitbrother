@@ -176,7 +176,7 @@ fitbrother/
 - `0017_ai_extractions.sql` (`input_hash` PK) + tabela `ai_extraction_hits` separada pra analytics per-user.
 - `0018_create_meal_with_items.sql` — RPC atômico (espelhando `complete_onboarding` do M1).
 - **Storage bucket `meal-audios`** privado, RLS `auth.uid()::text = (storage.foldername(name))[1]`.
-- **Seed `foods`** — script `supabase/seed/foods-taco.ts` baixa CSV TACO/UNICAMP, normaliza (`lower(unaccent(name))`), insere ~600 rows `verified=true source='taco'`.
+- **Seed `foods`** — feito: migration `0083_foods_taco_catalog.sql` carrega os 595 alimentos da TACO 4ª ed. (dados em `supabase/seed/taco-4ed.json`), `verified=true source='taco'`.
 
 ### Backend
 

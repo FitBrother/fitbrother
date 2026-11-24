@@ -15,7 +15,6 @@
     "db:stop": "supabase stop",
     "db:reset": "supabase db reset",
     "db:reset-user": "./scripts/reset-user.sh",
-    "db:seed:foods": "tsx supabase/seed/foods-taco.ts",
     "db:types": "supabase gen types typescript --local > packages/db-types/index.ts",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
