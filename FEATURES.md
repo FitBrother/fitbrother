@@ -146,6 +146,20 @@ Constraint: por usuário, no máximo uma linha com `effective_to IS NULL`. Garan
 
 Índices: `name_normalized` com `gin_trgm_ops` (fuzzy), `(verified, source)`.
 
+Catálogo `source='taco'`: 595 alimentos da TACO 4ª ed. (migration `0083_foods_taco_catalog.sql`; dados em `supabase/seed/taco-4ed.json`), `verified=true`. A `0083` removeu as linhas `taco` do seed antigo cujo nome não consta na tabela oficial (`meal_items.food_id` vira NULL via `ON DELETE SET NULL`; macros históricos ficam, pois `meal_items` guarda snapshot).
+
+> **Pendência conhecida:** os alimentos que substituíram o seed antigo entram sem `serving_label`/`serving_grams` (só os que já existiam com o mesmo nome preservam). Sem `serving_grams`, unidades como "2 ovos" não convertem em gramas e o macro cai no valor da LLM até as porções serem curadas.
+
+#### `food_aliases` — termos de busca do autocomplete
+| Coluna | Tipo | Notas |
+|---|---|---|
+| `id` | uuid PK | |
+| `food_id` | uuid FK → `foods` ON DELETE CASCADE | |
+| `alias` | text | Como o usuário digita ("arroz branco"). |
+| `alias_normalized` | text | lowercase + sem acento. |
+
+`UNIQUE (food_id, alias_normalized)`. Só texto de busca: os macros vêm sempre de `foods`. Migration `0084_food_aliases.sql` (47 aliases em `supabase/seed/taco-aliases.json`; o seed falha se algum nome TACO não for encontrado).
+
 #### `meals` — eventos de refeição
 | Coluna | Tipo | Notas |
 |---|---|---|
@@ -329,6 +343,7 @@ RLS ligado, sem policy, `REVOKE ALL` de `anon`/`authenticated`: só `service_rol
 - `wa_messages (provider_message_id)` UNIQUE
 - `wa_messages (user_id, processed_at) WHERE processed_at IS NULL` — fila
 - `foods USING GIN (name_normalized gin_trgm_ops)` — fuzzy
+- `food_aliases USING GIN (alias_normalized gin_trgm_ops)` — autocomplete
 - `follows (followee_id)` — quem segue um usuário; `profiles (phone_hash) WHERE phone_hash IS NOT NULL` — reverse-match de contatos
 - `nutrition_goals (user_id) WHERE effective_to IS NULL` — UNIQUE parcial (meta vigente)
 - `ai_usage (user_id, day)` PK
@@ -346,6 +361,7 @@ CREATE POLICY "owner_all" ON <t>
 
 Exceções:
 - `foods`: SELECT público; INSERT/UPDATE só com `service_role`.
+- `food_aliases`: sem `user_id`; SELECT para `anon`/`authenticated` só de aliases cujo `foods.verified = true`; escrita só `service_role`.
 - `follows`: SELECT permitido se `auth.uid()` é o `follower_id` ou o `followee_id`.
 - `contact_links`: SELECT só do `owner_id`.
 - `subscriptions`: só SELECT pelo dono (`subscriptions_owner_select`); escrita só `service_role`/`SECURITY DEFINER`.
@@ -397,6 +413,20 @@ Entrada: texto ou áudio, no app ou via WhatsApp.
 5. Insere `meals` + `meal_items` em transação. Trigger atualiza `daily_summaries`.
 6. Atualiza `ai_usage` (tokens consumidos, segundos transcritos, custo estimado).
 7. Se `confidence < 0.6` → `meals.review_required = true` → notifica usuário "Confirme o que entendi" (push + WA se janela aberta).
+
+#### 4.2.1 Autocomplete de alimentos na edição de refeição
+
+No `EditMealModal` (app), o campo de descrição de cada item sugere alimentos enquanto o usuário digita.
+
+- **RPC** `fitbrother_foods_autocomplete(p_query text, p_limit int DEFAULT 8)` (migration `0085_foods_autocomplete.sql`), `SECURITY INVOKER`, `EXECUTE` só para `authenticated`. Une o catálogo `foods` (por nome e por `food_aliases`, só `verified`) com os **recentes** do usuário (`meal_items` dos últimos 90 dias, resolvidos pela RLS de `meals`/`meal_items`).
+  - Retorna `kind` (`catalog` | `recent`), `food_id`, `name`, porção e macros por 100 g do catálogo; nos recentes, também `quantity`/`unit`/macros do último uso.
+  - `''` → só recentes (frequência, depois recência); 1 caractere → vazio; 2 → só prefixo (início do texto ou de palavra); 3+ → prefixo e depois `similarity >= 0.3`. Score: 3 início do texto, 2 início de palavra, `similarity` no resto; recentes somam 0,5. Desempate: nome mais curto.
+  - Recente com `food_id` suprime a linha de catálogo do mesmo alimento.
+- **Rota** `GET /foods/search?q=` (`apps/server/src/routes/foods.ts`, auth obrigatória, `q` ≤ 60 caracteres): normaliza `q` (`services/food-search.ts`), chama a RPC com o JWT do usuário e responde `{ suggestions: FoodSuggestion[] }` (schema em `packages/shared`).
+- **`PATCH /meals/:id`:** cada item de `items` aceita `food_id` (uuid, nullable/opcional) e o persiste em `meal_items.food_id`; omitido/null = item de texto livre.
+- **Macros no cliente** (`packages/shared/src/food-macros.ts`): `quantityInGrams`, `macrosForQuantity` (catálogo → macros da quantidade) e `scaleMacros` (recentes: escala proporcional ao último uso). `g`/`ml` convertem direto (ml com densidade 1); `unit` exige `serving_grams`; `slice`/`cup`/`tbsp`/`tsp` não convertem (mantém os macros atuais). Escolher do catálogo preenche 1 porção (`unit`) se houver `serving_grams`, senão 100 g; editar macro à mão (`adjusted`) para o recálculo e editar a descrição desvincula o item (`food_id = null`). Estado do item em `apps/mobile/lib/meal-item-draft.ts`; hook `useFoodSuggestions` (debounce 250 ms), `FoodAutocomplete` e `FoodSuggestionsSkeleton` em `apps/mobile/components/domain/`.
+
+> **Pendência conhecida:** o `PATCH` de itens é delete-then-insert sem transação. Um `food_id` inexistente/obsoleto (ex.: alimento removido do catálogo entre a sugestão e o salvar) faz o insert falhar depois do delete e a refeição pode ficar sem itens.
 
 ### 4.3 Integração WhatsApp (Bot Nutricionista)
 
