@@ -17,18 +17,38 @@ type Props = {
   onSelect: (s: FoodSuggestion) => void;
 };
 
-function portionLabel(s: FoodSuggestion): string {
-  if (s.serving_label) return s.serving_label;
-  if (s.kind === "recent" && s.quantity !== null && s.unit !== null) {
-    return `${s.quantity} ${UNIT_LABEL[s.unit]}`;
+// Portion and kcal always on the same basis: last use for recents, serving (or 100 g) for catalog.
+function rowMeta(s: FoodSuggestion): { portion: string | null; kcal: number | null } {
+  if (s.kind === "recent") {
+    const portion =
+      s.quantity !== null && s.unit !== null ? `${s.quantity} ${UNIT_LABEL[s.unit]}` : null;
+    return { portion, kcal: s.kcal === null ? null : Math.round(s.kcal) };
   }
-  return "100 g";
+  if (s.kcal_per_100g === null) return { portion: null, kcal: null };
+  if (s.serving_grams !== null && s.serving_grams > 0) {
+    return {
+      portion: s.serving_label ?? `${s.serving_grams} g`,
+      kcal: Math.round((s.kcal_per_100g * s.serving_grams) / 100),
+    };
+  }
+  return { portion: "100 g", kcal: Math.round(s.kcal_per_100g) };
 }
 
-function kcalLabel(s: FoodSuggestion): string | null {
-  if (s.kcal !== null) return `${Math.round(s.kcal)} kcal`;
-  if (s.kcal_per_100g !== null) return `${Math.round(s.kcal_per_100g)} kcal`;
-  return null;
+function metaText(portion: string | null, kcal: number | null): string | null {
+  const kcalText = kcal === null ? null : `${kcal} kcal`;
+  if (portion && kcalText) return `${portion} · ${kcalText}`;
+  return portion ?? kcalText;
+}
+
+function rowA11yLabel(s: FoodSuggestion, portion: string | null, kcal: number | null): string {
+  return [
+    s.name,
+    s.kind === "recent" ? "recente" : null,
+    portion,
+    kcal === null ? null : `${kcal} kcal`,
+  ]
+    .filter((p): p is string => p !== null)
+    .join(", ");
 }
 
 export function FoodAutocomplete({ value, onChangeText, onSelect }: Props) {
@@ -87,37 +107,35 @@ export function FoodAutocomplete({ value, onChangeText, onSelect }: Props) {
             <FoodSuggestionsSkeleton />
           ) : (
             suggestions.map((s, i) => {
-              const kcal = kcalLabel(s);
+              const { portion, kcal } = rowMeta(s);
+              const meta = metaText(portion, kcal);
               return (
                 <Pressable
                   key={`${s.food_id ?? s.name}-${i}`}
                   onPress={() => handleSelect(s)}
                   accessibilityRole="button"
-                  accessibilityLabel={s.name}
-                  className="min-h-[44px] min-w-[44px] flex-row items-center justify-between gap-3 px-3 py-2 active:bg-neutral-50"
+                  accessibilityLabel={rowA11yLabel(s, portion, kcal)}
+                  className="min-h-[44px] min-w-[44px] justify-center px-3 py-2 active:bg-neutral-50"
                 >
-                  <View className="flex-1">
-                    <Text numberOfLines={1} className="text-sm font-sans-medium text-neutral-800">
-                      {s.name}
-                    </Text>
-                    <View className="mt-0.5 flex-row items-center gap-1">
-                      {s.kind === "recent" ? (
-                        <>
-                          <History size={12} color={colors.neutral[500]} />
-                          <Text className="text-xs font-sans-medium text-neutral-500">Recente</Text>
+                  <Text numberOfLines={1} className="text-sm font-sans-medium text-neutral-800">
+                    {s.name}
+                  </Text>
+                  <View className="mt-0.5 flex-row items-center gap-1">
+                    {s.kind === "recent" ? (
+                      <>
+                        <History size={12} color={colors.neutral[500]} />
+                        <Text className="text-xs font-sans-medium text-neutral-500">Recente</Text>
+                        {meta ? (
                           <Text className="text-xs font-sans text-neutral-400">·</Text>
-                        </>
-                      ) : null}
+                        ) : null}
+                      </>
+                    ) : null}
+                    {meta ? (
                       <Text style={NUM} className="text-xs font-sans text-neutral-500">
-                        {portionLabel(s)}
+                        {meta}
                       </Text>
-                    </View>
+                    ) : null}
                   </View>
-                  {kcal ? (
-                    <Text style={NUM} className="text-xs font-sans-medium text-neutral-600">
-                      {kcal}
-                    </Text>
-                  ) : null}
                 </Pressable>
               );
             })

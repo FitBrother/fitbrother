@@ -355,7 +355,7 @@ function ItemEditor({ item, index, hasError, dispatch, onRemove }: ItemEditorPro
         <NumberInput label="G (g)" value={item.fat_g} onChange={(n) => macro({ fat_g: n })} />
       </View>
 
-      {item.adjusted ? (
+      {item.adjusted && item.link.mode !== "none" ? (
         <View className="mt-3 flex-row items-center justify-between">
           <View className="rounded-full bg-warning-50 px-2 py-1">
             <Text className="text-xs font-sans-medium text-warning-700">Ajustado</Text>

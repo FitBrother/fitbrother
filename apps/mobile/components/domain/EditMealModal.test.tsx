@@ -108,6 +108,14 @@ describe("EditMealModal food autocomplete integration", () => {
     });
   });
 
+  test("editing macros of an unlinked item shows no Ajustado chip", () => {
+    renderModal();
+    fireEvent.changeText(screen.getByLabelText("Descrição do item"), "Arroz caseiro");
+    fireEvent.changeText(screen.getByLabelText("kcal, valor numérico"), "150");
+    expect(screen.queryByText("Ajustado")).toBeNull();
+    expect(screen.queryByLabelText("Voltar ao catálogo")).toBeNull();
+  });
+
   test("selecting a suggestion links it, rescales on quantity and flags manual macro edits", async () => {
     jest.mocked(useFoodSuggestions).mockReturnValue({
       data: [rice],
@@ -115,7 +123,7 @@ describe("EditMealModal food autocomplete integration", () => {
     } as unknown as ReturnType<typeof useFoodSuggestions>);
     renderModal();
     fireEvent(screen.getByLabelText("Descrição do item"), "focus");
-    fireEvent.press(screen.getByLabelText("Arroz, tipo 1, cozido"));
+    fireEvent.press(screen.getByLabelText(/^Arroz, tipo 1, cozido,/));
     fireEvent.changeText(screen.getByLabelText("Qtd, valor numérico"), "200");
     expect(screen.getByLabelText("kcal, valor numérico").props.value).toBe("256");
     expect(screen.queryByText("Ajustado")).toBeNull();

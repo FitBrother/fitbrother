@@ -14,7 +14,7 @@ const base: FoodSuggestion = {
   kind: "catalog",
   food_id: "11111111-1111-4111-8111-111111111111",
   name: "Arroz, tipo 1, cozido",
-  serving_label: "1 colher",
+  serving_label: "1 colher de sopa (25g)",
   serving_grams: 25,
   kcal_per_100g: 128,
   protein_per_100g: 2.5,
@@ -22,7 +22,7 @@ const base: FoodSuggestion = {
   fat_per_100g: 0.2,
   quantity: null,
   unit: null,
-  kcal: 32,
+  kcal: null,
   protein_g: null,
   carbs_g: null,
   fat_g: null,
@@ -74,7 +74,7 @@ describe("FoodAutocomplete", () => {
     fireEvent.changeText(input, "arr");
     expect(onChangeText).toHaveBeenCalledWith("arr");
     expect(screen.getByText("Arroz, tipo 1, cozido")).toBeTruthy();
-    expect(screen.getByText("1 colher")).toBeTruthy();
+    expect(screen.getByText("1 colher de sopa (25g) · 32 kcal")).toBeTruthy();
     expect(jest.mocked(useFoodSuggestions)).toHaveBeenLastCalledWith("arr", true);
   });
 
@@ -82,8 +82,29 @@ describe("FoodAutocomplete", () => {
     mockHook({ data: [base], isLoading: false });
     const { input, onSelect } = setup("arr");
     fireEvent(input, "focus");
-    fireEvent.press(screen.getByLabelText("Arroz, tipo 1, cozido"));
+    fireEvent.press(
+      screen.getByLabelText("Arroz, tipo 1, cozido, 1 colher de sopa (25g), 32 kcal"),
+    );
     expect(onSelect).toHaveBeenCalledWith(base);
+  });
+
+  test("catalog row without a serving shows 100 g and kcal per 100 g", () => {
+    mockHook({ data: [{ ...base, serving_label: null, serving_grams: null }], isLoading: false });
+    const { input } = setup("arr");
+    fireEvent(input, "focus");
+    expect(screen.getByText("100 g · 128 kcal")).toBeTruthy();
+    expect(screen.getByLabelText("Arroz, tipo 1, cozido, 100 g, 128 kcal")).toBeTruthy();
+  });
+
+  test("recent row shows the last-use quantity and its kcal, even with a catalog serving", () => {
+    mockHook({
+      data: [{ ...recent, serving_label: "1 unidade (50g)", serving_grams: 50 }],
+      isLoading: false,
+    });
+    const { input } = setup("");
+    fireEvent(input, "focus");
+    expect(screen.getByText("1 un · 210 kcal")).toBeTruthy();
+    expect(screen.getByLabelText("Omelete de queijo, recente, 1 un, 210 kcal")).toBeTruthy();
   });
 
   test("no suggestions hides the list and keeps the typed text", () => {
