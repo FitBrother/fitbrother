@@ -127,16 +127,17 @@ DECLARE n int; n2 int; n3 int; same boolean;
 BEGIN
   PERFORM set_config('request.jwt.claims', json_build_object('sub', (SELECT uid2 FROM _t), 'role', 'authenticated')::text, true);
   SET LOCAL ROLE authenticated;
-  SELECT count(*) INTO n FROM public.fitbrother_foods_autocomplete('arroz branco', 50)
-   WHERE kind = 'catalog' AND name = 'Arroz, tipo 1, cozido';
-  IF n <> 1 THEN RAISE EXCEPTION 'FAIL (d) "arroz branco" should return Arroz, tipo 1, cozido once, got %', n; END IF;
-  RAISE NOTICE 'PASS (d) alias "arroz branco" finds Arroz, tipo 1, cozido';
+  -- Production limit (8): the alias target must survive the cut.
+  SELECT count(*) INTO n FROM public.fitbrother_foods_autocomplete('arroz branco', 8)
+   WHERE kind = 'catalog' AND name = 'Arroz, tipo 1, cozido' AND score = 4;
+  IF n <> 1 THEN RAISE EXCEPTION 'FAIL (d) "arroz branco" should return Arroz, tipo 1, cozido once with score 4, got %', n; END IF;
+  RAISE NOTICE 'PASS (d) alias "arroz branco" finds Arroz, tipo 1, cozido (exact alias = 4)';
 
-  SELECT count(*) INTO n FROM public.fitbrother_foods_autocomplete('feijao', 50)
+  SELECT count(*) INTO n FROM public.fitbrother_foods_autocomplete('feijao', 8)
    WHERE kind = 'catalog' AND name = 'Feijão, carioca, cozido';
-  SELECT count(*) INTO n2 FROM public.fitbrother_foods_autocomplete('FEIJÃO', 50)
+  SELECT count(*) INTO n2 FROM public.fitbrother_foods_autocomplete('FEIJÃO', 8)
    WHERE kind = 'catalog' AND name = 'Feijão, carioca, cozido';
-  SELECT count(*) INTO n3 FROM public.fitbrother_foods_autocomplete('  Feijão,  Carioca ', 50)
+  SELECT count(*) INTO n3 FROM public.fitbrother_foods_autocomplete('  Feijão,  Carioca ', 8)
    WHERE kind = 'catalog' AND name = 'Feijão, carioca, cozido';
   RESET ROLE;
   IF n <> 1 THEN RAISE EXCEPTION 'FAIL (e) "feijao" did not find Feijão, carioca, cozido exactly once (%)', n; END IF;
@@ -335,6 +336,91 @@ BEGIN
   IF n <> 3 THEN RAISE EXCEPTION 'FAIL (o) p_limit=3 returned % rows', n; END IF;
   IF bad <> 0 THEN RAISE EXCEPTION 'FAIL (o) catalog rows carry last-use fields'; END IF;
   RAISE NOTICE 'PASS (o) limit respected; catalog rows have null last-use fields';
+END $$;
+
+-- (q) "feijao" at the production limit: the alias target comes first, raw beans after cooked ones.
+DO $$
+DECLARE first_name text; n_target int; max_cooked int; min_raw int;
+BEGIN
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', (SELECT uid2 FROM _t), 'role', 'authenticated')::text, true);
+  SET LOCAL ROLE authenticated;
+  CREATE TEMP TABLE _r ON COMMIT DROP AS
+    SELECT row_number() OVER () AS pos, a.* FROM public.fitbrother_foods_autocomplete('feijao', 8) a;
+  RESET ROLE;
+  SELECT name INTO first_name FROM _r WHERE pos = 1;
+  SELECT count(*) INTO n_target FROM _r WHERE name = 'Feijão, carioca, cozido';
+  SELECT max(pos) INTO max_cooked FROM _r WHERE name ~* '\mcozid[oa]s?\M';
+  SELECT min(pos) INTO min_raw FROM _r WHERE name ~* '\mcru[as]*\M';
+  DROP TABLE _r;
+  IF n_target <> 1 THEN RAISE EXCEPTION 'FAIL (q) "feijao" top-8 lacks Feijão, carioca, cozido'; END IF;
+  IF first_name <> 'Feijão, carioca, cozido' THEN RAISE EXCEPTION 'FAIL (q) "feijao" first is %', first_name; END IF;
+  IF min_raw IS NOT NULL AND min_raw < max_cooked THEN
+    RAISE EXCEPTION 'FAIL (q) raw bean at % before a cooked one at %', min_raw, max_cooked;
+  END IF;
+  RAISE NOTICE 'PASS (q) "feijao" (limit 8): Feijão, carioca, cozido first, cooked before raw';
+END $$;
+
+-- (r) "arroz": cooked rice before raw rice; the alias target first.
+DO $$
+DECLARE first_name text; max_cooked int; min_raw int;
+BEGIN
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', (SELECT uid2 FROM _t), 'role', 'authenticated')::text, true);
+  SET LOCAL ROLE authenticated;
+  CREATE TEMP TABLE _r ON COMMIT DROP AS
+    SELECT row_number() OVER () AS pos, a.* FROM public.fitbrother_foods_autocomplete('arroz', 8) a;
+  RESET ROLE;
+  SELECT name INTO first_name FROM _r WHERE pos = 1;
+  SELECT max(pos) INTO max_cooked FROM _r WHERE name LIKE 'Arroz,%cozido';
+  SELECT min(pos) INTO min_raw FROM _r WHERE name ~* '\mcru[as]*\M';
+  DROP TABLE _r;
+  IF first_name <> 'Arroz, tipo 1, cozido' THEN RAISE EXCEPTION 'FAIL (r) "arroz" first is %', first_name; END IF;
+  IF max_cooked IS NULL THEN RAISE EXCEPTION 'FAIL (r) no cooked rice in top-8'; END IF;
+  IF min_raw IS NOT NULL AND min_raw < max_cooked THEN
+    RAISE EXCEPTION 'FAIL (r) raw rice at % before cooked rice at %', min_raw, max_cooked;
+  END IF;
+  RAISE NOTICE 'PASS (r) "arroz" (limit 8): Arroz, tipo 1, cozido first, cooked before raw';
+END $$;
+
+-- (s) "ovo": the first suggestion is not a raw or quail egg.
+DO $$
+DECLARE first_name text;
+BEGIN
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', (SELECT uid2 FROM _t), 'role', 'authenticated')::text, true);
+  SET LOCAL ROLE authenticated;
+  SELECT name INTO first_name FROM public.fitbrother_foods_autocomplete('ovo', 8) LIMIT 1;
+  RESET ROLE;
+  IF first_name IS NULL OR first_name ~* '\mcru[as]*\M' OR first_name ~* 'codorna' THEN
+    RAISE EXCEPTION 'FAIL (s) "ovo" first is %', first_name;
+  END IF;
+  RAISE NOTICE 'PASS (s) "ovo" (limit 8) first is %', first_name;
+END $$;
+
+-- (t) "leite" never returns a 0-kcal catalog row.
+DO $$
+DECLARE n int; n_zero int;
+BEGIN
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', (SELECT uid2 FROM _t), 'role', 'authenticated')::text, true);
+  SET LOCAL ROLE authenticated;
+  SELECT count(*), count(*) FILTER (WHERE kcal_per_100g = 0) INTO n, n_zero
+    FROM public.fitbrother_foods_autocomplete('leite', 8);
+  RESET ROLE;
+  IF n = 0 THEN RAISE EXCEPTION 'FAIL (t) "leite" returned nothing'; END IF;
+  IF n_zero <> 0 THEN RAISE EXCEPTION 'FAIL (t) "leite" returned % rows with 0 kcal', n_zero; END IF;
+  RAISE NOTICE 'PASS (t) "leite" (limit 8) has no 0-kcal rows (% rows)', n;
+END $$;
+
+-- (u) asking for raw keeps raw foods up front (no demotion).
+DO $$
+DECLARE first_name text;
+BEGIN
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', (SELECT uid2 FROM _t), 'role', 'authenticated')::text, true);
+  SET LOCAL ROLE authenticated;
+  SELECT name INTO first_name FROM public.fitbrother_foods_autocomplete('feijao cru', 8) LIMIT 1;
+  RESET ROLE;
+  IF first_name IS NULL OR first_name !~* '^feij.*\mcru\M' THEN
+    RAISE EXCEPTION 'FAIL (u) "feijao cru" first is %', first_name;
+  END IF;
+  RAISE NOTICE 'PASS (u) "feijao cru" first is %', first_name;
 END $$;
 
 -- (p) anon cannot call it; authenticated can.

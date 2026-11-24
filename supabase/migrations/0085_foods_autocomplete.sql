@@ -13,8 +13,13 @@
 --   * 1 caractere  -> vazio.
 --   * 2 caracteres -> só prefixo (início do nome/alias ou de qualquer palavra).
 --   * 3+           -> prefixo primeiro, depois similarity >= 0.3.
---   * score: 3 início do texto, 2 início de palavra, similarity no resto;
---     recentes somam 0.5. Desempate: nome mais curto.
+--   * score: alias igual ao termo 4, alias começando pelo termo 3.5, nome
+--     começando pelo termo 3, início de palavra 2, similarity no resto;
+--     recentes somam 0.5. Desempate: recente antes de catálogo, depois nome
+--     mais curto.
+--   * Nome com a palavra cru/crua/crus/cruas perde 0.5 quando o termo não
+--     tem essa palavra ("feijao" prefere o cozido; "feijao cru" não rebaixa).
+--     Só o score vindo do nome é rebaixado; alias é curadoria e vale inteiro.
 --   * Recente com food_id suprime a linha de catálogo do mesmo food_id. Um
 --     recente com food_id também casa pelo nome/alias do alimento vinculado,
 --     assim a supressão nunca esconde o único caminho até aquele alimento.
@@ -53,6 +58,7 @@ DECLARE
   v_term text;
   v_len  int;
   v_esc  text;
+  v_raw_ok boolean;
 BEGIN
   v_term := btrim(regexp_replace(
               replace(lower(unaccent(coalesce(p_query, ''))), ',', ' '),
@@ -63,6 +69,7 @@ BEGIN
     RETURN;
   END IF;
 
+  v_raw_ok := v_term ~ '\m(cru|crua|crus|cruas)\M';
   v_esc := replace(replace(replace(v_term, '\', '\\'), '%', '\%'), '_', '\_');
 
   RETURN QUERY
@@ -70,7 +77,8 @@ BEGIN
   -- Catalog candidates: canonical names and aliases, filtered so the trigram
   -- GIN indexes can serve LIKE and `%`.
   cand AS (
-    SELECT f.id AS cand_food_id, f.name_normalized AS txt
+    SELECT f.id AS cand_food_id, f.name_normalized AS txt, false AS is_alias,
+           (NOT v_raw_ok AND f.name_normalized ~ '\m(cru|crua|crus|cruas)\M') AS demote
       FROM public.foods f
      WHERE v_len >= 2
        AND f.verified = true
@@ -78,7 +86,7 @@ BEGIN
             OR f.name_normalized LIKE '% ' || v_esc || '%' ESCAPE '\'
             OR (v_len >= 3 AND f.name_normalized % v_term))
     UNION ALL
-    SELECT a.food_id, a.alias_normalized
+    SELECT a.food_id, a.alias_normalized, true, false
       FROM public.food_aliases a
       JOIN public.foods f ON f.id = a.food_id AND f.verified = true
      WHERE v_len >= 2
@@ -87,10 +95,12 @@ BEGIN
             OR (v_len >= 3 AND a.alias_normalized % v_term))
   ),
   catalog_best AS (
-    SELECT s.cand_food_id, max(s.sc) AS sc
+    SELECT s.cand_food_id, max(s.sc - CASE WHEN s.demote THEN 0.5 ELSE 0 END) AS sc
       FROM (
-        SELECT c.cand_food_id,
+        SELECT c.cand_food_id, c.demote,
                CASE
+                 WHEN c.is_alias AND c.txt = v_term THEN 4::numeric
+                 WHEN c.is_alias AND c.txt LIKE v_esc || '%' ESCAPE '\' THEN 3.5::numeric
                  WHEN c.txt LIKE v_esc || '%' ESCAPE '\' THEN 3::numeric
                  WHEN c.txt LIKE '% ' || v_esc || '%' ESCAPE '\' THEN 2::numeric
                  WHEN v_len >= 3 AND similarity(c.txt, v_term) >= 0.3
@@ -198,6 +208,7 @@ BEGIN
       SELECT * FROM catalog_rows
     ) u
    ORDER BY u.score DESC,
+            (u.kind = 'recent') DESC,
             CASE WHEN v_len = 0 THEN u.uses END DESC NULLS LAST,
             CASE WHEN v_len = 0 THEN u.last_at END DESC NULLS LAST,
             length(u.name) ASC,
