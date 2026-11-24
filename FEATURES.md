@@ -307,7 +307,7 @@ Endpoints (§7):
 Todo usuário nasce `plan='free'` (via `complete_onboarding`). A integração Stripe Checkout (M-Billing) atualiza a linha via webhook.
 
 Endpoints de cobrança:
-- `POST /billing/checkout` `{interval:'month'|'year'}` → `{url}` do Stripe Checkout. `409 already_subscribed`, `503 billing_not_configured`.
+- `POST /billing/checkout` `{interval:'month'|'year', ui?:'hosted'|'embedded'}` → `{url}` (hosted, padrão, usado no nativo) ou `{client_secret}` (embedded, usado pela web em `/checkout`). `409 already_subscribed`, `503 billing_not_configured`.
 - `POST /billing/portal` → `{url}` do Customer Portal. `404 no_customer`.
 - `GET /billing/subscription` → `{plan, status, current_period_end, has_customer}`.
 - `POST /webhooks/stripe` → assinatura obrigatória (`Stripe-Signature`); idempotente via `stripe_events`.
@@ -409,7 +409,7 @@ Entrada: texto ou áudio, no app ou via WhatsApp.
      "confidence": 0.85
    }
    ```
-4. Para cada item, fuzzy match em `foods.name_normalized` e em `food_aliases` (RPC `fitbrother_foods_fuzzy_match`, limiar 0,4; desde a `0086` o nome com cru/crua/crus/cruas perde 0,2 na ordenação quando o termo não diz "cru", e alias não é rebaixado; termo de uma palavra só casa com similarity >= 0,5, senão mantém os macros da IA). Se match com `verified=true`, **sobrescreve macros** pelo catálogo (mais confiável que IA).
+4. Para cada item, fuzzy match em `foods.name_normalized` e em `food_aliases` (RPC `fitbrother_foods_fuzzy_match`, limiar 0,4; desde a `0086` o nome com cru/crua/crus/cruas perde 0,2 na ordenação quando o termo não diz "cru", e alias não é rebaixado). Se match com `verified=true`, **sobrescreve macros** pelo catálogo (mais confiável que IA).
 5. Insere `meals` + `meal_items` em transação. Trigger atualiza `daily_summaries`.
 6. Atualiza `ai_usage` (tokens consumidos, segundos transcritos, custo estimado).
 7. Se `confidence < 0.6` → `meals.review_required = true` → notifica usuário "Confirme o que entendi" (push + WA se janela aberta).

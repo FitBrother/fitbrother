@@ -158,7 +158,18 @@ jobs:
         run: sam build
 
       - name: SAM deploy
+        env:
+          STRIPE_SECRET_KEY: ${{ secrets.SAM_STRIPE_SECRET_KEY }}
+          STRIPE_WEBHOOK_SECRET: ${{ secrets.SAM_STRIPE_WEBHOOK_SECRET }}
+          STRIPE_PRICE_MONTHLY: ${{ vars.SAM_STRIPE_PRICE_MONTHLY }}
+          STRIPE_PRICE_ANNUAL: ${{ vars.SAM_STRIPE_PRICE_ANNUAL }}
         run: |
+          # SAM rejects "Key=" with an empty value; only pass Stripe params that are set.
+          stripe_params=()
+          [ -n "$STRIPE_SECRET_KEY" ] && stripe_params+=("StripeSecretKey=$STRIPE_SECRET_KEY")
+          [ -n "$STRIPE_WEBHOOK_SECRET" ] && stripe_params+=("StripeWebhookSecret=$STRIPE_WEBHOOK_SECRET")
+          [ -n "$STRIPE_PRICE_MONTHLY" ] && stripe_params+=("StripePriceMonthly=$STRIPE_PRICE_MONTHLY")
+          [ -n "$STRIPE_PRICE_ANNUAL" ] && stripe_params+=("StripePriceAnnual=$STRIPE_PRICE_ANNUAL")
           sam deploy \
             --stack-name "${{ vars.SAM_STACK_NAME }}" \
             --resolve-s3 \
@@ -183,7 +194,9 @@ jobs:
               CorsOrigin="${{ vars.SAM_CORS_ORIGIN }}" \
               ResendApiKey="${{ secrets.SAM_RESEND_API_KEY }}" \
               EmailFrom="${{ vars.SAM_EMAIL_FROM }}" \
-              AppUrl="${{ vars.SAM_APP_URL }}"
+              AppUrl="${{ vars.SAM_APP_URL }}" \
+              StripeTrialDays="${{ vars.SAM_STRIPE_TRIAL_DAYS || '0' }}" \
+              "${stripe_params[@]}"
 
       - name: Smoke test
         run: |

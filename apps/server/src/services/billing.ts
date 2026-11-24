@@ -1,4 +1,9 @@
-import type { BillingInterval, SubscriptionResponse } from "@fitbrother/shared";
+import type {
+  BillingInterval,
+  CheckoutResponse,
+  CheckoutUi,
+  SubscriptionResponse,
+} from "@fitbrother/shared";
 import type Stripe from "stripe";
 import { env } from "../lib/env.js";
 import { Sentry } from "../lib/sentry.js";
@@ -63,12 +68,13 @@ function priceFor(interval: BillingInterval): string {
   return price;
 }
 
-export async function createCheckoutUrl(
+export async function createCheckout(
   userId: string,
   email: string | null,
   interval: BillingInterval,
+  ui: CheckoutUi,
   deps: BillingDeps = defaultBillingDeps(),
-): Promise<string> {
+): Promise<CheckoutResponse> {
   const row = await deps.store.getRow(userId);
   if (row?.plan === "pro") {
     throw new BillingError("already_subscribed");
@@ -97,8 +103,7 @@ export async function createCheckoutUrl(
   const trialDays = env.STRIPE_TRIAL_DAYS;
   const eligibleForTrial = trialDays > 0 && !row?.provider_subscription_id;
 
-  const session = await deps.stripe.checkout.sessions.create({
-    ui_mode: "hosted_page",
+  const common: Stripe.Checkout.SessionCreateParams = {
     mode: "subscription",
     billing_address_collection: "auto",
     phone_number_collection: { enabled: false },
@@ -106,20 +111,39 @@ export async function createCheckoutUrl(
     allow_promotion_codes: false,
     payment_method_collection: "always",
     submit_type: "auto",
-    integration_identifier: "hosted_mobile_app_0001",
-    origin_context: "mobile_app",
     customer: customerId,
     client_reference_id: userId,
     metadata: { user_id: userId },
     line_items: [{ price, quantity: 1 }],
+    subscription_data: {
+      metadata: { user_id: userId },
+      ...(eligibleForTrial ? { trial_period_days: trialDays } : {}),
+    },
+  };
+
+  if (ui === "embedded") {
+    const session = await deps.stripe.checkout.sessions.create({
+      ...common,
+      ui_mode: "embedded_page",
+      integration_identifier: "embedded_web_app_0001",
+      origin_context: "web",
+      return_url: `${env.APP_URL}/billing-return?session_id={CHECKOUT_SESSION_ID}`,
+      redirect_on_completion: "always",
+    });
+    if (!session.client_secret) throw new Error("stripe_checkout_without_client_secret");
+    return { client_secret: session.client_secret };
+  }
+
+  const session = await deps.stripe.checkout.sessions.create({
+    ...common,
+    ui_mode: "hosted_page",
+    integration_identifier: "hosted_mobile_app_0001",
+    origin_context: "mobile_app",
     success_url: `${env.APP_URL}/billing-return?status=success`,
     cancel_url: `${env.APP_URL}/billing-return?status=cancel`,
-    ...(eligibleForTrial
-      ? { subscription_data: { trial_period_days: trialDays, metadata: { user_id: userId } } }
-      : { subscription_data: { metadata: { user_id: userId } } }),
   });
   if (!session.url) throw new Error("stripe_checkout_without_url");
-  return session.url;
+  return { url: session.url };
 }
 
 export async function createPortalUrl(

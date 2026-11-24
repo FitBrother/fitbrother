@@ -2,7 +2,7 @@ import { CreateCheckoutRequestSchema } from "@fitbrother/shared";
 import type { FastifyInstance, FastifyReply } from "fastify";
 import { activeAccountRequired, authTokenRequired } from "../lib/auth.js";
 import { BillingError } from "../services/billing-status.js";
-import { createCheckoutUrl, createPortalUrl, getSubscription } from "../services/billing.js";
+import { createCheckout, createPortalUrl, getSubscription } from "../services/billing.js";
 
 const STATUS_BY_CODE = {
   already_subscribed: 409,
@@ -26,8 +26,8 @@ export async function billingRoutes(app: FastifyInstance) {
       return reply.code(400).send({ error: "invalid_payload", issues: parsed.error.issues });
     }
     try {
-      const url = await createCheckoutUrl(req.user!.id, req.user!.email, parsed.data.interval);
-      return reply.send({ url });
+      const { interval, ui } = parsed.data;
+      return reply.send(await createCheckout(req.user!.id, req.user!.email, interval, ui));
     } catch (err) {
       return handleBillingError(reply, err);
     }

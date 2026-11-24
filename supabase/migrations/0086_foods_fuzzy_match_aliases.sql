@@ -9,7 +9,6 @@
 --   * Candidatos: nome (`name_normalized`) e aliases de alimentos verified;
 --     vale a melhor similarity de cada alimento.
 --   * Filtro: similarity real >= p_threshold (como antes).
---   * Single-token needles use GREATEST(p_threshold, 0.5) so weak matches keep the LLM macros.
 --   * Ordem: similarity, menos 0.2 quando o match veio do nome, o nome tem a
 --     palavra cru/crua/crus/cruas e o termo não tem. Alias não é rebaixado
 --     (é curadoria). Desempate: nome mais curto.
@@ -64,9 +63,7 @@ AS $$
          b.sim::numeric AS similarity
     FROM best b
     JOIN public.foods f ON f.id = b.food_id
-   WHERE b.sim >= CASE WHEN btrim(p_needle) ~ '\s'
-                       THEN p_threshold
-                       ELSE GREATEST(p_threshold, 0.5) END
+   WHERE b.sim >= p_threshold
    ORDER BY b.rank_score DESC,
             length(f.name_normalized) ASC
    LIMIT 5;

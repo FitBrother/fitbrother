@@ -6,13 +6,21 @@ import { Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Button } from "@/components/Button";
 import { colors } from "@/lib/colors";
+import { billingReturnState } from "@/lib/billing-return";
 import { subscriptionKey } from "@/lib/hooks/useSubscription";
+
+const MESSAGES = {
+  success: "Pagamento recebido. Estamos ativando seu plano.",
+  cancel: "Assinatura não concluída. Você pode tentar de novo pelo seu perfil.",
+  neutral: "Tudo certo. Você já pode voltar ao app.",
+} as const;
 
 export default function BillingReturn() {
   const router = useRouter();
   const qc = useQueryClient();
-  const { status } = useLocalSearchParams<{ status?: string }>();
-  const cancelled = status === "cancel";
+  const params = useLocalSearchParams<{ status?: string; session_id?: string }>();
+  const state = billingReturnState(params);
+  const cancelled = state === "cancel";
 
   useEffect(() => {
     try {
@@ -29,9 +37,7 @@ export default function BillingReturn() {
       <View className="flex-1 items-center justify-center px-6">
         <Icon size={48} color={cancelled ? colors.neutral[400] : colors.primary[700]} />
         <Text className="mt-4 text-center font-sans-medium text-base text-neutral-900">
-          {cancelled
-            ? "Assinatura não concluída. Você pode tentar de novo pelo seu perfil."
-            : "Pagamento recebido. Você já pode fechar esta janela e voltar ao app."}
+          {MESSAGES[state]}
         </Text>
         <View className="mt-8 w-full">
           <Button label="Continuar" variant="outline" onPress={() => router.replace("/")} />

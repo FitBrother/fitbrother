@@ -73,6 +73,23 @@ Parameters:
   AppUrl:
     Type: String
     Default: "https://app.fitbrother.app"
+  StripeSecretKey:
+    Type: String
+    NoEcho: true
+    Default: ""
+  StripeWebhookSecret:
+    Type: String
+    NoEcho: true
+    Default: ""
+  StripePriceMonthly:
+    Type: String
+    Default: ""
+  StripePriceAnnual:
+    Type: String
+    Default: ""
+  StripeTrialDays:
+    Type: Number
+    Default: 0
 
 Globals:
   Function:
@@ -102,6 +119,11 @@ Globals:
         RESEND_API_KEY: !Ref ResendApiKey
         EMAIL_FROM: !Ref EmailFrom
         APP_URL: !Ref AppUrl
+        STRIPE_SECRET_KEY: !Ref StripeSecretKey
+        STRIPE_WEBHOOK_SECRET: !Ref StripeWebhookSecret
+        STRIPE_PRICE_MONTHLY: !Ref StripePriceMonthly
+        STRIPE_PRICE_ANNUAL: !Ref StripePriceAnnual
+        STRIPE_TRIAL_DAYS: !Ref StripeTrialDays
 
 Resources:
   ApiFunction:
