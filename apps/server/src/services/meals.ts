@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { MealItemExtraction, MealExtraction } from "@fitbrother/shared";
-import { matchFood, type FoodMatch } from "./foods.js";
+import { quantityInGrams, type MealItemExtraction, type MealExtraction } from "@fitbrother/shared";
+import { matchFood } from "./foods.js";
 
 /**
  * Apply the canonical foods catalog over LLM-extracted items.
@@ -125,7 +125,7 @@ async function applyCatalogToItem(
     return { ...item, food_id: null, density_assumed: false };
   }
 
-  const grams = quantityInGrams(item, food);
+  const grams = quantityInGrams(item.quantity, item.unit, food.serving_grams);
   if (grams === null) {
     // Catalog matched but we can't safely convert this unit; keep LLM
     // macros but still tag the food_id for analytics.
@@ -142,24 +142,6 @@ async function applyCatalogToItem(
     carbs_g: round(food.carbs_per_100g * factor),
     fat_g: round(food.fat_per_100g * factor),
   };
-}
-
-function quantityInGrams(item: MealItemExtraction, food: FoodMatch): number | null {
-  switch (item.unit) {
-    case "g":
-      return item.quantity;
-    case "ml":
-      // density = 1 (CLAUDE.md M2.2 simplification — flagged via density_assumed).
-      return item.quantity;
-    case "unit":
-      if (food.serving_grams == null) return null;
-      return item.quantity * food.serving_grams;
-    case "slice":
-    case "cup":
-    case "tbsp":
-    case "tsp":
-      return null;
-  }
 }
 
 function round(n: number): number {

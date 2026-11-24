@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildMealPatch } from "./meals.js";
+import { buildMealPatch, buildPatchItemRows } from "./meals.js";
 
 const CTX = { userId: "user-1", mealId: "meal-1" };
 
@@ -46,5 +46,29 @@ describe("buildMealPatch", () => {
       meal_type: "dinner",
       image_path: "user-1/meal-photos/meal-1.jpg",
     });
+  });
+});
+
+describe("buildPatchItemRows", () => {
+  const item = {
+    id: "00000000-0000-4000-8000-000000000001",
+    description: "arroz",
+    quantity: 1,
+    unit: "unit" as const,
+    kcal: 1,
+    protein_g: 0,
+    carbs_g: 0,
+    fat_g: 0,
+  };
+
+  it("preserva food_id quando presente", () => {
+    const rows = buildPatchItemRows("m1", [{ ...item, food_id: "f1" }]);
+    expect(rows[0]?.food_id).toBe("f1");
+    expect(rows[0]?.meal_id).toBe("m1");
+  });
+
+  it("grava food_id null quando ausente ou null", () => {
+    expect(buildPatchItemRows("m1", [item])[0]?.food_id).toBeNull();
+    expect(buildPatchItemRows("m1", [{ ...item, food_id: null }])[0]?.food_id).toBeNull();
   });
 });

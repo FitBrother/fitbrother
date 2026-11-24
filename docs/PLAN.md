@@ -176,7 +176,8 @@ fitbrother/
 - `0017_ai_extractions.sql` (`input_hash` PK) + tabela `ai_extraction_hits` separada pra analytics per-user.
 - `0018_create_meal_with_items.sql` — RPC atômico (espelhando `complete_onboarding` do M1).
 - **Storage bucket `meal-audios`** privado, RLS `auth.uid()::text = (storage.foldername(name))[1]`.
-- **Seed `foods`** — script `supabase/seed/foods-taco.ts` baixa CSV TACO/UNICAMP, normaliza (`lower(unaccent(name))`), insere ~600 rows `verified=true source='taco'`.
+- **Seed `foods`** — feito: migration `0083_foods_taco_catalog.sql` carrega os 591 alimentos da TACO 4ª ed. (dados em `supabase/seed/taco-4ed.json`), `verified=true source='taco'`.
+- **Autocomplete de alimentos na edição** — feito: `0084_food_aliases.sql` (tabela `food_aliases`, 45 aliases em `supabase/seed/taco-aliases.json`) e `0085_foods_autocomplete.sql` (RPC `fitbrother_foods_autocomplete`: catálogo + aliases + recentes). Server: `GET /foods/search` e `food_id` nos itens do `PATCH /meals/:id`. Mobile: `FoodAutocomplete` no `EditMealModal` com recálculo de macros (`packages/shared/src/food-macros.ts`). `0086_foods_fuzzy_match_aliases.sql`: o fuzzy match do pipeline de IA passa a usar aliases e prefere o alimento preparado ao cru. Detalhes em `FEATURES §4.2.1`. Pendências: curar `serving_grams` dos alimentos TACO novos (hoje "2 ovos" cai nos macros da LLM) e tornar o `PATCH` de itens atômico (delete-then-insert hoje).
 
 ### Backend
 
@@ -1025,7 +1026,7 @@ Cenário: **Maria** (nova) e **João** (existente), amigos.
 
 - **M0:** `package.json` (root), `apps/mobile/{package.json, tailwind.config.ts, app/_layout.tsx, lib/colors.ts, lib/supabase.ts}`, `apps/server/src/server.ts`, `supabase/config.toml`, `.env.example`, `.github/workflows/ci.yml`.
 - **M1:** `supabase/migrations/0001..0007*.sql`, `apps/server/src/routes/{onboarding,me}.ts`, `apps/mobile/app/(auth)/*`, `apps/mobile/app/(onboarding)/*`.
-- **M2:** `supabase/migrations/0008..0015*.sql`, `supabase/seed/foods-taco.ts`, `packages/shared/llm/{provider,gemini,openai}.ts`, `apps/server/src/services/{transcription,extraction,foods,ai-usage,meals}.ts`, `apps/server/src/routes/meals.ts`, `apps/mobile/components/domain/MealCard.tsx`, `apps/mobile/app/(tabs)/index.tsx`.
+- **M2:** `supabase/migrations/0008..0015*.sql`, `supabase/seed/taco-4ed.json` (carga via `0083_foods_taco_catalog.sql`), `packages/shared/llm/{provider,gemini,openai}.ts`, `apps/server/src/services/{transcription,extraction,foods,ai-usage,meals}.ts`, `apps/server/src/routes/meals.ts`, `apps/mobile/components/domain/MealCard.tsx`, `apps/mobile/app/(tabs)/index.tsx`.
 - **M3:** `apps/mobile/components/domain/{ProgressRing,MacroBar}.tsx`, `apps/mobile/lib/hooks/{useDailySummaryRealtime,useMealsRealtime}.ts`, `apps/mobile/app/meal/[id].tsx`, `apps/mobile/app/history/index.tsx`.
 - **M4:** `supabase/migrations/0016..0017*.sql`, `apps/server/src/routes/webhooks/whatsapp.ts`, `apps/server/src/workers/wa-processor.ts`, `apps/server/src/services/wa-client.ts`, `apps/mobile/app/(onboarding)/connect-whatsapp.tsx`.
 - **M5:** `supabase/migrations/0018..0023*.sql`, `apps/server/src/workers/{streak-tick,evaluate-achievements,streak-alert,goal-reminder}.ts`, `apps/server/src/services/notifications.ts`, `apps/server/src/routes/{friends,push-tokens,achievements,leaderboard}.ts`, `apps/mobile/components/domain/{StreakCounter,LeaderboardRow}.tsx`, `apps/mobile/app/(tabs)/friends.tsx`.

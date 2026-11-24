@@ -4,3 +4,4 @@ export * from "./copy/goals.js";
 export * from "./targets/index.js";
 export * from "./coach/index.js";
 export type { LLMProvider } from "./llm/provider.js";
+export * from "./food-macros.js";
