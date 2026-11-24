@@ -278,9 +278,41 @@ export const RegisterPushTokenRequestSchema = z.object({
 });
 export type RegisterPushTokenRequest = z.infer<typeof RegisterPushTokenRequestSchema>;
 
+// PostgREST may serialize numeric columns as strings.
+const NullableNumericSchema = z.preprocess(
+  (v) => (typeof v === "string" && v.trim() !== "" ? Number(v) : v),
+  z.number().nullable(),
+);
+
+export const FoodSuggestionSchema = z.object({
+  kind: z.enum(["catalog", "recent"]),
+  food_id: UuidSchema.nullable(),
+  name: z.string(),
+  serving_label: z.string().nullable(),
+  serving_grams: NullableNumericSchema,
+  kcal_per_100g: NullableNumericSchema,
+  protein_per_100g: NullableNumericSchema,
+  carbs_per_100g: NullableNumericSchema,
+  fat_per_100g: NullableNumericSchema,
+  quantity: NullableNumericSchema,
+  unit: UnitSchema.nullable(),
+  kcal: NullableNumericSchema,
+  protein_g: NullableNumericSchema,
+  carbs_g: NullableNumericSchema,
+  fat_g: NullableNumericSchema,
+});
+export type FoodSuggestion = z.infer<typeof FoodSuggestionSchema>;
+
+export const FoodSearchResponseSchema = z.object({
+  suggestions: z.array(FoodSuggestionSchema),
+});
+export type FoodSearchResponse = z.infer<typeof FoodSearchResponseSchema>;
+
 export const PatchMealItemSchema = z.object({
   // Pass id to update existing; omit to insert new. Server enforces ownership.
   id: UuidSchema.optional(),
+  // Catalog link; omitted/null means a free-text item.
+  food_id: UuidSchema.nullable().optional(),
   description: z.string().min(1),
   quantity: z.number().positive(),
   unit: UnitSchema,

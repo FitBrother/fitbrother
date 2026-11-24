@@ -17,6 +17,7 @@ import { pushTokensRoutes } from "./routes/push-tokens.js";
 import { socialRoutes } from "./routes/social.js";
 import { stripeWebhookRoute } from "./routes/stripe-webhook.js";
 import { supabaseProxyRoute } from "./routes/supabase-proxy.js";
+import { foodsRoutes } from "./routes/foods.js";
 import { usersRoutes } from "./routes/users.js";
 
 /**
@@ -109,6 +110,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(contactsRoutes);
   await app.register(socialRoutes);
   await app.register(usersRoutes);
+  await app.register(foodsRoutes);
 
   app.setErrorHandler((err: FastifyError, req, reply) => {
     req.log.error({ err, request_id: req.id, user_id: req.user?.id }, "request_failed");

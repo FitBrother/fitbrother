@@ -624,18 +624,9 @@ export async function mealsRoutes(app: FastifyInstance) {
       if (deleteErr)
         return internalError(reply, req.log, deleteErr, { where: "meal_items_delete" });
 
-      const { error: insertErr } = await supabase.from("meal_items").insert(
-        parsed.data.items.map((it) => ({
-          meal_id: req.params.id,
-          description: it.description,
-          quantity: it.quantity,
-          unit: it.unit,
-          kcal: it.kcal,
-          protein_g: it.protein_g,
-          carbs_g: it.carbs_g,
-          fat_g: it.fat_g,
-        })),
-      );
+      const { error: insertErr } = await supabase
+        .from("meal_items")
+        .insert(buildPatchItemRows(req.params.id, parsed.data.items));
       if (insertErr)
         return internalError(reply, req.log, insertErr, { where: "meal_items_insert" });
     }
@@ -694,6 +685,20 @@ export function buildMealPatch(
     patch.image_path = mealPhotoPath(ctx.userId, ctx.mealId);
   }
   return patch;
+}
+
+export function buildPatchItemRows(mealId: string, items: PatchMealRequest["items"]) {
+  return (items ?? []).map((it) => ({
+    meal_id: mealId,
+    food_id: it.food_id ?? null,
+    description: it.description,
+    quantity: it.quantity,
+    unit: it.unit,
+    kcal: it.kcal,
+    protein_g: it.protein_g,
+    carbs_g: it.carbs_g,
+    fat_g: it.fat_g,
+  }));
 }
 
 async function loadMeal(
