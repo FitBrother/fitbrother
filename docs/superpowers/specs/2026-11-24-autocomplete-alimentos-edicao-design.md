@@ -79,6 +79,7 @@ Regras de importação definidas na extração:
 - `p_query` vazio → só recentes (últimos 90 dias, `deleted_at IS NULL`, agrupados por `food_id`/descrição normalizada, ordenados por frequência e recência). Serve ao campo focado sem texto.
 - `p_query` com 1 caractere → vazio. 2 caracteres → só prefixo (`name_normalized`/`alias_normalized` começando com o termo). 3+ → prefixo primeiro, depois `similarity` (threshold 0.3, a calibrar), tie-break por nome mais curto. Match por alias resolve para o alimento canônico, sem duplicar linhas.
 - Recentes que casam com a busca entram antes de catálogo com score equivalente; deduplicar recente × catálogo quando apontam para o mesmo `food_id`.
+- Ranking (ajuste da revisão final): alias igual ao termo vale 4 e alias começando pelo termo 3,5 (nome começando pelo termo 3, início de palavra 2); nome com cru/crua/crus/cruas perde 0,5 quando o termo não tem "cru". O fuzzy match do pipeline de IA (`fitbrother_foods_fuzzy_match`, migration `0086`) passa a considerar aliases e a rebaixar o cru na ordenação (-0,2), com o mesmo limiar 0,4.
 - Apenas `verified = true` no catálogo.
 - Cliente: `lib/api` (ou hook `useFoodSuggestions`) chamando `supabase.rpc`, debounce ~250 ms, react-query com `staleTime`.
 
