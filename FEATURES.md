@@ -409,7 +409,7 @@ Entrada: texto ou áudio, no app ou via WhatsApp.
      "confidence": 0.85
    }
    ```
-4. Para cada item, fuzzy match em `foods.name_normalized` e em `food_aliases` (RPC `fitbrother_foods_fuzzy_match`, limiar 0,4; desde a `0086` o nome com cru/crua/crus/cruas perde 0,2 na ordenação quando o termo não diz "cru", e alias não é rebaixado). Se match com `verified=true`, **sobrescreve macros** pelo catálogo (mais confiável que IA).
+4. Para cada item, fuzzy match em `foods.name_normalized` e em `food_aliases` (RPC `fitbrother_foods_fuzzy_match`, limiar 0,4; desde a `0086` o nome com cru/crua/crus/cruas perde 0,2 na ordenação quando o termo não diz "cru", e alias não é rebaixado; termo de uma palavra só casa com similarity >= 0,5, senão mantém os macros da IA). Se match com `verified=true`, **sobrescreve macros** pelo catálogo (mais confiável que IA).
 5. Insere `meals` + `meal_items` em transação. Trigger atualiza `daily_summaries`.
 6. Atualiza `ai_usage` (tokens consumidos, segundos transcritos, custo estimado).
 7. Se `confidence < 0.6` → `meals.review_required = true` → notifica usuário "Confirme o que entendi" (push + WA se janela aberta).

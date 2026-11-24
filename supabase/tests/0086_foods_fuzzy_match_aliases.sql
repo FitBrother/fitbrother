@@ -24,12 +24,42 @@ BEGIN
     RAISE NOTICE 'PASS "%" -> %', c.needle, top;
   END LOOP;
 
-  -- TACO has no cooked pasta: the top-1 must at least not be a raw one.
-  SELECT name INTO top FROM public.fitbrother_foods_fuzzy_match('macarrao', 0.4) LIMIT 1;
-  IF top IS NULL OR top !~* '^macarr' OR top ~* '\mcru[as]*\M' THEN
-    RAISE EXCEPTION 'FAIL "macarrao" top-1 is %', top;
-  END IF;
-  RAISE NOTICE 'PASS "macarrao" -> % (not raw; TACO has no cooked pasta)', top;
+  -- Single-word needles need similarity >= 0.5, so weak matches fall back to the LLM macros.
+  FOR c IN SELECT * FROM (VALUES
+    ('leite',    'cow milk is not in TACO; "Leite, de coco" (0.43) must not override the LLM'),
+    ('macarrao', 'TACO has no cooked pasta; LLM macros are kept instead of raw/instant pasta'),
+    ('ovo',      'weak 0.4 match to fried egg must not override the LLM'),
+    ('frango',   'weak 0.44 match to grilled breast must not override the LLM')
+  ) AS t(needle, why) LOOP
+    SELECT count(*) INTO n FROM public.fitbrother_foods_fuzzy_match(c.needle, 0.4);
+    IF n <> 0 THEN RAISE EXCEPTION 'FAIL "%" returned % rows, expected 0 (%)', c.needle, n, c.why; END IF;
+    RAISE NOTICE 'PASS "%" returns nothing (%)', c.needle, c.why;
+  END LOOP;
+
+  -- Single words with a strong or alias match still resolve.
+  FOR c IN SELECT * FROM (VALUES
+    ('arroz',       '^Arroz, tipo 1, cozido$'),
+    ('banana',      '^Banana, prata, crua$'),
+    ('pao frances', '^Pão, trigo, francês$'),
+    ('queijo',      '^Queijo, prato$'),
+    ('tomate',      '^Tomate, purê$')
+  ) AS t(needle, expected) LOOP
+    SELECT name INTO top FROM public.fitbrother_foods_fuzzy_match(c.needle, 0.4) LIMIT 1;
+    IF top IS NULL OR top !~ c.expected THEN
+      RAISE EXCEPTION 'FAIL "%" top-1 is %, expected %', c.needle, top, c.expected;
+    END IF;
+    RAISE NOTICE 'PASS "%" -> %', c.needle, top;
+  END LOOP;
+
+  -- The 0.5 floor applies to every row of a single-word needle, not only the top-1.
+  SELECT count(*) INTO n FROM public.fitbrother_foods_fuzzy_match('arroz', 0.4) WHERE similarity < 0.5;
+  IF n <> 0 THEN RAISE EXCEPTION 'FAIL "arroz" returned % rows below 0.5', n; END IF;
+  RAISE NOTICE 'PASS single-word needle returns only similarity >= 0.5';
+
+  -- A caller threshold above the floor still wins.
+  SELECT count(*) INTO n FROM public.fitbrother_foods_fuzzy_match('queijo', 0.6);
+  IF n <> 0 THEN RAISE EXCEPTION 'FAIL "queijo" at 0.6 returned % rows', n; END IF;
+  RAISE NOTICE 'PASS threshold above 0.5 is honored for single words';
 
   -- Unrelated noise still misses at 0.4.
   SELECT count(*) INTO n FROM public.fitbrother_foods_fuzzy_match('xyzzy plugh', 0.4);
