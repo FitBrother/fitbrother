@@ -128,6 +128,25 @@ supabase/migrations/          # SQL versionado
 - Não commitar `.env*`. `.env.example` fica versionado.
 - Migrations imutáveis após merge: nova mudança = nova migration.
 
+### Git / PR workflow (humanos e agentes de IA)
+
+**Idioma:** commits, nomes de branch, títulos/descrições de PR e comentários de código são **sempre em inglês**. Docs e conversa continuam em pt-BR.
+
+**Branches** — `<type>/<kebab-case-summary>`, autoexplicativa, em inglês, ≤ 50 caracteres, sem datas/iniciais/números soltos:
+- `type` ∈ `feat` · `fix` · `refactor` · `perf` · `docs` · `test` · `chore` · `ci` · `build` · `infra`.
+- Bom: `feat/food-autocomplete-meal-edit`, `fix/streak-realtime-invalidation`. Ruim: `juan-teste`, `fix/bug`, `feat/novo-fluxo`, `wip`.
+- Sempre criada a partir de `dev` atualizada.
+
+**Commits** — Conventional Commits em inglês: `type(scope): imperative summary` (≤ 72 chars, sem ponto final). Corpo só quando explicar o *porquê*. Sem co-author de agente.
+
+**Comentários no código** — o código deve se explicar por nomes e estrutura. Comentário só quando estritamente necessário (invariante não óbvia, workaround, motivo de uma decisão): **1 linha, em inglês**. Nunca bloco explicativo de várias linhas, nunca comentar o óbvio nem narrar o que o código faz.
+
+**Fluxo de merge** — sempre nesta ordem, **sempre via PR e squash merge**:
+1. `feat/…` → PR para `dev` (squash).
+2. `dev` → PR para `main` (squash). `main` não recebe PR de nenhuma outra branch.
+
+Proibido: push direto em `main`, merge local em `main`/`dev`, `--force` em `main`/`dev`, abrir PR de feature direto para `main`. Título do PR = mensagem do squash, então segue o formato de commit. Descrição do PR em inglês usando `.github/pull_request_template.md`.
+
 ---
 
 ## Comandos do projeto
