@@ -20,6 +20,9 @@ const mockGuard: { prevent: boolean; callback: GuardCallback | null } = {
 };
 const mockLeave = jest.fn();
 const mockPush = jest.fn();
+const mockReplace = jest.fn();
+const mockCanGoBack = jest.fn(() => true);
+const mockUpdateState = { isPending: false };
 // Simulates the navigator: a back attempt goes through the prevent-remove guard.
 const mockBack = jest.fn(() => {
   if (mockGuard.prevent && mockGuard.callback)
@@ -27,7 +30,12 @@ const mockBack = jest.fn(() => {
   else mockLeave(BACK_ACTION);
 });
 jest.mock("expo-router", () => ({
-  useRouter: () => ({ back: mockBack, replace: jest.fn(), push: mockPush }),
+  useRouter: () => ({
+    back: mockBack,
+    replace: mockReplace,
+    push: mockPush,
+    canGoBack: mockCanGoBack,
+  }),
   useNavigation: () => ({ dispatch: mockLeave }),
 }));
 jest.mock("@react-navigation/native", () => ({
@@ -39,7 +47,7 @@ jest.mock("@react-navigation/native", () => ({
 jest.mock("@/lib/hooks/useUpdateMeal", () => ({
   useUpdateMeal: (...args: unknown[]) => {
     mockUpdateArgs(...args);
-    return { mutate: mockMutate, isPending: false };
+    return { mutate: mockMutate, isPending: mockUpdateState.isPending };
   },
 }));
 jest.mock("@/lib/hooks/useDeleteMeal", () => ({
@@ -200,6 +208,10 @@ describe("MealEditor", () => {
     mockBack.mockClear();
     mockLeave.mockReset();
     mockPush.mockReset();
+    mockReplace.mockReset();
+    mockCanGoBack.mockReset();
+    mockCanGoBack.mockReturnValue(true);
+    mockUpdateState.isPending = false;
     jest.mocked(useFoodSuggestions).mockReturnValue({
       data: [],
       isLoading: false,
@@ -642,5 +654,68 @@ describe("MealEditor", () => {
     await waitFor(() =>
       expect(mockUpdateArgs).toHaveBeenLastCalledWith(MEAL_ID, "2026-11-25", undefined),
     );
+  });
+  test("edits are blocked while saving and come back after success", async () => {
+    let finish: (() => void) | null = null;
+    const saved = withRice(110, 140.8);
+    mockMutate.mockImplementation((...args: unknown[]) => {
+      mockUpdateState.isPending = true;
+      finish = () => {
+        mockUpdateState.isPending = false;
+        (args[1] as { onSuccess: (r: MealResponse) => void }).onSuccess(saved);
+      };
+    });
+    const view = renderEditor();
+    stepRiceUp();
+    await save();
+    view.rerender(editorTree(meal));
+    const plus = screen.getByLabelText("Aumentar quantidade de Arroz, tipo 1, cozido");
+    expect(plus.props.accessibilityState).toMatchObject({ disabled: true });
+    expect(
+      screen.getByLabelText("Tipo da refeição: Almoço").props.accessibilityState,
+    ).toMatchObject({ disabled: true });
+    const add = screen.getByRole("button", { name: "Buscar e adicionar alimento" });
+    expect(add.props.accessibilityState).toMatchObject({ disabled: true });
+    expect(
+      screen.getByLabelText("Editar Arroz, tipo 1, cozido").props.accessibilityState,
+    ).toMatchObject({ disabled: true });
+    expect(
+      screen.getByRole("button", { name: "Descartar" }).props.accessibilityState,
+    ).toMatchObject({ disabled: true });
+    fireEvent.press(plus);
+    fireEvent.press(add);
+    expect(screen.getByText("110 g")).toBeTruthy();
+    expect(screen.getAllByTestId("meal-item-row")).toHaveLength(1);
+    act(() => finish?.());
+    view.rerender(editorTree(meal));
+    expect(saveBar()).toBeNull();
+    stepRiceUp();
+    expect(screen.getByText("120 g")).toBeTruthy();
+  });
+
+  test("deleting with no history replaces to the home screen", async () => {
+    mockConfirm.mockResolvedValue(true);
+    mockCanGoBack.mockReturnValue(false);
+    renderEditor();
+    fireEvent.press(screen.getByRole("button", { name: "Excluir refeição" }));
+    await waitFor(() => expect(mockRemove).toHaveBeenCalled());
+    const opts = mockRemove.mock.calls[0]?.[1] as { onSuccess: () => void };
+    act(() => opts.onSuccess());
+    expect(mockReplace).toHaveBeenCalledWith("/(app)");
+    expect(mockBack).not.toHaveBeenCalled();
+  });
+
+  test("cascade delete with no history replaces to the home screen", async () => {
+    mockConfirm.mockResolvedValue(true);
+    mockCanGoBack.mockReturnValue(false);
+    renderEditor();
+    openRice();
+    fireEvent.press(screen.getByLabelText("Remover item"));
+    fireEvent.press(screen.getByRole("button", { name: "Salvar alterações" }));
+    await waitFor(() => expect(mockRemove).toHaveBeenCalled());
+    const opts = mockRemove.mock.calls[0]?.[1] as { onSuccess: () => void };
+    act(() => opts.onSuccess());
+    expect(mockReplace).toHaveBeenCalledWith("/(app)");
+    expect(mockConfirm).toHaveBeenCalledTimes(1);
   });
 });

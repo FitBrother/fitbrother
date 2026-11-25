@@ -176,7 +176,8 @@ export function MealEditor({ meal, banner }: Props) {
       {
         onSuccess: () => {
           guard.allowLeave();
-          router.back();
+          if (router.canGoBack()) router.back();
+          else router.replace("/(app)");
         },
         onError: () => toast({ variant: "error", message: "Não foi possível excluir" }),
       },
@@ -184,6 +185,7 @@ export function MealEditor({ meal, banner }: Props) {
   };
 
   const handleSave = async () => {
+    setOpenIndex(null);
     if (state.items.length === 0) {
       await deleteMeal("Você removeu todos os itens. A refeição inteira será excluída.");
       return;
@@ -268,6 +270,7 @@ export function MealEditor({ meal, banner }: Props) {
           consumedAt={consumedAt}
           onChangeMealType={setMealType}
           onChangeTime={setConsumedAt}
+          disabled={isSaving}
         />
         <MealSummaryCard totals={totals} deltaKcal={totals.kcal - initialKcal} />
       </View>
@@ -305,6 +308,7 @@ export function MealEditor({ meal, banner }: Props) {
             key={item.id ?? `new-${index}`}
             item={item}
             hasError={errorIndexes.has(index)}
+            disabled={isSaving}
             onOpen={() => setOpenIndex(index)}
             onStep={(direction) =>
               dispatch({
@@ -317,9 +321,13 @@ export function MealEditor({ meal, banner }: Props) {
         ))}
         <Pressable
           onPress={addItem}
+          disabled={isSaving}
           accessibilityRole="button"
           accessibilityLabel="Buscar e adicionar alimento"
-          className="min-h-[52px] flex-row items-center justify-center gap-2 rounded-[26px] border border-dashed border-neutral-300"
+          accessibilityState={{ disabled: isSaving }}
+          className={`min-h-[52px] flex-row items-center justify-center gap-2 rounded-[26px] border border-dashed border-neutral-300 ${
+            isSaving ? "opacity-50" : ""
+          }`}
         >
           <Search size={18} color={colors.primary[700]} />
           <Text className="font-sans-semibold text-base text-primary-700">

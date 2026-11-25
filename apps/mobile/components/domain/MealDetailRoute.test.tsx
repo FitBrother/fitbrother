@@ -12,8 +12,15 @@ const mockToast = jest.fn();
 const mockConfirmMeal = jest.fn<(id: string) => Promise<MealResponse>>();
 const mockGetMeal = jest.fn<(id: string) => Promise<MealResponse>>();
 
+const mockRouter = {
+  back: jest.fn(),
+  replace: jest.fn(),
+  push: jest.fn(),
+  canGoBack: jest.fn(() => true),
+};
+
 jest.mock("expo-router", () => ({
-  useRouter: () => ({ back: jest.fn(), replace: jest.fn(), push: jest.fn() }),
+  useRouter: () => mockRouter,
   useNavigation: () => ({ dispatch: jest.fn() }),
   useLocalSearchParams: () => ({ id: "33333333-3333-4333-8333-333333333333" }),
 }));
@@ -112,6 +119,26 @@ describe("meal detail route", () => {
 
     expect(screen.getByText("Refeição não encontrada.")).toBeTruthy();
     expect(screen.queryByTestId("meal-edit-skeleton")).toBeNull();
+  });
+
+  test("the not-found state goes back when there is history", async () => {
+    mockRouter.canGoBack.mockReturnValue(true);
+    mockGetMeal.mockRejectedValue(new Error("boom"));
+    await renderScreen();
+
+    fireEvent.press(screen.getByRole("button", { name: "Voltar" }));
+    expect(mockRouter.back).toHaveBeenCalled();
+    expect(mockRouter.replace).not.toHaveBeenCalled();
+  });
+
+  test("the not-found state goes home when there is no history", async () => {
+    mockRouter.canGoBack.mockReturnValue(false);
+    mockGetMeal.mockRejectedValue(new Error("boom"));
+    await renderScreen();
+
+    fireEvent.press(screen.getByRole("button", { name: "Voltar" }));
+    expect(mockRouter.replace).toHaveBeenCalledWith("/(app)");
+    expect(mockRouter.back).not.toHaveBeenCalled();
   });
 
   test("renders the editor without a banner for a regular meal", async () => {
