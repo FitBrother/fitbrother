@@ -1,14 +1,15 @@
-import { beforeEach, describe, expect, jest, test } from "@jest/globals";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react-native";
+import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { MealResponse } from "@fitbrother/shared";
+import { mealsForDayKey } from "@/lib/hooks/useMealsForDay";
 import { nutritionalDay } from "@/lib/time/nutritional-day";
 
 const MEAL_ID = "33333333-3333-4333-8333-333333333333";
 const mockProfile = { timezone: "America/Sao_Paulo", day_start_hour: 4 };
 const mockToast = jest.fn();
-const mockConfirmMutate = jest.fn();
+const mockConfirmMeal = jest.fn<(id: string) => Promise<MealResponse>>();
 const mockGetMeal = jest.fn<(id: string) => Promise<MealResponse>>();
 
 jest.mock("expo-router", () => ({
@@ -17,9 +18,9 @@ jest.mock("expo-router", () => ({
   useLocalSearchParams: () => ({ id: "33333333-3333-4333-8333-333333333333" }),
 }));
 jest.mock("@react-navigation/native", () => ({ usePreventRemove: jest.fn() }));
-jest.mock("@/lib/api/meals", () => ({ getMeal: (id: string) => mockGetMeal(id) }));
-jest.mock("@/lib/hooks/useConfirmMeal", () => ({
-  useConfirmMeal: () => ({ mutate: mockConfirmMutate, isPending: false }),
+jest.mock("@/lib/api/meals", () => ({
+  getMeal: (id: string) => mockGetMeal(id),
+  confirmMeal: (id: string) => mockConfirmMeal(id),
 }));
 jest.mock("@/lib/hooks/useUpdateMeal", () => ({
   useUpdateMeal: () => ({ mutate: jest.fn(), isPending: false }),
@@ -65,10 +66,16 @@ const metrics = {
   insets: { top: 0, right: 0, bottom: 0, left: 0 },
 };
 
+const clients: QueryClient[] = [];
+
 async function renderScreen({ settle = true } = {}) {
   const client = new QueryClient({
-    defaultOptions: { queries: { retry: false, gcTime: Infinity } },
+    defaultOptions: {
+      queries: { retry: false, gcTime: Infinity },
+      mutations: { gcTime: Infinity },
+    },
   });
+  clients.push(client);
   const utils = render(
     <QueryClientProvider client={client}>
       <SafeAreaProvider initialMetrics={metrics}>
@@ -79,11 +86,15 @@ async function renderScreen({ settle = true } = {}) {
   if (settle) {
     await waitFor(() => expect(screen.queryByTestId("meal-edit-skeleton")).toBeNull());
   }
-  return utils;
+  return { ...utils, client };
 }
 
 beforeEach(() => {
   jest.clearAllMocks();
+});
+
+afterEach(() => {
+  clients.splice(0).forEach((client) => client.clear());
 });
 
 describe("meal detail route", () => {
@@ -120,7 +131,9 @@ describe("meal detail route", () => {
     });
 
     test("renders the banner and confirms with the id and the nutritional day", async () => {
-      await renderScreen();
+      mockConfirmMeal.mockResolvedValue(meal);
+      const { client } = await renderScreen();
+      client.setQueryData(mealsForDayKey(DAY), [pending]);
 
       expect(screen.getByText("Confira os itens")).toBeTruthy();
       expect(
@@ -130,8 +143,13 @@ describe("meal detail route", () => {
 
       fireEvent.press(screen.getByLabelText("Confirmar refeição"));
 
-      expect(mockConfirmMutate).toHaveBeenCalledTimes(1);
-      expect(mockConfirmMutate.mock.calls[0]?.[0]).toEqual({ id: MEAL_ID, day: DAY });
+      await waitFor(() => expect(screen.queryByText("Confira os itens")).toBeNull());
+      expect(mockConfirmMeal).toHaveBeenCalledTimes(1);
+      expect(mockConfirmMeal).toHaveBeenCalledWith(MEAL_ID);
+      expect(client.getQueryData<MealResponse[]>(mealsForDayKey(DAY))?.[0]?.review_required).toBe(
+        false,
+      );
+      expect(mockToast).not.toHaveBeenCalled();
     });
 
     test("disables the confirm button and shows the hint while the editor is dirty", async () => {
@@ -141,22 +159,36 @@ describe("meal detail route", () => {
 
       expect(screen.getByText("Salve as alterações para confirmar.")).toBeTruthy();
       expect(screen.getByLabelText("Confirmar refeição")).toBeDisabled();
+      expect(screen.getByLabelText("Confirmar refeição").props.accessibilityHint).toBe(
+        "Salve as alterações para confirmar.",
+      );
       fireEvent.press(screen.getByLabelText("Confirmar refeição"));
-      expect(mockConfirmMutate).not.toHaveBeenCalled();
+      expect(mockConfirmMeal).not.toHaveBeenCalled();
     });
 
-    test("shows an error toast when confirming fails", async () => {
-      mockConfirmMutate.mockImplementation((...args: unknown[]) => {
-        (args[1] as { onError: () => void }).onError();
-      });
+    test("shows the error toast and brings the banner back when confirming fails", async () => {
+      let fail: (error: Error) => void = () => {};
+      mockConfirmMeal.mockReturnValue(
+        new Promise<MealResponse>((_resolve, reject) => {
+          fail = reject;
+        }),
+      );
       await renderScreen();
 
       fireEvent.press(screen.getByLabelText("Confirmar refeição"));
-
-      expect(mockToast).toHaveBeenCalledWith({
-        variant: "error",
-        message: "Não foi possível confirmar",
+      await waitFor(() => expect(screen.queryByText("Confira os itens")).toBeNull());
+      await act(async () => {
+        fail(new Error("boom"));
+        await new Promise((resolve) => setTimeout(resolve, 10));
       });
+
+      await waitFor(() =>
+        expect(mockToast).toHaveBeenCalledWith({
+          variant: "error",
+          message: "Não foi possível confirmar",
+        }),
+      );
+      expect(screen.getByText("Confira os itens")).toBeTruthy();
     });
   });
 });

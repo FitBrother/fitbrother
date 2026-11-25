@@ -3,7 +3,6 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle } from "lucide-react-native";
-import type { MealResponse } from "@fitbrother/shared";
 import { getMeal } from "@/lib/api/meals";
 import { mealDetailKey } from "@/lib/hooks/useMealsForDay";
 import { useConfirmMeal } from "@/lib/hooks/useConfirmMeal";
@@ -15,19 +14,9 @@ import { Button } from "@/components/Button";
 import { MealEditor } from "@/components/domain/MealEditor";
 import { MealEditSkeleton } from "@/components/domain/MealEditSkeleton";
 
-function ReviewBanner({ meal, dirty }: { meal: MealResponse; dirty: boolean }) {
-  const profile = useProfile();
-  const confirm = useConfirmMeal();
-  const toast = useToast();
-  const day = nutritionalDay(new Date(meal.consumed_at), profile);
+const DIRTY_HINT = "Salve as alterações para confirmar.";
 
-  const handleConfirm = () => {
-    confirm.mutate(
-      { id: meal.id, day },
-      { onError: () => toast({ variant: "error", message: "Não foi possível confirmar" }) },
-    );
-  };
-
+function ReviewBanner({ dirty, onConfirm }: { dirty: boolean; onConfirm: () => void }) {
   return (
     <View className="gap-3 rounded-2xl border-[1.5px] border-warning-500 bg-warning-50 p-4">
       <View className="flex-row items-start gap-2">
@@ -42,23 +31,22 @@ function ReviewBanner({ meal, dirty }: { meal: MealResponse; dirty: boolean }) {
       <Button
         label="Confirmar refeição"
         accessibilityLabel="Confirmar refeição"
+        accessibilityHint={dirty ? DIRTY_HINT : undefined}
         accessibilityRole="button"
-        onPress={handleConfirm}
+        onPress={onConfirm}
         disabled={dirty}
-        loading={confirm.isPending}
         className="w-full"
       />
-      {dirty ? (
-        <Text className="font-sans text-xs text-warning-700">
-          Salve as alterações para confirmar.
-        </Text>
-      ) : null}
+      {dirty ? <Text className="font-sans text-xs text-warning-700">{DIRTY_HINT}</Text> : null}
     </View>
   );
 }
 
 export default function MealDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const profile = useProfile();
+  const confirm = useConfirmMeal();
+  const toast = useToast();
   const query = useQuery({
     queryKey: mealDetailKey(id ?? ""),
     queryFn: () => getMeal(id!),
@@ -78,11 +66,21 @@ export default function MealDetailScreen() {
   }
 
   const meal = query.data;
+  // The mutation lives here: the optimistic flip unmounts the banner, and per-call callbacks need a mounted observer.
+  const handleConfirm = () => {
+    confirm.mutate(
+      { id: meal.id, day: nutritionalDay(new Date(meal.consumed_at), profile) },
+      { onError: () => toast({ variant: "error", message: "Não foi possível confirmar" }) },
+    );
+  };
+
   return (
     <MealEditor
       meal={meal}
       banner={
-        meal.review_required ? ({ dirty }) => <ReviewBanner meal={meal} dirty={dirty} /> : undefined
+        meal.review_required
+          ? ({ dirty }) => <ReviewBanner dirty={dirty} onConfirm={handleConfirm} />
+          : undefined
       }
     />
   );
