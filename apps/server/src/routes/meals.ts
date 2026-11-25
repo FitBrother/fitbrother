@@ -35,7 +35,7 @@ import { lookupByBarcode } from "../services/openfoodfacts.js";
  *   POST /meals/text         → extract via LLM, persist, return meal
  *   GET  /meals?day=...      → list meals for a nutritional day
  *   GET  /meals/:id          → single meal with items (used by detail screen)
- *   PATCH /meals/:id         → edit type / consumed_at / items (full replace)
+ *   PATCH /meals/:id         → edit type / consumed_at / items (full replace); confirm=true flips review_required last
  *   POST /meals/:id/confirm  → flip review_required=false → counts in summary
  *   DELETE /meals/:id        → soft delete (sets meals.deleted_at)
  *
@@ -629,6 +629,15 @@ export async function mealsRoutes(app: FastifyInstance) {
         .insert(buildPatchItemRows(req.params.id, parsed.data.items));
       if (insertErr)
         return internalError(reply, req.log, insertErr, { where: "meal_items_insert" });
+    }
+
+    // Last write, so the day recompute triggered by the flip sees the final items.
+    if (parsed.data.confirm === true) {
+      const { error } = await supabase
+        .from("meals")
+        .update({ review_required: false })
+        .eq("id", req.params.id);
+      if (error) return internalError(reply, req.log, error, { where: "meal_patch_confirm" });
     }
 
     const meal = await loadMeal(supabase, req.params.id, req);

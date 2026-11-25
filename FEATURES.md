@@ -172,7 +172,7 @@ Catálogo `source='taco'`: 591 alimentos da TACO 4ª ed. (migration `0083_foods_
 | `consumed_at` | timestamptz | Default `now()`. |
 | `total_kcal` / `total_protein_g` / `total_carbs_g` / `total_fat_g` | numeric(8,2) | **Mantidos por trigger** em `meal_items`. Não usar `GENERATED` (Postgres não permite referenciar outra tabela). |
 | `confidence` | numeric(3,2) | 0–1, vindo da IA. |
-| `review_required` | boolean DEFAULT false | `true` se `confidence < 0.6`. Não computa em `daily_summaries` enquanto `true`. |
+| `review_required` | boolean DEFAULT false | `true` se `confidence < 0.6` **ou** se `source` ∈ (`app_text`, `app_audio`, `app_photo`) (refeição de IA do app nasce pendente, migration `0088`). Não computa em `daily_summaries` enquanto `true`. Vira `false` por `PATCH /meals/:id` com `confirm: true` (ou `POST /meals/:id/confirm`). |
 | `created_at` / `updated_at` / `deleted_at` | timestamptz | |
 
 Índice: `(user_id, consumed_at DESC) WHERE deleted_at IS NULL`.
@@ -410,9 +410,9 @@ Entrada: texto ou áudio, no app ou via WhatsApp.
    }
    ```
 4. Para cada item, fuzzy match em `foods.name_normalized` e em `food_aliases` (RPC `fitbrother_foods_fuzzy_match`, limiar 0,4; desde a `0086` o nome com cru/crua/crus/cruas perde 0,2 na ordenação quando o termo não diz "cru", e alias não é rebaixado; desde a `0087`, termo de uma palavra só casa com similarity >= 0,5, senão mantém os macros da IA). Se match com `verified=true`, **sobrescreve macros** pelo catálogo (mais confiável que IA).
-5. Insere `meals` + `meal_items` em transação. Trigger atualiza `daily_summaries`.
+5. Insere `meals` + `meal_items` em transação (RPC `create_meal_with_items`). Trigger atualiza `daily_summaries` só quando a refeição não nasce pendente (ver passo 7).
 6. Atualiza `ai_usage` (tokens consumidos, segundos transcritos, custo estimado).
-7. Se `confidence < 0.6` → `meals.review_required = true` → notifica usuário "Confirme o que entendi" (push + WA se janela aberta).
+7. Refeição do app por texto, áudio ou foto (`app_text`/`app_audio`/`app_photo`) **sempre** nasce com `meals.review_required = true` (desde a `0088`) e só entra no dia, streak, `goal_hit` e conquistas quando o usuário confirma na tela "Confirme o que entendi" (`PATCH /meals/:id` com `confirm: true`). Código de barras (`app_barcode`), `manual` e WhatsApp continuam pendentes só com `confidence < 0.6`; no WhatsApp esse caso notifica "Confirme o que entendi" (push + WA se janela aberta).
 
 #### 4.2.1 Detalhe da refeição = edição (lista + sheet) e autocomplete de alimentos
 
@@ -424,6 +424,7 @@ A tela de detalhe da refeição (`meal/[id]`) **é** a tela de edição: renderi
   - Recente com `food_id` suprime a linha de catálogo do mesmo alimento.
 - **Rota** `GET /foods/search?q=` (`apps/server/src/routes/foods.ts`, auth obrigatória; `q` opcional, ≤ 60 caracteres, vazio → só recentes): normaliza `q` (`services/food-search.ts`), chama a RPC com o JWT do usuário e responde `{ suggestions: FoodSuggestion[] }` (schema em `packages/shared`).
 - **`PATCH /meals/:id`:** cada item de `items` aceita `food_id` (uuid, nullable/opcional) e o persiste em `meal_items.food_id`; omitido/null = item de texto livre.
+- **`PATCH /meals/:id` com `confirm: true`:** aplica `meal_type`/`consumed_at`/`items` e só depois, como última escrita, faz `review_required = false` (o trigger recalcula o dia já com os itens finais). Se o payload for inválido (400) ou alguma etapa anterior falhar, a refeição não é confirmada. `{ "confirm": true }` sozinho é válido e só confirma; confirmar uma refeição já confirmada responde 200. `confirm` ausente ou `false` não mexe em `review_required`.
 - **Macros no cliente** (`packages/shared/src/food-macros.ts`): `quantityInGrams`, `macrosForQuantity` (catálogo → macros da quantidade) e `scaleMacros` (recentes: escala proporcional ao último uso). `g`/`ml` convertem direto (ml com densidade 1); `unit` exige `serving_grams`; `slice`/`cup`/`tbsp`/`tsp` não convertem (mantém os macros atuais). Escolher do catálogo preenche 1 porção (`unit`) se houver `serving_grams`, senão 100 g; editar macro à mão (`adjusted`) para o recálculo e editar a descrição desvincula o item (`food_id = null`). Estado do item em `apps/mobile/lib/meal-item-draft.ts`; hook `useFoodSuggestions` (debounce 250 ms, `retry: 1`, mantém a lista anterior enquanto o próximo termo carrega), `FoodAutocomplete` e `FoodSuggestionsSkeleton` em `apps/mobile/components/domain/`.
 
 > **Pendência conhecida:** o `PATCH` de itens é delete-then-insert sem transação. Um `food_id` inexistente/obsoleto (ex.: alimento removido do catálogo entre a sugestão e o salvar) faz o insert falhar depois do delete e a refeição pode ficar sem itens.
@@ -500,7 +501,7 @@ function dispatch(user_id, notif):
 - `streak_alert` — risco de quebra (envio 21h do dia nutricional)
 - `goal_reminder` — faltam macros (envio 19h se kcal < 70% e janela WA aberta)
 - `friend_activity` — amigo bateu meta / superou streak
-- `meal_confirmation` — `review_required = true` no registro
+- `meal_confirmation` — `review_required = true` no registro (refeição do app por texto/áudio/foto nasce pendente por design e já abre a tela de confirmação; push para ela está fora da v1)
 - `achievement` — conquista desbloqueada
 
 ---

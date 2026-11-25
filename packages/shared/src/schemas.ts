@@ -337,6 +337,8 @@ export const PatchMealRequestSchema = z.object({
   // `image_path` do cliente seria superfície de ataque sem ganho: ele já sabe
   // o path, porque é a mesma função que o upload usa.
   has_photo: z.boolean().optional(),
+  // Flips review_required to false only after the other fields were applied.
+  confirm: z.boolean().optional(),
 });
 export type PatchMealRequest = z.infer<typeof PatchMealRequestSchema>;
 
