@@ -69,6 +69,7 @@ import { useStreak } from "@/lib/hooks/useStreak";
 import { useTour } from "@/lib/tour/tour-context";
 import { useRegisterMeal } from "@/lib/hooks/useRegisterMeal";
 import { hasConfirmedMeal } from "@/lib/has-confirmed-meal";
+import { useOnceWhenFocused } from "@/lib/hooks/useOnceWhenFocused";
 
 /** Sobra entre o último card e o começo do degradê do composer. */
 const LIST_BREATHING_ROOM = 28;
@@ -283,11 +284,8 @@ export default function HomeScreen() {
   // composer daqui e o registro feito no último passo do onboarding
   // (FirstMealBlock), que roda fora do TourProvider. Depende só do booleano
   // pra não re-disparar enquanto o PATCH de tutorial_completed está em voo.
-  const hasPersistedMeal = hasConfirmedMeal(items);
-  useEffect(() => {
-    if (hasPersistedMeal) tour.notifyMealCreated();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasPersistedMeal]);
+  // Gated on focus so a confirm on the meal screen does not start the tour over it.
+  useOnceWhenFocused(hasConfirmedMeal(items), tour.notifyMealCreated);
 
   const handleSend = (text: string) => {
     setBanner(null);

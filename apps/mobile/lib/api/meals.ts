@@ -107,12 +107,6 @@ export async function getMeal(id: string): Promise<MealResponse> {
   return body.meal;
 }
 
-export async function confirmMeal(id: string): Promise<MealResponse> {
-  const res = await authedFetch(`/meals/${id}/confirm`, { method: "POST" });
-  const body = (await parseOrThrow(res)) as { meal: MealResponse };
-  return body.meal;
-}
-
 export async function patchMeal(id: string, patch: PatchMealRequest): Promise<MealResponse> {
   const res = await authedFetch(`/meals/${id}`, {
     method: "PATCH",
