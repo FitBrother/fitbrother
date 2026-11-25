@@ -4,14 +4,11 @@ import { useLocalSearchParams } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import { getMeal } from "@/lib/api/meals";
 import { mealDetailKey } from "@/lib/hooks/useMealsForDay";
-import { useProfile } from "@/lib/profile/profile-context";
-import { nutritionalDay } from "@/lib/time/nutritional-day";
 import { MealEditor } from "@/components/domain/MealEditor";
 import { MealEditSkeleton } from "@/components/domain/MealEditSkeleton";
 
 export default function EditMealRoute() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const profile = useProfile();
 
   const query = useQuery({
     queryKey: mealDetailKey(id ?? ""),
@@ -31,7 +28,5 @@ export default function EditMealRoute() {
     );
   }
 
-  return (
-    <MealEditor meal={query.data} day={nutritionalDay(new Date(query.data.consumed_at), profile)} />
-  );
+  return <MealEditor meal={query.data} />;
 }

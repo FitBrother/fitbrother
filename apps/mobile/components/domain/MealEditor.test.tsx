@@ -133,15 +133,31 @@ const twoItemMeal = {
   ],
 } as unknown as MealResponse;
 
+function editorTree(m: MealResponse, banner?: (ctx: { dirty: boolean }) => React.ReactNode) {
+  return (
+    <SafeAreaProvider initialMetrics={metrics}>
+      <MealEditor meal={m} banner={banner} />
+    </SafeAreaProvider>
+  );
+}
+
 function renderEditor(
   m: MealResponse = meal,
   banner?: (ctx: { dirty: boolean }) => React.ReactNode,
 ) {
-  render(
-    <SafeAreaProvider initialMetrics={metrics}>
-      <MealEditor meal={m} day={DAY} banner={banner} />
-    </SafeAreaProvider>,
-  );
+  return render(editorTree(m, banner));
+}
+
+function withRice(quantity: number, kcal: number): MealResponse {
+  return { ...meal, items: [{ ...meal.items[0], quantity, kcal }] } as unknown as MealResponse;
+}
+
+function mockSaveReturns(...saved: MealResponse[]) {
+  for (const m of saved) {
+    mockMutate.mockImplementationOnce((...args: unknown[]) => {
+      (args[1] as { onSuccess: (r: MealResponse) => void }).onSuccess(m);
+    });
+  }
 }
 
 function saveBar() {
@@ -543,5 +559,88 @@ describe("MealEditor", () => {
     fireEvent.press(screen.getByLabelText("Remover item"));
     expect(screen.getAllByTestId("meal-item-row")).toHaveLength(1);
     expect(saveBar()).toBeNull();
+  });
+  test("a changed meal prop refreshes a clean screen", () => {
+    const view = renderEditor();
+    view.rerender(editorTree(withRice(150, 192)));
+    expect(screen.getByText("150 g")).toBeTruthy();
+    expect(screen.getByText("192 kcal")).toBeTruthy();
+    expect(screen.queryByText(/^[+−]\d+ kcal$/)).toBeNull();
+    expect(saveBar()).toBeNull();
+  });
+
+  test("a changed meal prop does not touch a dirty draft, and discard picks it up", () => {
+    const view = renderEditor();
+    stepRiceUp();
+    view.rerender(editorTree(withRice(150, 192)));
+    expect(screen.getByText("110 g")).toBeTruthy();
+    expect(saveBar()).toBeTruthy();
+    fireEvent.press(screen.getByRole("button", { name: "Descartar" }));
+    expect(screen.getByText("150 g")).toBeTruthy();
+    expect(saveBar()).toBeNull();
+  });
+
+  test("a refetch with equal data does not reset the screen", () => {
+    const view = renderEditor();
+    openRice();
+    view.rerender(editorTree(JSON.parse(JSON.stringify(meal)) as MealResponse));
+    expect(screen.getByLabelText("Descrição do item")).toBeTruthy();
+  });
+
+  test("a refetch of the just-saved meal keeps the post-save state", async () => {
+    const saved = withRice(110, 140.8);
+    mockSaveReturns(saved);
+    const view = renderEditor();
+    stepRiceUp();
+    await save();
+    view.rerender(editorTree(JSON.parse(JSON.stringify(saved)) as MealResponse));
+    expect(screen.getByText("110 g")).toBeTruthy();
+    expect(saveBar()).toBeNull();
+    expect(screen.queryByText(/^[+−]\d+ kcal$/)).toBeNull();
+  });
+
+  test("a saved new item keeps its server id on the next save", async () => {
+    const NEW_ID = "55555555-5555-4555-8555-555555555555";
+    const saved = {
+      ...meal,
+      items: [
+        ...meal.items,
+        {
+          id: NEW_ID,
+          food_id: null,
+          description: "Feijão",
+          quantity: 1,
+          unit: "unit",
+          kcal: 0,
+          protein_g: 0,
+          carbs_g: 0,
+          fat_g: 0,
+        },
+      ],
+    } as unknown as MealResponse;
+    mockSaveReturns(saved, saved);
+    renderEditor();
+    fireEvent.press(screen.getByRole("button", { name: "Buscar e adicionar alimento" }));
+    fireEvent.changeText(screen.getByLabelText("Descrição do item"), "Feijão");
+    fireEvent.press(screen.getByText("Concluir item"));
+    await save();
+    expect(savedItems()[1]).not.toHaveProperty("id");
+    stepRiceUp();
+    fireEvent.press(screen.getByRole("button", { name: "Salvar alterações" }));
+    await waitFor(() => expect(mockMutate).toHaveBeenCalledTimes(2));
+    const second = (mockMutate.mock.calls[1]?.[0] as { items: Record<string, unknown>[] }).items;
+    expect(second).toHaveLength(2);
+    expect(second[1]).toMatchObject({ id: NEW_ID, description: "Feijão" });
+  });
+
+  test("the invalidation day follows the saved consumed_at", async () => {
+    const moved = { ...meal, consumed_at: new Date(2026, 10, 25, 12, 40).toISOString() };
+    mockSaveReturns(moved as MealResponse);
+    renderEditor();
+    stepRiceUp();
+    await save();
+    await waitFor(() =>
+      expect(mockUpdateArgs).toHaveBeenLastCalledWith(MEAL_ID, "2026-11-25", undefined),
+    );
   });
 });

@@ -11,6 +11,7 @@ export function useDiscardChangesGuard(dirty: boolean) {
   // Covers the header back, the iOS swipe and the Android back button alike.
   usePreventRemove(dirty, ({ data }) => {
     if (allowLeaveRef.current) {
+      allowLeaveRef.current = false;
       navigation.dispatch(data.action);
       return;
     }

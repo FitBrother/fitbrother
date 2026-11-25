@@ -45,17 +45,34 @@ function sumMacros(items: Macros[]): Macros {
   );
 }
 
+function draftSignature(m: MealResponse): string {
+  return JSON.stringify([
+    m.meal_type,
+    m.consumed_at,
+    m.items.map((it) => [
+      it.id,
+      it.food_id,
+      it.description,
+      it.quantity,
+      it.unit,
+      it.kcal,
+      it.protein_g,
+      it.carbs_g,
+      it.fat_g,
+    ]),
+  ]);
+}
+
 function sameMinute(a: string, b: string): boolean {
   return Math.floor(new Date(a).getTime() / 60000) === Math.floor(new Date(b).getTime() / 60000);
 }
 
 type Props = {
   meal: MealResponse;
-  day: string;
   banner?: (ctx: { dirty: boolean }) => React.ReactNode;
 };
 
-export function MealEditor({ meal, day, banner }: Props) {
+export function MealEditor({ meal, banner }: Props) {
   const router = useRouter();
   const profile = useProfile();
   const insets = useSafeAreaInsets();
@@ -63,6 +80,8 @@ export function MealEditor({ meal, day, banner }: Props) {
   const toast = useToast();
 
   const [baseline, setBaseline] = useState(meal);
+  const [server, setServer] = useState(meal);
+  const [seenSignature, setSeenSignature] = useState(() => draftSignature(meal));
   const [state, dispatch] = useReducer(editMealReducer, {
     items: meal.items.map(draftFromSavedItem),
     dirty: false,
@@ -76,6 +95,27 @@ export function MealEditor({ meal, day, banner }: Props) {
   const timeChanged = !sameMinute(consumedAt, baseline.consumed_at);
   const newDay = timeChanged ? nutritionalDay(new Date(consumedAt), profile) : undefined;
   const dirty = state.dirty || typeChanged || timeChanged;
+  const day = nutritionalDay(new Date(baseline.consumed_at), profile);
+
+  const resetTo = (m: MealResponse) => {
+    setBaseline(m);
+    setServer(m);
+    dispatch({ type: "init", items: m.items.map(draftFromSavedItem) });
+    setMealType(m.meal_type);
+    setConsumedAt(m.consumed_at);
+    setOpenIndex(null);
+    setErrorIndexes(new Set());
+  };
+
+  // Adjust state during render when the server copy changes; a dirty draft is never overwritten.
+  const propSignature = draftSignature(meal);
+  if (propSignature !== seenSignature) {
+    setSeenSignature(propSignature);
+    if (propSignature !== draftSignature(server)) {
+      if (dirty) setServer(meal);
+      else resetTo(meal);
+    }
+  }
 
   const update = useUpdateMeal(meal.id, day, newDay);
   const remove = useDeleteMeal();
@@ -121,15 +161,6 @@ export function MealEditor({ meal, day, banner }: Props) {
   const addItem = () => {
     setOpenIndex(state.items.length);
     dispatch({ type: "add_item" });
-  };
-
-  const resetTo = (m: MealResponse) => {
-    setBaseline(m);
-    dispatch({ type: "init", items: m.items.map(draftFromSavedItem) });
-    setMealType(m.meal_type);
-    setConsumedAt(m.consumed_at);
-    setOpenIndex(null);
-    setErrorIndexes(new Set());
   };
 
   const deleteMeal = async (description: string) => {
@@ -301,7 +332,7 @@ export function MealEditor({ meal, day, banner }: Props) {
       {dirty ? (
         <MealEditorSaveBar
           saving={isSaving}
-          onDiscard={() => resetTo(baseline)}
+          onDiscard={() => resetTo(server)}
           onSave={() => void handleSave()}
         />
       ) : null}
