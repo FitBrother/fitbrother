@@ -64,7 +64,7 @@ export function MacroEditFields({
   onChangeMacro: (patch: Partial<Macros>) => void;
 }) {
   const fieldClass =
-    "mt-1 rounded-lg border border-neutral-200 bg-white px-2 py-1.5 font-sans-medium text-base text-neutral-800";
+    "mt-1 min-h-[44px] rounded-lg border border-neutral-200 bg-white px-2 py-1.5 font-sans-medium text-base text-neutral-800";
   const fields: { label: string; a11y: string; value: number; key: keyof Macros }[] = [
     { label: "kcal", a11y: "kcal", value: item.kcal, key: "kcal" },
     { label: "P (g)", a11y: "Proteína (g)", value: item.protein_g, key: "protein_g" },

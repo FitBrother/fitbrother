@@ -219,4 +219,43 @@ describe("MealItemSheet", () => {
     fireEvent.changeText(screen.getByLabelText("Descrição do item"), "Arroz integral");
     expect(onChangeDescription).toHaveBeenCalledWith("Arroz integral");
   });
+
+  test("an adjusted anchor item shows the switch on and disabled with the fields", () => {
+    setup({ link: anchor, adjusted: true });
+    const sw = screen.getByRole("switch");
+    expect(sw.props.value).toBe(true);
+    expect(sw).toBeDisabled();
+    expect(screen.getByLabelText("kcal, valor numérico")).toBeTruthy();
+  });
+
+  test("resetting an adjusted catalog item frees the switch", () => {
+    const props = setup({ link: { mode: "food", food }, adjusted: true });
+    expect(screen.getByRole("switch")).toBeDisabled();
+    fireEvent.press(screen.getByText("Voltar ao catálogo"));
+    expect(props.onResetCatalog).toHaveBeenCalled();
+
+    screen.rerender(
+      <MealItemSheet visible item={{ ...item, link: { mode: "food", food } }} {...props} />,
+    );
+    const sw = screen.getByRole("switch");
+    expect(sw).not.toBeDisabled();
+    expect(sw.props.value).toBe(false);
+    expect(screen.queryByLabelText("kcal, valor numérico")).toBeNull();
+    fireEvent(sw, "valueChange", true);
+    expect(screen.getByLabelText("kcal, valor numérico")).toBeTruthy();
+    fireEvent(screen.getByRole("switch"), "valueChange", false);
+    expect(screen.queryByLabelText("kcal, valor numérico")).toBeNull();
+  });
+
+  test("reopening starts with the switch off for a different item", () => {
+    const props = setup({ link: anchor });
+    fireEvent(screen.getByRole("switch"), "valueChange", true);
+    expect(screen.getByLabelText("kcal, valor numérico")).toBeTruthy();
+
+    const other = { ...item, description: "Feijão", link: anchor };
+    screen.rerender(<MealItemSheet visible={false} item={other} {...props} />);
+    screen.rerender(<MealItemSheet visible item={other} {...props} />);
+    expect(screen.getByRole("switch").props.value).toBe(false);
+    expect(screen.queryByLabelText("kcal, valor numérico")).toBeNull();
+  });
 });
