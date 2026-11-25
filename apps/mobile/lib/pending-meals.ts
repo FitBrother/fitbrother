@@ -1,8 +1,7 @@
 import type { MealResponse } from "@fitbrother/shared";
+import type { OptimisticMeal } from "@/lib/hooks/useCreateMealText";
 
-type MealItem = MealResponse & { __status?: "processing" };
-
-export function pendingMealsOf<T extends MealItem>(items: readonly T[]): T[] {
+export function pendingMealsOf<T extends OptimisticMeal>(items: readonly T[]): T[] {
   return items.filter((m) => m.review_required && m.__status !== "processing");
 }
 

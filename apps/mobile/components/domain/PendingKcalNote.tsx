@@ -3,7 +3,14 @@ import { Clock } from "lucide-react-native";
 import type { MealResponse } from "@fitbrother/shared";
 import { colors } from "@/lib/colors";
 import { pendingKcal } from "@/lib/pending-meals";
-import { MEAL_TYPE_NAME } from "./MealCard";
+
+const MEAL_TYPE_PHRASE: Record<MealResponse["meal_type"], string> = {
+  breakfast: "o café da manhã",
+  lunch: "o almoço",
+  snack: "o lanche",
+  dinner: "o jantar",
+  other: "a refeição",
+};
 
 type Props = {
   meals: readonly MealResponse[];
@@ -14,10 +21,7 @@ export function PendingKcalNote({ meals }: Props) {
   if (!only) return null;
 
   const kcal = Math.round(pendingKcal(meals));
-  const target =
-    meals.length === 1
-      ? `o ${MEAL_TYPE_NAME[only.meal_type].toLowerCase()}`
-      : "as refeições pendentes";
+  const target = meals.length === 1 ? MEAL_TYPE_PHRASE[only.meal_type] : "as refeições pendentes";
 
   return (
     <View className="flex-row items-center gap-1.5 px-1">

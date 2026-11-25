@@ -51,8 +51,12 @@ describe("PendingMealsBanner", () => {
     expect(onOpen).toHaveBeenCalledWith("early");
   });
 
-  test("exposes the banner as a labelled group", () => {
+  test("keeps the Confirmar button reachable instead of grouping the banner", () => {
     render(<PendingMealsBanner meals={[meal("a", "2026-11-25T12:00:00Z")]} onOpen={jest.fn()} />);
-    expect(screen.getByLabelText("1 refeição aguardando confirmação")).toBeTruthy();
+    const button = screen.getByRole("button", { name: "Confirmar refeição pendente" });
+    for (let node = button.parent; node; node = node.parent) {
+      if (node.props.accessibilityRole === "button") continue;
+      expect(node.props.accessible).not.toBe(true);
+    }
   });
 });

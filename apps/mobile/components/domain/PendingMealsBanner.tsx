@@ -18,11 +18,7 @@ export function PendingMealsBanner({ meals, onOpen }: Props) {
     count === 1 ? "1 refeição aguardando confirmação" : `${count} refeições aguardando confirmação`;
 
   return (
-    <View
-      accessible
-      accessibilityLabel={text}
-      className="flex-row items-center gap-3 rounded-[16px] border-[1.5px] border-warning-500 bg-warning-50 py-2 pl-3 pr-2"
-    >
+    <View className="flex-row items-center gap-3 rounded-xl border-[1.5px] border-warning-500 bg-warning-50 py-2 pl-3 pr-2">
       <AlertTriangle size={18} color={colors.warning[700]} />
       <Text
         style={{ fontVariant: ["tabular-nums"] }}

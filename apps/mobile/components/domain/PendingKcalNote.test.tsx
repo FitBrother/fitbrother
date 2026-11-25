@@ -36,9 +36,15 @@ describe("PendingKcalNote", () => {
     expect(screen.getByText("+459 kcal quando você confirmar o almoço")).toBeTruthy();
   });
 
-  test("names the meal type of a dinner", () => {
-    render(<PendingKcalNote meals={[meal({ meal_type: "dinner", total_kcal: 700 })]} />);
-    expect(screen.getByText("+700 kcal quando você confirmar o jantar")).toBeTruthy();
+  test.each<[MealResponse["meal_type"], string]>([
+    ["breakfast", "o café da manhã"],
+    ["lunch", "o almoço"],
+    ["snack", "o lanche"],
+    ["dinner", "o jantar"],
+    ["other", "a refeição"],
+  ])("uses the right article for %s", (meal_type, phrase) => {
+    render(<PendingKcalNote meals={[meal({ meal_type, total_kcal: 700 })]} />);
+    expect(screen.getByText(`+700 kcal quando você confirmar ${phrase}`)).toBeTruthy();
   });
 
   test("sums the kcal when several are pending", () => {
