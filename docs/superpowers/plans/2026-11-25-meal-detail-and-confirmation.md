@@ -43,7 +43,7 @@
 - Modify: `apps/mobile/lib/edit-meal-reducer.ts` apenas se precisar expor "dirty" já distinto de itens/meta (hoje já é)
 
 **Interfaces:**
-- Produces: `MealEditor({ meal: MealResponse, day: string })` — a tela inteira (barra, chips, resumo fixo, lista, sheet), com:
+- Produces: `MealEditor({ meal: MealResponse, day: string, banner?: (ctx: { dirty: boolean }) => React.ReactNode })` — a tela inteira (barra, chips, resumo fixo, lista, sheet). `banner`, quando passado, é renderizado dentro da rolagem, entre o card de resumo/feedback da IA e a lista de itens (a Task 2 usa para o aviso "Confira os itens"). Comportamento depois de **salvar com sucesso**: a tela **continua aberta** (não chama `router.back()`), mostra o toast "Alterações salvas", e reinicia o rascunho a partir da refeição devolvida pelo `PATCH` (itens, tipo, horário e linha de base do delta passam a ser os salvos; a barra de salvar some). "Excluir refeição" (barra do topo) e a exclusão em cascata (remover o último item) fazem `router.back()` ao excluir (não mais `router.replace("/(app)")`, porque agora esta é a única tela da refeição na pilha). A tela:
   - card de feedback da IA (`meal.ai_feedback`) entre o resumo e a lista (`bg-primary-50`, ícone `Sparkles`, texto `text-primary-700`);
   - bloco "Compartilhar" (`Button` primário → `/(app)/share/meal/${id}`) e "Novo post" (→ `/(app)/post/new` com `meal_id`) ao fim da rolagem, **ocultos** quando há alteração pendente ou `meal.review_required`;
   - barra inferior com "Descartar" (outline) e "Salvar alterações" (primário, `loading`), **visível só quando há alteração pendente**; "Descartar" restaura o estado inicial (re-`init` do reducer e da meta);
@@ -66,7 +66,7 @@
 
 **Interfaces:**
 - Consumes: `MealEditor` (Task 1), `getMeal`, `mealDetailKey`, `useProfile`, `nutritionalDay`, `useConfirmMeal`.
-- Produces: `MealDetailScreen` que carrega a refeição, mostra `MealEditSkeleton` enquanto carrega e "Refeição não encontrada." em erro, e renderiza `<MealEditor meal day />`. Enquanto a Fase 2 não existe, **mantém o botão "Confirmar refeição" atual para `review_required`** como banner âmbar acima da lista (artboard A3: ícone de alerta, "Confira os itens", texto e o botão), usando `useConfirmMeal`.
+- Produces: `MealDetailScreen` que carrega a refeição, mostra `MealEditSkeleton` enquanto carrega e "Refeição não encontrada." em erro, e renderiza `<MealEditor meal day />`. Enquanto a Fase 2 não existe, **mantém o botão "Confirmar refeição" atual para `review_required`** como banner âmbar (artboard A3: ícone de alerta, "Confira os itens", texto e o botão), passado ao `MealEditor` pela prop `banner` e usando `useConfirmMeal`; o botão fica **desabilitado enquanto `ctx.dirty`** (há alterações não salvas), com a dica "Salve as alterações para confirmar".
 
 - [ ] **Step 1: testes** do detalhe (render com refeição normal e com `review_required`; erro; loading mostra o skeleton) e um teste/grep que garanta que não sobrou referência à rota `edit`.
 - [ ] **Step 2: rodar e ver falhar.**
