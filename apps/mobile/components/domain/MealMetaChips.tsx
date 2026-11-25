@@ -66,7 +66,7 @@ export function MealMetaChips({ mealType, consumedAt, onChangeMealType, onChange
   const typeName = MEAL_TYPE_NAME[mealType];
 
   return (
-    <View className="flex-row items-center gap-2">
+    <View className="flex-row flex-wrap items-center gap-2">
       <Chip
         icon={<Utensils size={16} color={colors.neutral[700]} />}
         label={typeName}
@@ -128,16 +128,18 @@ export function MealMetaChips({ mealType, consumedAt, onChangeMealType, onChange
         </Pressable>
       </Modal>
 
-      <TimePicker
-        visible={timeOpen}
-        initialHour={hour}
-        initialMinute={minute}
-        onCancel={() => setTimeOpen(false)}
-        onConfirm={(h, m) => {
-          setTimeOpen(false);
-          onChangeTime(withTime(consumedAt, h, m));
-        }}
-      />
+      {timeOpen ? (
+        <TimePicker
+          visible
+          initialHour={hour}
+          initialMinute={minute}
+          onCancel={() => setTimeOpen(false)}
+          onConfirm={(h, m) => {
+            setTimeOpen(false);
+            onChangeTime(withTime(consumedAt, h, m));
+          }}
+        />
+      ) : null}
     </View>
   );
 }

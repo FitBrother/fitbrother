@@ -13,8 +13,8 @@ type Props = {
 
 export function TimePicker({ visible, initialHour, initialMinute, onCancel, onConfirm }: Props) {
   const [hour, setHour] = useState(initialHour);
-  // Arredonda pra step de 5 minutos no init.
-  const [minute, setMinute] = useState(Math.round(initialMinute / 5) * 5);
+  // Arredonda pra step de 5 minutos no init, sem passar de 55 (a roda não tem 60).
+  const [minute, setMinute] = useState(Math.min(55, Math.round(initialMinute / 5) * 5));
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
