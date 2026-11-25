@@ -24,6 +24,7 @@ export function MealItemRow({
   onStep: (direction: 1 | -1) => void;
 }) {
   const canDecrease = canDecreaseQuantity(item.quantity, item.unit);
+  const quantityText = formatQuantity(item);
   const showAdjusted = item.adjusted && item.link.mode !== "none";
 
   return (
@@ -63,7 +64,8 @@ export function MealItemRow({
           onPress={() => onStep(-1)}
           disabled={!canDecrease}
           accessibilityRole="button"
-          accessibilityLabel="Diminuir quantidade"
+          accessibilityLabel={`Diminuir quantidade de ${item.description}`}
+          accessibilityValue={{ text: quantityText }}
           accessibilityState={{ disabled: !canDecrease }}
           className={`min-h-[44px] min-w-[44px] items-center justify-center ${
             canDecrease ? "" : "opacity-40"
@@ -75,12 +77,13 @@ export function MealItemRow({
           style={NUM}
           className="min-w-[48px] text-center font-sans-semibold text-sm text-neutral-800"
         >
-          {formatQuantity(item)}
+          {quantityText}
         </Text>
         <Pressable
           onPress={() => onStep(1)}
           accessibilityRole="button"
-          accessibilityLabel="Aumentar quantidade"
+          accessibilityLabel={`Aumentar quantidade de ${item.description}`}
+          accessibilityValue={{ text: quantityText }}
           className="min-h-[44px] min-w-[44px] items-center justify-center"
         >
           <Plus size={18} color={colors.neutral[700]} />

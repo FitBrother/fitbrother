@@ -151,7 +151,7 @@ describe("EditMealModal", () => {
     renderModal();
     const button = screen.getByRole("button", { name: "Salvar alterações" });
     expect(button.props.accessibilityState).toMatchObject({ disabled: true });
-    fireEvent.press(screen.getByLabelText("Aumentar quantidade"));
+    fireEvent.press(screen.getByLabelText("Aumentar quantidade de Arroz, tipo 1, cozido"));
     expect(
       screen.getByRole("button", { name: "Salvar alterações" }).props.accessibilityState,
     ).toMatchObject({ disabled: false });
@@ -159,8 +159,8 @@ describe("EditMealModal", () => {
 
   test("saving an untouched item keeps its food_id", async () => {
     renderModal();
-    fireEvent.press(screen.getByLabelText("Aumentar quantidade"));
-    fireEvent.press(screen.getByLabelText("Diminuir quantidade"));
+    fireEvent.press(screen.getByLabelText("Aumentar quantidade de Arroz, tipo 1, cozido"));
+    fireEvent.press(screen.getByLabelText("Diminuir quantidade de Arroz, tipo 1, cozido"));
     await save();
     expect(savedItems()[0]).toMatchObject({
       id: ITEM_ID,
@@ -173,7 +173,7 @@ describe("EditMealModal", () => {
   test("the row stepper scales a saved item and the summary shows the delta", async () => {
     renderModal();
     expect(screen.queryByText("+13 kcal")).toBeNull();
-    fireEvent.press(screen.getByLabelText("Aumentar quantidade"));
+    fireEvent.press(screen.getByLabelText("Aumentar quantidade de Arroz, tipo 1, cozido"));
     expect(screen.getByText("110 g")).toBeTruthy();
     expect(screen.getByText("141 kcal")).toBeTruthy();
     expect(screen.getByText("141")).toBeTruthy();
@@ -282,6 +282,7 @@ describe("EditMealModal", () => {
     await save();
     expect(savedPatch()).toMatchObject({ meal_type: "dinner" });
     expect(savedPatch()).not.toHaveProperty("consumed_at");
+    expect(savedPatch()).not.toHaveProperty("items");
     expect(mockUpdateArgs).toHaveBeenLastCalledWith(MEAL_ID, DAY, undefined);
   });
 
@@ -294,6 +295,7 @@ describe("EditMealModal", () => {
     await save();
     expect(savedPatch()).toMatchObject({ consumed_at: iso });
     expect(savedPatch()).not.toHaveProperty("meal_type");
+    expect(savedPatch()).not.toHaveProperty("items");
     expect(mockUpdateArgs).toHaveBeenLastCalledWith(
       MEAL_ID,
       DAY,
@@ -352,5 +354,42 @@ describe("EditMealModal", () => {
         expect.objectContaining({ title: "Descartar alterações?" }),
       ),
     );
+  });
+
+  test("an item change still sends items together with the changed meta", async () => {
+    renderModal();
+    fireEvent.press(screen.getByLabelText("Tipo da refeição: Almoço"));
+    fireEvent.press(screen.getByText("Jantar"));
+    fireEvent.press(screen.getByLabelText("Aumentar quantidade de Arroz, tipo 1, cozido"));
+    await save();
+    expect(savedPatch()).toMatchObject({ meal_type: "dinner" });
+    expect(savedItems()[0]).toMatchObject({ id: ITEM_ID, quantity: 110 });
+  });
+
+  test.each([
+    ["100000", "above the column limit"],
+    ["0,001", "below 0.01"],
+  ])("quantity %s (%s) marks the row invalid and does not save", (typed) => {
+    renderModal();
+    openRice();
+    fireEvent.changeText(screen.getByLabelText("Quantidade"), typed);
+    fireEvent.press(screen.getByText("Concluir item"));
+    fireEvent.press(screen.getByRole("button", { name: "Salvar alterações" }));
+    expect(mockToast).toHaveBeenCalledWith({
+      variant: "error",
+      message: "Item 1 com campos inválidos",
+    });
+    expect(screen.getByTestId("meal-item-row").props.className).toContain("border-danger-500");
+    expect(mockMutate).not.toHaveBeenCalled();
+  });
+
+  test("trashing an unnamed new item from its sheet leaves the screen clean", () => {
+    renderModal();
+    fireEvent.press(screen.getByRole("button", { name: "Buscar e adicionar alimento" }));
+    fireEvent.press(screen.getByLabelText("Remover item"));
+    expect(screen.getAllByTestId("meal-item-row")).toHaveLength(1);
+    expect(
+      screen.getByRole("button", { name: "Salvar alterações" }).props.accessibilityState,
+    ).toMatchObject({ disabled: true });
   });
 });

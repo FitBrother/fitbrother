@@ -308,18 +308,21 @@ export const FoodSearchResponseSchema = z.object({
 });
 export type FoodSearchResponse = z.infer<typeof FoodSearchResponseSchema>;
 
+// meal_items columns are numeric(7,2).
+const MAX_ITEM_NUMERIC = 99999.99;
+
 export const PatchMealItemSchema = z.object({
   // Pass id to update existing; omit to insert new. Server enforces ownership.
   id: UuidSchema.optional(),
   // Catalog link; omitted/null means a free-text item.
   food_id: UuidSchema.nullable().optional(),
   description: z.string().min(1),
-  quantity: z.number().positive(),
+  quantity: z.number().min(0.01).max(MAX_ITEM_NUMERIC),
   unit: UnitSchema,
-  kcal: z.number().nonnegative(),
-  protein_g: z.number().nonnegative(),
-  carbs_g: z.number().nonnegative(),
-  fat_g: z.number().nonnegative(),
+  kcal: z.number().nonnegative().max(MAX_ITEM_NUMERIC),
+  protein_g: z.number().nonnegative().max(MAX_ITEM_NUMERIC),
+  carbs_g: z.number().nonnegative().max(MAX_ITEM_NUMERIC),
+  fat_g: z.number().nonnegative().max(MAX_ITEM_NUMERIC),
 });
 
 export const PatchMealRequestSchema = z.object({

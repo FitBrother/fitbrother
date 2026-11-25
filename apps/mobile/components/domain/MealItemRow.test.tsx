@@ -51,15 +51,25 @@ describe("MealItemRow", () => {
 
   test("plus steps up and minus steps down", () => {
     const { onStep } = setup();
-    fireEvent.press(screen.getByLabelText("Aumentar quantidade"));
+    fireEvent.press(screen.getByLabelText("Aumentar quantidade de Arroz cozido"));
     expect(onStep).toHaveBeenLastCalledWith(1);
-    fireEvent.press(screen.getByLabelText("Diminuir quantidade"));
+    fireEvent.press(screen.getByLabelText("Diminuir quantidade de Arroz cozido"));
     expect(onStep).toHaveBeenLastCalledWith(-1);
+  });
+
+  test("stepper buttons expose the current quantity", () => {
+    setup();
+    expect(
+      screen.getByLabelText("Aumentar quantidade de Arroz cozido").props.accessibilityValue,
+    ).toEqual({ text: "150 g" });
+    expect(
+      screen.getByLabelText("Diminuir quantidade de Arroz cozido").props.accessibilityValue,
+    ).toEqual({ text: "150 g" });
   });
 
   test("minus is disabled at the minimum quantity", () => {
     const { onStep } = setup({ quantity: 10, unit: "g" });
-    const minus = screen.getByLabelText("Diminuir quantidade");
+    const minus = screen.getByLabelText("Diminuir quantidade de Arroz cozido");
     expect(minus.props.accessibilityState?.disabled).toBe(true);
     fireEvent.press(minus);
     expect(onStep).not.toHaveBeenCalled();

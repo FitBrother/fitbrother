@@ -214,6 +214,11 @@ describe("MealItemSheet", () => {
     expect(onRemove).toHaveBeenCalled();
   });
 
+  test("macro grams use a decimal comma", () => {
+    setup({ protein_g: 2.5 });
+    expect(screen.getByText("2,5 g P")).toBeTruthy();
+  });
+
   test("a new unnamed item focuses the name field", () => {
     setup({ description: "" });
     expect(screen.getByLabelText("Descrição do item").props.autoFocus).toBe(true);

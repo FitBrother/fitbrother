@@ -97,11 +97,17 @@ export function EditMealModal({ meal, day }: Props) {
     dispatch({ type: "remove_item", index });
   };
 
+  const isEmptyDraft = openItem !== null && !openItem.id && openItem.description.trim() === "";
+
+  const discardDraft = (index: number) => {
+    setOpenIndex(null);
+    dropErrorAt(index);
+    dispatch({ type: "discard_draft", index });
+  };
+
   const closeSheet = () => {
-    if (openIndex !== null && openItem && !openItem.id && openItem.description.trim() === "") {
-      setOpenIndex(null);
-      dropErrorAt(openIndex);
-      dispatch({ type: "discard_draft", index: openIndex });
+    if (openIndex !== null && isEmptyDraft) {
+      discardDraft(openIndex);
       return;
     }
     setOpenIndex(null);
@@ -168,7 +174,14 @@ export function EditMealModal({ meal, day }: Props) {
     setErrorIndexes(new Set());
 
     const patch: PatchMealRequest = {
-      items: state.items.map((it) => ({ ...toPatchItem(it), description: it.description.trim() })),
+      ...(state.dirty
+        ? {
+            items: state.items.map((it) => ({
+              ...toPatchItem(it),
+              description: it.description.trim(),
+            })),
+          }
+        : {}),
       ...(typeChanged ? { meal_type: mealType } : {}),
       ...(timeChanged ? { consumed_at: consumedAt } : {}),
     };
@@ -283,7 +296,9 @@ export function EditMealModal({ meal, day }: Props) {
         item={openItem}
         onClose={closeSheet}
         onRemove={() => {
-          if (openIndex !== null) removeItem(openIndex);
+          if (openIndex === null) return;
+          if (isEmptyDraft) discardDraft(openIndex);
+          else removeItem(openIndex);
         }}
         onSelectSuggestion={onOpenItem((index, suggestion: FoodSuggestion) => ({
           type: "select_suggestion",

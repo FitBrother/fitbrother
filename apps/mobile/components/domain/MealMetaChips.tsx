@@ -19,6 +19,11 @@ type Props = {
   onChangeTime: (iso: string) => void;
 };
 
+// Mirrors TimePicker's initial rounding to its 5-minute wheel.
+function pickerMinute(minute: number): number {
+  return Math.min(55, Math.round(minute / 5) * 5);
+}
+
 function pad(n: number): string {
   return String(n).padStart(2, "0");
 }
@@ -136,6 +141,7 @@ export function MealMetaChips({ mealType, consumedAt, onChangeMealType, onChange
           onCancel={() => setTimeOpen(false)}
           onConfirm={(h, m) => {
             setTimeOpen(false);
+            if (h === hour && m === pickerMinute(minute)) return;
             onChangeTime(withTime(consumedAt, h, m));
           }}
         />

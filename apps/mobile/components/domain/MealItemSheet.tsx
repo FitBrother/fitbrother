@@ -57,7 +57,7 @@ function MacroDot({
     <View className="flex-row items-center gap-1.5">
       <View className={`h-2.5 w-2.5 rounded-full ${className}`} />
       <Text style={NUM} className="font-sans-medium text-sm text-neutral-700">
-        {Math.round(grams * 10) / 10} g {short}
+        {formatNumber(Math.round(grams * 10) / 10)} g {short}
       </Text>
     </View>
   );

@@ -87,12 +87,22 @@ describe("MealMetaChips", () => {
     expect(screen.queryByText("roda 23: 23")).toBeNull();
   });
 
-  test("a meal at 12:58 confirmed untouched stays in hour 12", () => {
+  test("confirming the picker untouched does not change the time", () => {
     const p = props({ consumedAt: new Date(2026, 10, 25, 12, 58).toISOString() });
     render(<MealMetaChips {...p} />);
     fireEvent.press(screen.getByLabelText("Horário: 12:58"));
     fireEvent.press(screen.getByLabelText("Confirmar"));
-    expect(p.onChangeTime).toHaveBeenCalledWith(new Date(2026, 10, 25, 12, 55, 0, 0).toISOString());
+    expect(p.onChangeTime).not.toHaveBeenCalled();
+    expect(screen.queryByLabelText("Confirmar")).toBeNull();
+  });
+
+  test("a meal at 12:58 with only the hour changed keeps the rounded minute", () => {
+    const p = props({ consumedAt: new Date(2026, 10, 25, 12, 58).toISOString() });
+    render(<MealMetaChips {...p} />);
+    fireEvent.press(screen.getByLabelText("Horário: 12:58"));
+    fireEvent.press(screen.getByLabelText("Roda 23"));
+    fireEvent.press(screen.getByLabelText("Confirmar"));
+    expect(p.onChangeTime).toHaveBeenCalledWith(new Date(2026, 10, 25, 23, 55, 0, 0).toISOString());
   });
 
   test("reopening the picker after consumedAt changes shows the new time", () => {
