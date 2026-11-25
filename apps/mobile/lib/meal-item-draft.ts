@@ -140,7 +140,7 @@ export function draftFromSavedItem(it: MealResponse["items"][number]): ItemDraft
     carbs_g: it.carbs_g,
     fat_g: it.fat_g,
     food_id: it.food_id,
-    link: { mode: "none" },
+    link: { mode: "anchor", quantity: it.quantity, unit: it.unit, macros: macrosOf(it) },
     adjusted: false,
   };
 }

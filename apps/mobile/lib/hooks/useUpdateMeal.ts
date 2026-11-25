@@ -6,7 +6,7 @@ import { dailySummaryKey } from "./useDailySummary";
 import { dailySummariesHistoryKey } from "./useDailySummaries";
 import { streakKey } from "./useStreak";
 
-export function useUpdateMeal(mealId: string, day: string) {
+export function useUpdateMeal(mealId: string, day: string, newDay?: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (patch: PatchMealRequest) => patchMeal(mealId, patch),
@@ -14,6 +14,10 @@ export function useUpdateMeal(mealId: string, day: string) {
       qc.invalidateQueries({ queryKey: mealDetailKey(mealId) });
       qc.invalidateQueries({ queryKey: mealsForDayKey(day) });
       qc.invalidateQueries({ queryKey: dailySummaryKey(day) });
+      if (newDay && newDay !== day) {
+        qc.invalidateQueries({ queryKey: mealsForDayKey(newDay) });
+        qc.invalidateQueries({ queryKey: dailySummaryKey(newDay) });
+      }
       qc.invalidateQueries({ queryKey: dailySummariesHistoryKey });
       qc.invalidateQueries({ queryKey: streakKey });
     },
