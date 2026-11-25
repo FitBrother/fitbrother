@@ -28,7 +28,7 @@ import { useFocusEffect, useRouter } from "expo-router";
 import * as Localization from "expo-localization";
 import { pickImage } from "@/lib/media/image-picker";
 import { Info } from "lucide-react-native";
-import { GOALS_DISCLAIMER_TEXT, type MealResponse } from "@fitbrother/shared";
+import { GOALS_DISCLAIMER_TEXT } from "@fitbrother/shared";
 import { reloadApp } from "@/lib/reload-app";
 import { useProfile } from "@/lib/profile/profile-context";
 import { useAvatarUrl } from "@/lib/hooks/useAvatarUrl";
@@ -63,7 +63,6 @@ import { MealCardSwipeable } from "@/components/domain/MealCardSwipeable";
 import { MealCardSkeleton } from "@/components/domain/MealCardSkeleton";
 import { HomeSkeleton } from "@/components/domain/HomeSkeleton";
 import { MealComposer } from "@/components/domain/MealComposer";
-import { ShareMealPrompt, valeCompartilhar } from "@/components/domain/ShareMealPrompt";
 import { ComposerBackdrop, COMPOSER_FADE_HEIGHT } from "@/components/domain/ComposerBackdrop";
 import { EmailConfirmationBanner } from "@/components/domain/EmailConfirmationBanner";
 import { NewVersionBanner } from "@/components/domain/NewVersionBanner";
@@ -75,6 +74,8 @@ import { GoalsDisclaimer } from "@/components/domain/GoalsDisclaimer";
 import { StreakCounter } from "@/components/domain/StreakCounter";
 import { useStreak } from "@/lib/hooks/useStreak";
 import { useTour } from "@/lib/tour/tour-context";
+import { useOpenMealAfterRegister } from "@/lib/hooks/useOpenMealAfterRegister";
+import { hasConfirmedMeal } from "@/lib/has-confirmed-meal";
 
 /** Sobra entre o último card e o começo do degradê do composer. */
 const LIST_BREATHING_ROOM = 28;
@@ -148,6 +149,7 @@ const TOUR_TAB: Partial<Record<TourStepId, HomeTab>> = {
 
 export default function HomeScreen() {
   const router = useRouter();
+  const openMeal = useOpenMealAfterRegister();
   const profile = useProfile();
   // Mesma query de HomeHeader/profile.tsx — inclui de propósito no gate de
   // pending abaixo, pra a tela só sair do skeleton quando a foto (não só as
@@ -191,9 +193,6 @@ export default function HomeScreen() {
   const { width } = useWindowDimensions();
   const isDesktop = width >= 1024;
   const [composerHeight, setComposerHeight] = useState(0);
-  // Id da refeição recém-registrada, enquanto o convite a gerar a imagem está
-  // na tela. Vive só nesta sessão da tela — não é estado do servidor.
-  const [refeicaoRecente, setRefeicaoRecente] = useState<string | null>(null);
   const { data: streakView } = useStreak();
   const firstName = profile.full_name.split(" ")[0] ?? profile.full_name;
 
@@ -288,25 +287,15 @@ export default function HomeScreen() {
 
   const items = (mealsQuery.data ?? []) as OptimisticMeal[];
 
-  // Gatilho do tour: primeira refeição persistida visível na Home. Cobre o
+  // Gatilho do tour: primeira refeição confirmada visível na Home. Cobre o
   // composer daqui e o registro feito no último passo do onboarding
   // (FirstMealBlock), que roda fora do TourProvider. Depende só do booleano
   // pra não re-disparar enquanto o PATCH de tutorial_completed está em voo.
-  const hasPersistedMeal = items.some((m) => m.__status !== "processing");
+  const hasPersistedMeal = hasConfirmedMeal(items);
   useEffect(() => {
     if (hasPersistedMeal) tour.notifyMealCreated();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasPersistedMeal]);
-
-  // Um lugar só para decidir se a refeição que acabou de entrar merece o
-  // convite — as três origens (texto, áudio, foto) chamam isto.
-  const aoRegistrar = useCallback((meal: MealResponse) => {
-    setRefeicaoRecente(valeCompartilhar(meal) ? meal.id : null);
-  }, []);
-  // Estável de propósito: o `ShareMealPrompt` arma o timer de auto-dispensa
-  // num efeito que depende desta função. Recriada a cada render, o timer
-  // reiniciaria junto e o convite nunca sairia da tela.
-  const dispensarConvite = useCallback(() => setRefeicaoRecente(null), []);
 
   const handleSend = (text: string) => {
     setBanner(null);
@@ -318,7 +307,7 @@ export default function HomeScreen() {
         day,
       },
       {
-        onSuccess: (r) => aoRegistrar(r.meal),
+        onSuccess: (r) => openMeal(r.meal),
         onError: (err) => {
           if (err instanceof QuotaExceededError) {
             setBanner("quota_exceeded");
@@ -356,7 +345,7 @@ export default function HomeScreen() {
             day,
           },
           {
-            onSuccess: (r) => aoRegistrar(r.meal),
+            onSuccess: (r) => openMeal(r.meal),
             onError: (err) => {
               // eslint-disable-next-line no-console
               console.warn("[handleAudioReady] mutation error:", err);
@@ -380,7 +369,7 @@ export default function HomeScreen() {
         setBanner("network");
       }
     },
-    [aoRegistrar, createMealAudio, day, userId],
+    [openMeal, createMealAudio, day, userId],
   );
 
   const handlePhotoPress = useCallback(async () => {
@@ -403,7 +392,7 @@ export default function HomeScreen() {
           day,
         },
         {
-          onSuccess: (r) => aoRegistrar(r.meal),
+          onSuccess: (r) => openMeal(r.meal),
           onError: (err) => {
             if (err instanceof QuotaExceededError) {
               setBanner("quota_exceeded");
@@ -422,7 +411,7 @@ export default function HomeScreen() {
       console.warn("[handlePhotoPress] photo error:", err);
       setBanner("network");
     }
-  }, [aoRegistrar, createMealPhoto, day, userId]);
+  }, [openMeal, createMealPhoto, day, userId]);
 
   const handleDelete = useCallback(
     (id: string) => {
@@ -598,16 +587,6 @@ export default function HomeScreen() {
 
         <View className="sticky bottom-0 z-10 bg-neutral-50 px-6 pb-3 pt-4">
           <View className="mx-auto w-full max-w-[1120px]">
-            {refeicaoRecente ? (
-              <ShareMealPrompt
-                onPress={() => {
-                  const id = refeicaoRecente;
-                  setRefeicaoRecente(null);
-                  router.push(`/(app)/share/meal/${id}` as never);
-                }}
-                onDismiss={dispensarConvite}
-              />
-            ) : null}
             <MealComposer
               onSend={handleSend}
               onAudioReady={handleAudioReady}
@@ -823,18 +802,6 @@ export default function HomeScreen() {
             dele — e não dentro do MealComposer, onde se sobrepunha ao sólido e
             cruzava o topo dele ainda translúcido. */}
         <ComposerBackdrop />
-        {/* O convite fica acima do composer, dentro do mesmo bloco que sobe
-            com o teclado — assim não é encoberto por ele. */}
-        {refeicaoRecente ? (
-          <ShareMealPrompt
-            onPress={() => {
-              const id = refeicaoRecente;
-              setRefeicaoRecente(null);
-              router.push(`/(app)/share/meal/${id}` as never);
-            }}
-            onDismiss={dispensarConvite}
-          />
-        ) : null}
         {/* Sem padding próprio: o bloco sólido termina exatamente onde o
             MealComposer termina. O `pt-3`/`pb-2` que havia aqui duplicava o
             respiro que o composer já aplica internamente (e o de baixo é

@@ -11,6 +11,7 @@ import { supabase } from "@/lib/supabase";
 import { useOnboardingStore } from "@/lib/stores/onboardingStore";
 import { nutritionalToday } from "@/lib/time/nutritional-day";
 import type { OnboardingBlockProps } from "@/lib/onboarding/types";
+import { mealRoute } from "@/lib/hooks/useOpenMealAfterRegister";
 
 export function FirstMealBlock({ chapter }: OnboardingBlockProps) {
   const [processing, setProcessing] = useState(false);
@@ -22,21 +23,21 @@ export function FirstMealBlock({ chapter }: OnboardingBlockProps) {
   const reset = useOnboardingStore((s) => s.reset);
   const day = nutritionalToday({ timezone, day_start_hour });
 
-  function finish() {
+  function finish(mealId?: string) {
     reset();
-    router.replace("/(app)" as never);
+    router.replace(mealId ? mealRoute(mealId) : ("/(app)" as never));
   }
 
   async function handleSend(text: string) {
     setProcessing(true);
     try {
-      await createText.mutateAsync({
+      const result = await createText.mutateAsync({
         client_meal_id: newClientMealId(),
         text,
         locale,
         day,
       });
-      finish();
+      finish(result.meal.id);
     } finally {
       setProcessing(false);
     }
@@ -60,14 +61,14 @@ export function FirstMealBlock({ chapter }: OnboardingBlockProps) {
         fileUri: params.fileUri,
         ext: params.ext,
       });
-      await createAudio.mutateAsync({
+      const result = await createAudio.mutateAsync({
         client_meal_id: clientMealId,
         audio_path: path,
         duration_s: Math.max(1, Math.round(params.durationMs / 1000)),
         locale,
         day,
       });
-      finish();
+      finish(result.meal.id);
     } finally {
       setProcessing(false);
     }
@@ -79,7 +80,7 @@ export function FirstMealBlock({ chapter }: OnboardingBlockProps) {
       title="Vamos registrar sua primeira refeição"
       subtitle="Texto ou áudio — do jeito que for mais fácil agora."
       showNav={false}
-      onSkip={finish}
+      onSkip={() => finish()}
     >
       <View className="flex-1 justify-end">
         <MealComposer onSend={handleSend} onAudioReady={handleAudioReady} processing={processing} />

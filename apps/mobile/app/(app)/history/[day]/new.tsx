@@ -11,6 +11,7 @@ import { useCreateMealAudio } from "@/lib/hooks/useCreateMealAudio";
 import { uploadMealAudio } from "@/lib/storage";
 import type { AudioExtension } from "@/lib/audio/recorder";
 import { useAuthSession } from "@/lib/hooks/useAuthSession";
+import { useOpenMealAfterRegister } from "@/lib/hooks/useOpenMealAfterRegister";
 import { QuotaExceededError, getErrorStatus } from "@/lib/api/meals";
 import { colors } from "@/lib/colors";
 import { MealComposer } from "@/components/domain/MealComposer";
@@ -33,6 +34,7 @@ function formatDayHeader(day: string): string {
 export default function BackfillScreen() {
   const { day } = useLocalSearchParams<{ day: string }>();
   const router = useRouter();
+  const openMeal = useOpenMealAfterRegister("replace");
   const profile = useProfile();
   const session = useAuthSession();
   const userId = session.status === "signed_in" ? session.session.user.id : undefined;
@@ -57,7 +59,7 @@ export default function BackfillScreen() {
           day,
         },
         {
-          onSuccess: () => router.back(),
+          onSuccess: (r) => openMeal(r.meal),
           onError: (err) => {
             if (err instanceof QuotaExceededError) {
               setBanner("quota_exceeded");
@@ -74,7 +76,7 @@ export default function BackfillScreen() {
         },
       );
     },
-    [createMeal, consumedAt, day, router],
+    [createMeal, consumedAt, day, openMeal],
   );
 
   const handleAudioReady = useCallback(
@@ -100,7 +102,7 @@ export default function BackfillScreen() {
             day,
           },
           {
-            onSuccess: () => router.back(),
+            onSuccess: (r) => openMeal(r.meal),
             onError: (err) => {
               if (err instanceof QuotaExceededError) {
                 setBanner("quota_exceeded");
@@ -124,7 +126,7 @@ export default function BackfillScreen() {
         setBanner("network");
       }
     },
-    [createMealAudio, consumedAt, day, router, userId],
+    [createMealAudio, consumedAt, day, openMeal, userId],
   );
 
   if (!day) {
