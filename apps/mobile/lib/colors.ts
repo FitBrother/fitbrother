@@ -51,6 +51,7 @@ export const colors = {
     50: "#FFFBEB",
     400: "#FBBF24",
     500: "#F59E0B",
+    700: "#B45309",
   },
   protein: { 50: "#FFF1F2", 100: "#FFE4E6", 500: "#E8506B", 600: "#D13355" },
   carbs: { 50: "#FFFBEB", 100: "#FEF3C7", 500: "#D98A1C", 600: "#B86F12" },
