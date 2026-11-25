@@ -6,7 +6,7 @@ import { getMeal } from "@/lib/api/meals";
 import { mealDetailKey } from "@/lib/hooks/useMealsForDay";
 import { useProfile } from "@/lib/profile/profile-context";
 import { nutritionalDay } from "@/lib/time/nutritional-day";
-import { EditMealModal } from "@/components/domain/EditMealModal";
+import { MealEditor } from "@/components/domain/MealEditor";
 import { MealEditSkeleton } from "@/components/domain/MealEditSkeleton";
 
 export default function EditMealRoute() {
@@ -32,9 +32,6 @@ export default function EditMealRoute() {
   }
 
   return (
-    <EditMealModal
-      meal={query.data}
-      day={nutritionalDay(new Date(query.data.consumed_at), profile)}
-    />
+    <MealEditor meal={query.data} day={nutritionalDay(new Date(query.data.consumed_at), profile)} />
   );
 }
