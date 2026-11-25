@@ -75,7 +75,7 @@ export function MealCard({ meal, onPress }: Props) {
     <Pressable
       onPress={onPress}
       accessibilityRole={onPress ? "button" : undefined}
-      accessibilityLabel={`Refeição ${MEAL_TYPE_LABEL[meal.meal_type]}, ${Math.round(meal.total_kcal)} kcal, ${meal.items.length} ${meal.items.length === 1 ? "item" : "itens"}`}
+      accessibilityLabel={`Refeição ${MEAL_TYPE_LABEL[meal.meal_type]}, ${Math.round(meal.total_kcal)} kcal, ${meal.items.length} ${meal.items.length === 1 ? "item" : "itens"}${isReview ? ", aguardando confirmação" : ""}`}
       style={shadows.card}
       // `overflow-hidden` e sem `p-4`: o padding desceu para o bloco interno
       // porque a faixa de macros precisa ir de ponta a ponta, e é o raio daqui
@@ -93,7 +93,7 @@ export function MealCard({ meal, onPress }: Props) {
           <View className="flex-row items-center gap-2">
             {isReview && (
               <View className="rounded-full bg-warning-50 px-2 py-0.5">
-                <Text className="text-xs font-sans-semibold text-warning-500">Revisar</Text>
+                <Text className="text-xs font-sans-bold text-warning-700">Confirmar</Text>
               </View>
             )}
             {meal.source === "app_barcode" && <ScanBarcode size={14} color={colors.neutral[400]} />}

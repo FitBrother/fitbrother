@@ -34,6 +34,10 @@ import { useProfile } from "@/lib/profile/profile-context";
 import { useAvatarUrl } from "@/lib/hooks/useAvatarUrl";
 import { nutritionalToday } from "@/lib/time/nutritional-day";
 import { useMealsForDay } from "@/lib/hooks/useMealsForDay";
+import { pendingMealsOf } from "@/lib/pending-meals";
+import { mealRoute } from "@/lib/meal-route";
+import { PendingKcalNote } from "@/components/domain/PendingKcalNote";
+import { PendingMealsBanner } from "@/components/domain/PendingMealsBanner";
 import { useDailySummary } from "@/lib/hooks/useDailySummary";
 import { useDailySummaryRealtime } from "@/lib/hooks/useDailySummaryRealtime";
 import { useMealsRealtime } from "@/lib/hooks/useMealsRealtime";
@@ -279,6 +283,7 @@ export default function HomeScreen() {
   });
 
   const items = (mealsQuery.data ?? []) as OptimisticMeal[];
+  const pendingMeals = pendingMealsOf(items);
 
   // Gatilho do tour: primeira refeição confirmada visível na Home. Cobre o
   // composer daqui e o registro feito no último passo do onboarding
@@ -472,10 +477,19 @@ export default function HomeScreen() {
                   />
                 </Card>
               </Animated.View>
+              <PendingKcalNote meals={pendingMeals} />
               <GoalsDisclaimer />
             </View>
 
             <View className="flex-1">
+              {pendingMeals.length > 0 && (
+                <View className="mb-4 px-4">
+                  <PendingMealsBanner
+                    meals={pendingMeals}
+                    onOpen={(id) => router.push(mealRoute(id))}
+                  />
+                </View>
+              )}
               {/* `px-4` pelo mesmo motivo do cabeçalho da lista no mobile: os
                   cards carregam `marginHorizontal: 16` próprio, então sem este
                   recuo o título e a contagem ficavam 16px à esquerda deles. */}
@@ -583,6 +597,8 @@ export default function HomeScreen() {
           </Pressable>
         </Card>
       </Animated.View>
+      <PendingKcalNote meals={pendingMeals} />
+      <PendingMealsBanner meals={pendingMeals} onOpen={(id) => router.push(mealRoute(id))} />
       {disclaimerOpen && (
         // 22 como o card acima: o disclaimer abre colado nele e é conteúdo
         // inline, não uma superfície flutuante como o ErrorBanner.
