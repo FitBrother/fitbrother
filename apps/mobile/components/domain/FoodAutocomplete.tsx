@@ -15,6 +15,7 @@ type Props = {
   value: string;
   onChangeText: (t: string) => void;
   onSelect: (s: FoodSuggestion) => void;
+  autoFocus?: boolean;
 };
 
 // Portion and kcal always on the same basis: last use for recents, serving (or 100 g) for catalog.
@@ -51,8 +52,8 @@ function rowA11yLabel(s: FoodSuggestion, portion: string | null, kcal: number | 
     .join(", ");
 }
 
-export function FoodAutocomplete({ value, onChangeText, onSelect }: Props) {
-  const [focused, setFocused] = useState(false);
+export function FoodAutocomplete({ value, onChangeText, onSelect, autoFocus = false }: Props) {
+  const [focused, setFocused] = useState(autoFocus);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { data, isLoading } = useFoodSuggestions(value, focused);
   const suggestions = data ?? [];
@@ -92,6 +93,7 @@ export function FoodAutocomplete({ value, onChangeText, onSelect }: Props) {
         }}
         onFocus={handleFocus}
         onBlur={handleBlur}
+        autoFocus={autoFocus}
         placeholder="Descrição"
         accessibilityLabel="Descrição do item"
         maxLength={60}

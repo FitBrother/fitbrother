@@ -214,6 +214,16 @@ describe("MealItemSheet", () => {
     expect(onRemove).toHaveBeenCalled();
   });
 
+  test("a new unnamed item focuses the name field", () => {
+    setup({ description: "" });
+    expect(screen.getByLabelText("Descrição do item").props.autoFocus).toBe(true);
+  });
+
+  test("a saved or named item does not autofocus", () => {
+    setup({ id: "item-1", description: "" });
+    expect(screen.getByLabelText("Descrição do item").props.autoFocus).toBeFalsy();
+  });
+
   test("editing the name reports the new description", () => {
     const { onChangeDescription } = setup();
     fireEvent.changeText(screen.getByLabelText("Descrição do item"), "Arroz integral");

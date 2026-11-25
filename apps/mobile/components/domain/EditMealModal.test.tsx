@@ -11,7 +11,8 @@ const mockToast = jest.fn();
 const mockUpdateArgs = jest.fn();
 const mockProfile = { timezone: "America/Sao_Paulo", day_start_hour: 4 };
 
-jest.mock("expo-router", () => ({ useRouter: () => ({ back: jest.fn(), replace: jest.fn() }) }));
+const mockBack = jest.fn();
+jest.mock("expo-router", () => ({ useRouter: () => ({ back: mockBack, replace: jest.fn() }) }));
 jest.mock("@/lib/hooks/useUpdateMeal", () => ({
   useUpdateMeal: (...args: unknown[]) => {
     mockUpdateArgs(...args);
@@ -89,10 +90,28 @@ const metrics = {
   insets: { top: 0, right: 0, bottom: 0, left: 0 },
 };
 
-function renderModal() {
+const twoItemMeal = {
+  ...meal,
+  items: [
+    ...meal.items,
+    {
+      id: "44444444-4444-4444-8444-444444444444",
+      food_id: null,
+      description: "Feijão carioca",
+      quantity: 80,
+      unit: "g",
+      kcal: 61,
+      protein_g: 3.8,
+      carbs_g: 10.9,
+      fat_g: 0.4,
+    },
+  ],
+} as unknown as MealResponse;
+
+function renderModal(m: MealResponse = meal) {
   render(
     <SafeAreaProvider initialMetrics={metrics}>
-      <EditMealModal meal={meal} day={DAY} />
+      <EditMealModal meal={m} day={DAY} />
     </SafeAreaProvider>,
   );
 }
@@ -121,6 +140,7 @@ describe("EditMealModal", () => {
     mockConfirm.mockReset();
     mockToast.mockReset();
     mockUpdateArgs.mockReset();
+    mockBack.mockReset();
     jest.mocked(useFoodSuggestions).mockReturnValue({
       data: [],
       isLoading: false,
@@ -209,9 +229,41 @@ describe("EditMealModal", () => {
     fireEvent.press(screen.getByRole("button", { name: "Buscar e adicionar alimento" }));
     expect(screen.getAllByTestId("meal-item-row")).toHaveLength(2);
     expect(screen.getByLabelText("Descrição do item").props.value).toBe("");
+    expect(screen.getByLabelText("Descrição do item").props.autoFocus).toBe(true);
     fireEvent.press(screen.getByText("Concluir item"));
     expect(screen.getAllByTestId("meal-item-row")).toHaveLength(1);
     expect(screen.getByText("Itens · 1")).toBeTruthy();
+  });
+
+  test("discarding an unnamed new item leaves the screen clean", () => {
+    renderModal();
+    fireEvent.press(screen.getByRole("button", { name: "Buscar e adicionar alimento" }));
+    fireEvent.press(screen.getByText("Concluir item"));
+    expect(
+      screen.getByRole("button", { name: "Salvar alterações" }).props.accessibilityState,
+    ).toMatchObject({ disabled: true });
+    fireEvent.press(screen.getByRole("button", { name: "Fechar edição" }));
+    expect(mockConfirm).not.toHaveBeenCalled();
+    expect(mockBack).toHaveBeenCalled();
+  });
+
+  test("removing a non-last item keeps the error marker on the invalid row", () => {
+    renderModal(twoItemMeal);
+    fireEvent.press(screen.getByLabelText("Editar Feijão carioca"));
+    fireEvent.changeText(screen.getByLabelText("Quantidade"), "0");
+    fireEvent.press(screen.getByText("Concluir item"));
+    fireEvent.press(screen.getByRole("button", { name: "Salvar alterações" }));
+    expect(mockToast).toHaveBeenCalledWith({
+      variant: "error",
+      message: "Item 2 com campos inválidos",
+    });
+    openRice();
+    fireEvent.press(screen.getByLabelText("Remover item"));
+    const rows = screen.getAllByTestId("meal-item-row");
+    expect(rows).toHaveLength(1);
+    expect(screen.queryByLabelText("Editar Arroz, tipo 1, cozido")).toBeNull();
+    expect(screen.getByLabelText("Editar Feijão carioca")).toBeTruthy();
+    expect(rows[0]?.props.className).toContain("border-danger-500");
   });
 
   test("closing a new item that has a name keeps it", () => {

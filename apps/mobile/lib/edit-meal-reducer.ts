@@ -9,7 +9,7 @@ import {
   type ItemDraft,
 } from "@/lib/meal-item-draft";
 
-export type EditMealState = { items: ItemDraft[]; dirty: boolean };
+export type EditMealState = { items: ItemDraft[]; dirty: boolean; dirtyBeforeDraft?: boolean };
 
 export type EditMealAction =
   | { type: "init"; items: ItemDraft[] }
@@ -20,14 +20,24 @@ export type EditMealAction =
   | { type: "change_description"; index: number; description: string }
   | { type: "reset_catalog"; index: number }
   | { type: "add_item" }
-  | { type: "remove_item"; index: number };
+  | { type: "remove_item"; index: number }
+  | { type: "discard_draft"; index: number };
 
 function mapItem(
   state: EditMealState,
   index: number,
   fn: (d: ItemDraft) => ItemDraft,
 ): EditMealState {
-  return { items: state.items.map((it, i) => (i === index ? fn(it) : it)), dirty: true };
+  return {
+    items: state.items.map((it, i) => (i === index ? fn(it) : it)),
+    dirty: true,
+    dirtyBeforeDraft: isDraft(state, index) ? state.dirtyBeforeDraft : undefined,
+  };
+}
+
+// Only the last unsaved item can be the open draft; touching anything else invalidates the snapshot.
+function isDraft(state: EditMealState, index: number): boolean {
+  return index === state.items.length - 1 && !state.items[index]?.id;
 }
 
 export function editMealReducer(state: EditMealState, action: EditMealAction): EditMealState {
@@ -48,6 +58,7 @@ export function editMealReducer(state: EditMealState, action: EditMealAction): E
       return mapItem(state, action.index, resetToCatalog);
     case "add_item":
       return {
+        dirtyBeforeDraft: state.dirty,
         items: [
           ...state.items,
           {
@@ -66,9 +77,11 @@ export function editMealReducer(state: EditMealState, action: EditMealAction): E
         dirty: true,
       };
     case "remove_item":
+      return { items: state.items.filter((_, i) => i !== action.index), dirty: true };
+    case "discard_draft":
       return {
         items: state.items.filter((_, i) => i !== action.index),
-        dirty: true,
+        dirty: state.dirtyBeforeDraft ?? state.dirty,
       };
   }
 }

@@ -128,6 +128,7 @@ function SheetBody({
             value={item.description}
             onChangeText={onChangeDescription}
             onSelect={onSelectSuggestion}
+            autoFocus={!item.id && item.description === ""}
           />
 
           <Text className="mt-4 font-sans-medium text-xs text-neutral-500">Quantidade</Text>

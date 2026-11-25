@@ -46,4 +46,37 @@ describe("editMealReducer", () => {
     const dirty = editMealReducer(initial, { type: "remove_item", index: 0 });
     expect(editMealReducer(dirty, { type: "init", items: [saved] })).toEqual(initial);
   });
+
+  test("discard_draft drops an empty draft and restores the previous dirty flag", () => {
+    const added = editMealReducer(initial, { type: "add_item" });
+    const typed = editMealReducer(added, {
+      type: "change_description",
+      index: 1,
+      description: "x",
+    });
+    const erased = editMealReducer(typed, {
+      type: "change_description",
+      index: 1,
+      description: "",
+    });
+    const next = editMealReducer(erased, { type: "discard_draft", index: 1 });
+    expect(next.items).toEqual([saved]);
+    expect(next.dirty).toBe(false);
+  });
+
+  test("discard_draft keeps dirty when there were changes before the draft", () => {
+    const changed = editMealReducer(initial, { type: "change_quantity", index: 0, quantity: 110 });
+    const added = editMealReducer(changed, { type: "add_item" });
+    const next = editMealReducer(added, { type: "discard_draft", index: 1 });
+    expect(next.items).toHaveLength(1);
+    expect(next.dirty).toBe(true);
+  });
+
+  test("discard_draft keeps dirty when another item changed after the draft was added", () => {
+    const added = editMealReducer(initial, { type: "add_item" });
+    const stepped = editMealReducer(added, { type: "change_quantity", index: 0, quantity: 110 });
+    const next = editMealReducer(stepped, { type: "discard_draft", index: 1 });
+    expect(next.items).toHaveLength(1);
+    expect(next.dirty).toBe(true);
+  });
 });

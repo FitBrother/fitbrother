@@ -81,15 +81,27 @@ export function EditMealModal({ meal, day }: Props) {
 
   const openItem = openIndex === null ? null : (state.items[openIndex] ?? null);
 
+  const dropErrorAt = (index: number) =>
+    setErrorIndexes(
+      (prev) =>
+        new Set(
+          Array.from(prev)
+            .filter((i) => i !== index)
+            .map((i) => (i > index ? i - 1 : i)),
+        ),
+    );
+
   const removeItem = (index: number) => {
     setOpenIndex(null);
-    setErrorIndexes(new Set());
+    dropErrorAt(index);
     dispatch({ type: "remove_item", index });
   };
 
   const closeSheet = () => {
     if (openIndex !== null && openItem && !openItem.id && openItem.description.trim() === "") {
-      removeItem(openIndex);
+      setOpenIndex(null);
+      dropErrorAt(openIndex);
+      dispatch({ type: "discard_draft", index: openIndex });
       return;
     }
     setOpenIndex(null);
