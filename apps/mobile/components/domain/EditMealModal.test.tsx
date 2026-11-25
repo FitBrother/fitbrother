@@ -2,30 +2,56 @@ import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import type { FoodSuggestion, MealResponse } from "@fitbrother/shared";
+import { nutritionalDay } from "@/lib/time/nutritional-day";
 
 const mockMutate = jest.fn();
+const mockRemove = jest.fn();
+const mockConfirm = jest.fn<(opts: { title: string }) => Promise<boolean>>();
+const mockToast = jest.fn();
+const mockUpdateArgs = jest.fn();
+const mockProfile = { timezone: "America/Sao_Paulo", day_start_hour: 4 };
 
-jest.mock("expo-router", () => ({ useRouter: () => ({ back: jest.fn(), replace: jest.fn() }) }));
+const mockBack = jest.fn();
+jest.mock("expo-router", () => ({ useRouter: () => ({ back: mockBack, replace: jest.fn() }) }));
 jest.mock("@/lib/hooks/useUpdateMeal", () => ({
-  useUpdateMeal: () => ({ mutate: mockMutate, isPending: false }),
+  useUpdateMeal: (...args: unknown[]) => {
+    mockUpdateArgs(...args);
+    return { mutate: mockMutate, isPending: false };
+  },
 }));
 jest.mock("@/lib/hooks/useDeleteMeal", () => ({
-  useDeleteMeal: () => ({ mutate: jest.fn(), isPending: false }),
+  useDeleteMeal: () => ({ mutate: mockRemove, isPending: false }),
 }));
 jest.mock("@/lib/dialog/dialog-context", () => ({
-  useDialog: () => ({ confirm: jest.fn() }),
+  useDialog: () => ({ confirm: mockConfirm }),
 }));
-jest.mock("@/lib/toast/toast-context", () => ({ useToast: () => jest.fn() }));
+jest.mock("@/lib/toast/toast-context", () => ({ useToast: () => mockToast }));
+jest.mock("@/lib/profile/profile-context", () => ({ useProfile: () => mockProfile }));
 jest.mock("@/lib/hooks/useFoodSuggestions", () => ({ useFoodSuggestions: jest.fn() }));
+jest.mock("@/components/WheelPicker", () => {
+  const { Pressable, Text } = jest.requireActual<typeof import("react-native")>("react-native");
+  return {
+    WheelPicker: ({ max, onChange }: { max: number; onChange: (v: number) => void }) => (
+      <Pressable accessibilityLabel={`Roda ${max}`} onPress={() => onChange(max)}>
+        <Text>{`roda ${max}`}</Text>
+      </Pressable>
+    ),
+  };
+});
 
 import { useFoodSuggestions } from "@/lib/hooks/useFoodSuggestions";
 import { EditMealModal } from "./EditMealModal";
 
 const FOOD_ID = "11111111-1111-4111-8111-111111111111";
 const ITEM_ID = "22222222-2222-4222-8222-222222222222";
+const MEAL_ID = "33333333-3333-4333-8333-333333333333";
+const DAY = "2026-11-24";
+const CONSUMED_AT = new Date(2026, 10, 24, 12, 40).toISOString();
 
 const meal = {
-  id: "33333333-3333-4333-8333-333333333333",
+  id: MEAL_ID,
+  meal_type: "lunch",
+  consumed_at: CONSUMED_AT,
   items: [
     {
       id: ITEM_ID,
@@ -64,78 +90,306 @@ const metrics = {
   insets: { top: 0, right: 0, bottom: 0, left: 0 },
 };
 
-function renderModal() {
+const twoItemMeal = {
+  ...meal,
+  items: [
+    ...meal.items,
+    {
+      id: "44444444-4444-4444-8444-444444444444",
+      food_id: null,
+      description: "Feijão carioca",
+      quantity: 80,
+      unit: "g",
+      kcal: 61,
+      protein_g: 3.8,
+      carbs_g: 10.9,
+      fat_g: 0.4,
+    },
+  ],
+} as unknown as MealResponse;
+
+function renderModal(m: MealResponse = meal) {
   render(
     <SafeAreaProvider initialMetrics={metrics}>
-      <EditMealModal meal={meal} day="2026-11-24" />
+      <EditMealModal meal={m} day={DAY} />
     </SafeAreaProvider>,
   );
 }
 
-function savedItems(): Record<string, unknown>[] {
-  const patch = mockMutate.mock.calls[0]?.[0] as { items: Record<string, unknown>[] };
-  return patch.items;
+function savedPatch(): Record<string, unknown> {
+  return mockMutate.mock.calls[0]?.[0] as Record<string, unknown>;
 }
 
-describe("EditMealModal food autocomplete integration", () => {
+function savedItems(): Record<string, unknown>[] {
+  return savedPatch().items as Record<string, unknown>[];
+}
+
+async function save() {
+  fireEvent.press(screen.getByRole("button", { name: "Salvar alterações" }));
+  await waitFor(() => expect(mockMutate).toHaveBeenCalled());
+}
+
+function openRice() {
+  fireEvent.press(screen.getByLabelText("Editar Arroz, tipo 1, cozido"));
+}
+
+describe("EditMealModal", () => {
   beforeEach(() => {
     mockMutate.mockReset();
+    mockRemove.mockReset();
+    mockConfirm.mockReset();
+    mockToast.mockReset();
+    mockUpdateArgs.mockReset();
+    mockBack.mockReset();
     jest.mocked(useFoodSuggestions).mockReturnValue({
       data: [],
       isLoading: false,
     } as unknown as ReturnType<typeof useFoodSuggestions>);
   });
 
-  test("saving an untouched item keeps its food_id", async () => {
+  test("save is disabled until something changes", () => {
     renderModal();
-    fireEvent.changeText(screen.getByLabelText("Qtd, valor numérico"), "100");
-    fireEvent.press(screen.getByLabelText("Salvar alterações"));
-    await waitFor(() => expect(mockMutate).toHaveBeenCalled());
-    expect(savedItems()[0]).toMatchObject({ id: ITEM_ID, food_id: FOOD_ID, kcal: 128 });
+    const button = screen.getByRole("button", { name: "Salvar alterações" });
+    expect(button.props.accessibilityState).toMatchObject({ disabled: true });
+    fireEvent.press(screen.getByLabelText("Aumentar quantidade de Arroz, tipo 1, cozido"));
+    expect(
+      screen.getByRole("button", { name: "Salvar alterações" }).props.accessibilityState,
+    ).toMatchObject({ disabled: false });
   });
 
-  test("typing in the description unlinks the item and keeps macros", async () => {
+  test("saving an untouched item keeps its food_id", async () => {
     renderModal();
+    fireEvent.press(screen.getByLabelText("Aumentar quantidade de Arroz, tipo 1, cozido"));
+    fireEvent.press(screen.getByLabelText("Diminuir quantidade de Arroz, tipo 1, cozido"));
+    await save();
+    expect(savedItems()[0]).toMatchObject({
+      id: ITEM_ID,
+      food_id: FOOD_ID,
+      quantity: 100,
+      kcal: 128,
+    });
+  });
+
+  test("the row stepper scales a saved item and the summary shows the delta", async () => {
+    renderModal();
+    expect(screen.queryByText("+13 kcal")).toBeNull();
+    fireEvent.press(screen.getByLabelText("Aumentar quantidade de Arroz, tipo 1, cozido"));
+    expect(screen.getByText("110 g")).toBeTruthy();
+    expect(screen.getByText("141 kcal")).toBeTruthy();
+    expect(screen.getByText("141")).toBeTruthy();
+    expect(screen.getByText("+13 kcal")).toBeTruthy();
+    await save();
+    expect(savedItems()[0]).toMatchObject({ quantity: 110, kcal: 140.8, protein_g: 2.75 });
+  });
+
+  test("typing the description in the sheet unlinks the item and keeps macros", async () => {
+    renderModal();
+    openRice();
     fireEvent.changeText(screen.getByLabelText("Descrição do item"), "Arroz caseiro");
-    fireEvent.changeText(screen.getByLabelText("kcal, valor numérico"), "150");
-    fireEvent.press(screen.getByLabelText("Salvar alterações"));
-    await waitFor(() => expect(mockMutate).toHaveBeenCalled());
+    fireEvent.press(screen.getByText("Concluir item"));
+    expect(screen.queryByLabelText("Descrição do item")).toBeNull();
+    expect(screen.getByText("Arroz caseiro")).toBeTruthy();
+    await save();
     expect(savedItems()[0]).toMatchObject({
       description: "Arroz caseiro",
       food_id: null,
-      kcal: 150,
+      kcal: 128,
       protein_g: 2.5,
     });
   });
 
-  test("editing macros of an unlinked item shows no Ajustado chip", () => {
+  test("editing a macro in the sheet flags the row as Ajustado", () => {
     renderModal();
-    fireEvent.changeText(screen.getByLabelText("Descrição do item"), "Arroz caseiro");
+    openRice();
+    fireEvent(screen.getByLabelText("Ajustar macros manualmente"), "valueChange", true);
     fireEvent.changeText(screen.getByLabelText("kcal, valor numérico"), "150");
-    expect(screen.queryByText("Ajustado")).toBeNull();
-    expect(screen.queryByLabelText("Voltar ao catálogo")).toBeNull();
+    fireEvent.press(screen.getByText("Concluir item"));
+    expect(screen.getByText("Ajustado")).toBeTruthy();
+    expect(screen.getByText("150 kcal")).toBeTruthy();
   });
 
-  test("selecting a suggestion links it, rescales on quantity and flags manual macro edits", async () => {
+  test("selecting a suggestion in the sheet links it and rescales on quantity", async () => {
     jest.mocked(useFoodSuggestions).mockReturnValue({
       data: [rice],
       isLoading: false,
     } as unknown as ReturnType<typeof useFoodSuggestions>);
     renderModal();
+    openRice();
     fireEvent(screen.getByLabelText("Descrição do item"), "focus");
     fireEvent.press(screen.getByLabelText(/^Arroz, tipo 1, cozido,/));
-    fireEvent.changeText(screen.getByLabelText("Qtd, valor numérico"), "200");
-    expect(screen.getByLabelText("kcal, valor numérico").props.value).toBe("256");
-    expect(screen.queryByText("Ajustado")).toBeNull();
-
-    fireEvent.changeText(screen.getByLabelText("kcal, valor numérico"), "300");
-    expect(screen.getByText("Ajustado")).toBeTruthy();
-    fireEvent.press(screen.getByLabelText("Voltar ao catálogo"));
-    expect(screen.queryByText("Ajustado")).toBeNull();
-    expect(screen.getByLabelText("kcal, valor numérico").props.value).toBe("256");
-
-    fireEvent.press(screen.getByLabelText("Salvar alterações"));
-    await waitFor(() => expect(mockMutate).toHaveBeenCalled());
+    fireEvent.changeText(screen.getByLabelText("Quantidade"), "200");
+    fireEvent.press(screen.getByText("Concluir item"));
+    expect(screen.getByText("256 kcal")).toBeTruthy();
+    await save();
     expect(savedItems()[0]).toMatchObject({ food_id: FOOD_ID, quantity: 200, kcal: 256 });
+  });
+
+  test("adding an item opens its sheet and closing it unnamed removes the item", () => {
+    renderModal();
+    fireEvent.press(screen.getByRole("button", { name: "Buscar e adicionar alimento" }));
+    expect(screen.getAllByTestId("meal-item-row")).toHaveLength(2);
+    expect(screen.getByLabelText("Descrição do item").props.value).toBe("");
+    expect(screen.getByLabelText("Descrição do item").props.autoFocus).toBe(true);
+    fireEvent.press(screen.getByText("Concluir item"));
+    expect(screen.getAllByTestId("meal-item-row")).toHaveLength(1);
+    expect(screen.getByText("Itens · 1")).toBeTruthy();
+  });
+
+  test("discarding an unnamed new item leaves the screen clean", () => {
+    renderModal();
+    fireEvent.press(screen.getByRole("button", { name: "Buscar e adicionar alimento" }));
+    fireEvent.press(screen.getByText("Concluir item"));
+    expect(
+      screen.getByRole("button", { name: "Salvar alterações" }).props.accessibilityState,
+    ).toMatchObject({ disabled: true });
+    fireEvent.press(screen.getByRole("button", { name: "Fechar edição" }));
+    expect(mockConfirm).not.toHaveBeenCalled();
+    expect(mockBack).toHaveBeenCalled();
+  });
+
+  test("removing a non-last item keeps the error marker on the invalid row", () => {
+    renderModal(twoItemMeal);
+    fireEvent.press(screen.getByLabelText("Editar Feijão carioca"));
+    fireEvent.changeText(screen.getByLabelText("Quantidade"), "0");
+    fireEvent.press(screen.getByText("Concluir item"));
+    fireEvent.press(screen.getByRole("button", { name: "Salvar alterações" }));
+    expect(mockToast).toHaveBeenCalledWith({
+      variant: "error",
+      message: "Item 2 com campos inválidos",
+    });
+    openRice();
+    fireEvent.press(screen.getByLabelText("Remover item"));
+    const rows = screen.getAllByTestId("meal-item-row");
+    expect(rows).toHaveLength(1);
+    expect(screen.queryByLabelText("Editar Arroz, tipo 1, cozido")).toBeNull();
+    expect(screen.getByLabelText("Editar Feijão carioca")).toBeTruthy();
+    expect(rows[0]?.props.className).toContain("border-danger-500");
+  });
+
+  test("closing a new item that has a name keeps it", () => {
+    renderModal();
+    fireEvent.press(screen.getByRole("button", { name: "Buscar e adicionar alimento" }));
+    fireEvent.changeText(screen.getByLabelText("Descrição do item"), "Feijão");
+    fireEvent.press(screen.getByText("Concluir item"));
+    expect(screen.getAllByTestId("meal-item-row")).toHaveLength(2);
+    expect(screen.getByText("Itens · 2")).toBeTruthy();
+  });
+
+  test("changing the meal type patches meal_type without consumed_at", async () => {
+    renderModal();
+    fireEvent.press(screen.getByLabelText("Tipo da refeição: Almoço"));
+    fireEvent.press(screen.getByText("Jantar"));
+    await save();
+    expect(savedPatch()).toMatchObject({ meal_type: "dinner" });
+    expect(savedPatch()).not.toHaveProperty("consumed_at");
+    expect(savedPatch()).not.toHaveProperty("items");
+    expect(mockUpdateArgs).toHaveBeenLastCalledWith(MEAL_ID, DAY, undefined);
+  });
+
+  test("changing the time patches consumed_at and passes the new nutritional day", async () => {
+    renderModal();
+    fireEvent.press(screen.getByLabelText("Horário: 12:40"));
+    fireEvent.press(screen.getByLabelText("Roda 23"));
+    fireEvent.press(screen.getByLabelText("Confirmar"));
+    const iso = new Date(2026, 10, 24, 23, 40).toISOString();
+    await save();
+    expect(savedPatch()).toMatchObject({ consumed_at: iso });
+    expect(savedPatch()).not.toHaveProperty("meal_type");
+    expect(savedPatch()).not.toHaveProperty("items");
+    expect(mockUpdateArgs).toHaveBeenLastCalledWith(
+      MEAL_ID,
+      DAY,
+      nutritionalDay(new Date(iso), mockProfile),
+    );
+  });
+
+  test("an item with an invalid field shows a toast and does not save", () => {
+    renderModal();
+    openRice();
+    fireEvent.changeText(screen.getByLabelText("Quantidade"), "0");
+    fireEvent.press(screen.getByText("Concluir item"));
+    fireEvent.press(screen.getByRole("button", { name: "Salvar alterações" }));
+    expect(mockToast).toHaveBeenCalledWith({
+      variant: "error",
+      message: "Item 1 com campos inválidos",
+    });
+    expect(mockMutate).not.toHaveBeenCalled();
+  });
+
+  test("removing every item asks to delete the meal", async () => {
+    mockConfirm.mockResolvedValue(true);
+    renderModal();
+    openRice();
+    fireEvent.press(screen.getByLabelText("Remover item"));
+    expect(screen.queryByTestId("meal-item-row")).toBeNull();
+    expect(screen.getByText("Sem itens")).toBeTruthy();
+    fireEvent.press(screen.getByRole("button", { name: "Salvar alterações" }));
+    await waitFor(() => expect(mockRemove).toHaveBeenCalled());
+    expect(mockConfirm).toHaveBeenCalledWith(
+      expect.objectContaining({ title: "Excluir refeição?" }),
+    );
+    expect(mockRemove.mock.calls[0]?.[0]).toEqual({ id: MEAL_ID, day: DAY });
+    expect(mockMutate).not.toHaveBeenCalled();
+  });
+
+  test("the trash icon confirms and deletes the meal", async () => {
+    mockConfirm.mockResolvedValue(true);
+    renderModal();
+    fireEvent.press(screen.getByRole("button", { name: "Excluir refeição" }));
+    await waitFor(() => expect(mockRemove).toHaveBeenCalled());
+    expect(mockConfirm).toHaveBeenCalledWith(
+      expect.objectContaining({ title: "Excluir refeição?", destructive: true }),
+    );
+    expect(mockRemove.mock.calls[0]?.[0]).toEqual({ id: MEAL_ID, day: DAY });
+  });
+
+  test("closing with only a meta change asks to discard", async () => {
+    mockConfirm.mockResolvedValue(false);
+    renderModal();
+    fireEvent.press(screen.getByLabelText("Tipo da refeição: Almoço"));
+    fireEvent.press(screen.getByText("Jantar"));
+    fireEvent.press(screen.getByRole("button", { name: "Fechar edição" }));
+    await waitFor(() =>
+      expect(mockConfirm).toHaveBeenCalledWith(
+        expect.objectContaining({ title: "Descartar alterações?" }),
+      ),
+    );
+  });
+
+  test("an item change still sends items together with the changed meta", async () => {
+    renderModal();
+    fireEvent.press(screen.getByLabelText("Tipo da refeição: Almoço"));
+    fireEvent.press(screen.getByText("Jantar"));
+    fireEvent.press(screen.getByLabelText("Aumentar quantidade de Arroz, tipo 1, cozido"));
+    await save();
+    expect(savedPatch()).toMatchObject({ meal_type: "dinner" });
+    expect(savedItems()[0]).toMatchObject({ id: ITEM_ID, quantity: 110 });
+  });
+
+  test.each([
+    ["100000", "above the column limit"],
+    ["0,001", "below 0.01"],
+  ])("quantity %s (%s) marks the row invalid and does not save", (typed) => {
+    renderModal();
+    openRice();
+    fireEvent.changeText(screen.getByLabelText("Quantidade"), typed);
+    fireEvent.press(screen.getByText("Concluir item"));
+    fireEvent.press(screen.getByRole("button", { name: "Salvar alterações" }));
+    expect(mockToast).toHaveBeenCalledWith({
+      variant: "error",
+      message: "Item 1 com campos inválidos",
+    });
+    expect(screen.getByTestId("meal-item-row").props.className).toContain("border-danger-500");
+    expect(mockMutate).not.toHaveBeenCalled();
+  });
+
+  test("trashing an unnamed new item from its sheet leaves the screen clean", () => {
+    renderModal();
+    fireEvent.press(screen.getByRole("button", { name: "Buscar e adicionar alimento" }));
+    fireEvent.press(screen.getByLabelText("Remover item"));
+    expect(screen.getAllByTestId("meal-item-row")).toHaveLength(1);
+    expect(
+      screen.getByRole("button", { name: "Salvar alterações" }).props.accessibilityState,
+    ).toMatchObject({ disabled: true });
   });
 });

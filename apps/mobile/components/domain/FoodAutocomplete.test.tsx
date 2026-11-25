@@ -67,6 +67,14 @@ describe("FoodAutocomplete", () => {
     expect(jest.mocked(useFoodSuggestions)).toHaveBeenLastCalledWith("", true);
   });
 
+  test("autoFocus focuses the input and shows recents on mount", () => {
+    mockHook({ data: [recent], isLoading: false });
+    render(<FoodAutocomplete value="" onChangeText={jest.fn()} onSelect={jest.fn()} autoFocus />);
+    expect(screen.getByLabelText("Descrição do item").props.autoFocus).toBe(true);
+    expect(screen.getByText("Omelete de queijo")).toBeTruthy();
+    expect(jest.mocked(useFoodSuggestions)).toHaveBeenLastCalledWith("", true);
+  });
+
   test("typing shows matching catalog suggestion", () => {
     mockHook({ data: [base], isLoading: false });
     const { input, onChangeText } = setup("arr");

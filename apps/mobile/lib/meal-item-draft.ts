@@ -140,7 +140,7 @@ export function draftFromSavedItem(it: MealResponse["items"][number]): ItemDraft
     carbs_g: it.carbs_g,
     fat_g: it.fat_g,
     food_id: it.food_id,
-    link: { mode: "none" },
+    link: { mode: "anchor", quantity: it.quantity, unit: it.unit, macros: macrosOf(it) },
     adjusted: false,
   };
 }
@@ -157,4 +157,13 @@ export function toPatchItem(d: ItemDraft): PatchItem {
     carbs_g: d.carbs_g,
     fat_g: d.fat_g,
   };
+}
+
+export function unitConverts(item: ItemDraft): boolean {
+  const { link } = item;
+  if (link.mode === "food") {
+    return macrosForQuantity(link.food, item.quantity, item.unit) !== null;
+  }
+  if (link.mode === "anchor") return item.unit === link.unit;
+  return true;
 }

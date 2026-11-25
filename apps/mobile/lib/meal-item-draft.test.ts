@@ -9,6 +9,7 @@ import {
   draftFromSavedItem,
   resetToCatalog,
   toPatchItem,
+  unitConverts,
   type ItemDraft,
 } from "./meal-item-draft";
 
@@ -84,9 +85,14 @@ const saved: MealResponse["items"][number] = {
 };
 
 describe("draftFromSavedItem / toPatchItem", () => {
-  test("keeps food_id and opens unlinked", () => {
+  test("keeps food_id and anchors on the saved quantity and macros", () => {
     const d = draftFromSavedItem(saved);
-    expect(d.link).toEqual({ mode: "none" });
+    expect(d.link).toEqual({
+      mode: "anchor",
+      quantity: 2,
+      unit: "unit",
+      macros: { kcal: 64, protein_g: 1.25, carbs_g: 14, fat_g: 0.1 },
+    });
     expect(d.food_id).toBe(FOOD_ID);
     expect(d.adjusted).toBe(false);
     expect(d.id).toBe(ITEM_ID);
@@ -260,6 +266,35 @@ describe("anchor mode", () => {
   });
 });
 
+describe("saved item scaling", () => {
+  const rice100: MealResponse["items"][number] = {
+    ...saved,
+    quantity: 100,
+    unit: "g",
+    kcal: 128,
+    protein_g: 2.5,
+    carbs_g: 28,
+    fat_g: 0.2,
+  };
+
+  test("quantity change scales macros proportionally", () => {
+    const d = changeQuantity(draftFromSavedItem(rice100), 150);
+    expect(d.kcal).toBe(192);
+    expect(d.protein_g).toBe(3.75);
+  });
+
+  test("unit change keeps macros", () => {
+    const d = changeUnit(draftFromSavedItem(rice100), "cup");
+    expect(d.unit).toBe("cup");
+    expect(d.kcal).toBe(128);
+  });
+
+  test("a typed macro stops the scaling", () => {
+    const d = changeQuantity(changeMacro(draftFromSavedItem(rice100), { kcal: 200 }), 150);
+    expect(d.kcal).toBe(200);
+  });
+});
+
 describe("changeDescription / free text", () => {
   test("clears food_id and link, keeps macros", () => {
     const d = changeDescription(applySuggestion(blank, rice(25)), "Arroz integral");
@@ -286,5 +321,23 @@ describe("changeDescription / free text", () => {
       kcal: 350,
       protein_g: 5,
     });
+  });
+});
+
+describe("unitConverts", () => {
+  test("is true without a link", () => {
+    expect(unitConverts(blank)).toBe(true);
+  });
+
+  test("food link converts g but not cup without a serving match", () => {
+    const d = applySuggestion(blank, rice(null));
+    expect(unitConverts(d)).toBe(true);
+    expect(unitConverts({ ...d, unit: "cup" })).toBe(false);
+  });
+
+  test("anchor link converts only in the anchor unit", () => {
+    const d = draftFromSavedItem(saved);
+    expect(unitConverts(d)).toBe(true);
+    expect(unitConverts({ ...d, unit: "g" })).toBe(false);
   });
 });
