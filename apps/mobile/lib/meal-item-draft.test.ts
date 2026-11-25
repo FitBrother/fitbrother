@@ -9,6 +9,7 @@ import {
   draftFromSavedItem,
   resetToCatalog,
   toPatchItem,
+  unitConverts,
   type ItemDraft,
 } from "./meal-item-draft";
 
@@ -320,5 +321,23 @@ describe("changeDescription / free text", () => {
       kcal: 350,
       protein_g: 5,
     });
+  });
+});
+
+describe("unitConverts", () => {
+  test("is true without a link", () => {
+    expect(unitConverts(blank)).toBe(true);
+  });
+
+  test("food link converts g but not cup without a serving match", () => {
+    const d = applySuggestion(blank, rice(null));
+    expect(unitConverts(d)).toBe(true);
+    expect(unitConverts({ ...d, unit: "cup" })).toBe(false);
+  });
+
+  test("anchor link converts only in the anchor unit", () => {
+    const d = draftFromSavedItem(saved);
+    expect(unitConverts(d)).toBe(true);
+    expect(unitConverts({ ...d, unit: "g" })).toBe(false);
   });
 });

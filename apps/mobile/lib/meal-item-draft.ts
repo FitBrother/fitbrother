@@ -158,3 +158,12 @@ export function toPatchItem(d: ItemDraft): PatchItem {
     fat_g: d.fat_g,
   };
 }
+
+export function unitConverts(item: ItemDraft): boolean {
+  const { link } = item;
+  if (link.mode === "food") {
+    return macrosForQuantity(link.food, item.quantity, item.unit) !== null;
+  }
+  if (link.mode === "anchor") return item.unit === link.unit;
+  return true;
+}
