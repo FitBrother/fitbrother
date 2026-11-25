@@ -11,7 +11,7 @@ import { supabase } from "@/lib/supabase";
 import { useOnboardingStore } from "@/lib/stores/onboardingStore";
 import { nutritionalToday } from "@/lib/time/nutritional-day";
 import type { OnboardingBlockProps } from "@/lib/onboarding/types";
-import { mealRoute } from "@/lib/hooks/useOpenMealAfterRegister";
+import { mealRoute } from "@/lib/meal-route";
 
 export function FirstMealBlock({ chapter }: OnboardingBlockProps) {
   const [processing, setProcessing] = useState(false);

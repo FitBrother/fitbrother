@@ -6,13 +6,11 @@ import { X } from "lucide-react-native";
 import * as Localization from "expo-localization";
 import { useProfile } from "@/lib/profile/profile-context";
 import { defaultConsumedAtForDay } from "@/lib/dateMath";
-import { newClientMealId, useCreateMealText } from "@/lib/hooks/useCreateMealText";
-import { useCreateMealAudio } from "@/lib/hooks/useCreateMealAudio";
+import { newClientMealId } from "@/lib/hooks/useCreateMealText";
 import { uploadMealAudio } from "@/lib/storage";
 import type { AudioExtension } from "@/lib/audio/recorder";
 import { useAuthSession } from "@/lib/hooks/useAuthSession";
-import { useOpenMealAfterRegister } from "@/lib/hooks/useOpenMealAfterRegister";
-import { QuotaExceededError, getErrorStatus } from "@/lib/api/meals";
+import { useRegisterMeal } from "@/lib/hooks/useRegisterMeal";
 import { colors } from "@/lib/colors";
 import { MealComposer } from "@/components/domain/MealComposer";
 import { BackfillContextBar } from "@/components/domain/BackfillContextBar";
@@ -34,13 +32,15 @@ function formatDayHeader(day: string): string {
 export default function BackfillScreen() {
   const { day } = useLocalSearchParams<{ day: string }>();
   const router = useRouter();
-  const openMeal = useOpenMealAfterRegister("replace");
   const profile = useProfile();
   const session = useAuthSession();
   const userId = session.status === "signed_in" ? session.session.user.id : undefined;
-  const createMeal = useCreateMealText();
-  const createMealAudio = useCreateMealAudio();
   const [banner, setBanner] = useState<ErrorBannerVariant | null>(null);
+  const { submitText, submitAudio, isPending } = useRegisterMeal({
+    mode: "replace",
+    requireActive: false,
+    onError: setBanner,
+  });
   const [consumedAt, setConsumedAt] = useState(() =>
     day ? defaultConsumedAtForDay(day, profile) : new Date().toISOString(),
   );
@@ -50,33 +50,15 @@ export default function BackfillScreen() {
       if (!day) return;
       setBanner(null);
       Keyboard.dismiss();
-      createMeal.mutate(
-        {
-          client_meal_id: newClientMealId(),
-          text,
-          consumed_at: consumedAt,
-          locale: detectLocale(),
-          day,
-        },
-        {
-          onSuccess: (r) => openMeal(r.meal),
-          onError: (err) => {
-            if (err instanceof QuotaExceededError) {
-              setBanner("quota_exceeded");
-            } else if (err.message === "backfill_window_exceeded") {
-              setBanner("backfill_window_exceeded");
-            } else if (err.message === "request_timeout") {
-              setBanner("offline");
-            } else if ((getErrorStatus(err) ?? 0) >= 500) {
-              setBanner("server_error");
-            } else {
-              setBanner("network");
-            }
-          },
-        },
-      );
+      submitText({
+        client_meal_id: newClientMealId(),
+        text,
+        consumed_at: consumedAt,
+        locale: detectLocale(),
+        day,
+      });
     },
-    [createMeal, consumedAt, day, openMeal],
+    [submitText, consumedAt, day],
   );
 
   const handleAudioReady = useCallback(
@@ -92,41 +74,21 @@ export default function BackfillScreen() {
           fileUri: params.fileUri,
           ext: params.ext,
         });
-        createMealAudio.mutate(
-          {
-            client_meal_id,
-            audio_path: path,
-            duration_s,
-            consumed_at: consumedAt,
-            locale: detectLocale(),
-            day,
-          },
-          {
-            onSuccess: (r) => openMeal(r.meal),
-            onError: (err) => {
-              if (err instanceof QuotaExceededError) {
-                setBanner("quota_exceeded");
-              } else if (err.message === "backfill_window_exceeded") {
-                setBanner("backfill_window_exceeded");
-              } else if (err.message === "empty_transcription") {
-                setBanner("network");
-              } else if (err.message === "request_timeout") {
-                setBanner("offline");
-              } else if ((getErrorStatus(err) ?? 0) >= 500) {
-                setBanner("server_error");
-              } else {
-                setBanner("network");
-              }
-            },
-          },
-        );
+        submitAudio({
+          client_meal_id,
+          audio_path: path,
+          duration_s,
+          consumed_at: consumedAt,
+          locale: detectLocale(),
+          day,
+        });
       } catch (err) {
         // eslint-disable-next-line no-console
         console.warn("[backfill] upload failed:", err);
         setBanner("network");
       }
     },
-    [createMealAudio, consumedAt, day, openMeal, userId],
+    [submitAudio, consumedAt, day, userId],
   );
 
   if (!day) {
@@ -137,7 +99,7 @@ export default function BackfillScreen() {
     );
   }
 
-  const processing = createMeal.isPending || createMealAudio.isPending;
+  const processing = isPending;
 
   return (
     <View className="bg-neutral-50 md:mx-auto md:w-full md:max-w-[640px]">

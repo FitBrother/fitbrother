@@ -37,16 +37,9 @@ import { useMealsForDay } from "@/lib/hooks/useMealsForDay";
 import { useDailySummary } from "@/lib/hooks/useDailySummary";
 import { useDailySummaryRealtime } from "@/lib/hooks/useDailySummaryRealtime";
 import { useMealsRealtime } from "@/lib/hooks/useMealsRealtime";
-import {
-  newClientMealId,
-  useCreateMealText,
-  type OptimisticMeal,
-} from "@/lib/hooks/useCreateMealText";
+import { newClientMealId, type OptimisticMeal } from "@/lib/hooks/useCreateMealText";
 import { useDeleteMeal } from "@/lib/hooks/useDeleteMeal";
 import { useAuthSession } from "@/lib/hooks/useAuthSession";
-import { useCreateMealAudio } from "@/lib/hooks/useCreateMealAudio";
-import { useCreateMealPhoto } from "@/lib/hooks/useCreateMealPhoto";
-import { QuotaExceededError, getErrorStatus } from "@/lib/api/meals";
 import { colors } from "@/lib/colors";
 import { Motion } from "@/lib/motion";
 import { nextCollapse } from "@/lib/summary-collapse";
@@ -74,7 +67,7 @@ import { GoalsDisclaimer } from "@/components/domain/GoalsDisclaimer";
 import { StreakCounter } from "@/components/domain/StreakCounter";
 import { useStreak } from "@/lib/hooks/useStreak";
 import { useTour } from "@/lib/tour/tour-context";
-import { useOpenMealAfterRegister } from "@/lib/hooks/useOpenMealAfterRegister";
+import { useRegisterMeal } from "@/lib/hooks/useRegisterMeal";
 import { hasConfirmedMeal } from "@/lib/has-confirmed-meal";
 
 /** Sobra entre o último card e o começo do degradê do composer. */
@@ -149,7 +142,6 @@ const TOUR_TAB: Partial<Record<TourStepId, HomeTab>> = {
 
 export default function HomeScreen() {
   const router = useRouter();
-  const openMeal = useOpenMealAfterRegister();
   const profile = useProfile();
   // Mesma query de HomeHeader/profile.tsx — inclui de propósito no gate de
   // pending abaixo, pra a tela só sair do skeleton quando a foto (não só as
@@ -158,9 +150,6 @@ export default function HomeScreen() {
   const avatarUrl = useAvatarUrl(profile.avatar_url);
   const day = nutritionalToday(profile);
   const mealsQuery = useMealsForDay(day);
-  const createMeal = useCreateMealText();
-  const createMealAudio = useCreateMealAudio();
-  const createMealPhoto = useCreateMealPhoto();
   const session = useAuthSession();
   const userId = session.status === "signed_in" ? session.session.user.id : undefined;
   const summaryQuery = useDailySummary(day);
@@ -179,6 +168,9 @@ export default function HomeScreen() {
   }
   const deleteMeal = useDeleteMeal();
   const [banner, setBanner] = useState<ErrorBannerVariant | null>(null);
+  const { submitText, submitAudio, submitPhoto, isPending } = useRegisterMeal({
+    onError: setBanner,
+  });
   const [disclaimerOpen, setDisclaimerOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<HomeTab>("home");
   const tour = useTour();
@@ -299,28 +291,12 @@ export default function HomeScreen() {
 
   const handleSend = (text: string) => {
     setBanner(null);
-    createMeal.mutate(
-      {
-        client_meal_id: newClientMealId(),
-        text,
-        locale: detectLocale(),
-        day,
-      },
-      {
-        onSuccess: (r) => openMeal(r.meal),
-        onError: (err) => {
-          if (err instanceof QuotaExceededError) {
-            setBanner("quota_exceeded");
-          } else if (err.message === "request_timeout") {
-            setBanner("offline");
-          } else if ((getErrorStatus(err) ?? 0) >= 500) {
-            setBanner("server_error");
-          } else {
-            setBanner("network");
-          }
-        },
-      },
-    );
+    submitText({
+      client_meal_id: newClientMealId(),
+      text,
+      locale: detectLocale(),
+      day,
+    });
   };
 
   const handleAudioReady = useCallback(
@@ -336,40 +312,20 @@ export default function HomeScreen() {
           fileUri: params.fileUri,
           ext: params.ext,
         });
-        createMealAudio.mutate(
-          {
-            client_meal_id,
-            audio_path: path,
-            duration_s,
-            locale: detectLocale(),
-            day,
-          },
-          {
-            onSuccess: (r) => openMeal(r.meal),
-            onError: (err) => {
-              // eslint-disable-next-line no-console
-              console.warn("[handleAudioReady] mutation error:", err);
-              if (err instanceof QuotaExceededError) {
-                setBanner("quota_exceeded");
-              } else if (err.message === "empty_transcription") {
-                setBanner("network"); // re-use network banner copy "tente de novo"
-              } else if (err.message === "request_timeout") {
-                setBanner("offline");
-              } else if ((getErrorStatus(err) ?? 0) >= 500) {
-                setBanner("server_error");
-              } else {
-                setBanner("network");
-              }
-            },
-          },
-        );
+        submitAudio({
+          client_meal_id,
+          audio_path: path,
+          duration_s,
+          locale: detectLocale(),
+          day,
+        });
       } catch (err) {
         // eslint-disable-next-line no-console
         console.warn("[handleAudioReady] upload error:", err);
         setBanner("network");
       }
     },
-    [openMeal, createMealAudio, day, userId],
+    [submitAudio, day, userId],
   );
 
   const handlePhotoPress = useCallback(async () => {
@@ -384,34 +340,18 @@ export default function HomeScreen() {
         mealId: client_meal_id,
         fileUri: uri,
       });
-      createMealPhoto.mutate(
-        {
-          client_meal_id,
-          image_path: path,
-          locale: detectLocale(),
-          day,
-        },
-        {
-          onSuccess: (r) => openMeal(r.meal),
-          onError: (err) => {
-            if (err instanceof QuotaExceededError) {
-              setBanner("quota_exceeded");
-            } else if (err.message === "request_timeout") {
-              setBanner("offline");
-            } else if ((getErrorStatus(err) ?? 0) >= 500) {
-              setBanner("server_error");
-            } else {
-              setBanner("network");
-            }
-          },
-        },
-      );
+      submitPhoto({
+        client_meal_id,
+        image_path: path,
+        locale: detectLocale(),
+        day,
+      });
     } catch (err) {
       // eslint-disable-next-line no-console
       console.warn("[handlePhotoPress] photo error:", err);
       setBanner("network");
     }
-  }, [openMeal, createMealPhoto, day, userId]);
+  }, [submitPhoto, day, userId]);
 
   const handleDelete = useCallback(
     (id: string) => {
@@ -593,9 +533,7 @@ export default function HomeScreen() {
               onPhotoPress={handlePhotoPress}
               onScanPress={() => router.push("/(app)/scan" as never)}
               disabled={banner === "quota_exceeded"}
-              processing={
-                createMeal.isPending || createMealAudio.isPending || createMealPhoto.isPending
-              }
+              processing={isPending}
             />
             <Text className="mt-2.5 text-center text-[12.5px] text-neutral-400">
               Escreva, dite ou fotografe — a IA calcula os macros.
@@ -814,9 +752,7 @@ export default function HomeScreen() {
             onScanPress={() => router.push("/(app)/scan" as never)}
             disabled={banner === "quota_exceeded"}
             showBackdropFade={false}
-            processing={
-              createMeal.isPending || createMealAudio.isPending || createMealPhoto.isPending
-            }
+            processing={isPending}
           />
         </View>
       </Animated.View>

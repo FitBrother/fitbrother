@@ -1,9 +1,10 @@
 import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
-import { renderHook } from "@testing-library/react-native";
+import { act, renderHook } from "@testing-library/react-native";
 import { AppState } from "react-native";
 
 const mockRouter = { push: jest.fn(), replace: jest.fn() };
 let mockFocused = true;
+let mockBlur: (() => void) | undefined;
 
 jest.mock("expo-router", () => {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -11,20 +12,20 @@ jest.mock("expo-router", () => {
   return {
     useRouter: () => mockRouter,
     useFocusEffect: (effect: () => void | (() => void)) => {
-      React.useEffect(() => (mockFocused ? effect() : undefined), [effect]);
+      React.useEffect(() => {
+        if (!mockFocused) return undefined;
+        const cleanup = effect();
+        mockBlur = typeof cleanup === "function" ? cleanup : undefined;
+        return cleanup;
+      }, [effect]);
     },
   };
 });
 
-import { mealRoute, useOpenMealAfterRegister } from "@/lib/hooks/useOpenMealAfterRegister";
+import { useOpenMealAfterRegister } from "@/lib/hooks/useOpenMealAfterRegister";
+import { mealRoute } from "@/lib/meal-route";
 
 const MEAL_ID = "33333333-3333-4333-8333-333333333333";
-
-describe("mealRoute", () => {
-  test("points at the dynamic meal screen with the id", () => {
-    expect(mealRoute(MEAL_ID)).toEqual({ pathname: "/(app)/meal/[id]", params: { id: MEAL_ID } });
-  });
-});
 
 describe("useOpenMealAfterRegister", () => {
   const original = Object.getOwnPropertyDescriptor(AppState, "currentState")!;
@@ -68,8 +69,40 @@ describe("useOpenMealAfterRegister", () => {
   });
 
   test("stops navigating after the screen loses focus", () => {
+    const { result } = renderHook(() => useOpenMealAfterRegister());
+    act(() => mockBlur?.());
+    result.current({ id: MEAL_ID });
+    expect(mockRouter.push).not.toHaveBeenCalled();
+  });
+
+  test("stops navigating after the screen unmounts", () => {
     const { result, unmount } = renderHook(() => useOpenMealAfterRegister());
     unmount();
+    result.current({ id: MEAL_ID });
+    expect(mockRouter.push).not.toHaveBeenCalled();
+  });
+
+  test("navigates while the app is inactive when requireActive is false", () => {
+    setAppState("inactive");
+    const { result } = renderHook(() =>
+      useOpenMealAfterRegister("replace", { requireActive: false }),
+    );
+    result.current({ id: MEAL_ID });
+    expect(mockRouter.replace).toHaveBeenCalledWith(mealRoute(MEAL_ID));
+  });
+
+  test("still skips an unmounted screen when requireActive is false", () => {
+    const { result, unmount } = renderHook(() =>
+      useOpenMealAfterRegister("replace", { requireActive: false }),
+    );
+    unmount();
+    result.current({ id: MEAL_ID });
+    expect(mockRouter.replace).not.toHaveBeenCalled();
+  });
+
+  test("skips an inactive app by default", () => {
+    setAppState("inactive");
+    const { result } = renderHook(() => useOpenMealAfterRegister());
     result.current({ id: MEAL_ID });
     expect(mockRouter.push).not.toHaveBeenCalled();
   });
