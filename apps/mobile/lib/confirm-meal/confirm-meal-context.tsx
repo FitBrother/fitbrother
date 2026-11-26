@@ -27,6 +27,7 @@ type HostState = OpenState & {
   close: () => void;
   closeIfOpen: (mealId: string) => void;
   dirtyRef: { current: boolean };
+  visibleRef: { current: boolean };
   covered: boolean;
   setCovered: (covered: boolean) => void;
 };
@@ -38,11 +39,12 @@ export function ConfirmMealProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<OpenState>({ openId: null, session: 0 });
   const [covered, setCovered] = useState(false);
   const dirtyRef = useRef(false);
+  const visibleRef = useRef(false);
 
   const open = useCallback((mealId: string) => {
     setState((prev) => {
-      // Never replace an open meal: its draft and in-flight confirm belong to it.
-      if (prev.openId !== null) return prev;
+      // Never replace a shown meal: its draft and in-flight confirm belong to it.
+      if (prev.openId === mealId || (prev.openId !== null && visibleRef.current)) return prev;
       dirtyRef.current = false;
       return { openId: mealId, session: prev.session + 1 };
     });
@@ -67,7 +69,7 @@ export function ConfirmMealProvider({ children }: { children: ReactNode }) {
 
   const api = useMemo<SheetApi>(() => ({ open, close }), [open, close]);
   const host = useMemo<HostState>(
-    () => ({ ...state, close, closeIfOpen, dirtyRef, covered, setCovered }),
+    () => ({ ...state, close, closeIfOpen, dirtyRef, visibleRef, covered, setCovered }),
     [state, close, closeIfOpen, covered],
   );
 
@@ -99,7 +101,7 @@ function errorStatus(error: unknown): number | undefined {
 type Shown = { meal: MealResponse; session: number };
 
 export function ConfirmMealHost() {
-  const { openId, session, close, closeIfOpen, dirtyRef, setCovered } = useHostState();
+  const { openId, session, close, closeIfOpen, dirtyRef, visibleRef, setCovered } = useHostState();
   const dialog = useDialog();
   const toast = useToast();
 
@@ -139,9 +141,16 @@ export function ConfirmMealHost() {
   }, [visible]);
 
   useEffect(() => {
+    visibleRef.current = visible;
     setCovered(visible);
-  }, [visible, setCovered]);
-  useEffect(() => () => setCovered(false), [setCovered]);
+  }, [visible, setCovered, visibleRef]);
+  useEffect(
+    () => () => {
+      visibleRef.current = false;
+      setCovered(false);
+    },
+    [setCovered, visibleRef],
+  );
 
   const sessionRef = useRef(session);
   sessionRef.current = session;

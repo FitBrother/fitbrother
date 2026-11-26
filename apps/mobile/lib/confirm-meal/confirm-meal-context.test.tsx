@@ -303,6 +303,21 @@ describe("confirm meal host", () => {
     expect(mockConfirm).toHaveBeenCalledTimes(1);
   });
 
+  test("opening another meal replaces one that never finished loading", async () => {
+    mockGetMeal.mockImplementation((id) =>
+      id === OTHER_ID ? Promise.resolve(otherPending) : new Promise(() => {}),
+    );
+    renderHost();
+    fireEvent.press(screen.getByLabelText("open"));
+    await waitFor(() => expect(mockGetMeal).toHaveBeenCalledWith(MEAL_ID));
+
+    fireEvent.press(screen.getByLabelText("open-other"));
+
+    await waitFor(() => expect(mockGetMeal).toHaveBeenCalledWith(OTHER_ID));
+    await screen.findByText("drawer:Feijão");
+    expect(screen.queryByText(DRAWER_TEXT)).toBeNull();
+  });
+
   test("dismisses the keyboard when the drawer opens", async () => {
     const dismiss = jest.spyOn(Keyboard, "dismiss").mockImplementation(() => undefined);
     mockGetMeal.mockResolvedValue(pending);
