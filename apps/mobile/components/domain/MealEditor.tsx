@@ -182,6 +182,11 @@ export function MealEditor({ meal }: Props) {
       onSuccess: (saved) => {
         submitting.current = false;
         resetTo(saved);
+        // A server without confirm support saves the edits but leaves the meal pending.
+        if (confirm && saved.review_required) {
+          toast({ variant: "error", message: "Não foi possível confirmar" });
+          return;
+        }
         if (confirm) setConfirmed(true);
         toast({
           variant: "success",
@@ -268,7 +273,9 @@ export function MealEditor({ meal }: Props) {
           <View className="rounded-2xl border border-warning-300 bg-warning-50 p-4">
             <Text className="font-sans-semibold text-sm text-warning-700">Sem itens</Text>
             <Text className="mt-1 font-sans text-xs text-warning-600">
-              Salvar sem itens vai excluir a refeição inteira.
+              {pending
+                ? "Confirmar sem itens vai descartar a refeição."
+                : "Salvar sem itens vai excluir a refeição inteira."}
             </Text>
           </View>
         ) : null}

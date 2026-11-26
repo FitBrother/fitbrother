@@ -257,6 +257,41 @@ describe("MealEditor pending mode", () => {
     expect(confirmButton()).toBeTruthy();
   });
 
+  test("a confirm answered with a still-pending meal is a failure", () => {
+    renderPending();
+    stepRiceUp();
+    fireEvent.press(confirmButton());
+    settle("success", {
+      ...pending,
+      review_required: true,
+      items: [{ ...pending.items[0], quantity: 110, kcal: 140.8 }],
+    } as MealResponse);
+    expect(mockToast).toHaveBeenCalledWith({
+      variant: "error",
+      message: "Não foi possível confirmar",
+    });
+    expect(mockToast).not.toHaveBeenCalledWith(expect.objectContaining({ variant: "success" }));
+    expect(screen.getByText("Confirme o que entendi")).toBeTruthy();
+    expect(screen.getByText("ainda não conta no seu dia")).toBeTruthy();
+    expect(screen.getByText("110 g")).toBeTruthy();
+    fireEvent.press(confirmButton());
+    expect(mockMutate).toHaveBeenCalledTimes(2);
+    expect(mockMutate.mock.calls[1]?.[0]).toEqual({ confirm: true });
+  });
+
+  test("without items the empty state says confirming discards the meal", async () => {
+    renderPending();
+    fireEvent.press(screen.getByLabelText("Editar Arroz cozido"));
+    fireEvent.press(screen.getByLabelText("Remover item"));
+    expect(screen.getByText("Sem itens")).toBeTruthy();
+    expect(screen.getByText("Confirmar sem itens vai descartar a refeição.")).toBeTruthy();
+    expect(screen.queryByText(/Salvar sem itens/)).toBeNull();
+    mockConfirm.mockResolvedValue(true);
+    fireEvent.press(confirmButton());
+    await waitFor(() => expect(mockRemove).toHaveBeenCalled());
+    expect(mockMutate).not.toHaveBeenCalled();
+  });
+
   test("a double tap sends once", () => {
     renderPending();
     fireEvent.press(confirmButton());
