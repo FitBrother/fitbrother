@@ -104,7 +104,7 @@
 - Modify: `apps/mobile/components/domain/ShareMealPrompt.tsx` e quem o dispara
 
 **Interfaces:**
-- Produces: depois do sucesso de `createMealText/Audio/Photo`, `router.push({ pathname: "/(app)/meal/[id]", params: { id: meal.id } })` (mesmo `id` quando `already_existed`). Durante o processamento continua o card otimista na Home. Se o usuário já saiu da Home ou o app foi para segundo plano, **não** força navegação (a refeição pendente aparece na Home). O `ShareMealPrompt` deixa de ser disparado no registro (a refeição nasce pendente) e passa a ser mostrado depois da confirmação (Task 5). `tour.notifyMealCreated()` passa a ser chamado ao **confirmar** (não ao criar).
+- Produces: depois do sucesso de `createMealText/Audio/Photo`, `router.push({ pathname: "/(app)/meal/[id]", params: { id: meal.id } })` (mesmo `id` quando `already_existed`). Durante o processamento continua o card otimista na Home. Se o usuário já saiu da Home ou o app foi para segundo plano, **não** força navegação (a refeição pendente aparece na Home). O `ShareMealPrompt` deixa de ser disparado no registro (a refeição nasce pendente) e **sai do fluxo de registro na v1**: depois de confirmar (Task 5) o usuário vê o toast "Refeição registrada" e os botões "Compartilhar"/"Novo post" da própria tela (decisão do controlador; apagar o código morto do prompt só se nada mais o usa, e registrar a aposentadoria do prompt no relatório). `tour.notifyMealCreated()` passa a ser chamado ao **confirmar** (não ao criar).
 
 - [ ] **Step 1: testes:** sucesso de texto/áudio/foto navega para o detalhe com o `id` retornado; `already_existed` navega para o mesmo `id`; erro de quota/rede não navega e mantém os banners atuais; o registro retroativo e o do onboarding também navegam.
 - [ ] **Step 2: rodar e ver falhar.**
@@ -126,7 +126,8 @@
   - dentro do card de total, o aviso "ainda não conta no seu dia" no lugar do delta;
   - com `meal.confidence !== null && meal.confidence < 0.6`, banner âmbar "Não tive certeza de alguns itens. Confira as quantidades.";
   - botão primário fixo "Confirmar refeição" (sempre visível no modo pendente, mesmo sem edição) e link "Descartar refeição" (confirma e exclui); ao tocar em confirmar envia **um** `PATCH` com `confirm: true` mais `items`/`meal_type`/`consumed_at` só do que mudou; sem alteração, `PATCH { confirm: true }` ou `POST /meals/:id/confirm` (o que já existir);
-  - após sucesso: invalida `dailySummary`, `dailySummariesHistory`, `streak`, `mealsForDay` e `mealDetail`; mostra o `ShareMealPrompt`/toast "Refeição registrada" e notifica o tour; sai do modo pendente;
+  - após sucesso: invalida `dailySummary`, `dailySummariesHistory`, `streak`, `mealsForDay` e `mealDetail`; mostra o toast "Refeição registrada" (o bloco Compartilhar/Novo post aparece porque a refeição deixa de estar pendente) e notifica o tour; sai do modo pendente;
+  - **Remover o fluxo provisório da Fase 1:** o `ReviewBanner` da rota `meal/[id]/index.tsx`, o `useConfirmMeal` chamado na rota e o `banner` passado ao `MealEditor` deixam de existir; o aviso de baixa confiança passa a fazer parte do modo pendente do próprio `MealEditor` e o "Confirmar" não fica mais desabilitado com alterações (confirmar já grava as edições). Ajustar `MealDetailRoute.test.tsx` e apagar o que ficar sem uso (inclusive `useConfirmMeal` se nada mais o usar).
   - sair sem confirmar não exclui nada; com alteração pendente ainda pergunta "Descartar alterações?" (a refeição continua pendente).
   - O botão de confirmar usa `loading` e fica desabilitado durante o envio (duplo toque não envia duas vezes).
 

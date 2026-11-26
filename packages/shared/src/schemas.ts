@@ -65,6 +65,8 @@ export const CreateMealTextRequestSchema = z.object({
   text: z.string().min(1).max(2000),
   consumed_at: z.string().datetime().optional(),
   locale: z.string().default("pt-BR"),
+  // Sent by clients that open the confirmation screen; older clients omit it.
+  require_confirmation: z.boolean().optional(),
 });
 export type CreateMealTextRequest = z.infer<typeof CreateMealTextRequestSchema>;
 
@@ -80,6 +82,8 @@ export const CreateMealAudioRequestSchema = z.object({
   duration_s: z.number().positive().max(600),
   consumed_at: z.string().datetime().optional(),
   locale: z.string().default("pt-BR"),
+  // Sent by clients that open the confirmation screen; older clients omit it.
+  require_confirmation: z.boolean().optional(),
 });
 export type CreateMealAudioRequest = z.infer<typeof CreateMealAudioRequestSchema>;
 
@@ -88,6 +92,8 @@ export const CreateMealPhotoRequestSchema = z.object({
   image_path: z.string().min(1),
   consumed_at: z.string().datetime().optional(),
   locale: z.string().default("pt-BR"),
+  // Sent by clients that open the confirmation screen; older clients omit it.
+  require_confirmation: z.boolean().optional(),
 });
 export type CreateMealPhotoRequest = z.infer<typeof CreateMealPhotoRequestSchema>;
 
@@ -337,6 +343,8 @@ export const PatchMealRequestSchema = z.object({
   // `image_path` do cliente seria superfície de ataque sem ganho: ele já sabe
   // o path, porque é a mesma função que o upload usa.
   has_photo: z.boolean().optional(),
+  // Flips review_required to false only after the other fields were applied.
+  confirm: z.boolean().optional(),
 });
 export type PatchMealRequest = z.infer<typeof PatchMealRequestSchema>;
 

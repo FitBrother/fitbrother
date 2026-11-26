@@ -41,6 +41,12 @@ describe("buildMealPatch", () => {
     expect(buildMealPatch({}, CTX)).toEqual({});
   });
 
+  it("não leva confirm para o UPDATE de metadados", () => {
+    expect(buildMealPatch({ confirm: true, meal_type: "lunch" }, CTX)).toEqual({
+      meal_type: "lunch",
+    });
+  });
+
   it("combina foto com os outros campos", () => {
     expect(buildMealPatch({ has_photo: true, meal_type: "dinner" }, CTX)).toEqual({
       meal_type: "dinner",

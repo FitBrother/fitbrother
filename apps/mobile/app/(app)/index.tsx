@@ -28,25 +28,22 @@ import { useFocusEffect, useRouter } from "expo-router";
 import * as Localization from "expo-localization";
 import { pickImage } from "@/lib/media/image-picker";
 import { Info } from "lucide-react-native";
-import { GOALS_DISCLAIMER_TEXT, type MealResponse } from "@fitbrother/shared";
+import { GOALS_DISCLAIMER_TEXT } from "@fitbrother/shared";
 import { reloadApp } from "@/lib/reload-app";
 import { useProfile } from "@/lib/profile/profile-context";
 import { useAvatarUrl } from "@/lib/hooks/useAvatarUrl";
 import { nutritionalToday } from "@/lib/time/nutritional-day";
 import { useMealsForDay } from "@/lib/hooks/useMealsForDay";
+import { pendingMealsOf } from "@/lib/pending-meals";
+import { mealRoute } from "@/lib/meal-route";
+import { PendingKcalNote } from "@/components/domain/PendingKcalNote";
+import { PendingMealsBanner } from "@/components/domain/PendingMealsBanner";
 import { useDailySummary } from "@/lib/hooks/useDailySummary";
 import { useDailySummaryRealtime } from "@/lib/hooks/useDailySummaryRealtime";
 import { useMealsRealtime } from "@/lib/hooks/useMealsRealtime";
-import {
-  newClientMealId,
-  useCreateMealText,
-  type OptimisticMeal,
-} from "@/lib/hooks/useCreateMealText";
+import { newClientMealId, type OptimisticMeal } from "@/lib/hooks/useCreateMealText";
 import { useDeleteMeal } from "@/lib/hooks/useDeleteMeal";
 import { useAuthSession } from "@/lib/hooks/useAuthSession";
-import { useCreateMealAudio } from "@/lib/hooks/useCreateMealAudio";
-import { useCreateMealPhoto } from "@/lib/hooks/useCreateMealPhoto";
-import { QuotaExceededError, getErrorStatus } from "@/lib/api/meals";
 import { colors } from "@/lib/colors";
 import { Motion } from "@/lib/motion";
 import { nextCollapse } from "@/lib/summary-collapse";
@@ -63,7 +60,6 @@ import { MealCardSwipeable } from "@/components/domain/MealCardSwipeable";
 import { MealCardSkeleton } from "@/components/domain/MealCardSkeleton";
 import { HomeSkeleton } from "@/components/domain/HomeSkeleton";
 import { MealComposer } from "@/components/domain/MealComposer";
-import { ShareMealPrompt, valeCompartilhar } from "@/components/domain/ShareMealPrompt";
 import { ComposerBackdrop, COMPOSER_FADE_HEIGHT } from "@/components/domain/ComposerBackdrop";
 import { EmailConfirmationBanner } from "@/components/domain/EmailConfirmationBanner";
 import { NewVersionBanner } from "@/components/domain/NewVersionBanner";
@@ -75,6 +71,9 @@ import { GoalsDisclaimer } from "@/components/domain/GoalsDisclaimer";
 import { StreakCounter } from "@/components/domain/StreakCounter";
 import { useStreak } from "@/lib/hooks/useStreak";
 import { useTour } from "@/lib/tour/tour-context";
+import { useRegisterMeal } from "@/lib/hooks/useRegisterMeal";
+import { hasConfirmedMeal } from "@/lib/has-confirmed-meal";
+import { useOnceWhenFocused } from "@/lib/hooks/useOnceWhenFocused";
 
 /** Sobra entre o último card e o começo do degradê do composer. */
 const LIST_BREATHING_ROOM = 28;
@@ -156,9 +155,6 @@ export default function HomeScreen() {
   const avatarUrl = useAvatarUrl(profile.avatar_url);
   const day = nutritionalToday(profile);
   const mealsQuery = useMealsForDay(day);
-  const createMeal = useCreateMealText();
-  const createMealAudio = useCreateMealAudio();
-  const createMealPhoto = useCreateMealPhoto();
   const session = useAuthSession();
   const userId = session.status === "signed_in" ? session.session.user.id : undefined;
   const summaryQuery = useDailySummary(day);
@@ -177,6 +173,9 @@ export default function HomeScreen() {
   }
   const deleteMeal = useDeleteMeal();
   const [banner, setBanner] = useState<ErrorBannerVariant | null>(null);
+  const { submitText, submitAudio, submitPhoto, isPending } = useRegisterMeal({
+    onError: setBanner,
+  });
   const [disclaimerOpen, setDisclaimerOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<HomeTab>("home");
   const tour = useTour();
@@ -191,9 +190,6 @@ export default function HomeScreen() {
   const { width } = useWindowDimensions();
   const isDesktop = width >= 1024;
   const [composerHeight, setComposerHeight] = useState(0);
-  // Id da refeição recém-registrada, enquanto o convite a gerar a imagem está
-  // na tela. Vive só nesta sessão da tela — não é estado do servidor.
-  const [refeicaoRecente, setRefeicaoRecente] = useState<string | null>(null);
   const { data: streakView } = useStreak();
   const firstName = profile.full_name.split(" ")[0] ?? profile.full_name;
 
@@ -287,51 +283,19 @@ export default function HomeScreen() {
   });
 
   const items = (mealsQuery.data ?? []) as OptimisticMeal[];
+  const pendingMeals = pendingMealsOf(items);
 
-  // Gatilho do tour: primeira refeição persistida visível na Home. Cobre o
-  // composer daqui e o registro feito no último passo do onboarding
-  // (FirstMealBlock), que roda fora do TourProvider. Depende só do booleano
-  // pra não re-disparar enquanto o PATCH de tutorial_completed está em voo.
-  const hasPersistedMeal = items.some((m) => m.__status !== "processing");
-  useEffect(() => {
-    if (hasPersistedMeal) tour.notifyMealCreated();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasPersistedMeal]);
-
-  // Um lugar só para decidir se a refeição que acabou de entrar merece o
-  // convite — as três origens (texto, áudio, foto) chamam isto.
-  const aoRegistrar = useCallback((meal: MealResponse) => {
-    setRefeicaoRecente(valeCompartilhar(meal) ? meal.id : null);
-  }, []);
-  // Estável de propósito: o `ShareMealPrompt` arma o timer de auto-dispensa
-  // num efeito que depende desta função. Recriada a cada render, o timer
-  // reiniciaria junto e o convite nunca sairia da tela.
-  const dispensarConvite = useCallback(() => setRefeicaoRecente(null), []);
+  // Tour starts on the first confirmed meal, only with Home focused so it never opens over the meal screen.
+  useOnceWhenFocused(hasConfirmedMeal(items), tour.notifyMealCreated);
 
   const handleSend = (text: string) => {
     setBanner(null);
-    createMeal.mutate(
-      {
-        client_meal_id: newClientMealId(),
-        text,
-        locale: detectLocale(),
-        day,
-      },
-      {
-        onSuccess: (r) => aoRegistrar(r.meal),
-        onError: (err) => {
-          if (err instanceof QuotaExceededError) {
-            setBanner("quota_exceeded");
-          } else if (err.message === "request_timeout") {
-            setBanner("offline");
-          } else if ((getErrorStatus(err) ?? 0) >= 500) {
-            setBanner("server_error");
-          } else {
-            setBanner("network");
-          }
-        },
-      },
-    );
+    submitText({
+      client_meal_id: newClientMealId(),
+      text,
+      locale: detectLocale(),
+      day,
+    });
   };
 
   const handleAudioReady = useCallback(
@@ -347,40 +311,20 @@ export default function HomeScreen() {
           fileUri: params.fileUri,
           ext: params.ext,
         });
-        createMealAudio.mutate(
-          {
-            client_meal_id,
-            audio_path: path,
-            duration_s,
-            locale: detectLocale(),
-            day,
-          },
-          {
-            onSuccess: (r) => aoRegistrar(r.meal),
-            onError: (err) => {
-              // eslint-disable-next-line no-console
-              console.warn("[handleAudioReady] mutation error:", err);
-              if (err instanceof QuotaExceededError) {
-                setBanner("quota_exceeded");
-              } else if (err.message === "empty_transcription") {
-                setBanner("network"); // re-use network banner copy "tente de novo"
-              } else if (err.message === "request_timeout") {
-                setBanner("offline");
-              } else if ((getErrorStatus(err) ?? 0) >= 500) {
-                setBanner("server_error");
-              } else {
-                setBanner("network");
-              }
-            },
-          },
-        );
+        submitAudio({
+          client_meal_id,
+          audio_path: path,
+          duration_s,
+          locale: detectLocale(),
+          day,
+        });
       } catch (err) {
         // eslint-disable-next-line no-console
         console.warn("[handleAudioReady] upload error:", err);
         setBanner("network");
       }
     },
-    [aoRegistrar, createMealAudio, day, userId],
+    [submitAudio, day, userId],
   );
 
   const handlePhotoPress = useCallback(async () => {
@@ -395,34 +339,18 @@ export default function HomeScreen() {
         mealId: client_meal_id,
         fileUri: uri,
       });
-      createMealPhoto.mutate(
-        {
-          client_meal_id,
-          image_path: path,
-          locale: detectLocale(),
-          day,
-        },
-        {
-          onSuccess: (r) => aoRegistrar(r.meal),
-          onError: (err) => {
-            if (err instanceof QuotaExceededError) {
-              setBanner("quota_exceeded");
-            } else if (err.message === "request_timeout") {
-              setBanner("offline");
-            } else if ((getErrorStatus(err) ?? 0) >= 500) {
-              setBanner("server_error");
-            } else {
-              setBanner("network");
-            }
-          },
-        },
-      );
+      submitPhoto({
+        client_meal_id,
+        image_path: path,
+        locale: detectLocale(),
+        day,
+      });
     } catch (err) {
       // eslint-disable-next-line no-console
       console.warn("[handlePhotoPress] photo error:", err);
       setBanner("network");
     }
-  }, [aoRegistrar, createMealPhoto, day, userId]);
+  }, [submitPhoto, day, userId]);
 
   const handleDelete = useCallback(
     (id: string) => {
@@ -545,10 +473,19 @@ export default function HomeScreen() {
                   />
                 </Card>
               </Animated.View>
+              <PendingKcalNote meals={pendingMeals} />
               <GoalsDisclaimer />
             </View>
 
             <View className="flex-1">
+              {pendingMeals.length > 0 && (
+                <View className="mb-4 px-4">
+                  <PendingMealsBanner
+                    meals={pendingMeals}
+                    onOpen={(id) => router.push(mealRoute(id))}
+                  />
+                </View>
+              )}
               {/* `px-4` pelo mesmo motivo do cabeçalho da lista no mobile: os
                   cards carregam `marginHorizontal: 16` próprio, então sem este
                   recuo o título e a contagem ficavam 16px à esquerda deles. */}
@@ -598,25 +535,13 @@ export default function HomeScreen() {
 
         <View className="sticky bottom-0 z-10 bg-neutral-50 px-6 pb-3 pt-4">
           <View className="mx-auto w-full max-w-[1120px]">
-            {refeicaoRecente ? (
-              <ShareMealPrompt
-                onPress={() => {
-                  const id = refeicaoRecente;
-                  setRefeicaoRecente(null);
-                  router.push(`/(app)/share/meal/${id}` as never);
-                }}
-                onDismiss={dispensarConvite}
-              />
-            ) : null}
             <MealComposer
               onSend={handleSend}
               onAudioReady={handleAudioReady}
               onPhotoPress={handlePhotoPress}
               onScanPress={() => router.push("/(app)/scan" as never)}
               disabled={banner === "quota_exceeded"}
-              processing={
-                createMeal.isPending || createMealAudio.isPending || createMealPhoto.isPending
-              }
+              processing={isPending}
             />
             <Text className="mt-2.5 text-center text-[12.5px] text-neutral-400">
               Escreva, dite ou fotografe — a IA calcula os macros.
@@ -668,6 +593,8 @@ export default function HomeScreen() {
           </Pressable>
         </Card>
       </Animated.View>
+      <PendingKcalNote meals={pendingMeals} />
+      <PendingMealsBanner meals={pendingMeals} onOpen={(id) => router.push(mealRoute(id))} />
       {disclaimerOpen && (
         // 22 como o card acima: o disclaimer abre colado nele e é conteúdo
         // inline, não uma superfície flutuante como o ErrorBanner.
@@ -823,18 +750,6 @@ export default function HomeScreen() {
             dele — e não dentro do MealComposer, onde se sobrepunha ao sólido e
             cruzava o topo dele ainda translúcido. */}
         <ComposerBackdrop />
-        {/* O convite fica acima do composer, dentro do mesmo bloco que sobe
-            com o teclado — assim não é encoberto por ele. */}
-        {refeicaoRecente ? (
-          <ShareMealPrompt
-            onPress={() => {
-              const id = refeicaoRecente;
-              setRefeicaoRecente(null);
-              router.push(`/(app)/share/meal/${id}` as never);
-            }}
-            onDismiss={dispensarConvite}
-          />
-        ) : null}
         {/* Sem padding próprio: o bloco sólido termina exatamente onde o
             MealComposer termina. O `pt-3`/`pb-2` que havia aqui duplicava o
             respiro que o composer já aplica internamente (e o de baixo é
@@ -847,9 +762,7 @@ export default function HomeScreen() {
             onScanPress={() => router.push("/(app)/scan" as never)}
             disabled={banner === "quota_exceeded"}
             showBackdropFade={false}
-            processing={
-              createMeal.isPending || createMealAudio.isPending || createMealPhoto.isPending
-            }
+            processing={isPending}
           />
         </View>
       </Animated.View>
