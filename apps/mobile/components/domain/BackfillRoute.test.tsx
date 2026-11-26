@@ -20,9 +20,9 @@ jest.mock("expo-router", () => {
     },
   };
 });
-jest.mock("expo-localization", () => ({ getLocales: () => [{ languageTag: "pt-BR" }] }));
+jest.mock("expo-localization", () => ({ getLocales: () => [{ languageTag: "en-US" }] }));
 jest.mock("@/lib/profile/profile-context", () => ({
-  useProfile: () => ({ timezone: "America/Sao_Paulo", day_start_hour: 4 }),
+  useProfile: () => ({ timezone: "America/Sao_Paulo", day_start_hour: 4, locale: "pt-BR" }),
 }));
 jest.mock("@/lib/dateMath", () => ({ defaultConsumedAtForDay: () => "2026-11-24T15:00:00.000Z" }));
 jest.mock("@/lib/hooks/useAuthSession", () => ({
@@ -131,6 +131,31 @@ describe("BackfillScreen", () => {
       fireEvent.press(screen.getByLabelText("send"));
 
       expect(mockRouter.replace).toHaveBeenCalledWith(MEAL_ROUTE);
+    });
+  });
+
+  describe("locale", () => {
+    test("text registration sends the profile language, not the device language", () => {
+      render(<BackfillScreen />);
+
+      fireEvent.press(screen.getByLabelText("send"));
+
+      expect(mockTextMutate).toHaveBeenCalledWith(
+        expect.objectContaining({ locale: "pt-BR" }),
+        expect.any(Object),
+      );
+    });
+
+    test("audio registration sends the profile language, not the device language", async () => {
+      render(<BackfillScreen />);
+
+      fireEvent.press(screen.getByLabelText("audio"));
+
+      await waitFor(() => expect(mockAudioMutate).toHaveBeenCalled());
+      expect(mockAudioMutate).toHaveBeenCalledWith(
+        expect.objectContaining({ locale: "pt-BR" }),
+        expect.any(Object),
+      );
     });
   });
 

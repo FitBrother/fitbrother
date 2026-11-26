@@ -25,12 +25,12 @@ import Animated, {
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
-import * as Localization from "expo-localization";
 import { pickImage } from "@/lib/media/image-picker";
 import { Info } from "lucide-react-native";
 import { GOALS_DISCLAIMER_TEXT } from "@fitbrother/shared";
 import { reloadApp } from "@/lib/reload-app";
 import { useProfile } from "@/lib/profile/profile-context";
+import { mealLocale } from "@/lib/locale";
 import { useAvatarUrl } from "@/lib/hooks/useAvatarUrl";
 import { nutritionalToday } from "@/lib/time/nutritional-day";
 import { useMealsForDay } from "@/lib/hooks/useMealsForDay";
@@ -130,11 +130,6 @@ const NO_SCROLL_ANCHOR =
  */
 function listBottomSpace(composerHeight: number): number {
   return composerHeight + COMPOSER_FADE_HEIGHT + LIST_BREATHING_ROOM;
-}
-
-function detectLocale(): string {
-  const tag = Localization.getLocales()[0]?.languageTag;
-  return tag ?? "pt-BR";
 }
 
 /** Aba mostrada em cada passo do tour: a do próprio passo. Nos passos do + e
@@ -293,7 +288,7 @@ export default function HomeScreen() {
     submitText({
       client_meal_id: newClientMealId(),
       text,
-      locale: detectLocale(),
+      locale: mealLocale(profile.locale),
       day,
     });
   };
@@ -315,7 +310,7 @@ export default function HomeScreen() {
           client_meal_id,
           audio_path: path,
           duration_s,
-          locale: detectLocale(),
+          locale: mealLocale(profile.locale),
           day,
         });
       } catch (err) {
@@ -324,7 +319,7 @@ export default function HomeScreen() {
         setBanner("network");
       }
     },
-    [submitAudio, day, userId],
+    [submitAudio, day, userId, profile.locale],
   );
 
   const handlePhotoPress = useCallback(async () => {
@@ -342,7 +337,7 @@ export default function HomeScreen() {
       submitPhoto({
         client_meal_id,
         image_path: path,
-        locale: detectLocale(),
+        locale: mealLocale(profile.locale),
         day,
       });
     } catch (err) {
@@ -350,7 +345,7 @@ export default function HomeScreen() {
       console.warn("[handlePhotoPress] photo error:", err);
       setBanner("network");
     }
-  }, [submitPhoto, day, userId]);
+  }, [submitPhoto, day, userId, profile.locale]);
 
   const handleDelete = useCallback(
     (id: string) => {
