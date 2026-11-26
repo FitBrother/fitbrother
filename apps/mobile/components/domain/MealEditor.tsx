@@ -23,15 +23,10 @@ import { MealEditorSaveBar } from "./MealEditorSaveBar";
 import { MealItemRow } from "./MealItemRow";
 import { MealItemSheet } from "./MealItemSheet";
 import { MealMetaChips } from "./MealMetaChips";
-import { MealPendingBar } from "./MealPendingBar";
 import { MealShareActions } from "./MealShareActions";
-import { MealSourceCard } from "./MealSourceCard";
 import { MealSummaryCard } from "./MealSummaryCard";
-import { MealUncertainBanner } from "./MealUncertainBanner";
 
 const NUM: { fontVariant: ["tabular-nums"] } = { fontVariant: ["tabular-nums"] };
-
-const LOW_CONFIDENCE = 0.6;
 
 type Props = { meal: MealResponse };
 
@@ -53,7 +48,6 @@ export function MealEditor({ meal }: Props) {
   const [consumedAt, setConsumedAt] = useState(meal.consumed_at);
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   const [errorIndexes, setErrorIndexes] = useState<Set<number>>(new Set());
-  const [confirmed, setConfirmed] = useState(false);
   const submitting = useRef(false);
 
   const typeChanged = mealType !== baseline.meal_type;
@@ -61,7 +55,6 @@ export function MealEditor({ meal }: Props) {
   const newDay = timeChanged ? nutritionalDay(new Date(consumedAt), profile) : undefined;
   const dirty = state.dirty || typeChanged || timeChanged;
   const day = nutritionalDay(new Date(baseline.consumed_at), profile);
-  const pending = meal.review_required && !confirmed;
 
   const resetTo = (m: MealResponse) => {
     setBaseline(m);
@@ -129,11 +122,13 @@ export function MealEditor({ meal }: Props) {
     dispatch({ type: "add_item" });
   };
 
-  const deleteMeal = async (
-    description: string,
-    { title = "Excluir refeição?", confirmLabel = "Excluir" } = {},
-  ) => {
-    const ok = await dialog.confirm({ title, description, confirmLabel, destructive: true });
+  const deleteMeal = async (description: string) => {
+    const ok = await dialog.confirm({
+      title: "Excluir refeição?",
+      description,
+      confirmLabel: "Excluir",
+      destructive: true,
+    });
     if (!ok) return;
     remove.mutate(
       { id: meal.id, day },
@@ -147,7 +142,7 @@ export function MealEditor({ meal }: Props) {
     );
   };
 
-  const submit = async (confirm: boolean) => {
+  const submit = async () => {
     if (submitting.current) return;
     setOpenIndex(null);
     if (state.items.length === 0) {
@@ -174,7 +169,6 @@ export function MealEditor({ meal }: Props) {
       items: state.dirty ? state.items : undefined,
       mealType: typeChanged ? mealType : undefined,
       consumedAt: timeChanged ? consumedAt : undefined,
-      confirm,
     });
 
     submitting.current = true;
@@ -182,23 +176,11 @@ export function MealEditor({ meal }: Props) {
       onSuccess: (saved) => {
         submitting.current = false;
         resetTo(saved);
-        // A server without confirm support saves the edits but leaves the meal pending.
-        if (confirm && saved.review_required) {
-          toast({ variant: "error", message: "Não foi possível confirmar" });
-          return;
-        }
-        if (confirm) setConfirmed(true);
-        toast({
-          variant: "success",
-          message: confirm ? "Refeição registrada" : "Alterações salvas",
-        });
+        toast({ variant: "success", message: "Alterações salvas" });
       },
       onError: () => {
         submitting.current = false;
-        toast({
-          variant: "error",
-          message: confirm ? "Não foi possível confirmar" : "Não foi possível salvar",
-        });
+        toast({ variant: "error", message: "Não foi possível salvar" });
       },
     });
   };
@@ -216,18 +198,13 @@ export function MealEditor({ meal }: Props) {
       edges={["top", "left", "right"]}
     >
       <MealEditorHeader
-        title={pending ? "Confirme o que entendi" : "Refeição"}
+        title="Refeição"
         onBack={() => backOrHome(router)}
-        onDelete={
-          pending
-            ? undefined
-            : () => void deleteMeal("A refeição e todos os itens serão excluídos.")
-        }
+        onDelete={() => void deleteMeal("A refeição e todos os itens serão excluídos.")}
         deleteDisabled={isSaving}
       />
 
       <View className="gap-3 px-4 pb-3 pt-1">
-        {pending ? <MealSourceCard meal={meal} /> : null}
         <MealMetaChips
           mealType={mealType}
           consumedAt={consumedAt}
@@ -235,17 +212,13 @@ export function MealEditor({ meal }: Props) {
           onChangeTime={setConsumedAt}
           disabled={isSaving}
         />
-        <MealSummaryCard
-          totals={totals}
-          deltaKcal={totals.kcal - initialKcal}
-          pendingNote={pending ? "ainda não conta no seu dia" : undefined}
-        />
+        <MealSummaryCard totals={totals} deltaKcal={totals.kcal - initialKcal} />
       </View>
 
       <ScrollView
         className="flex-1"
         contentContainerClassName="gap-3 px-4 pt-1"
-        contentContainerStyle={{ paddingBottom: (dirty || pending ? 0 : insets.bottom) + 24 }}
+        contentContainerStyle={{ paddingBottom: (dirty ? 0 : insets.bottom) + 24 }}
       >
         {meal.ai_feedback ? (
           <View
@@ -258,24 +231,14 @@ export function MealEditor({ meal }: Props) {
             </Text>
           </View>
         ) : null}
-        {pending && meal.confidence !== null && meal.confidence < LOW_CONFIDENCE ? (
-          <MealUncertainBanner />
-        ) : null}
-        <View className="flex-row items-baseline justify-between">
-          <Text style={NUM} className="font-sans-semibold text-sm text-neutral-500">
-            Itens · {state.items.length}
-          </Text>
-          {pending ? (
-            <Text className="font-sans text-xs text-neutral-500">Ajuste o que estiver errado</Text>
-          ) : null}
-        </View>
+        <Text style={NUM} className="font-sans-semibold text-sm text-neutral-500">
+          Itens · {state.items.length}
+        </Text>
         {state.items.length === 0 ? (
           <View className="rounded-2xl border border-warning-300 bg-warning-50 p-4">
             <Text className="font-sans-semibold text-sm text-warning-700">Sem itens</Text>
             <Text className="mt-1 font-sans text-xs text-warning-600">
-              {pending
-                ? "Confirmar sem itens vai descartar a refeição."
-                : "Salvar sem itens vai excluir a refeição inteira."}
+              Salvar sem itens vai excluir a refeição inteira.
             </Text>
           </View>
         ) : null}
@@ -310,25 +273,14 @@ export function MealEditor({ meal }: Props) {
             Buscar e adicionar alimento
           </Text>
         </Pressable>
-        {!dirty && !pending ? <MealShareActions mealId={meal.id} /> : null}
+        {!dirty ? <MealShareActions mealId={meal.id} /> : null}
       </ScrollView>
 
-      {pending ? (
-        <MealPendingBar
-          saving={isSaving}
-          onConfirm={() => void submit(true)}
-          onDiscard={() =>
-            void deleteMeal("Ela será excluída e não entra no seu dia.", {
-              title: "Descartar refeição?",
-              confirmLabel: "Descartar",
-            })
-          }
-        />
-      ) : dirty ? (
+      {dirty ? (
         <MealEditorSaveBar
           saving={isSaving}
           onDiscard={() => resetTo(server)}
-          onSave={() => void submit(false)}
+          onSave={() => void submit()}
         />
       ) : null}
 

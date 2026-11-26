@@ -281,10 +281,32 @@ describe("MealEditor", () => {
     expect(screen.queryByTestId("meal-ai-feedback")).toBeNull();
   });
 
-  test("hides the share block while the meal requires review", () => {
+  test("a meal that still requires review renders the plain editor", () => {
+    renderEditor({
+      ...meal,
+      review_required: true,
+      source: "app_text",
+      raw_input: "arroz no almoço",
+      confidence: 0.3,
+    } as MealResponse);
+    expect(screen.getByText("Refeição")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Excluir refeição" })).toBeTruthy();
+    expect(screen.queryByText("Confirme o que entendi")).toBeNull();
+    expect(screen.queryByText("Você escreveu")).toBeNull();
+    expect(screen.queryByText("ainda não conta no seu dia")).toBeNull();
+    expect(screen.queryByText("Não tive certeza de alguns itens")).toBeNull();
+    expect(screen.queryByText("Ajuste o que estiver errado")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Confirmar refeição" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Descartar refeição" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Compartilhar" })).toBeTruthy();
+  });
+
+  test("saving a meal that still requires review never sends confirm", async () => {
     renderEditor({ ...meal, review_required: true } as MealResponse);
-    expect(screen.queryByRole("button", { name: "Compartilhar" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "Novo post" })).toBeNull();
+    stepRiceUp();
+    await save();
+    expect(mockMutate).toHaveBeenCalledTimes(1);
+    expect(savedPatch()).not.toHaveProperty("confirm");
   });
 
   test("share block navigates to share and new post", () => {

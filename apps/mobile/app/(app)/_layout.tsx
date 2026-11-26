@@ -1,6 +1,5 @@
 import { Redirect, Stack, useRouter } from "expo-router";
 import { useEffect } from "react";
-import { View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { HomeSkeleton } from "@/components/domain/HomeSkeleton";
 import { ScreenFade } from "@/components/ScreenFade";
@@ -14,6 +13,7 @@ import { registerForPushNotificationsAsync } from "@/lib/push";
 import { colors } from "@/lib/colors";
 import { TourProvider } from "@/lib/tour/tour-context";
 import { TourOverlay } from "@/components/tour/TourOverlay";
+import { ConfirmMealBackground, ConfirmMealHost } from "@/lib/confirm-meal/confirm-meal-context";
 
 const SHEET_BG = colors.neutral[50];
 
@@ -65,7 +65,7 @@ function GuardedStack() {
     <TourProvider>
       {/* Linha só a partir de `lg`, casando com o breakpoint da Sidebar: abaixo
           disso ela não existe e a coluna é o layout do mobile. */}
-      <View className="flex-1 lg:flex-row">
+      <ConfirmMealBackground className="flex-1 lg:flex-row">
         <Sidebar />
         <ScreenFade>
           <Stack screenOptions={{ headerShown: false, animation: "fade" }}>
@@ -91,7 +91,8 @@ function GuardedStack() {
             />
           </Stack>
         </ScreenFade>
-      </View>
+      </ConfirmMealBackground>
+      <ConfirmMealHost />
       <TourOverlay />
     </TourProvider>
   );

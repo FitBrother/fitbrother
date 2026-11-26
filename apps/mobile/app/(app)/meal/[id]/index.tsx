@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { Pressable, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -6,6 +7,7 @@ import { ChevronLeft } from "lucide-react-native";
 import { getMeal } from "@/lib/api/meals";
 import { mealDetailKey } from "@/lib/hooks/useMealsForDay";
 import { backOrHome } from "@/lib/navigation";
+import { useConfirmMealSheet } from "@/lib/confirm-meal/confirm-meal-context";
 import { colors } from "@/lib/colors";
 import { MealEditor } from "@/components/domain/MealEditor";
 import { MealEditSkeleton } from "@/components/domain/MealEditSkeleton";
@@ -18,8 +20,19 @@ export default function MealDetailScreen() {
     queryFn: () => getMeal(id!),
     enabled: Boolean(id),
   });
+  const sheet = useConfirmMealSheet();
 
-  if (query.isLoading) {
+  // Pending meals are confirmed in the global drawer, never on this screen.
+  const pendingId = query.data?.review_required ? query.data.id : null;
+  const redirected = useRef(false);
+  useEffect(() => {
+    if (!pendingId || redirected.current) return;
+    redirected.current = true;
+    sheet.open(pendingId);
+    backOrHome(router);
+  }, [pendingId, sheet, router]);
+
+  if (query.isLoading || pendingId) {
     return <MealEditSkeleton />;
   }
 

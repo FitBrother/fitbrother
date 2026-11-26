@@ -11,13 +11,13 @@ type AudioArgs = Parameters<ReturnType<typeof useCreateMealAudio>["mutate"]>[0];
 type PhotoArgs = Parameters<ReturnType<typeof useCreateMealPhoto>["mutate"]>[0];
 
 type Options = {
-  mode?: "push" | "replace";
+  leaveScreen?: boolean;
   requireActive?: boolean;
   onError: (kind: ErrorBannerVariant) => void;
 };
 
-export function useRegisterMeal({ mode, requireActive, onError }: Options) {
-  const openMeal = useOpenMealAfterRegister(mode, { requireActive });
+export function useRegisterMeal({ leaveScreen, requireActive, onError }: Options) {
+  const openMeal = useOpenMealAfterRegister({ leaveScreen, requireActive });
   const text = useCreateMealText();
   const audio = useCreateMealAudio();
   const photo = useCreateMealPhoto();

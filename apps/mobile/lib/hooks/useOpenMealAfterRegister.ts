@@ -1,15 +1,21 @@
 import { useCallback, useRef } from "react";
 import { AppState } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
-import { mealRoute } from "@/lib/meal-route";
+import { useConfirmMealSheet } from "@/lib/confirm-meal/confirm-meal-context";
+import { Motion } from "@/lib/motion";
+import { backOrHome } from "@/lib/navigation";
 
-type Options = { requireActive?: boolean };
+// A native formSheet covers the overlay drawer, so the drawer waits for its dismiss animation.
+export const SHEET_DISMISS_MS = Motion.duration.slow;
 
-export function useOpenMealAfterRegister(
-  mode: "push" | "replace" = "push",
-  { requireActive = true }: Options = {},
-) {
+type Options = { requireActive?: boolean; leaveScreen?: boolean };
+
+export function useOpenMealAfterRegister({
+  requireActive = true,
+  leaveScreen = false,
+}: Options = {}) {
   const router = useRouter();
+  const { open } = useConfirmMealSheet();
   const focused = useRef(false);
 
   useFocusEffect(
@@ -25,8 +31,13 @@ export function useOpenMealAfterRegister(
     (meal: { id: string }) => {
       if (!focused.current) return;
       if (requireActive && AppState.currentState !== "active") return;
-      router[mode](mealRoute(meal.id));
+      if (!leaveScreen) {
+        open(meal.id);
+        return;
+      }
+      backOrHome(router);
+      setTimeout(() => open(meal.id), SHEET_DISMISS_MS);
     },
-    [router, mode, requireActive],
+    [router, open, requireActive, leaveScreen],
   );
 }

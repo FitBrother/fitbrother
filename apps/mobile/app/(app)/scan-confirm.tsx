@@ -22,6 +22,7 @@ import { nutritionalToday } from "@/lib/time/nutritional-day";
 import { useProfile } from "@/lib/profile/profile-context";
 import { mealLocale } from "@/lib/locale";
 import { useTour } from "@/lib/tour/tour-context";
+import { useConfirmMealSheet } from "@/lib/confirm-meal/confirm-meal-context";
 import type { MealResponse } from "@fitbrother/shared";
 
 type MealType = MealResponse["meal_type"];
@@ -51,6 +52,7 @@ export default function ScanConfirmScreen() {
   const createMeal = useCreateMealBarcode();
   const createMealText = useCreateMealText();
   const tour = useTour();
+  const sheet = useConfirmMealSheet();
 
   const [quantity, setQuantity] = useState("100");
   const [unit, setUnit] = useState<"g" | "ml" | "unit">("g");
@@ -97,16 +99,16 @@ export default function ScanConfirmScreen() {
         day: nutritionalToday(profile),
       },
       {
-        onSuccess: () => {
-          tour.notifyMealCreated();
+        onSuccess: (result) => {
           router.replace("/(app)/" as never);
+          sheet.open(result.meal.id);
         },
         onError: () => {
           setBanner("network");
         },
       },
     );
-  }, [barcode, createMealText, profile, router, tour]);
+  }, [barcode, createMealText, profile, router, sheet]);
 
   useEffect(() => {
     if (isNotFound && !sentToAiRef.current) {
