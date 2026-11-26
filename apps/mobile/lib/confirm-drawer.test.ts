@@ -47,6 +47,17 @@ describe("summarizeItems", () => {
     });
   });
 
+  test("dedupes names case-insensitively", () => {
+    expect(summarizeItems(items("Arroz", "arroz"))).toEqual({ names: ["Arroz"], extra: 0 });
+  });
+
+  test("a repeat of an already shown name after the cut is not extra", () => {
+    expect(summarizeItems(items("A", "B", "C", "A"))).toEqual({
+      names: ["A", "B", "C"],
+      extra: 0,
+    });
+  });
+
   test("respects a custom max", () => {
     expect(summarizeItems(items("A", "B", "C"), 2)).toEqual({ names: ["A", "B"], extra: 1 });
   });
@@ -73,6 +84,23 @@ describe("headlineText", () => {
       ...Array.from({ length: 9 }, (_, i) => `Extra ${i}`),
     );
     expect(headlineText(many)).toBe("Arroz, feijão, frango e mais 9");
+  });
+
+  test("four items", () => {
+    expect(headlineText(items("Arroz", "Feijão", "Frango", "Salada"))).toBe(
+      "Arroz, feijão, frango e mais 1",
+    );
+  });
+
+  test("keeps acronyms and brand names intact", () => {
+    expect(headlineText(items("Arroz", "TACO"))).toBe("Arroz e TACO");
+    expect(headlineText(items("Arroz", "Coca-Cola", "McDonald's"))).toBe(
+      "Arroz, Coca-Cola e McDonald's",
+    );
+  });
+
+  test("lowercases common nouns after the first", () => {
+    expect(headlineText(items("Arroz", "Café com leite"))).toBe("Arroz e café com leite");
   });
 
   test("repeated names collapse into one", () => {
@@ -115,6 +143,13 @@ describe("drawerViewReducer", () => {
 
   test("edit_item opens the item view", () => {
     expect(drawerViewReducer(adjust, { type: "edit_item", index: 2 })).toEqual(item);
+  });
+
+  test("does not mutate the input view", () => {
+    const frozen: DrawerView = Object.freeze({ name: "item", index: 1 }) as DrawerView;
+    drawerViewReducer(frozen, { type: "back" });
+    drawerViewReducer(frozen, { type: "done_item" });
+    expect(frozen).toEqual({ name: "item", index: 1 });
   });
 
   test("done_item and back from item return to adjust", () => {

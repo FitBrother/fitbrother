@@ -7,7 +7,7 @@ export function shortName(description: string): string {
 
 export function summarizeItems(
   items: { description: string }[],
-  max = 3,
+  max = COMPACT_LABEL_MAX_ITEMS,
 ): { names: string[]; extra: number } {
   const names: string[] = [];
   const shown = new Set<string>();
@@ -26,7 +26,8 @@ export function summarizeItems(
   return { names, extra };
 }
 
-const lowerFirst = (text: string) => text.charAt(0).toLowerCase() + text.slice(1);
+const lowerFirst = (text: string) =>
+  /\p{Lu}/u.test(text.slice(1)) ? text : text.charAt(0).toLowerCase() + text.slice(1);
 
 export function headlineText(items: { description: string }[]): string {
   const { names, extra } = summarizeItems(items);
