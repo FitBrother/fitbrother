@@ -16,6 +16,7 @@ const NUM: { fontVariant: ["tabular-nums"] } = { fontVariant: ["tabular-nums"] }
 type Props = {
   item: ItemDraft;
   variant?: "sheet" | "drawer";
+  hideFooter?: boolean;
   onClose: () => void;
   onRemove: () => void;
   onSelectSuggestion: (s: FoodSuggestion) => void;
@@ -56,6 +57,7 @@ function MacroDot({
 export function ItemEditorBody({
   item,
   variant = "sheet",
+  hideFooter = false,
   onClose,
   onRemove,
   onSelectSuggestion,
@@ -246,25 +248,13 @@ export function ItemEditorBody({
     </>
   );
 
-  const footer = (
-    <View className="flex-row items-center gap-3 px-5 pb-3 pt-2">
-      <Pressable
-        onPress={onRemove}
-        accessibilityRole="button"
-        accessibilityLabel="Remover item"
-        className="h-[52px] w-[52px] items-center justify-center rounded-full border border-danger-500"
-      >
-        <Trash2 size={20} color={colors.danger[500]} />
-      </Pressable>
-      <Button label="Concluir item" onPress={onClose} className="flex-1" />
-    </View>
-  );
+  const footer = <ItemEditorFooter onClose={onClose} onRemove={onRemove} />;
 
   if (variant === "drawer") {
     return (
       <View>
         <View className="px-5 pb-4">{content}</View>
-        {footer}
+        {hideFooter ? null : footer}
       </View>
     );
   }
@@ -286,5 +276,27 @@ export function ItemEditorBody({
 
       <SafeAreaView edges={["bottom"]}>{footer}</SafeAreaView>
     </>
+  );
+}
+
+export function ItemEditorFooter({
+  onClose,
+  onRemove,
+}: {
+  onClose: () => void;
+  onRemove: () => void;
+}) {
+  return (
+    <View className="flex-row items-center gap-3 px-5 pb-3 pt-2">
+      <Pressable
+        onPress={onRemove}
+        accessibilityRole="button"
+        accessibilityLabel="Remover item"
+        className="h-[52px] w-[52px] items-center justify-center rounded-full border border-danger-500"
+      >
+        <Trash2 size={20} color={colors.danger[500]} />
+      </Pressable>
+      <Button label="Concluir item" onPress={onClose} className="flex-1" />
+    </View>
   );
 }

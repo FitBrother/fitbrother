@@ -20,7 +20,7 @@ type Props = { meal: Pick<MealResponse, "source" | "raw_input" | "image_path" | 
 const PHOTO_PREFIX = "Foto: ";
 
 // Meals created before the photo route stored image_path only carry it in raw_input (same rule as 0082).
-function photoPath(meal: Props["meal"]): string | null {
+export function photoPath(meal: Pick<MealResponse, "raw_input" | "image_path">): string | null {
   if (meal.image_path) return meal.image_path;
   const raw = meal.raw_input;
   if (raw?.startsWith(PHOTO_PREFIX) && raw.length > PHOTO_PREFIX.length) {
@@ -29,7 +29,15 @@ function photoPath(meal: Props["meal"]): string | null {
   return null;
 }
 
-function MealPhotoThumb({ path }: { path: string | null | undefined }) {
+const THUMB_SIZE = { md: "h-14 w-14 rounded-xl", lg: "h-[72px] w-[72px] rounded-2xl" };
+
+export function MealPhotoThumb({
+  path,
+  size = "md",
+}: {
+  path: string | null | undefined;
+  size?: keyof typeof THUMB_SIZE;
+}) {
   const [url, setUrl] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
 
@@ -57,14 +65,14 @@ function MealPhotoThumb({ path }: { path: string | null | undefined }) {
         source={{ uri: url }}
         onError={() => setFailed(true)}
         accessibilityIgnoresInvertColors
-        className="h-14 w-14 rounded-xl bg-neutral-100"
+        className={`${THUMB_SIZE[size]} bg-neutral-100`}
       />
     );
   }
   return (
     <View
       testID="meal-source-photo-placeholder"
-      className="h-14 w-14 items-center justify-center rounded-xl bg-neutral-100"
+      className={`${THUMB_SIZE[size]} items-center justify-center bg-neutral-100`}
     >
       <ImageIcon size={22} color={colors.neutral[400]} />
     </View>
