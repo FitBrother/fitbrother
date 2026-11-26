@@ -37,4 +37,13 @@ describe("MealSummaryCard", () => {
     expect(screen.getByText("50g")).toBeTruthy();
     expect(screen.getByText("12g")).toBeTruthy();
   });
+
+  test("a pending note replaces the delta chip", () => {
+    render(
+      <MealSummaryCard totals={totals} deltaKcal={32} pendingNote="ainda não conta no seu dia" />,
+    );
+    expect(screen.getByText("ainda não conta no seu dia")).toBeTruthy();
+    expect(screen.queryByText("+32 kcal")).toBeNull();
+    expect(screen.getByLabelText("Total: 459 kcal, ainda não conta no seu dia")).toBeTruthy();
+  });
 });

@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react-native";
-import { Text } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import type { FoodSuggestion, MealResponse } from "@fitbrother/shared";
 import { nutritionalDay } from "@/lib/time/nutritional-day";
@@ -59,6 +58,7 @@ jest.mock("@/lib/dialog/dialog-context", () => ({
 jest.mock("@/lib/toast/toast-context", () => ({ useToast: () => mockToast }));
 jest.mock("@/lib/profile/profile-context", () => ({ useProfile: () => mockProfile }));
 jest.mock("@/lib/hooks/useFoodSuggestions", () => ({ useFoodSuggestions: jest.fn() }));
+jest.mock("@/lib/storage", () => ({ getPostImageSignedUrl: jest.fn() }));
 jest.mock("@/components/WheelPicker", () => {
   const { Pressable, Text } = jest.requireActual<typeof import("react-native")>("react-native");
   return {
@@ -141,19 +141,16 @@ const twoItemMeal = {
   ],
 } as unknown as MealResponse;
 
-function editorTree(m: MealResponse, banner?: (ctx: { dirty: boolean }) => React.ReactNode) {
+function editorTree(m: MealResponse) {
   return (
     <SafeAreaProvider initialMetrics={metrics}>
-      <MealEditor meal={m} banner={banner} />
+      <MealEditor meal={m} />
     </SafeAreaProvider>
   );
 }
 
-function renderEditor(
-  m: MealResponse = meal,
-  banner?: (ctx: { dirty: boolean }) => React.ReactNode,
-) {
-  return render(editorTree(m, banner));
+function renderEditor(m: MealResponse = meal) {
+  return render(editorTree(m));
 }
 
 function withRice(quantity: number, kcal: number): MealResponse {
@@ -299,13 +296,6 @@ describe("MealEditor", () => {
       pathname: "/(app)/post/new",
       params: { meal_id: MEAL_ID },
     });
-  });
-
-  test("banner receives the dirty state", () => {
-    renderEditor(meal, ({ dirty }) => <Text>{dirty ? "banner sujo" : "banner limpo"}</Text>);
-    expect(screen.getByText("banner limpo")).toBeTruthy();
-    stepRiceUp();
-    expect(screen.getByText("banner sujo")).toBeTruthy();
   });
 
   test("a successful save stays on screen and resets the baseline to the saved meal", async () => {
