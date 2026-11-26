@@ -4,9 +4,10 @@ import { searchFoods } from "@/lib/api/foods";
 import { useDebouncedValue } from "@/lib/hooks/useDebouncedValue";
 
 export function useFoodSuggestions(q: string, enabled: boolean) {
-  const trimmed = useDebouncedValue(q.trim(), 250);
+  const typed = q.trim();
+  const trimmed = useDebouncedValue(typed, 250);
   const active = enabled && (trimmed === "" || trimmed.length >= 2);
-  return useQuery({
+  const query = useQuery({
     queryKey: ["food-suggestions", trimmed],
     queryFn: () => searchFoods(trimmed),
     enabled: active,
@@ -15,4 +16,5 @@ export function useFoodSuggestions(q: string, enabled: boolean) {
     // Keep the previous list while the next term loads, but never for a disabled (1-char) term.
     placeholderData: (prev: FoodSuggestion[] | undefined) => (active ? prev : undefined),
   });
+  return { ...query, isSettled: trimmed === typed };
 }
