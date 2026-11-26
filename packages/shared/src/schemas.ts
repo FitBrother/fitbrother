@@ -65,6 +65,8 @@ export const CreateMealTextRequestSchema = z.object({
   text: z.string().min(1).max(2000),
   consumed_at: z.string().datetime().optional(),
   locale: z.string().default("pt-BR"),
+  // Sent by clients that open the confirmation screen; older clients omit it.
+  require_confirmation: z.boolean().optional(),
 });
 export type CreateMealTextRequest = z.infer<typeof CreateMealTextRequestSchema>;
 
@@ -80,6 +82,8 @@ export const CreateMealAudioRequestSchema = z.object({
   duration_s: z.number().positive().max(600),
   consumed_at: z.string().datetime().optional(),
   locale: z.string().default("pt-BR"),
+  // Sent by clients that open the confirmation screen; older clients omit it.
+  require_confirmation: z.boolean().optional(),
 });
 export type CreateMealAudioRequest = z.infer<typeof CreateMealAudioRequestSchema>;
 
@@ -88,6 +92,8 @@ export const CreateMealPhotoRequestSchema = z.object({
   image_path: z.string().min(1),
   consumed_at: z.string().datetime().optional(),
   locale: z.string().default("pt-BR"),
+  // Sent by clients that open the confirmation screen; older clients omit it.
+  require_confirmation: z.boolean().optional(),
 });
 export type CreateMealPhotoRequest = z.infer<typeof CreateMealPhotoRequestSchema>;
 

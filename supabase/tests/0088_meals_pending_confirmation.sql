@@ -1,4 +1,4 @@
--- Smoke test 0088: app_text/app_audio/app_photo meals are created pending and only count after confirmation.
+-- Smoke test 0088: payload.require_confirmation=true creates the meal pending; it only counts after confirmation.
 \set ON_ERROR_STOP on
 BEGIN;
 
@@ -45,18 +45,23 @@ BEGIN
   PERFORM set_config('request.jwt.claims', json_build_object('sub', u, 'role', 'authenticated')::text, true);
   SET LOCAL ROLE authenticated;
   FOR c IN SELECT * FROM (VALUES
-    ('app_text',    0.9, true),
-    ('app_audio',   0.9, true),
-    ('app_photo',   0.9, true),
-    ('app_barcode', 1.0, false),
-    ('wa_text',     0.9, false),
-    ('wa_audio',    0.9, false),
-    ('manual',      0.9, false),
-    ('app_barcode', 0.5, true),
-    ('wa_text',     0.5, true),
-    ('manual',      0.5, true),
-    ('app_text',    0.5, true)
-  ) AS t(source, confidence, pending) LOOP
+    ('app_text',    0.9, true,  true),
+    ('app_audio',   0.9, true,  true),
+    ('app_photo',   0.9, true,  true),
+    ('manual',      0.9, true,  true),
+    ('wa_text',     0.9, true,  true),
+    ('app_text',    0.9, NULL,  false),
+    ('app_audio',   0.9, false, false),
+    ('app_photo',   0.9, NULL,  false),
+    ('app_barcode', 1.0, NULL,  false),
+    ('wa_text',     0.9, NULL,  false),
+    ('wa_audio',    0.9, NULL,  false),
+    ('manual',      0.9, NULL,  false),
+    ('app_barcode', 0.5, NULL,  true),
+    ('wa_text',     0.5, NULL,  true),
+    ('app_text',    0.5, false, true),
+    ('app_text',    0.5, true,  true)
+  ) AS t(source, confidence, req, pending) LOOP
     r := public.create_meal_with_items(jsonb_build_object(
       'id', gen_random_uuid(), 'source', c.source, 'raw_input', 'arroz',
       'audio_path', CASE WHEN c.source LIKE '%audio' THEN u || '/smoke.m4a' END,
@@ -65,18 +70,19 @@ BEGIN
       'review_required', NOT c.pending,
       'items', jsonb_build_array(jsonb_build_object(
         'description', 'arroz', 'quantity', 100, 'unit', 'g',
-        'kcal', 128, 'protein_g', 2.5, 'carbs_g', 28, 'fat_g', 0.2))));
+        'kcal', 128, 'protein_g', 2.5, 'carbs_g', 28, 'fat_g', 0.2)))
+      || CASE WHEN c.req IS NULL THEN '{}'::jsonb ELSE jsonb_build_object('require_confirmation', c.req) END);
     SELECT review_required INTO flag FROM public.meals WHERE id = (r->>'id')::uuid;
     IF flag IS DISTINCT FROM c.pending OR (r->>'review_required')::boolean IS DISTINCT FROM c.pending THEN
-      RAISE EXCEPTION 'FAIL % @ %: review_required=% (rpc %), expected %',
-        c.source, c.confidence, flag, r->>'review_required', c.pending;
+      RAISE EXCEPTION 'FAIL % @ % flag=%: review_required=% (rpc %), expected %',
+        c.source, c.confidence, c.req, flag, r->>'review_required', c.pending;
     END IF;
     SELECT COALESCE(max(meals_count), 0) INTO n FROM public.daily_summaries
       WHERE user_id = u AND day = d;
     IF n <> (CASE WHEN c.pending THEN 0 ELSE 1 END) THEN
-      RAISE EXCEPTION 'FAIL % @ %: daily_summaries meals_count=% on %', c.source, c.confidence, n, d;
+      RAISE EXCEPTION 'FAIL % @ % flag=%: daily_summaries meals_count=% on %', c.source, c.confidence, c.req, n, d;
     END IF;
-    RAISE NOTICE 'PASS % @ % -> review_required=%, counted=%', c.source, c.confidence, flag, n;
+    RAISE NOTICE 'PASS % @ % flag=% -> review_required=%, counted=%', c.source, c.confidence, COALESCE(c.req::text, 'absent'), flag, n;
     d := d + 1;
   END LOOP;
   RESET ROLE;
@@ -92,13 +98,13 @@ BEGIN
   SET LOCAL ROLE authenticated;
   p := jsonb_build_object(
     'id', v_id, 'source', 'app_text', 'raw_input', 'feijao', 'meal_type', 'dinner',
-    'consumed_at', now() - interval '20 days', 'confidence', 0.9,
+    'consumed_at', now() - interval '20 days', 'confidence', 0.9, 'require_confirmation', true,
     'items', jsonb_build_array(jsonb_build_object(
       'description', 'feijao', 'quantity', 100, 'unit', 'g',
       'kcal', 76, 'protein_g', 4.8, 'carbs_g', 13.6, 'fat_g', 0.5)));
   r := public.create_meal_with_items(p);
   IF (r->>'already_existed')::boolean THEN RAISE EXCEPTION 'FAIL first insert reported already_existed'; END IF;
-  r := public.create_meal_with_items(p || jsonb_build_object('source', 'manual', 'confidence', 1.0));
+  r := public.create_meal_with_items(p || jsonb_build_object('source', 'manual', 'confidence', 1.0, 'require_confirmation', false));
   IF NOT (r->>'already_existed')::boolean THEN RAISE EXCEPTION 'FAIL replay did not report already_existed'; END IF;
   SELECT review_required INTO flag FROM public.meals WHERE meals.id = v_id;
   IF flag IS DISTINCT FROM true THEN RAISE EXCEPTION 'FAIL replay changed review_required to %', flag; END IF;

@@ -1,5 +1,5 @@
--- Refeição de IA vinda do app (texto/áudio/foto) nasce pendente e só conta no dia após
--- confirmação (PATCH confirm). Só o corpo da RPC muda; código de barras/WA/manual seguem iguais.
+-- Cliente novo manda payload.require_confirmation=true e a refeição nasce pendente até o PATCH confirm;
+-- sem o flag (apps antigos, barcode) vale só confidence < 0.6. Só o corpo da RPC muda.
 CREATE OR REPLACE FUNCTION public.create_meal_with_items(payload jsonb)
 RETURNS jsonb
 LANGUAGE plpgsql
@@ -14,7 +14,7 @@ DECLARE
   v_consumed_at    timestamptz := COALESCE((payload->>'consumed_at')::timestamptz, now());
   v_confidence     numeric := NULLIF(payload->>'confidence', '')::numeric;
   v_review_required boolean := COALESCE(v_confidence < 0.6, false)
-                               OR v_source IN ('app_text', 'app_audio', 'app_photo');
+                               OR COALESCE((payload->>'require_confirmation')::boolean, false);
   v_ai_feedback    text := NULLIF(payload->>'ai_feedback', '');
   v_inserted_id    uuid;
   v_item           jsonb;

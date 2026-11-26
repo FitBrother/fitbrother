@@ -56,7 +56,7 @@ export async function mealsRoutes(app: FastifyInstance) {
     if (!parsed.success) {
       return reply.code(400).send({ error: "invalid_payload", issues: parsed.error.issues });
     }
-    const { client_meal_id, text, consumed_at, locale } = parsed.data;
+    const { client_meal_id, text, consumed_at, locale, require_confirmation } = parsed.data;
     const userId = req.user!.id;
     const supabase = supabaseForRequest(req);
 
@@ -130,6 +130,7 @@ export async function mealsRoutes(app: FastifyInstance) {
         consumed_at: consumed_at ?? null,
         confidence: extraction.output.confidence,
         ai_feedback: extraction.output.feedback || null,
+        require_confirmation: require_confirmation === true,
         items: applied,
       },
     });
@@ -178,7 +179,8 @@ export async function mealsRoutes(app: FastifyInstance) {
     if (!parsed.success) {
       return reply.code(400).send({ error: "invalid_payload", issues: parsed.error.issues });
     }
-    const { client_meal_id, audio_path, duration_s, consumed_at, locale } = parsed.data;
+    const { client_meal_id, audio_path, duration_s, consumed_at, locale, require_confirmation } =
+      parsed.data;
     const userId = req.user!.id;
     const supabase = supabaseForRequest(req);
 
@@ -296,6 +298,7 @@ export async function mealsRoutes(app: FastifyInstance) {
         consumed_at: consumed_at ?? null,
         confidence: extraction.output.confidence,
         ai_feedback: extraction.output.feedback || null,
+        require_confirmation: require_confirmation === true,
         items: applied,
       },
     });
@@ -345,7 +348,7 @@ export async function mealsRoutes(app: FastifyInstance) {
     if (!parsed.success) {
       return reply.code(400).send({ error: "invalid_payload", issues: parsed.error.issues });
     }
-    const { client_meal_id, image_path, consumed_at, locale } = parsed.data;
+    const { client_meal_id, image_path, consumed_at, locale, require_confirmation } = parsed.data;
     const userId = req.user!.id;
     const supabase = supabaseForRequest(req);
 
@@ -424,6 +427,7 @@ export async function mealsRoutes(app: FastifyInstance) {
         consumed_at: consumed_at ?? null,
         confidence: extraction.output.confidence,
         ai_feedback: extraction.output.feedback || null,
+        require_confirmation: require_confirmation === true,
         items: applied,
       },
     });
@@ -439,6 +443,16 @@ export async function mealsRoutes(app: FastifyInstance) {
         client_meal_id,
         where: "create_photo_meal_rpc",
       });
+    }
+
+    const { error: imagePathErr } = await supabase
+      .from("meals")
+      .update({ image_path })
+      .eq("id", client_meal_id)
+      .is("image_path", null);
+    if (imagePathErr) {
+      // Non-fatal: the meal exists and clients fall back to raw_input for the path.
+      req.log.warn({ err: imagePathErr, client_meal_id }, "meal_image_path_update_failed");
     }
 
     const meal = await loadMeal(supabase, client_meal_id, req);

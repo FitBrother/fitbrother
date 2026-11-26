@@ -43,7 +43,7 @@ export async function createMealText(input: {
 }): Promise<{ meal: MealResponse; cache_hit: boolean; already_existed: boolean }> {
   const res = await authedFetch("/meals/text", {
     method: "POST",
-    body: JSON.stringify(input),
+    body: JSON.stringify({ ...input, require_confirmation: true }),
   });
   return (await parseOrThrow(res)) as {
     meal: MealResponse;
@@ -66,7 +66,7 @@ export async function createMealAudio(input: {
 }> {
   const res = await authedFetch("/meals/audio", {
     method: "POST",
-    body: JSON.stringify(input),
+    body: JSON.stringify({ ...input, require_confirmation: true }),
     timeoutMs: AI_API_TIMEOUT_MS,
   });
   return (await parseOrThrow(res)) as {
@@ -85,7 +85,7 @@ export async function createMealPhoto(input: {
 }): Promise<{ meal: MealResponse; cache_hit: boolean; already_existed: boolean }> {
   const res = await authedFetch("/meals/photo", {
     method: "POST",
-    body: JSON.stringify(input),
+    body: JSON.stringify({ ...input, require_confirmation: true }),
     timeoutMs: AI_API_TIMEOUT_MS,
   });
   return (await parseOrThrow(res)) as {

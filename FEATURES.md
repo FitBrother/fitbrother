@@ -172,7 +172,7 @@ Catálogo `source='taco'`: 591 alimentos da TACO 4ª ed. (migration `0083_foods_
 | `consumed_at` | timestamptz | Default `now()`. |
 | `total_kcal` / `total_protein_g` / `total_carbs_g` / `total_fat_g` | numeric(8,2) | **Mantidos por trigger** em `meal_items`. Não usar `GENERATED` (Postgres não permite referenciar outra tabela). |
 | `confidence` | numeric(3,2) | 0–1, vindo da IA. |
-| `review_required` | boolean DEFAULT false | `true` se `confidence < 0.6` **ou** se `source` ∈ (`app_text`, `app_audio`, `app_photo`): refeição de IA do app nasce pendente (migration `0088`). Não computa em `daily_summaries` enquanto `true`. Vira `false` por `PATCH /meals/:id` com `confirm: true` (ou `POST /meals/:id/confirm`). |
+| `review_required` | boolean DEFAULT false | `true` se `confidence < 0.6` **ou** se o payload da RPC `create_meal_with_items` trouxer `require_confirmation: true` (migration `0088`; o app novo manda o flag em texto/áudio/foto, então a refeição de IA nasce pendente). Não computa em `daily_summaries` enquanto `true`. Vira `false` por `PATCH /meals/:id` com `confirm: true` (ou `POST /meals/:id/confirm`). |
 | `created_at` / `updated_at` / `deleted_at` | timestamptz | |
 
 Índice: `(user_id, consumed_at DESC) WHERE deleted_at IS NULL`.
@@ -412,7 +412,7 @@ Entrada: texto ou áudio, no app ou via WhatsApp.
 4. Para cada item, fuzzy match em `foods.name_normalized` e em `food_aliases` (RPC `fitbrother_foods_fuzzy_match`, limiar 0,4; desde a `0086` o nome com cru/crua/crus/cruas perde 0,2 na ordenação quando o termo não diz "cru", e alias não é rebaixado; desde a `0087`, termo de uma palavra só casa com similarity >= 0,5, senão mantém os macros da IA). Se match com `verified=true`, **sobrescreve macros** pelo catálogo (mais confiável que IA).
 5. Insere `meals` + `meal_items` em transação (RPC `create_meal_with_items`). Trigger atualiza `daily_summaries` só quando a refeição não nasce pendente (ver passo 7).
 6. Atualiza `ai_usage` (tokens consumidos, segundos transcritos, custo estimado).
-7. Refeição do app por texto, áudio ou foto (`app_text`/`app_audio`/`app_photo`) **sempre** nasce com `meals.review_required = true` (desde a `0088`) e só entra no dia, streak, `goal_hit` e conquistas quando o usuário confirma na tela "Confirme o que entendi" (`PATCH /meals/:id` com `confirm: true`). Código de barras (`app_barcode`), `manual` e WhatsApp continuam pendentes só com `confidence < 0.6`; no WhatsApp esse caso notifica "Confirme o que entendi" (push + WA se janela aberta).
+7. `POST /meals/{text,audio,photo}` aceitam `require_confirmation` (boolean opcional) e repassam à RPC (`true` só quando o corpo diz `true`). Com o flag a refeição nasce com `meals.review_required = true` (desde a `0088`) e só entra no dia, streak, `goal_hit` e conquistas quando o usuário confirma na tela "Confirme o que entendi" (`PATCH /meals/:id` com `confirm: true`). O app atual manda `require_confirmation: true` sempre (`lib/api/meals.ts`). O flag é ativado pelo cliente, e não pelo `source`, para não quebrar builds nativos antigos: sem o flag vale o comportamento anterior (pendente só com `confidence < 0.6`), e um app novo contra um servidor antigo só cria refeições já confirmadas. **Ordem de deploy segura:** (a) servidor + migration `0088`, (b) app. Código de barras (`app_barcode`, nunca manda o flag), `manual` e WhatsApp continuam pendentes só com `confidence < 0.6`; no WhatsApp esse caso notifica "Confirme o que entendi" (push + WA se janela aberta).
 
 **Pendentes na Home.** Refeições com `review_required = true` (exceto os cards otimistas em processamento) ficam visíveis na Home do dia: o `MealCard` leva o selo "Confirmar" (no lugar de "Revisar"), abaixo do resumo do dia aparece a nota "+<kcal> kcal quando você confirmar o <refeição>" (ou "...as refeições pendentes" com mais de uma, somando as kcal) e um banner âmbar "N refeição(ões) aguardando confirmação" com o botão "Confirmar", que abre a tela de confirmação da pendente **mais antiga** (`consumed_at`). Nota e banner somem quando não há pendentes. O resumo continua excluindo as pendentes (`daily_summaries`). O banner e a nota "+kcal" cobrem só o dia exibido na Home (o dia nutricional de hoje); pendentes de outros dias (backfill ou não confirmadas após a virada do dia) são confirmadas na tela de histórico daquele dia, pelo selo "Confirmar" do card. Não há consulta entre dias na v1.
 
@@ -505,7 +505,7 @@ function dispatch(user_id, notif):
 - `streak_alert` — risco de quebra (envio 21h do dia nutricional)
 - `goal_reminder` — faltam macros (envio 19h se kcal < 70% e janela WA aberta)
 - `friend_activity` — amigo bateu meta / superou streak
-- `meal_confirmation` — `review_required = true` no registro (refeição do app por texto/áudio/foto nasce pendente por design e já abre a tela de confirmação; push para ela está fora da v1)
+- `meal_confirmation` — `review_required = true` no registro (refeição do app por texto/áudio/foto criada com `require_confirmation: true` nasce pendente por design e já abre a tela de confirmação; push para ela está fora da v1)
 - `achievement` — conquista desbloqueada
 
 ---

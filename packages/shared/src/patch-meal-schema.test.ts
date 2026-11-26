@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { PatchMealItemSchema, PatchMealRequestSchema } from "./schemas";
+import {
+  CreateMealAudioRequestSchema,
+  CreateMealPhotoRequestSchema,
+  CreateMealTextRequestSchema,
+  PatchMealItemSchema,
+  PatchMealRequestSchema,
+} from "./schemas";
 
 const item = {
   description: "Arroz",
@@ -59,5 +65,33 @@ describe("PatchMealRequestSchema confirm", () => {
 
   it("rejects confirm with out-of-bounds items", () => {
     expect(parse({ confirm: true, items: [{ ...item, quantity: 100000 }] }).success).toBe(false);
+  });
+});
+
+describe("create meal schemas require_confirmation", () => {
+  const id = "00000000-0000-4000-8000-000000000001";
+  const cases = [
+    ["text", CreateMealTextRequestSchema, { client_meal_id: id, text: "arroz" }],
+    [
+      "audio",
+      CreateMealAudioRequestSchema,
+      { client_meal_id: id, audio_path: "u/a.m4a", duration_s: 3 },
+    ],
+    ["photo", CreateMealPhotoRequestSchema, { client_meal_id: id, image_path: "u/p.jpg" }],
+  ] as const;
+
+  it.each(cases)("%s keeps require_confirmation when sent", (_name, schema, body) => {
+    const res = schema.safeParse({ ...body, require_confirmation: true });
+    expect(res.success && res.data.require_confirmation).toBe(true);
+  });
+
+  it.each(cases)("%s leaves it undefined when omitted", (_name, schema, body) => {
+    const res = schema.safeParse(body);
+    expect(res.success).toBe(true);
+    expect(res.success && res.data.require_confirmation).toBeUndefined();
+  });
+
+  it.each(cases)("%s rejects a non-boolean value", (_name, schema, body) => {
+    expect(schema.safeParse({ ...body, require_confirmation: "yes" }).success).toBe(false);
   });
 });
