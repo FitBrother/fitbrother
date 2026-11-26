@@ -17,6 +17,7 @@ type Props = {
   consumedAt: string;
   onChangeMealType: (t: MealType) => void;
   onChangeTime: (iso: string) => void;
+  disabled?: boolean;
 };
 
 // Mirrors TimePicker's initial rounding to its 5-minute wheel.
@@ -34,19 +35,25 @@ function Chip({
   accessibilityLabel,
   onPress,
   numeric,
+  disabled,
 }: {
   icon: React.ReactNode;
   label: string;
   accessibilityLabel: string;
   onPress: () => void;
   numeric?: boolean;
+  disabled: boolean;
 }) {
   return (
     <Pressable
       onPress={onPress}
+      disabled={disabled}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
-      className="h-11 flex-row items-center gap-2 rounded-full border border-neutral-200 bg-white px-4"
+      accessibilityState={{ disabled }}
+      className={`h-11 flex-row items-center gap-2 rounded-full border border-neutral-200 bg-white px-4 ${
+        disabled ? "opacity-50" : ""
+      }`}
     >
       {icon}
       <Text
@@ -60,7 +67,13 @@ function Chip({
   );
 }
 
-export function MealMetaChips({ mealType, consumedAt, onChangeMealType, onChangeTime }: Props) {
+export function MealMetaChips({
+  mealType,
+  consumedAt,
+  onChangeMealType,
+  onChangeTime,
+  disabled = false,
+}: Props) {
   const [typeOpen, setTypeOpen] = useState(false);
   const [timeOpen, setTimeOpen] = useState(false);
 
@@ -77,6 +90,7 @@ export function MealMetaChips({ mealType, consumedAt, onChangeMealType, onChange
         label={typeName}
         accessibilityLabel={`Tipo da refeição: ${typeName}`}
         onPress={() => setTypeOpen(true)}
+        disabled={disabled}
       />
       <Chip
         icon={<Clock size={16} color={colors.neutral[700]} />}
@@ -84,6 +98,7 @@ export function MealMetaChips({ mealType, consumedAt, onChangeMealType, onChange
         accessibilityLabel={`Horário: ${timeLabel}`}
         onPress={() => setTimeOpen(true)}
         numeric
+        disabled={disabled}
       />
 
       <Modal

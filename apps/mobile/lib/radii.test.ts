@@ -31,11 +31,7 @@ describe("radii espelha o tailwind.config", () => {
     expect(radii.card).toBe(CONTROL_HEIGHT / 2);
   });
 
-  // Os dois lados do espelho batiam entre si e mesmo assim divergiam da tela:
-  // ao subir a curva dos cards de 22 para 25 direto nas classes, o token ficou
-  // para trás, e os três componentes que dependem dele (MealItemRowSwipeable,
-  // MealRecorder, RecorderLockHint) passaram a desenhar 22 ao lado de vizinhos
-  // de 25. Nenhum guard viu, porque nenhum olhava para as classes.
+  // Guards card-radius classes against drift from the token that style-based components (e.g. MealRecorder) read.
   test("nenhuma classe usa uma curva de card diferente do token", () => {
     const arquivos = execFileSync(
       "git",

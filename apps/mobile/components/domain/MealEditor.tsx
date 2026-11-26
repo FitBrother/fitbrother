@@ -2,7 +2,7 @@ import { useMemo, useReducer, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { Search, Trash2, X } from "lucide-react-native";
+import { ChevronLeft, Search, Sparkles, Trash2 } from "lucide-react-native";
 import {
   PatchMealItemSchema,
   type FoodSuggestion,
@@ -16,15 +16,17 @@ import { editMealReducer, type EditMealAction } from "@/lib/edit-meal-reducer";
 import { stepQuantity } from "@/lib/quantity-step";
 import { useUpdateMeal } from "@/lib/hooks/useUpdateMeal";
 import { useDeleteMeal } from "@/lib/hooks/useDeleteMeal";
+import { useDiscardChangesGuard } from "@/lib/hooks/useDiscardChangesGuard";
 import { useDialog } from "@/lib/dialog/dialog-context";
 import { useToast } from "@/lib/toast/toast-context";
 import { useProfile } from "@/lib/profile/profile-context";
 import { nutritionalDay } from "@/lib/time/nutritional-day";
 import { colors } from "@/lib/colors";
-import { Button } from "@/components/Button";
+import { MealEditorSaveBar } from "./MealEditorSaveBar";
 import { MealItemRow } from "./MealItemRow";
 import { MealItemSheet } from "./MealItemSheet";
 import { MealMetaChips } from "./MealMetaChips";
+import { MealShareActions } from "./MealShareActions";
 import { MealSummaryCard } from "./MealSummaryCard";
 
 const NUM: { fontVariant: ["tabular-nums"] } = { fontVariant: ["tabular-nums"] };
@@ -43,22 +45,43 @@ function sumMacros(items: Macros[]): Macros {
   );
 }
 
+function draftSignature(m: MealResponse): string {
+  return JSON.stringify([
+    m.meal_type,
+    m.consumed_at,
+    m.items.map((it) => [
+      it.id,
+      it.food_id,
+      it.description,
+      it.quantity,
+      it.unit,
+      it.kcal,
+      it.protein_g,
+      it.carbs_g,
+      it.fat_g,
+    ]),
+  ]);
+}
+
 function sameMinute(a: string, b: string): boolean {
   return Math.floor(new Date(a).getTime() / 60000) === Math.floor(new Date(b).getTime() / 60000);
 }
 
 type Props = {
   meal: MealResponse;
-  day: string;
+  banner?: (ctx: { dirty: boolean }) => React.ReactNode;
 };
 
-export function EditMealModal({ meal, day }: Props) {
+export function MealEditor({ meal, banner }: Props) {
   const router = useRouter();
   const profile = useProfile();
   const insets = useSafeAreaInsets();
   const dialog = useDialog();
   const toast = useToast();
 
+  const [baseline, setBaseline] = useState(meal);
+  const [server, setServer] = useState(meal);
+  const [seenSignature, setSeenSignature] = useState(() => draftSignature(meal));
   const [state, dispatch] = useReducer(editMealReducer, {
     items: meal.items.map(draftFromSavedItem),
     dirty: false,
@@ -68,15 +91,37 @@ export function EditMealModal({ meal, day }: Props) {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   const [errorIndexes, setErrorIndexes] = useState<Set<number>>(new Set());
 
-  const typeChanged = mealType !== meal.meal_type;
-  const timeChanged = !sameMinute(consumedAt, meal.consumed_at);
+  const typeChanged = mealType !== baseline.meal_type;
+  const timeChanged = !sameMinute(consumedAt, baseline.consumed_at);
   const newDay = timeChanged ? nutritionalDay(new Date(consumedAt), profile) : undefined;
   const dirty = state.dirty || typeChanged || timeChanged;
+  const day = nutritionalDay(new Date(baseline.consumed_at), profile);
+
+  const resetTo = (m: MealResponse) => {
+    setBaseline(m);
+    setServer(m);
+    dispatch({ type: "init", items: m.items.map(draftFromSavedItem) });
+    setMealType(m.meal_type);
+    setConsumedAt(m.consumed_at);
+    setOpenIndex(null);
+    setErrorIndexes(new Set());
+  };
+
+  // Adjust state during render when the server copy changes; a dirty draft is never overwritten.
+  const propSignature = draftSignature(meal);
+  if (propSignature !== seenSignature) {
+    setSeenSignature(propSignature);
+    if (propSignature !== draftSignature(server)) {
+      if (dirty) setServer(meal);
+      else resetTo(meal);
+    }
+  }
 
   const update = useUpdateMeal(meal.id, day, newDay);
   const remove = useDeleteMeal();
+  const guard = useDiscardChangesGuard(dirty);
 
-  const initialKcal = useMemo(() => sumMacros(meal.items).kcal, [meal.items]);
+  const initialKcal = useMemo(() => sumMacros(baseline.items).kcal, [baseline.items]);
   const totals = useMemo(() => sumMacros(state.items), [state.items]);
 
   const openItem = openIndex === null ? null : (state.items[openIndex] ?? null);
@@ -118,20 +163,6 @@ export function EditMealModal({ meal, day }: Props) {
     dispatch({ type: "add_item" });
   };
 
-  const handleClose = async () => {
-    if (!dirty) {
-      router.back();
-      return;
-    }
-    const discard = await dialog.confirm({
-      title: "Descartar alterações?",
-      description: "Você não salvou os ajustes.",
-      confirmLabel: "Descartar",
-      destructive: true,
-    });
-    if (discard) router.back();
-  };
-
   const deleteMeal = async (description: string) => {
     const ok = await dialog.confirm({
       title: "Excluir refeição?",
@@ -143,13 +174,18 @@ export function EditMealModal({ meal, day }: Props) {
     remove.mutate(
       { id: meal.id, day },
       {
-        onSuccess: () => router.replace("/(app)"),
+        onSuccess: () => {
+          guard.allowLeave();
+          if (router.canGoBack()) router.back();
+          else router.replace("/(app)");
+        },
         onError: () => toast({ variant: "error", message: "Não foi possível excluir" }),
       },
     );
   };
 
   const handleSave = async () => {
+    setOpenIndex(null);
     if (state.items.length === 0) {
       await deleteMeal("Você removeu todos os itens. A refeição inteira será excluída.");
       return;
@@ -187,7 +223,10 @@ export function EditMealModal({ meal, day }: Props) {
     };
 
     update.mutate(patch, {
-      onSuccess: () => router.back(),
+      onSuccess: (saved) => {
+        resetTo(saved);
+        toast({ variant: "success", message: "Alterações salvas" });
+      },
       onError: () => toast({ variant: "error", message: "Não foi possível salvar" }),
     });
   };
@@ -204,24 +243,22 @@ export function EditMealModal({ meal, day }: Props) {
       className="flex-1 bg-neutral-50 md:mx-auto md:w-full md:max-w-[640px]"
       edges={["top", "left", "right"]}
     >
-      <View className="flex-row items-center justify-between px-2 py-1">
+      <View className="flex-row items-center px-4 py-2">
         <Pressable
-          onPress={() => void handleClose()}
-          accessibilityLabel="Fechar edição"
+          onPress={() => router.back()}
+          accessibilityLabel="Voltar"
           accessibilityRole="button"
           className="min-h-[44px] min-w-[44px] items-center justify-center"
         >
-          <X size={24} color={colors.neutral[800]} />
+          <ChevronLeft size={24} color={colors.neutral[800]} />
         </Pressable>
-        <Text className="flex-1 text-center font-display-semibold text-lg text-neutral-900">
-          Editar refeição
-        </Text>
+        <Text className="ml-2 flex-1 font-display-bold text-xl text-neutral-800">Refeição</Text>
         <Pressable
           onPress={() => void deleteMeal("A refeição e todos os itens serão excluídos.")}
           disabled={isSaving}
           accessibilityLabel="Excluir refeição"
           accessibilityRole="button"
-          className="min-h-[44px] min-w-[44px] items-center justify-center"
+          className="min-h-[44px] min-w-[44px] items-center justify-center disabled:opacity-50"
         >
           <Trash2 size={22} color={colors.danger[500]} />
         </Pressable>
@@ -233,11 +270,28 @@ export function EditMealModal({ meal, day }: Props) {
           consumedAt={consumedAt}
           onChangeMealType={setMealType}
           onChangeTime={setConsumedAt}
+          disabled={isSaving}
         />
         <MealSummaryCard totals={totals} deltaKcal={totals.kcal - initialKcal} />
       </View>
 
-      <ScrollView className="flex-1" contentContainerClassName="gap-3 px-4 pb-6 pt-1">
+      <ScrollView
+        className="flex-1"
+        contentContainerClassName="gap-3 px-4 pt-1"
+        contentContainerStyle={{ paddingBottom: (dirty ? 0 : insets.bottom) + 24 }}
+      >
+        {meal.ai_feedback ? (
+          <View
+            testID="meal-ai-feedback"
+            className="flex-row items-start gap-2 rounded-2xl bg-primary-50 p-4"
+          >
+            <Sparkles size={18} color={colors.primary[600]} />
+            <Text className="flex-1 font-sans-medium text-sm text-primary-700">
+              {meal.ai_feedback}
+            </Text>
+          </View>
+        ) : null}
+        {banner?.({ dirty })}
         <Text style={NUM} className="font-sans-semibold text-sm text-neutral-500">
           Itens · {state.items.length}
         </Text>
@@ -254,6 +308,7 @@ export function EditMealModal({ meal, day }: Props) {
             key={item.id ?? `new-${index}`}
             item={item}
             hasError={errorIndexes.has(index)}
+            disabled={isSaving}
             onOpen={() => setOpenIndex(index)}
             onStep={(direction) =>
               dispatch({
@@ -266,30 +321,29 @@ export function EditMealModal({ meal, day }: Props) {
         ))}
         <Pressable
           onPress={addItem}
+          disabled={isSaving}
           accessibilityRole="button"
           accessibilityLabel="Buscar e adicionar alimento"
-          className="min-h-[52px] flex-row items-center justify-center gap-2 rounded-[26px] border border-dashed border-neutral-300"
+          accessibilityState={{ disabled: isSaving }}
+          className={`min-h-[52px] flex-row items-center justify-center gap-2 rounded-[26px] border border-dashed border-neutral-300 ${
+            isSaving ? "opacity-50" : ""
+          }`}
         >
           <Search size={18} color={colors.primary[700]} />
           <Text className="font-sans-semibold text-base text-primary-700">
             Buscar e adicionar alimento
           </Text>
         </Pressable>
+        {!dirty && !meal.review_required ? <MealShareActions mealId={meal.id} /> : null}
       </ScrollView>
 
-      <View
-        style={{ paddingBottom: insets.bottom + 12 }}
-        className="border-t border-neutral-200 bg-white px-4 pt-3"
-      >
-        <Button
-          label="Salvar alterações"
-          accessibilityLabel="Salvar alterações"
-          accessibilityRole="button"
-          onPress={() => void handleSave()}
-          disabled={!dirty}
-          loading={isSaving}
+      {dirty ? (
+        <MealEditorSaveBar
+          saving={isSaving}
+          onDiscard={() => resetTo(server)}
+          onSave={() => void handleSave()}
         />
-      </View>
+      ) : null}
 
       <MealItemSheet
         visible={openItem !== null}

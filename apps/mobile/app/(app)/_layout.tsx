@@ -69,13 +69,11 @@ function GuardedStack() {
         <Sidebar />
         <ScreenFade>
           <Stack screenOptions={{ headerShown: false, animation: "fade" }}>
-            {/* Edição e compartilhar são telas comuns, sem `presentation`: um
-                modal nativo cobriria o ConfirmDialog e os toasts, que moram na
-                raiz (o Modal do RN apresenta a partir do VC raiz, que já está
-                apresentando o modal da tela), e no iOS a pergunta nunca
-                apareceria. */}
-            <Stack.Screen name="meal/[id]/edit" options={{ animation: "slide_from_bottom" }} />
-            {/* Sem o gesto de voltar porque arrastar da borda brigaria com o
+            {/* Compartilhar é tela comum, sem `presentation`: um modal nativo
+                cobriria o ConfirmDialog e os toasts, que moram na raiz (o Modal
+                do RN apresenta a partir do VC raiz, que já está apresentando o
+                modal da tela), e no iOS a pergunta nunca apareceria. Sem o
+                gesto de voltar porque arrastar da borda brigaria com o
                 arrasto de foto e sticker. */}
             <Stack.Screen
               name="share/[type]/[id]"

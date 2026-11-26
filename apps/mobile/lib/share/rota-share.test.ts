@@ -8,7 +8,7 @@ import { describe, expect, test } from "@jest/globals";
  * `confirm` nunca resolve e a pessoa fica presa no skeleton. Nada disso dá para
  * ver na web, onde o expo-router ignora `presentation`.
  */
-describe.each(["share/[type]/[id]", "meal/[id]/edit"])("rota %s", (rota) => {
+describe.each(["share/[type]/[id]"])("rota %s", (rota) => {
   test("não é apresentada como modal nativo", () => {
     const layout = readFileSync(resolve(__dirname, "../../app/(app)/_layout.tsx"), "utf8");
     const escapada = rota.replace(/[[\]/]/g, "\\$&");

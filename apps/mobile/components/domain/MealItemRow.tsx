@@ -17,13 +17,15 @@ export function MealItemRow({
   hasError,
   onOpen,
   onStep,
+  disabled = false,
 }: {
   item: ItemDraft;
   hasError: boolean;
   onOpen: () => void;
   onStep: (direction: 1 | -1) => void;
+  disabled?: boolean;
 }) {
-  const canDecrease = canDecreaseQuantity(item.quantity, item.unit);
+  const canDecrease = !disabled && canDecreaseQuantity(item.quantity, item.unit);
   const quantityText = formatQuantity(item);
   const showAdjusted = item.adjusted && item.link.mode !== "none";
 
@@ -38,8 +40,10 @@ export function MealItemRow({
       <View className="flex-1">
         <Pressable
           onPress={onOpen}
+          disabled={disabled}
           accessibilityRole="button"
           accessibilityLabel={`Editar ${item.description}`}
+          accessibilityState={{ disabled }}
           className="min-h-[44px] flex-row items-center gap-1.5"
         >
           <Text numberOfLines={1} className="shrink font-sans-semibold text-base text-neutral-800">
@@ -81,10 +85,14 @@ export function MealItemRow({
         </Text>
         <Pressable
           onPress={() => onStep(1)}
+          disabled={disabled}
           accessibilityRole="button"
           accessibilityLabel={`Aumentar quantidade de ${item.description}`}
           accessibilityValue={{ text: quantityText }}
-          className="min-h-[44px] min-w-[44px] items-center justify-center"
+          accessibilityState={{ disabled }}
+          className={`min-h-[44px] min-w-[44px] items-center justify-center ${
+            disabled ? "opacity-40" : ""
+          }`}
         >
           <Plus size={18} color={colors.neutral[700]} />
         </Pressable>
