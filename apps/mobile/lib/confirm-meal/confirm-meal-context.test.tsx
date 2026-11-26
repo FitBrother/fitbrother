@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react-native";
-import { Pressable, Text } from "react-native";
+import { Keyboard, Platform, Pressable, Text } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { MealResponse } from "@fitbrother/shared";
@@ -8,9 +8,24 @@ import type { MealResponse } from "@fitbrother/shared";
 const MEAL_ID = "33333333-3333-4333-8333-333333333333";
 const mockGetMeal = jest.fn<(id: string) => Promise<MealResponse>>();
 const mockConfirm = jest.fn<(opts: { title: string }) => Promise<boolean>>();
+const mockToast = jest.fn();
+type AuthListener = (event: string, session: unknown) => void;
+let mockAuthListener: AuthListener | null = null;
+const mockUnsubscribe = jest.fn();
 
 jest.mock("@/lib/api/meals", () => ({ getMeal: (id: string) => mockGetMeal(id) }));
 jest.mock("@/lib/dialog/dialog-context", () => ({ useDialog: () => ({ confirm: mockConfirm }) }));
+jest.mock("@/lib/toast/toast-context", () => ({ useToast: () => mockToast }));
+jest.mock("@/lib/supabase", () => ({
+  supabase: {
+    auth: {
+      onAuthStateChange: (listener: AuthListener) => {
+        mockAuthListener = listener;
+        return { data: { subscription: { unsubscribe: mockUnsubscribe } } };
+      },
+    },
+  },
+}));
 jest.mock("@/components/domain/ConfirmMealDrawer", () => {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const RN = require("react-native") as typeof import("react-native");
@@ -49,6 +64,12 @@ const pending = {
   items: [{ id: "i1", description: "Arroz cozido", quantity: 100, unit: "g", kcal: 128 }],
 } as unknown as MealResponse;
 const confirmed = { ...pending, review_required: false } as MealResponse;
+const OTHER_ID = "55555555-5555-4555-8555-555555555555";
+const otherPending = {
+  ...pending,
+  id: OTHER_ID,
+  items: [{ ...pending.items[0], description: "Feijão" }],
+} as unknown as MealResponse;
 
 const metrics = {
   frame: { x: 0, y: 0, width: 400, height: 800 },
@@ -60,6 +81,7 @@ function Opener() {
   return (
     <>
       <Pressable accessibilityLabel="open" onPress={() => sheet.open(MEAL_ID)} />
+      <Pressable accessibilityLabel="open-other" onPress={() => sheet.open(OTHER_ID)} />
       <Pressable accessibilityLabel="close-api" onPress={() => sheet.close()} />
     </>
   );
@@ -262,5 +284,102 @@ describe("confirm meal host", () => {
   test("useConfirmMealSheet outside the provider throws", () => {
     jest.spyOn(console, "error").mockImplementation(() => undefined);
     expect(() => render(<Opener />)).toThrow(/ConfirmMealProvider/);
+  });
+  test("opening another meal while one is open keeps the current one and its edits", async () => {
+    await openPending();
+    fireEvent.press(screen.getByLabelText("edit"));
+    mockGetMeal.mockImplementation(async (id) => (id === OTHER_ID ? otherPending : pending));
+
+    fireEvent.press(screen.getByLabelText("open-other", ALL));
+    finishExit();
+
+    expect(screen.getByText(DRAWER_TEXT)).toBeTruthy();
+    expect(screen.queryByText("drawer:Feijão")).toBeNull();
+    expect(mockGetMeal).not.toHaveBeenCalledWith(OTHER_ID);
+    mockConfirm.mockResolvedValueOnce(false);
+    await act(async () => {
+      fireEvent.press(screen.getByLabelText("Fechar"));
+    });
+    expect(mockConfirm).toHaveBeenCalledTimes(1);
+  });
+
+  test("dismisses the keyboard when the drawer opens", async () => {
+    const dismiss = jest.spyOn(Keyboard, "dismiss").mockImplementation(() => undefined);
+    mockGetMeal.mockResolvedValue(pending);
+    renderHost();
+    expect(dismiss).not.toHaveBeenCalled();
+
+    fireEvent.press(screen.getByLabelText("open"));
+    await screen.findByText(DRAWER_TEXT);
+
+    expect(dismiss).toHaveBeenCalledTimes(1);
+    dismiss.mockRestore();
+  });
+
+  test("on web blurs the focused element behind when the drawer opens", async () => {
+    const blur = jest.fn();
+    const g = globalThis as { document?: unknown };
+    const hadDocument = "document" in g;
+    const previousDocument = g.document;
+    g.document = { activeElement: { blur } };
+    const os = Object.getOwnPropertyDescriptor(Platform, "OS")!;
+    try {
+      mockGetMeal.mockResolvedValue(pending);
+      renderHost();
+      Object.defineProperty(Platform, "OS", { value: "web", configurable: true });
+      fireEvent.press(screen.getByLabelText("open"));
+      await screen.findByText(DRAWER_TEXT);
+      expect(blur).toHaveBeenCalledTimes(1);
+    } finally {
+      Object.defineProperty(Platform, "OS", os);
+      if (hadDocument) g.document = previousDocument;
+      else delete g.document;
+    }
+  });
+
+  test("a failure other than 404 tells the user and closes", async () => {
+    mockGetMeal.mockRejectedValue(Object.assign(new Error("boom"), { status: 500 }));
+    renderHost();
+    fireEvent.press(screen.getByLabelText("open"));
+    await waitFor(() => expect(mockGetMeal).toHaveBeenCalled());
+    await settle();
+
+    expect(mockToast).toHaveBeenCalledTimes(1);
+    expect(mockToast).toHaveBeenCalledWith({
+      variant: "error",
+      message: "Não foi possível abrir a refeição",
+    });
+    act(() => client.setQueryData(mealDetailKey(MEAL_ID), pending));
+    finishExit();
+    expect(screen.queryByText(DRAWER_TEXT)).toBeNull();
+  });
+
+  test("a 404 and an already confirmed meal close silently", async () => {
+    mockGetMeal.mockRejectedValue(Object.assign(new Error("not_found"), { status: 404 }));
+    renderHost();
+    fireEvent.press(screen.getByLabelText("open"));
+    await waitFor(() => expect(mockGetMeal).toHaveBeenCalled());
+    await settle();
+
+    mockGetMeal.mockResolvedValue(confirmed);
+    fireEvent.press(screen.getByLabelText("open-other"));
+    await waitFor(() => expect(mockGetMeal).toHaveBeenCalledWith(OTHER_ID));
+    await settle();
+
+    expect(mockToast).not.toHaveBeenCalled();
+  });
+
+  test("signing out closes the drawer", async () => {
+    await openPending();
+    act(() => mockAuthListener?.("SIGNED_OUT", null));
+    finishExit();
+    expect(screen.queryByText(DRAWER_TEXT)).toBeNull();
+  });
+
+  test("other auth events keep the drawer open", async () => {
+    await openPending();
+    act(() => mockAuthListener?.("TOKEN_REFRESHED", { user: { id: "u" } }));
+    finishExit();
+    expect(screen.getByText(DRAWER_TEXT)).toBeTruthy();
   });
 });

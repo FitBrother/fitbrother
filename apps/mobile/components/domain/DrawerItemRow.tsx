@@ -1,9 +1,11 @@
 import { Pressable, Text, View } from "react-native";
 import { Minus, Plus } from "lucide-react-native";
 import { colors } from "@/lib/colors";
+import { shortName } from "@/lib/confirm-drawer";
 import { canDecreaseQuantity } from "@/lib/quantity-step";
 import { UNIT_LABEL } from "@/lib/unit-labels";
 import type { ItemDraft } from "@/lib/meal-item-draft";
+import { formatNumber } from "./MacroEditFields";
 
 const NUM: { fontVariant: ["tabular-nums"] } = { fontVariant: ["tabular-nums"] };
 
@@ -21,8 +23,9 @@ export function DrawerItemRow({
   onStep: (direction: 1 | -1) => void;
 }) {
   const canDecrease = !disabled && canDecreaseQuantity(item.quantity, item.unit);
-  const quantityText = `${String(item.quantity).replace(".", ",")} ${UNIT_LABEL[item.unit]}`;
+  const quantityText = `${formatNumber(item.quantity)} ${UNIT_LABEL[item.unit]}`;
   const name = item.description.trim() || "Item sem nome";
+  const a11yName = item.description.trim() ? item.description : shortName(item.description);
 
   return (
     <View
@@ -35,7 +38,7 @@ export function DrawerItemRow({
         onPress={onOpen}
         disabled={disabled}
         accessibilityRole="button"
-        accessibilityLabel={`Editar ${item.description}`}
+        accessibilityLabel={`Editar ${a11yName}`}
         accessibilityState={{ disabled }}
         className="min-h-[44px] flex-1 justify-center"
       >
@@ -57,7 +60,7 @@ export function DrawerItemRow({
           onPress={() => onStep(-1)}
           disabled={!canDecrease}
           accessibilityRole="button"
-          accessibilityLabel={`Diminuir quantidade de ${item.description}`}
+          accessibilityLabel={`Diminuir quantidade de ${a11yName}`}
           accessibilityValue={{ text: quantityText }}
           accessibilityState={{ disabled: !canDecrease }}
           className={`min-h-[44px] min-w-[44px] items-center justify-center ${
@@ -76,7 +79,7 @@ export function DrawerItemRow({
           onPress={() => onStep(1)}
           disabled={disabled}
           accessibilityRole="button"
-          accessibilityLabel={`Aumentar quantidade de ${item.description}`}
+          accessibilityLabel={`Aumentar quantidade de ${a11yName}`}
           accessibilityValue={{ text: quantityText }}
           accessibilityState={{ disabled }}
           className={`min-h-[44px] min-w-[44px] items-center justify-center ${

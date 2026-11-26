@@ -8,7 +8,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { View, type ViewProps } from "react-native";
+import { Keyboard, Platform, View, type ViewProps } from "react-native";
 import { useQuery } from "@tanstack/react-query";
 import type { MealResponse } from "@fitbrother/shared";
 import { BottomDrawer } from "@/components/BottomDrawer";
@@ -16,6 +16,8 @@ import { ConfirmMealDrawer } from "@/components/domain/ConfirmMealDrawer";
 import { getMeal } from "@/lib/api/meals";
 import { useDialog } from "@/lib/dialog/dialog-context";
 import { mealDetailKey } from "@/lib/hooks/useMealsForDay";
+import { supabase } from "@/lib/supabase";
+import { useToast } from "@/lib/toast/toast-context";
 
 type SheetApi = { open: (mealId: string) => void; close: () => void };
 
@@ -39,7 +41,8 @@ export function ConfirmMealProvider({ children }: { children: ReactNode }) {
 
   const open = useCallback((mealId: string) => {
     setState((prev) => {
-      if (prev.openId === mealId) return prev;
+      // Never replace an open meal: its draft and in-flight confirm belong to it.
+      if (prev.openId !== null) return prev;
       dirtyRef.current = false;
       return { openId: mealId, session: prev.session + 1 };
     });
@@ -51,6 +54,15 @@ export function ConfirmMealProvider({ children }: { children: ReactNode }) {
 
   const closeIfOpen = useCallback((mealId: string) => {
     setState((prev) => (prev.openId === mealId ? { ...prev, openId: null } : prev));
+  }, []);
+
+  useEffect(() => {
+    const { data } = supabase.auth.onAuthStateChange((event) => {
+      if (event !== "SIGNED_OUT") return;
+      dirtyRef.current = false;
+      setState((prev) => (prev.openId === null ? prev : { ...prev, openId: null }));
+    });
+    return () => data.subscription.unsubscribe();
   }, []);
 
   const api = useMemo<SheetApi>(() => ({ open, close }), [open, close]);
@@ -89,6 +101,7 @@ type Shown = { meal: MealResponse; session: number };
 export function ConfirmMealHost() {
   const { openId, session, close, closeIfOpen, dirtyRef, setCovered } = useHostState();
   const dialog = useDialog();
+  const toast = useToast();
 
   const query = useQuery({
     queryKey: mealDetailKey(openId ?? ""),
@@ -108,10 +121,22 @@ export function ConfirmMealHost() {
   });
 
   const confirmedElsewhere = data !== undefined && !data.review_required;
-  const failed = query.isError && (errorStatus(query.error) === 404 || data === undefined);
+  const notFound = query.isError && errorStatus(query.error) === 404;
+  const unreachable = query.isError && !notFound && data === undefined;
   useEffect(() => {
-    if (openId !== null && (confirmedElsewhere || failed)) closeIfOpen(openId);
-  }, [openId, confirmedElsewhere, failed, closeIfOpen]);
+    if (openId === null || !(confirmedElsewhere || notFound || unreachable)) return;
+    if (unreachable) toast({ variant: "error", message: "Não foi possível abrir a refeição" });
+    closeIfOpen(openId);
+  }, [openId, confirmedElsewhere, notFound, unreachable, closeIfOpen, toast]);
+
+  useEffect(() => {
+    if (!visible) return;
+    Keyboard.dismiss();
+    if (Platform.OS === "web") {
+      const active = document.activeElement as { blur?: () => void } | null;
+      active?.blur?.();
+    }
+  }, [visible]);
 
   useEffect(() => {
     setCovered(visible);

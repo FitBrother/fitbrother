@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
+  AccessibilityInfo,
   BackHandler,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -20,6 +22,7 @@ import { shadows } from "@/lib/shadows";
 
 const OVERLAY_Z_INDEX = 1000;
 const EXIT_FALLBACK_MS = Motion.duration.base + 100;
+const FOCUS_DELAY_MS = Motion.duration.base;
 
 export function BottomDrawer({
   visible,
@@ -39,6 +42,29 @@ export function BottomDrawer({
   const progress = useSharedValue(0);
   const [mounted, setMounted] = useState(visible);
   const visibleRef = useRef(visible);
+  const dialogRef = useRef<View>(null);
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
+
+  useEffect(() => {
+    const show = Keyboard.addListener("keyboardDidShow", () => setKeyboardOpen(true));
+    const hide = Keyboard.addListener("keyboardDidHide", () => setKeyboardOpen(false));
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
+
+  // Moves screen reader (native) or keyboard (web) focus into the panel once it is on screen.
+  useEffect(() => {
+    if (!visible) return;
+    const timer = setTimeout(() => {
+      const node = dialogRef.current;
+      if (!node) return;
+      if (Platform.OS === "web") (node as unknown as { focus?: () => void }).focus?.();
+      else AccessibilityInfo.sendAccessibilityEvent(node, "focus");
+    }, FOCUS_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [visible]);
 
   useEffect(() => {
     visibleRef.current = visible;
@@ -106,7 +132,9 @@ export function BottomDrawer({
       >
         <Animated.View testID="bottom-drawer-wrapper" style={panelStyle}>
           <View
+            ref={dialogRef}
             role="dialog"
+            tabIndex={Platform.OS === "web" ? -1 : undefined}
             accessibilityLabel={accessibilityLabel}
             style={[shadows.floating, { maxHeight: height * maxHeightRatio }]}
             className="w-full shrink rounded-t-[26px] bg-white md:mx-auto md:w-full md:max-w-[640px]"
@@ -117,7 +145,7 @@ export function BottomDrawer({
             {/* Height is content-sized: a flex-1 child collapses to 0, use a plain ScrollView. */}
             <View
               testID="bottom-drawer-content"
-              style={{ paddingBottom: Math.max(insets.bottom, 16) }}
+              style={{ paddingBottom: keyboardOpen ? 16 : Math.max(insets.bottom, 16) }}
               className="shrink"
             >
               {children}

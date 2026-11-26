@@ -1,6 +1,15 @@
 import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
 import { act, fireEvent, render } from "@testing-library/react-native";
-import { BackHandler, Dimensions, Pressable, StyleSheet, Text, View } from "react-native";
+import {
+  AccessibilityInfo,
+  BackHandler,
+  Dimensions,
+  Keyboard,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import type { NativeEventSubscription, StyleProp, ViewStyle } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
@@ -210,5 +219,89 @@ describe("BottomDrawer", () => {
 
     rerender(drawer({ visible: false }));
     expect(eventos().pointerEvents).toBe("none");
+  });
+  describe("teclado e foco", () => {
+    type KeyboardListener = () => void;
+    let keyboardListeners: Record<string, KeyboardListener[]>;
+
+    beforeEach(() => {
+      keyboardListeners = {};
+      jest.spyOn(Keyboard, "addListener").mockImplementation(((
+        event: string,
+        listener: KeyboardListener,
+      ) => {
+        (keyboardListeners[event] ??= []).push(listener);
+        return {
+          remove: () => {
+            keyboardListeners[event] = (keyboardListeners[event] ?? []).filter(
+              (l) => l !== listener,
+            );
+          },
+        };
+      }) as unknown as typeof Keyboard.addListener);
+    });
+
+    const withInset = {
+      frame: { x: 0, y: 0, width: 400, height: WINDOW_HEIGHT },
+      insets: { top: 0, right: 0, bottom: 34, left: 0 },
+    };
+
+    function drawerWithInset() {
+      return (
+        <SafeAreaProvider initialMetrics={withInset}>
+          <BottomDrawer visible onClose={jest.fn()} accessibilityLabel={LABEL}>
+            <Text>conteudo</Text>
+          </BottomDrawer>
+        </SafeAreaProvider>
+      );
+    }
+
+    const padding = (getByTestId: (id: string) => { props: { style: unknown } }) =>
+      StyleSheet.flatten(getByTestId("bottom-drawer-content").props.style as ViewStyle)
+        .paddingBottom;
+
+    test("com o teclado aberto o painel não soma o inset de baixo", () => {
+      const { getByTestId } = render(drawerWithInset());
+      expect(padding(getByTestId)).toBe(34);
+
+      act(() => keyboardListeners.keyboardDidShow?.forEach((l) => l()));
+      expect(padding(getByTestId)).toBe(16);
+
+      act(() => keyboardListeners.keyboardDidHide?.forEach((l) => l()));
+      expect(padding(getByTestId)).toBe(34);
+    });
+
+    test("ao abrir, move o foco de acessibilidade para o painel", () => {
+      const send = jest
+        .spyOn(AccessibilityInfo, "sendAccessibilityEvent")
+        .mockImplementation(() => undefined);
+      // The preset already mocks this, so the spy can carry calls from earlier tests.
+      send.mockClear();
+      render(drawer());
+      expect(send).not.toHaveBeenCalled();
+
+      act(() => {
+        jest.advanceTimersByTime(1000);
+      });
+
+      expect(send).toHaveBeenCalledTimes(1);
+      expect(send.mock.calls[0]?.[1]).toBe("focus");
+      const target = send.mock.calls[0]?.[0] as unknown as { props: Record<string, unknown> };
+      expect(target.props.role).toBe("dialog");
+      expect(target.props.accessibilityLabel).toBe(LABEL);
+    });
+
+    test("invisível não move o foco", () => {
+      const send = jest
+        .spyOn(AccessibilityInfo, "sendAccessibilityEvent")
+        .mockImplementation(() => undefined);
+      // The preset already mocks this, so the spy can carry calls from earlier tests.
+      send.mockClear();
+      render(drawer({ visible: false }));
+      act(() => {
+        jest.advanceTimersByTime(1000);
+      });
+      expect(send).not.toHaveBeenCalled();
+    });
   });
 });
