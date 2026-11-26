@@ -3,7 +3,13 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react-nativ
 import { AppState, Pressable as MockPressable, Text as MockText } from "react-native";
 
 const MEAL_ID = "33333333-3333-4333-8333-333333333333";
-const mockRouter = { back: jest.fn(), replace: jest.fn(), push: jest.fn() };
+const mockRouter = {
+  back: jest.fn(),
+  replace: jest.fn(),
+  push: jest.fn(),
+  canGoBack: jest.fn(() => true),
+};
+const mockOpen = jest.fn();
 type MutateOpts = { onSuccess?: (r: unknown) => void; onError?: (e: Error) => void };
 const mockTextMutate = jest.fn<(args: unknown, opts: MutateOpts) => void>();
 const mockAudioMutate = jest.fn<(args: unknown, opts: MutateOpts) => void>();
@@ -20,6 +26,9 @@ jest.mock("expo-router", () => {
     },
   };
 });
+jest.mock("@/lib/confirm-meal/confirm-meal-context", () => ({
+  useConfirmMealSheet: () => ({ open: mockOpen, close: jest.fn() }),
+}));
 jest.mock("expo-localization", () => ({ getLocales: () => [{ languageTag: "en-US" }] }));
 jest.mock("@/lib/profile/profile-context", () => ({
   useProfile: () => ({ timezone: "America/Sao_Paulo", day_start_hour: 4, locale: "pt-BR" }),
@@ -73,7 +82,16 @@ jest.mock("@/components/domain/MealComposer", () => ({
 
 import BackfillScreen from "@/app/(app)/history/[day]/new";
 
-const MEAL_ROUTE = { pathname: "/(app)/meal/[id]", params: { id: MEAL_ID } };
+async function expectSheetClosedThenDrawerOpened() {
+  await waitFor(() => expect(mockOpen).toHaveBeenCalledWith(MEAL_ID));
+  expect(mockOpen).toHaveBeenCalledTimes(1);
+  expect(mockRouter.back).toHaveBeenCalledTimes(1);
+  expect(mockRouter.back.mock.invocationCallOrder[0]).toBeLessThan(
+    mockOpen.mock.invocationCallOrder[0]!,
+  );
+  expect(mockRouter.replace).not.toHaveBeenCalled();
+  expect(mockRouter.push).not.toHaveBeenCalled();
+}
 
 function setAppState(value: string) {
   Object.defineProperty(AppState, "currentState", { value, configurable: true, writable: true });
@@ -87,7 +105,7 @@ describe("BackfillScreen", () => {
   });
 
   describe("text", () => {
-    test("replaces itself with the meal screen after a successful registration", () => {
+    test("closes the sheet and then opens the confirm drawer after a successful registration", async () => {
       mockTextMutate.mockImplementation((_args, opts) =>
         opts.onSuccess?.({ meal: { id: MEAL_ID }, already_existed: false }),
       );
@@ -95,11 +113,12 @@ describe("BackfillScreen", () => {
 
       fireEvent.press(screen.getByLabelText("send"));
 
-      expect(mockRouter.replace).toHaveBeenCalledWith(MEAL_ROUTE);
-      expect(mockRouter.back).not.toHaveBeenCalled();
+      expect(mockRouter.back).toHaveBeenCalledTimes(1);
+      expect(mockOpen).not.toHaveBeenCalled();
+      await expectSheetClosedThenDrawerOpened();
     });
 
-    test("uses the existing meal id when the request already existed", () => {
+    test("uses the existing meal id when the request already existed", async () => {
       mockTextMutate.mockImplementation((_args, opts) =>
         opts.onSuccess?.({ meal: { id: MEAL_ID }, already_existed: true }),
       );
@@ -107,7 +126,7 @@ describe("BackfillScreen", () => {
 
       fireEvent.press(screen.getByLabelText("send"));
 
-      expect(mockRouter.replace).toHaveBeenCalledWith(MEAL_ROUTE);
+      await expectSheetClosedThenDrawerOpened();
     });
 
     test("stays on the form and shows the banner on error", () => {
@@ -116,12 +135,12 @@ describe("BackfillScreen", () => {
 
       fireEvent.press(screen.getByLabelText("send"));
 
-      expect(mockRouter.replace).not.toHaveBeenCalled();
+      expect(mockOpen).not.toHaveBeenCalled();
       expect(mockRouter.back).not.toHaveBeenCalled();
       expect(screen.getByText("banner:network")).toBeTruthy();
     });
 
-    test("still opens the meal when the app is not active at success time", () => {
+    test("still opens the meal when the app is not active at success time", async () => {
       setAppState("inactive");
       mockTextMutate.mockImplementation((_args, opts) =>
         opts.onSuccess?.({ meal: { id: MEAL_ID }, already_existed: false }),
@@ -130,7 +149,7 @@ describe("BackfillScreen", () => {
 
       fireEvent.press(screen.getByLabelText("send"));
 
-      expect(mockRouter.replace).toHaveBeenCalledWith(MEAL_ROUTE);
+      await expectSheetClosedThenDrawerOpened();
     });
   });
 
@@ -160,7 +179,7 @@ describe("BackfillScreen", () => {
   });
 
   describe("audio", () => {
-    test("uploads, registers with the chosen day and opens the returned meal", async () => {
+    test("uploads, registers with the chosen day and opens the returned meal in the drawer", async () => {
       mockAudioMutate.mockImplementation((_args, opts) =>
         opts.onSuccess?.({ meal: { id: MEAL_ID }, already_existed: false }),
       );
@@ -168,7 +187,7 @@ describe("BackfillScreen", () => {
 
       fireEvent.press(screen.getByLabelText("audio"));
 
-      await waitFor(() => expect(mockRouter.replace).toHaveBeenCalledWith(MEAL_ROUTE));
+      await expectSheetClosedThenDrawerOpened();
       expect(mockAudioMutate).toHaveBeenCalledWith(
         expect.objectContaining({
           audio_path: "user-1/client-meal-id.m4a",
@@ -188,7 +207,7 @@ describe("BackfillScreen", () => {
 
       fireEvent.press(screen.getByLabelText("audio"));
 
-      await waitFor(() => expect(mockRouter.replace).toHaveBeenCalledWith(MEAL_ROUTE));
+      await expectSheetClosedThenDrawerOpened();
     });
 
     test("an empty transcription shows the network banner and does not navigate", async () => {
@@ -201,7 +220,7 @@ describe("BackfillScreen", () => {
       fireEvent.press(screen.getByLabelText("audio"));
 
       await waitFor(() => expect(screen.getByText("banner:network")).toBeTruthy());
-      expect(mockRouter.replace).not.toHaveBeenCalled();
+      expect(mockOpen).not.toHaveBeenCalled();
     });
 
     test("a backfill window error shows its own banner", async () => {
@@ -213,7 +232,7 @@ describe("BackfillScreen", () => {
       fireEvent.press(screen.getByLabelText("audio"));
 
       await waitFor(() => expect(screen.getByText("banner:backfill_window_exceeded")).toBeTruthy());
-      expect(mockRouter.replace).not.toHaveBeenCalled();
+      expect(mockOpen).not.toHaveBeenCalled();
     });
 
     test("an upload failure shows the network banner and never registers", async () => {
@@ -225,7 +244,7 @@ describe("BackfillScreen", () => {
 
       await waitFor(() => expect(screen.getByText("banner:network")).toBeTruthy());
       expect(mockAudioMutate).not.toHaveBeenCalled();
-      expect(mockRouter.replace).not.toHaveBeenCalled();
+      expect(mockOpen).not.toHaveBeenCalled();
     });
   });
 });

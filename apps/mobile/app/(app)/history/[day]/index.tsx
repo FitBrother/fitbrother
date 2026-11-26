@@ -4,6 +4,7 @@ import { ChevronLeft, Plus } from "lucide-react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import type { MealResponse } from "@fitbrother/shared";
 import { useMealsForDay } from "@/lib/hooks/useMealsForDay";
+import { useOpenMeal } from "@/lib/hooks/useOpenMeal";
 import { useDailySummary } from "@/lib/hooks/useDailySummary";
 import { addDaysIso } from "@/lib/dateMath";
 import { nutritionalToday } from "@/lib/time/nutritional-day";
@@ -28,6 +29,7 @@ function formatDayHeader(day: string): string {
 export default function HistoryDayScreen() {
   const { day } = useLocalSearchParams<{ day: string }>();
   const router = useRouter();
+  const openMeal = useOpenMeal();
   const profile = useProfile();
   const today = nutritionalToday(profile);
   const canBackfill = !!day && day !== today && day >= addDaysIso(today, -6);
@@ -93,16 +95,7 @@ export default function HistoryDayScreen() {
             keyExtractor={(m) => m.id}
             renderItem={({ item }) => (
               <View className="mx-4 mt-3">
-                <MealCard
-                  meal={item}
-                  onPress={() =>
-                    router.push({
-                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                      pathname: "/(app)/meal/[id]" as any,
-                      params: { id: item.id },
-                    })
-                  }
-                />
+                <MealCard meal={item} onPress={() => openMeal(item)} />
               </View>
             )}
             contentContainerStyle={{ paddingBottom: 24 }}

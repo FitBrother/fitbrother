@@ -35,7 +35,8 @@ import { useAvatarUrl } from "@/lib/hooks/useAvatarUrl";
 import { nutritionalToday } from "@/lib/time/nutritional-day";
 import { useMealsForDay } from "@/lib/hooks/useMealsForDay";
 import { pendingMealsOf } from "@/lib/pending-meals";
-import { mealRoute } from "@/lib/meal-route";
+import { useOpenMeal } from "@/lib/hooks/useOpenMeal";
+import { useConfirmMealSheet } from "@/lib/confirm-meal/confirm-meal-context";
 import { PendingKcalNote } from "@/components/domain/PendingKcalNote";
 import { PendingMealsBanner } from "@/components/domain/PendingMealsBanner";
 import { useDailySummary } from "@/lib/hooks/useDailySummary";
@@ -174,6 +175,8 @@ export default function HomeScreen() {
   const [disclaimerOpen, setDisclaimerOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<HomeTab>("home");
   const tour = useTour();
+  const openMeal = useOpenMeal();
+  const confirmSheet = useConfirmMealSheet();
 
   // O tour comanda a aba mostrada em cada passo — ver TOUR_TAB — e, ao
   // terminar (sem passo atual), devolve o usuário ao dashboard. As abas em si
@@ -402,10 +405,7 @@ export default function HomeScreen() {
           <Animated.View entering={FadeInDown.duration(250).delay(Math.min(index, 9) * 40)}>
             <MealCardSwipeable
               meal={item}
-              onPress={() =>
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                router.push({ pathname: "/(app)/meal/[id]" as any, params: { id: item.id } })
-              }
+              onPress={() => openMeal(item)}
               onDelete={() => handleDelete(item.id)}
               onShare={() => router.push(`/(app)/share/meal/${item.id}` as never)}
             />
@@ -414,7 +414,7 @@ export default function HomeScreen() {
       },
     // `handleDelete` captures `day`; including it ensures renderItem is
     // recreated at day rollover — FlatList compares by data reference anyway.
-    [router, handleDelete],
+    [router, handleDelete, openMeal],
   );
 
   if (isDesktop) {
@@ -475,10 +475,7 @@ export default function HomeScreen() {
             <View className="flex-1">
               {pendingMeals.length > 0 && (
                 <View className="mb-4 px-4">
-                  <PendingMealsBanner
-                    meals={pendingMeals}
-                    onOpen={(id) => router.push(mealRoute(id))}
-                  />
+                  <PendingMealsBanner meals={pendingMeals} onOpen={confirmSheet.open} />
                 </View>
               )}
               {/* `px-4` pelo mesmo motivo do cabeçalho da lista no mobile: os
@@ -589,7 +586,7 @@ export default function HomeScreen() {
         </Card>
       </Animated.View>
       <PendingKcalNote meals={pendingMeals} />
-      <PendingMealsBanner meals={pendingMeals} onOpen={(id) => router.push(mealRoute(id))} />
+      <PendingMealsBanner meals={pendingMeals} onOpen={confirmSheet.open} />
       {disclaimerOpen && (
         // 22 como o card acima: o disclaimer abre colado nele e é conteúdo
         // inline, não uma superfície flutuante como o ErrorBanner.

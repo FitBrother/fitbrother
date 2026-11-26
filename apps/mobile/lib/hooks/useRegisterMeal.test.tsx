@@ -3,7 +3,8 @@ import { renderHook } from "@testing-library/react-native";
 import { AppState } from "react-native";
 
 const MEAL_ID = "33333333-3333-4333-8333-333333333333";
-const mockRouter = { push: jest.fn(), replace: jest.fn() };
+const mockRouter = { push: jest.fn(), replace: jest.fn(), back: jest.fn(), canGoBack: () => true };
+const mockOpen = jest.fn();
 type Opts = { onSuccess?: (r: unknown) => void; onError?: (e: Error) => void };
 const mockText = jest.fn<(args: unknown, opts: Opts) => void>();
 const mockAudio = jest.fn<(args: unknown, opts: Opts) => void>();
@@ -20,6 +21,9 @@ jest.mock("expo-router", () => {
     },
   };
 });
+jest.mock("@/lib/confirm-meal/confirm-meal-context", () => ({
+  useConfirmMealSheet: () => ({ open: mockOpen, close: jest.fn() }),
+}));
 jest.mock("@/lib/api/meals", () => ({
   QuotaExceededError: class QuotaExceededError extends Error {},
   getErrorStatus: (err: unknown) =>
@@ -38,7 +42,6 @@ jest.mock("@/lib/hooks/useCreateMealPhoto", () => ({
 }));
 
 import { QuotaExceededError } from "@/lib/api/meals";
-import { mealRoute } from "@/lib/meal-route";
 import { useRegisterMeal } from "@/lib/hooks/useRegisterMeal";
 
 const textArgs = { client_meal_id: "c1", text: "arroz", locale: "pt-BR", day: "2026-11-25" };
@@ -94,7 +97,8 @@ describe("useRegisterMeal", () => {
       pick(result)(args as never);
 
       expect(mutate).toHaveBeenCalledWith(args, expect.any(Object));
-      expect(mockRouter.push).toHaveBeenCalledWith(mealRoute(MEAL_ID));
+      expect(mockOpen).toHaveBeenCalledWith(MEAL_ID);
+      expect(mockRouter.push).not.toHaveBeenCalled();
       expect(onError).not.toHaveBeenCalled();
     });
 
@@ -106,8 +110,8 @@ describe("useRegisterMeal", () => {
 
       pick(result)(args as never);
 
-      expect(mockRouter.push).toHaveBeenCalledTimes(1);
-      expect(mockRouter.push).toHaveBeenCalledWith(mealRoute(MEAL_ID));
+      expect(mockOpen).toHaveBeenCalledTimes(1);
+      expect(mockOpen).toHaveBeenCalledWith(MEAL_ID);
     });
 
     test("reports the classified error and does not navigate", () => {
@@ -117,8 +121,7 @@ describe("useRegisterMeal", () => {
       pick(result)(args as never);
 
       expect(onError).toHaveBeenCalledWith("quota_exceeded");
-      expect(mockRouter.push).not.toHaveBeenCalled();
-      expect(mockRouter.replace).not.toHaveBeenCalled();
+      expect(mockOpen).not.toHaveBeenCalled();
     });
   });
 
@@ -146,14 +149,20 @@ describe("useRegisterMeal", () => {
     expect(onError).toHaveBeenCalledWith("server_error");
   });
 
-  test("replaces the screen in replace mode", () => {
-    mockText.mockImplementation((_a, opts) => opts.onSuccess?.({ meal: { id: MEAL_ID } }));
-    const { result } = setup({ mode: "replace" });
+  test("leaveScreen closes the host screen before opening the drawer", () => {
+    jest.useFakeTimers();
+    try {
+      mockText.mockImplementation((_a, opts) => opts.onSuccess?.({ meal: { id: MEAL_ID } }));
+      const { result } = setup({ leaveScreen: true });
 
-    result.current.submitText(textArgs as never);
+      result.current.submitText(textArgs as never);
 
-    expect(mockRouter.replace).toHaveBeenCalledWith(mealRoute(MEAL_ID));
-    expect(mockRouter.push).not.toHaveBeenCalled();
+      expect(mockRouter.back).toHaveBeenCalledTimes(1);
+      jest.runAllTimers();
+      expect(mockOpen).toHaveBeenCalledWith(MEAL_ID);
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   test("does not navigate after the host screen unmounts", () => {
@@ -164,7 +173,7 @@ describe("useRegisterMeal", () => {
 
     submit(textArgs as never);
 
-    expect(mockRouter.push).not.toHaveBeenCalled();
+    expect(mockOpen).not.toHaveBeenCalled();
   });
 
   test("honors requireActive: false", () => {
@@ -174,11 +183,11 @@ describe("useRegisterMeal", () => {
       writable: true,
     });
     mockText.mockImplementation((_a, opts) => opts.onSuccess?.({ meal: { id: MEAL_ID } }));
-    const { result } = setup({ mode: "replace", requireActive: false });
+    const { result } = setup({ requireActive: false });
 
     result.current.submitText(textArgs as never);
 
-    expect(mockRouter.replace).toHaveBeenCalledWith(mealRoute(MEAL_ID));
+    expect(mockOpen).toHaveBeenCalledWith(MEAL_ID);
   });
 
   test("keeps the submit callbacks stable across renders", () => {

@@ -33,7 +33,7 @@ export default function BackfillScreen() {
   const userId = session.status === "signed_in" ? session.session.user.id : undefined;
   const [banner, setBanner] = useState<ErrorBannerVariant | null>(null);
   const { submitText, submitAudio, isPending } = useRegisterMeal({
-    mode: "replace",
+    leaveScreen: true,
     requireActive: false,
     onError: setBanner,
   });

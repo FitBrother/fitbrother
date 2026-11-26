@@ -11,7 +11,7 @@ import { supabase } from "@/lib/supabase";
 import { useOnboardingStore } from "@/lib/stores/onboardingStore";
 import { nutritionalToday } from "@/lib/time/nutritional-day";
 import type { OnboardingBlockProps } from "@/lib/onboarding/types";
-import { mealRoute } from "@/lib/meal-route";
+import { useConfirmMealSheet } from "@/lib/confirm-meal/confirm-meal-context";
 
 export function FirstMealBlock({ chapter }: OnboardingBlockProps) {
   const [processing, setProcessing] = useState(false);
@@ -21,11 +21,13 @@ export function FirstMealBlock({ chapter }: OnboardingBlockProps) {
   const day_start_hour = useOnboardingStore((s) => s.day_start_hour);
   const locale = useOnboardingStore((s) => s.locale);
   const reset = useOnboardingStore((s) => s.reset);
+  const sheet = useConfirmMealSheet();
   const day = nutritionalToday({ timezone, day_start_hour });
 
   function finish(mealId?: string) {
     reset();
-    router.replace(mealId ? mealRoute(mealId) : ("/(app)" as never));
+    router.replace("/(app)" as never);
+    if (mealId) sheet.open(mealId);
   }
 
   async function handleSend(text: string) {

@@ -5,6 +5,7 @@ import { Pressable as MockPressable, Text as MockText } from "react-native";
 const MEAL_ID = "33333333-3333-4333-8333-333333333333";
 const mockRouter = { replace: jest.fn(), push: jest.fn() };
 const mockReset = jest.fn();
+const mockOpen = jest.fn();
 const mockMutateAsync = jest.fn<(args: unknown) => Promise<unknown>>();
 const mockAudioMutateAsync = jest.fn<(args: unknown) => Promise<unknown>>();
 const mockUploadAudio = jest.fn<(args: unknown) => Promise<{ path: string }>>();
@@ -20,6 +21,9 @@ jest.mock("expo-router", () => ({
   get router() {
     return mockRouter;
   },
+}));
+jest.mock("@/lib/confirm-meal/confirm-meal-context", () => ({
+  useConfirmMealSheet: () => ({ open: mockOpen, close: jest.fn() }),
 }));
 jest.mock("@/lib/stores/onboardingStore", () => ({
   useOnboardingStore: (sel: (s: typeof mockStore) => unknown) => sel(mockStore),
@@ -92,17 +96,16 @@ describe("FirstMealBlock", () => {
     mockUploadAudio.mockResolvedValue({ path: "user-1/client-meal-id.m4a" });
   });
 
-  test("opens the meal screen after the first meal is created", async () => {
+  test("goes home and opens the confirm drawer after the first meal is created", async () => {
     mockMutateAsync.mockResolvedValue({ meal: { id: MEAL_ID }, already_existed: false });
     render(<FirstMealBlock {...props} />);
 
     fireEvent.press(screen.getByLabelText("send"));
 
-    await waitFor(() =>
-      expect(mockRouter.replace).toHaveBeenCalledWith({
-        pathname: "/(app)/meal/[id]",
-        params: { id: MEAL_ID },
-      }),
+    await waitFor(() => expect(mockOpen).toHaveBeenCalledWith(MEAL_ID));
+    expect(mockRouter.replace).toHaveBeenCalledWith("/(app)");
+    expect(mockRouter.replace.mock.invocationCallOrder[0]).toBeLessThan(
+      mockOpen.mock.invocationCallOrder[0]!,
     );
     expect(mockReset).toHaveBeenCalledTimes(1);
   });
@@ -115,6 +118,7 @@ describe("FirstMealBlock", () => {
 
     await waitFor(() => expect(mockMutateAsync).toHaveBeenCalled());
     expect(mockRouter.replace).not.toHaveBeenCalled();
+    expect(mockOpen).not.toHaveBeenCalled();
     expect(mockReset).not.toHaveBeenCalled();
   });
 
@@ -124,20 +128,20 @@ describe("FirstMealBlock", () => {
     fireEvent.press(screen.getByLabelText("skip"));
 
     expect(mockRouter.replace).toHaveBeenCalledWith("/(app)");
+    expect(mockOpen).not.toHaveBeenCalled();
     expect(mockReset).toHaveBeenCalledTimes(1);
   });
 
-  test("opens the meal screen after the first meal is registered by audio", async () => {
+  test("goes home and opens the confirm drawer after the first meal is registered by audio", async () => {
     mockAudioMutateAsync.mockResolvedValue({ meal: { id: MEAL_ID }, already_existed: false });
     render(<FirstMealBlock {...props} />);
 
     fireEvent.press(screen.getByLabelText("audio"));
 
-    await waitFor(() =>
-      expect(mockRouter.replace).toHaveBeenCalledWith({
-        pathname: "/(app)/meal/[id]",
-        params: { id: MEAL_ID },
-      }),
+    await waitFor(() => expect(mockOpen).toHaveBeenCalledWith(MEAL_ID));
+    expect(mockRouter.replace).toHaveBeenCalledWith("/(app)");
+    expect(mockRouter.replace.mock.invocationCallOrder[0]).toBeLessThan(
+      mockOpen.mock.invocationCallOrder[0]!,
     );
     expect(mockAudioMutateAsync).toHaveBeenCalledWith(
       expect.objectContaining({ audio_path: "user-1/client-meal-id.m4a", duration_s: 2 }),
@@ -153,6 +157,7 @@ describe("FirstMealBlock", () => {
 
     await waitFor(() => expect(mockAudioMutateAsync).toHaveBeenCalled());
     expect(mockRouter.replace).not.toHaveBeenCalled();
+    expect(mockOpen).not.toHaveBeenCalled();
     expect(mockReset).not.toHaveBeenCalled();
   });
 

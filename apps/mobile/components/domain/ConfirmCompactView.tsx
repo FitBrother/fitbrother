@@ -7,7 +7,7 @@ import { drawerLabel, headlineText } from "@/lib/confirm-drawer";
 import type { MealConfirmation } from "@/lib/hooks/useMealConfirmation";
 import { ConfirmButton, DiscardLink, KcalTotal } from "./ConfirmDrawerActions";
 import { MealMetaLine } from "./MealMetaLine";
-import { MealPhotoThumb, photoPath } from "./MealSourceCard";
+import { MealPhotoThumb, photoPath } from "./MealPhotoThumb";
 
 const LOW_CONFIDENCE = 0.6;
 

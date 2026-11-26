@@ -24,6 +24,7 @@ import { queryClient } from "@/lib/query-client";
 import { installKeyboardScrollGuard } from "@/lib/pwa/keyboard-scroll-guard";
 import { registerServiceWorker } from "@/lib/pwa/register-service-worker";
 import { DialogProvider } from "@/lib/dialog/dialog-context";
+import { ConfirmMealProvider } from "@/lib/confirm-meal/confirm-meal-context";
 import { ToastProvider } from "@/lib/toast/toast-context";
 import "../global.css";
 
@@ -68,7 +69,10 @@ export default function RootLayout() {
                 precisa do toast já montado para ter onde aparecer. */}
             <DialogProvider>
               <StatusBar style="dark" />
-              <Stack screenOptions={{ headerShown: false, animation: "fade" }} />
+              {/* At the root so onboarding can open the drawer that the (app) layout hosts. */}
+              <ConfirmMealProvider>
+                <Stack screenOptions={{ headerShown: false, animation: "fade" }} />
+              </ConfirmMealProvider>
             </DialogProvider>
           </ToastProvider>
         </QueryClientProvider>

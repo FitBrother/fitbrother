@@ -8,6 +8,7 @@ const MEAL_ID = "33333333-3333-4333-8333-333333333333";
 const mockProfile = { timezone: "America/Sao_Paulo", day_start_hour: 4 };
 const mockToast = jest.fn();
 const mockGetMeal = jest.fn<(id: string) => Promise<MealResponse>>();
+const mockOpen = jest.fn();
 
 const mockRouter = {
   back: jest.fn(),
@@ -20,6 +21,9 @@ jest.mock("expo-router", () => ({
   useRouter: () => mockRouter,
   useNavigation: () => ({ dispatch: jest.fn() }),
   useLocalSearchParams: () => ({ id: "33333333-3333-4333-8333-333333333333" }),
+}));
+jest.mock("@/lib/confirm-meal/confirm-meal-context", () => ({
+  useConfirmMealSheet: () => ({ open: mockOpen, close: jest.fn() }),
 }));
 jest.mock("@react-navigation/native", () => ({ usePreventRemove: jest.fn() }));
 jest.mock("@/lib/api/meals", () => ({
@@ -148,13 +152,34 @@ describe("meal detail route", () => {
     expect(screen.queryByLabelText("Editar refeição")).toBeNull();
   });
 
-  test("renders the pending editor for a meal that still needs confirmation", async () => {
+  test("a pending meal opens the confirm drawer and leaves without showing the editor", async () => {
+    mockRouter.canGoBack.mockReturnValue(true);
     mockGetMeal.mockResolvedValue(pending);
+    await renderScreen({ settle: false });
+
+    await waitFor(() => expect(mockOpen).toHaveBeenCalledWith(MEAL_ID));
+    expect(mockOpen).toHaveBeenCalledTimes(1);
+    expect(mockRouter.back).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText("Refeição")).toBeNull();
+    expect(screen.queryByText("Arroz cozido")).toBeNull();
+    expect(screen.getByTestId("meal-edit-skeleton")).toBeTruthy();
+  });
+
+  test("a pending meal opened by deep link goes home under the drawer", async () => {
+    mockRouter.canGoBack.mockReturnValue(false);
+    mockGetMeal.mockResolvedValue(pending);
+    await renderScreen({ settle: false });
+
+    await waitFor(() => expect(mockOpen).toHaveBeenCalledWith(MEAL_ID));
+    expect(mockRouter.replace).toHaveBeenCalledWith("/(app)");
+    expect(mockRouter.back).not.toHaveBeenCalled();
+  });
+
+  test("a confirmed meal does not open the drawer", async () => {
+    mockGetMeal.mockResolvedValue(meal);
     await renderScreen();
 
-    expect(screen.getByText("Confirme o que entendi")).toBeTruthy();
-    expect(screen.getByText("ainda não conta no seu dia")).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Confirmar refeição" })).toBeTruthy();
-    expect(screen.queryByText("Confira os itens")).toBeNull();
+    expect(mockOpen).not.toHaveBeenCalled();
+    expect(mockRouter.back).not.toHaveBeenCalled();
   });
 });
