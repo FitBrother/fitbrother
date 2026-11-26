@@ -1,0 +1,39 @@
+name: PR policy
+
+on:
+  pull_request:
+    branches: [main, dev]
+    types: [opened, edited, reopened, synchronize]
+
+permissions:
+  contents: read
+
+jobs:
+  pr-policy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate base, branch name and title
+        env:
+          BASE: ${{ github.base_ref }}
+          HEAD: ${{ github.head_ref }}
+          TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          fail=0
+          types='feat|fix|refactor|perf|docs|test|chore|ci|build|infra'
+
+          if [ "$BASE" = "main" ] && [ "$HEAD" != "dev" ]; then
+            echo "::error::Only 'dev' can target 'main'. Open this PR against 'dev'."
+            fail=1
+          fi
+
+          if [ "$HEAD" != "dev" ] && ! echo "$HEAD" | grep -Eq "^($types)/[a-z0-9]+(-[a-z0-9]+)*$"; then
+            echo "::error::Branch '$HEAD' must match <type>/<kebab-case-summary> (types: $types)."
+            fail=1
+          fi
+
+          if ! echo "$TITLE" | grep -Eq "^($types)(\([a-z0-9-]+\))?!?: .+"; then
+            echo "::error::PR title must follow Conventional Commits: 'type(scope): summary'."
+            fail=1
+          fi
+
+          exit $fail
