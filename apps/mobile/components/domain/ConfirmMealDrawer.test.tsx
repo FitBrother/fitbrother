@@ -421,4 +421,80 @@ describe("ConfirmMealDrawer", () => {
     fireEvent.press(screen.getByText("Jantar"));
     expect(onDirtyChange).toHaveBeenLastCalledWith(true);
   });
+
+  describe("meal data replaced", () => {
+    const chicken = {
+      ...rice,
+      id: "55555555-5555-4555-8555-555555555555",
+      description: "Frango grelhado",
+      quantity: 120,
+      kcal: 190,
+    };
+    const threeItems = [rice, beans, chicken] as MealResponse["items"];
+    const twoItems = [rice, beans] as MealResponse["items"];
+
+    function openChicken() {
+      const view = renderDrawer({ items: threeItems });
+      openAdjust();
+      fireEvent.press(screen.getByLabelText("Editar Frango grelhado"));
+      expect(screen.getByRole("button", { name: "Voltar à lista" })).toBeTruthy();
+      return view;
+    }
+
+    test("a clean draft leaves the item view for the adjust list", () => {
+      const view = openChicken();
+      view.rerender(tree({ ...pending, items: twoItems } as MealResponse));
+      expect(screen.queryByRole("button", { name: "Voltar à lista" })).toBeNull();
+      expect(screen.getByText("Ajustar refeição")).toBeTruthy();
+      expect(screen.getAllByTestId("drawer-item-row")).toHaveLength(2);
+    });
+
+    test("a dirty draft is kept and stays on the open item", () => {
+      const view = openChicken();
+      fireEvent.changeText(screen.getByLabelText("Quantidade"), "250");
+      view.rerender(tree({ ...pending, items: twoItems } as MealResponse));
+      expect(screen.getByDisplayValue("Frango grelhado")).toBeTruthy();
+      expect(screen.getByDisplayValue("250")).toBeTruthy();
+      fireEvent.press(screen.getByRole("button", { name: "Voltar à lista" }));
+      expect(screen.getAllByTestId("drawer-item-row")).toHaveLength(3);
+    });
+  });
+
+  test("cancelling the discard after removing the last item keeps it", async () => {
+    mockConfirm.mockResolvedValue(false);
+    renderDrawer({ items: [rice] as MealResponse["items"] });
+    openAdjust();
+    fireEvent.press(screen.getByLabelText("Editar Arroz, tipo 1, cozido"));
+    fireEvent.press(screen.getByLabelText("Remover item"));
+    await waitFor(() => expect(mockConfirm).toHaveBeenCalled());
+    expect(mockRemove).not.toHaveBeenCalled();
+    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.getByText("Ajustar refeição")).toBeTruthy();
+    expect(screen.getAllByTestId("drawer-item-row")).toHaveLength(1);
+  });
+
+  test("a failed delete shows the toast and keeps the drawer", async () => {
+    mockConfirm.mockResolvedValue(true);
+    renderDrawer();
+    fireEvent.press(discardButton());
+    await waitFor(() => expect(mockRemove).toHaveBeenCalled());
+    const opts = mockRemove.mock.calls[0]?.[1] as { onError: (e: Error) => void };
+    act(() => opts.onError(new Error("boom")));
+    expect(mockToast).toHaveBeenCalledWith({
+      variant: "error",
+      message: "Não foi possível excluir",
+    });
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  test("taps while sending change nothing and send nothing", () => {
+    mockUpdateState.isPending = true;
+    renderDrawer();
+    fireEvent.press(confirmButton());
+    fireEvent.press(screen.getByRole("button", { name: "Ajustar" }));
+    expect(screen.queryByText("Ajustar refeição")).toBeNull();
+    expect(mockMutate).not.toHaveBeenCalled();
+    expect(mockConfirm).not.toHaveBeenCalled();
+    expect(screen.getByText("189")).toBeTruthy();
+  });
 });

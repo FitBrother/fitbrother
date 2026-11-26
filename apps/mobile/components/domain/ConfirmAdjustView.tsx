@@ -10,7 +10,7 @@ export function ConfirmAdjustView({ confirmation: c }: { confirmation: MealConfi
   return (
     <View className="shrink">
       <View className="flex-row items-center gap-2 px-5 pb-2">
-        <DrawerBackButton label="Voltar ao resumo" onPress={c.back} />
+        <DrawerBackButton label="Voltar ao resumo" disabled={c.busy} onPress={c.back} />
         <Text numberOfLines={1} className="flex-1 font-display-bold text-xl text-neutral-900">
           Ajustar refeição
         </Text>

@@ -42,6 +42,7 @@ export function useMealConfirmation(meal: MealResponse, onClose: () => void) {
     setMealType(m.meal_type);
     setConsumedAt(m.consumed_at);
     setErrorIndexes(new Set());
+    if (view.name === "item") go({ type: "done_item" });
   };
 
   // A newer server copy replaces only an untouched draft.
@@ -157,13 +158,13 @@ export function useMealConfirmation(meal: MealResponse, onClose: () => void) {
   };
 
   const leaveItem = () => {
-    if (view.name !== "item") return;
+    if (busy || view.name !== "item") return;
     if (isEmptyDraft(view.index)) discardDraft(view.index);
     go({ type: "done_item" });
   };
 
   const removeOpenItem = () => {
-    if (view.name !== "item") return;
+    if (busy || view.name !== "item") return;
     const index = view.index;
     go({ type: "done_item" });
     if (isEmptyDraft(index)) {

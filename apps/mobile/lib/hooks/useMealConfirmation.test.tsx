@@ -4,9 +4,10 @@ import type { MealResponse } from "@fitbrother/shared";
 
 const mockMutate = jest.fn();
 const mockToast = jest.fn();
+const mockUpdateState = { isPending: false };
 
 jest.mock("@/lib/hooks/useUpdateMeal", () => ({
-  useUpdateMeal: () => ({ mutate: mockMutate, isPending: false }),
+  useUpdateMeal: () => ({ mutate: mockMutate, isPending: mockUpdateState.isPending }),
 }));
 jest.mock("@/lib/hooks/useDeleteMeal", () => ({
   useDeleteMeal: () => ({ mutate: jest.fn(), isPending: false }),
@@ -54,6 +55,7 @@ function setup() {
 describe("useMealConfirmation", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockUpdateState.isPending = false;
   });
 
   test("starts clean in the compact view", () => {
@@ -88,5 +90,37 @@ describe("useMealConfirmation", () => {
     act(() => result.current.confirm());
     act(() => result.current.confirm());
     expect(mockMutate).toHaveBeenCalledTimes(1);
+  });
+
+  test("while sending every entry point is ignored", () => {
+    mockUpdateState.isPending = true;
+    const { result } = setup();
+    act(() => {
+      result.current.stepItem(0, 1);
+      result.current.setMealType("dinner");
+      result.current.addItem();
+      result.current.adjust();
+      result.current.openItem(0);
+      result.current.confirm();
+    });
+    expect(result.current.items[0]?.quantity).toBe(100);
+    expect(result.current.items).toHaveLength(1);
+    expect(result.current.mealType).toBe("lunch");
+    expect(result.current.view).toEqual({ name: "compact" });
+    expect(result.current.dirty).toBe(false);
+    expect(mockMutate).not.toHaveBeenCalled();
+  });
+
+  test("leaving or removing the open item is ignored while sending", () => {
+    const hook = setup();
+    act(() => hook.result.current.openItem(0));
+    mockUpdateState.isPending = true;
+    hook.rerender({});
+    act(() => {
+      hook.result.current.leaveItem();
+      hook.result.current.removeOpenItem();
+    });
+    expect(hook.result.current.view).toEqual({ name: "item", index: 0 });
+    expect(hook.result.current.items).toHaveLength(1);
   });
 });

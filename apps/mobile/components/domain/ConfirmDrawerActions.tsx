@@ -45,13 +45,25 @@ export function DiscardLink({ disabled, onPress }: { disabled: boolean; onPress:
   );
 }
 
-export function DrawerBackButton({ label, onPress }: { label: string; onPress: () => void }) {
+export function DrawerBackButton({
+  label,
+  disabled,
+  onPress,
+}: {
+  label: string;
+  disabled: boolean;
+  onPress: () => void;
+}) {
   return (
     <Pressable
       onPress={onPress}
+      disabled={disabled}
       accessibilityRole="button"
       accessibilityLabel={label}
-      className="-ml-2 min-h-[44px] min-w-[44px] items-center justify-center"
+      accessibilityState={{ disabled }}
+      className={`-ml-2 min-h-[44px] min-w-[44px] items-center justify-center ${
+        disabled ? "opacity-50" : ""
+      }`}
     >
       <ChevronLeft size={24} color={colors.neutral[800]} />
     </Pressable>

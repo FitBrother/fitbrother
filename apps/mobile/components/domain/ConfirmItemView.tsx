@@ -16,7 +16,7 @@ export function ConfirmItemView({
   return (
     <View className="shrink">
       <View className="flex-row items-center gap-2 px-5 pb-2">
-        <DrawerBackButton label="Voltar à lista" onPress={c.leaveItem} />
+        <DrawerBackButton label="Voltar à lista" disabled={c.busy} onPress={c.leaveItem} />
         <Text numberOfLines={1} className="flex-1 font-sans-semibold text-[17px] text-neutral-900">
           {item.description.trim() || "Novo item"}
         </Text>
