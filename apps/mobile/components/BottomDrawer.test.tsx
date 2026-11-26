@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
 import { act, fireEvent, render } from "@testing-library/react-native";
-import { BackHandler, Dimensions, StyleSheet, Text } from "react-native";
-import type { NativeEventSubscription } from "react-native";
+import { BackHandler, Dimensions, Pressable, StyleSheet, Text, View } from "react-native";
+import type { NativeEventSubscription, StyleProp, ViewStyle } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { BottomDrawer } from "./BottomDrawer";
@@ -50,7 +50,7 @@ function drawer(props: Partial<React.ComponentProps<typeof BottomDrawer>> = {}) 
   return (
     <SafeAreaProvider initialMetrics={metrics}>
       <BottomDrawer visible onClose={jest.fn()} accessibilityLabel={LABEL} {...props}>
-        <Text>conteudo</Text>
+        {props.children ?? <Text>conteudo</Text>}
       </BottomDrawer>
     </SafeAreaProvider>
   );
@@ -81,19 +81,20 @@ describe("BottomDrawer", () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  test("tocar dentro do painel não fecha e entrega o toque aos filhos", () => {
+  test("tocar num botão dentro do painel aciona o filho e não fecha", () => {
     const onClose = jest.fn();
     const onChild = jest.fn();
-    const { getByText, getByLabelText } = render(
+    const { getByLabelText } = render(
       <SafeAreaProvider initialMetrics={metrics}>
         <BottomDrawer visible onClose={onClose} accessibilityLabel={LABEL}>
-          <Text onPress={onChild}>conteudo</Text>
+          <Pressable accessibilityRole="button" accessibilityLabel="Salvar" onPress={onChild}>
+            <Text>Salvar</Text>
+          </Pressable>
         </BottomDrawer>
       </SafeAreaProvider>,
     );
 
-    fireEvent.press(getByLabelText(LABEL));
-    fireEvent.press(getByText("conteudo"));
+    fireEvent.press(getByLabelText("Salvar"));
 
     expect(onChild).toHaveBeenCalledTimes(1);
     expect(onClose).not.toHaveBeenCalled();
@@ -168,5 +169,46 @@ describe("BottomDrawer", () => {
     rerender(drawer({ visible: true }));
 
     expect(getByText("conteudo")).toBeTruthy();
+  });
+
+  test("a cadeia painel até o conteúdo encolhe com um filho alto (teclado aberto)", () => {
+    const { getByTestId, getByLabelText } = render(
+      drawer({ children: <View style={{ height: 2000 }} /> }),
+    );
+
+    const flat = (node: { props: { style?: unknown } }): ViewStyle =>
+      StyleSheet.flatten(node.props.style as StyleProp<ViewStyle>) ?? {};
+    const encolhe = (node: { props: { style?: unknown; className?: string } }) =>
+      flat(node).flexShrink === 1 || /\bshrink\b/.test(String(node.props.className ?? ""));
+
+    expect(flat(getByTestId("bottom-drawer-wrapper")).flexShrink).toBe(1);
+    expect(encolhe(getByLabelText(LABEL))).toBe(true);
+    expect(encolhe(getByTestId("bottom-drawer-content"))).toBe(true);
+  });
+
+  test("reabrir no meio da saída mantém o drawer visível", () => {
+    const { rerender, getByText } = render(drawer());
+
+    rerender(drawer({ visible: false }));
+    act(() => {
+      jest.advanceTimersByTime(100);
+    });
+    rerender(drawer({ visible: true }));
+    act(() => {
+      jest.advanceTimersByTime(2000);
+    });
+
+    expect(getByText("conteudo")).toBeTruthy();
+  });
+
+  test("o overlay ignora toques enquanto sai e deixa passar enquanto visível", () => {
+    const { rerender, getByTestId } = render(drawer());
+    const eventos = () => StyleSheet.flatten(getByTestId("bottom-drawer-overlay").props.style);
+
+    expect(eventos().pointerEvents).toBe("box-none");
+    expect(getByTestId("bottom-drawer-overlay").props["aria-modal"]).toBe(true);
+
+    rerender(drawer({ visible: false }));
+    expect(eventos().pointerEvents).toBe("none");
   });
 });

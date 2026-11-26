@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   BackHandler,
   KeyboardAvoidingView,
@@ -38,8 +38,10 @@ export function BottomDrawer({
   const insets = useSafeAreaInsets();
   const progress = useSharedValue(0);
   const [mounted, setMounted] = useState(visible);
+  const visibleRef = useRef(visible);
 
   useEffect(() => {
+    visibleRef.current = visible;
     if (visible) {
       setMounted(true);
       progress.value = withTiming(1, {
@@ -48,7 +50,9 @@ export function BottomDrawer({
       });
       return;
     }
-    const unmount = () => setMounted(false);
+    const unmount = () => {
+      if (!visibleRef.current) setMounted(false);
+    };
     progress.value = withTiming(
       0,
       { duration: Motion.duration.base, easing: Motion.easing.accelerate },
@@ -71,6 +75,7 @@ export function BottomDrawer({
 
   const scrimStyle = useAnimatedStyle(() => ({ opacity: progress.value }));
   const panelStyle = useAnimatedStyle(() => ({
+    flexShrink: 1,
     transform: [{ translateY: (1 - progress.value) * height }],
   }));
 
@@ -78,9 +83,13 @@ export function BottomDrawer({
 
   return (
     <View
-      style={[StyleSheet.absoluteFill, { zIndex: OVERLAY_Z_INDEX }]}
-      pointerEvents={visible ? "box-none" : "none"}
+      testID="bottom-drawer-overlay"
+      style={[
+        StyleSheet.absoluteFill,
+        { zIndex: OVERLAY_Z_INDEX, pointerEvents: visible ? "box-none" : "none" },
+      ]}
       accessibilityViewIsModal
+      aria-modal
     >
       <Animated.View style={[StyleSheet.absoluteFill, scrimStyle]}>
         <Pressable
@@ -92,20 +101,25 @@ export function BottomDrawer({
       </Animated.View>
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
-        pointerEvents="box-none"
+        style={{ pointerEvents: "box-none" }}
         className="flex-1 justify-end"
       >
-        <Animated.View style={panelStyle}>
+        <Animated.View testID="bottom-drawer-wrapper" style={panelStyle}>
           <View
             role="dialog"
             accessibilityLabel={accessibilityLabel}
             style={[shadows.floating, { maxHeight: height * maxHeightRatio }]}
-            className="w-full rounded-t-[26px] bg-white md:mx-auto md:w-full md:max-w-[640px]"
+            className="w-full shrink rounded-t-[26px] bg-white md:mx-auto md:w-full md:max-w-[640px]"
           >
             <View className="items-center pb-2 pt-2">
               <View className="h-1 w-9 rounded-full bg-neutral-300" />
             </View>
-            <View style={{ paddingBottom: Math.max(insets.bottom, 16) }} className="shrink">
+            {/* Height is content-sized: a flex-1 child collapses to 0, use a plain ScrollView. */}
+            <View
+              testID="bottom-drawer-content"
+              style={{ paddingBottom: Math.max(insets.bottom, 16) }}
+              className="shrink"
+            >
               {children}
             </View>
           </View>
