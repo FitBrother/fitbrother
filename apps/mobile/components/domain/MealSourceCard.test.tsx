@@ -73,6 +73,40 @@ describe("MealSourceCard", () => {
     expect(mockSignedUrl).toHaveBeenCalledWith("u/m.jpg");
   });
 
+  test("falls back to the path in raw_input when image_path is missing", async () => {
+    mockSignedUrl.mockResolvedValue("https://signed/legacy.jpg");
+    render(
+      <MealSourceCard
+        meal={meal({
+          source: "app_photo",
+          raw_input: "Foto: u/meal-photos/m.jpg",
+          image_path: null,
+        })}
+      />,
+    );
+    await waitFor(() => expect(mockSignedUrl).toHaveBeenCalledWith("u/meal-photos/m.jpg"));
+    expect(await screen.findByTestId("meal-source-photo")).toBeTruthy();
+  });
+
+  test("prefers image_path over the raw_input path", async () => {
+    mockSignedUrl.mockResolvedValue("https://signed/new.jpg");
+    render(
+      <MealSourceCard
+        meal={meal({ source: "app_photo", raw_input: "Foto: u/old.jpg", image_path: "u/new.jpg" })}
+      />,
+    );
+    await waitFor(() => expect(mockSignedUrl).toHaveBeenCalledWith("u/new.jpg"));
+    expect(mockSignedUrl).not.toHaveBeenCalledWith("u/old.jpg");
+  });
+
+  test("ignores a raw_input without the photo prefix", () => {
+    render(
+      <MealSourceCard meal={meal({ source: "app_photo", raw_input: "arroz", image_path: null })} />,
+    );
+    expect(screen.getByTestId("meal-source-photo-placeholder")).toBeTruthy();
+    expect(mockSignedUrl).not.toHaveBeenCalled();
+  });
+
   test("a single photo item uses the singular", () => {
     render(<MealSourceCard meal={meal({ source: "app_photo", image_path: null })} />);
     expect(screen.getByText("Identifiquei 1 item na foto")).toBeTruthy();

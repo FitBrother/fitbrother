@@ -17,6 +17,18 @@ const WORD_SOURCES = new Set<MealResponse["source"]>([
 
 type Props = { meal: Pick<MealResponse, "source" | "raw_input" | "image_path" | "items"> };
 
+const PHOTO_PREFIX = "Foto: ";
+
+// Meals created before the photo route stored image_path only carry it in raw_input (same rule as 0082).
+function photoPath(meal: Props["meal"]): string | null {
+  if (meal.image_path) return meal.image_path;
+  const raw = meal.raw_input;
+  if (raw?.startsWith(PHOTO_PREFIX) && raw.length > PHOTO_PREFIX.length) {
+    return raw.slice(PHOTO_PREFIX.length);
+  }
+  return null;
+}
+
 function MealPhotoThumb({ path }: { path: string | null | undefined }) {
   const [url, setUrl] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
@@ -64,7 +76,7 @@ export function MealSourceCard({ meal }: Props) {
     const count = meal.items.length;
     return (
       <View style={shadows.card} className="flex-row items-center gap-3 rounded-2xl bg-white p-3">
-        <MealPhotoThumb path={meal.image_path} />
+        <MealPhotoThumb path={photoPath(meal)} />
         <View className="flex-1 gap-0.5">
           <Text className="font-sans-semibold text-xs uppercase tracking-wide text-neutral-500">
             Foto do prato
