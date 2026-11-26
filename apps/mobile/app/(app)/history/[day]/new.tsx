@@ -3,8 +3,8 @@ import { Keyboard, Pressable, Text, View } from "react-native";
 import { SafeAreaInsetsContext } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { X } from "lucide-react-native";
-import * as Localization from "expo-localization";
 import { useProfile } from "@/lib/profile/profile-context";
+import { mealLocale } from "@/lib/locale";
 import { defaultConsumedAtForDay } from "@/lib/dateMath";
 import { newClientMealId } from "@/lib/hooks/useCreateMealText";
 import { uploadMealAudio } from "@/lib/storage";
@@ -15,10 +15,6 @@ import { colors } from "@/lib/colors";
 import { MealComposer } from "@/components/domain/MealComposer";
 import { BackfillContextBar } from "@/components/domain/BackfillContextBar";
 import { ErrorBanner, type ErrorBannerVariant } from "@/components/domain/ErrorBanner";
-
-function detectLocale(): string {
-  return Localization.getLocales()[0]?.languageTag ?? "pt-BR";
-}
 
 function formatDayHeader(day: string): string {
   const d = new Date(day + "T12:00:00Z");
@@ -54,11 +50,11 @@ export default function BackfillScreen() {
         client_meal_id: newClientMealId(),
         text,
         consumed_at: consumedAt,
-        locale: detectLocale(),
+        locale: mealLocale(profile.locale),
         day,
       });
     },
-    [submitText, consumedAt, day],
+    [submitText, consumedAt, day, profile.locale],
   );
 
   const handleAudioReady = useCallback(
@@ -79,7 +75,7 @@ export default function BackfillScreen() {
           audio_path: path,
           duration_s,
           consumed_at: consumedAt,
-          locale: detectLocale(),
+          locale: mealLocale(profile.locale),
           day,
         });
       } catch (err) {
@@ -88,7 +84,7 @@ export default function BackfillScreen() {
         setBanner("network");
       }
     },
-    [submitAudio, consumedAt, day, userId],
+    [submitAudio, consumedAt, day, userId, profile.locale],
   );
 
   if (!day) {

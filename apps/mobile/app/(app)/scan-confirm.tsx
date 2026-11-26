@@ -1,5 +1,4 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
-import * as Localization from "expo-localization";
 import { ChevronLeft, Save, TriangleAlert } from "lucide-react-native";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -21,6 +20,7 @@ import { newClientMealId, useCreateMealText } from "@/lib/hooks/useCreateMealTex
 import { shadows } from "@/lib/shadows";
 import { nutritionalToday } from "@/lib/time/nutritional-day";
 import { useProfile } from "@/lib/profile/profile-context";
+import { mealLocale } from "@/lib/locale";
 import { useTour } from "@/lib/tour/tour-context";
 import type { MealResponse } from "@fitbrother/shared";
 
@@ -93,7 +93,7 @@ export default function ScanConfirmScreen() {
       {
         client_meal_id: newClientMealId(),
         text: `Código de barras: ${barcode}`,
-        locale: Localization.getLocales()[0]?.languageTag ?? "pt-BR",
+        locale: mealLocale(profile.locale),
         day: nutritionalToday(profile),
       },
       {
