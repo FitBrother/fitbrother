@@ -285,11 +285,7 @@ export default function HomeScreen() {
   const items = (mealsQuery.data ?? []) as OptimisticMeal[];
   const pendingMeals = pendingMealsOf(items);
 
-  // Gatilho do tour: primeira refeição confirmada visível na Home. Cobre o
-  // composer daqui e o registro feito no último passo do onboarding
-  // (FirstMealBlock), que roda fora do TourProvider. Depende só do booleano
-  // pra não re-disparar enquanto o PATCH de tutorial_completed está em voo.
-  // Gated on focus so a confirm on the meal screen does not start the tour over it.
+  // Tour starts on the first confirmed meal, only with Home focused so it never opens over the meal screen.
   useOnceWhenFocused(hasConfirmedMeal(items), tour.notifyMealCreated);
 
   const handleSend = (text: string) => {
