@@ -38,11 +38,24 @@ const recent: FoodSuggestion = {
   kcal: 210,
 };
 
-type HookResult = { data: FoodSuggestion[] | undefined; isLoading: boolean };
+type HookResult = {
+  data: FoodSuggestion[] | undefined;
+  isLoading: boolean;
+  isError?: boolean;
+  isFetching?: boolean;
+  isSettled?: boolean;
+  isPlaceholderData?: boolean;
+  refetch?: () => void;
+};
 const mockHook = (r: HookResult) =>
-  jest
-    .mocked(useFoodSuggestions)
-    .mockReturnValue(r as unknown as ReturnType<typeof useFoodSuggestions>);
+  jest.mocked(useFoodSuggestions).mockReturnValue({
+    isError: false,
+    isFetching: false,
+    isSettled: true,
+    isPlaceholderData: false,
+    refetch: jest.fn(),
+    ...r,
+  } as unknown as ReturnType<typeof useFoodSuggestions>);
 
 function setup(value = "") {
   const onSelect = jest.fn();
@@ -115,19 +128,89 @@ describe("FoodAutocomplete", () => {
     expect(screen.getByLabelText("Omelete de queijo, recente, 1 un, 210 kcal")).toBeTruthy();
   });
 
-  test("no suggestions hides the list and keeps the typed text", () => {
+  test("placeholder invites a search", () => {
     mockHook({ data: [], isLoading: false });
-    const { input } = setup("xyz");
-    fireEvent(input, "focus");
-    expect(screen.queryByTestId("food-suggestions")).toBeNull();
-    expect(input.props.value).toBe("xyz");
+    const { input } = setup("");
+    expect(input.props.placeholder).toBe("Buscar alimento");
   });
 
-  test("undefined data (single char) is treated as empty", () => {
-    mockHook({ data: undefined, isLoading: false });
-    const { input } = setup("a");
+  test("empty field explains the 2-letter rule above the recents", () => {
+    mockHook({ data: [recent], isLoading: false });
+    const { input } = setup("");
     fireEvent(input, "focus");
-    expect(screen.queryByTestId("food-suggestions")).toBeNull();
+    expect(screen.getByText("A busca começa a partir de 2 letras.")).toBeTruthy();
+    expect(screen.getByText("Usados recentemente")).toBeTruthy();
+    expect(screen.getByText("Omelete de queijo")).toBeTruthy();
+  });
+
+  test("empty field without recents still shows the hint", () => {
+    mockHook({ data: [], isLoading: false });
+    const { input } = setup("");
+    fireEvent(input, "focus");
+    expect(screen.getByText("A busca começa a partir de 2 letras.")).toBeTruthy();
+    expect(screen.queryByText("Usados recentemente")).toBeNull();
+  });
+
+  test("a single letter asks for one more and offers examples", () => {
+    mockHook({ data: undefined, isLoading: false });
+    const { input, onChangeText } = setup("a");
+    fireEvent(input, "focus");
+    expect(screen.getByText("Falta só mais 1 letra para buscar.")).toBeTruthy();
+    fireEvent.press(screen.getByLabelText("Buscar arroz"));
+    expect(onChangeText).toHaveBeenCalledWith("arroz");
+  });
+
+  test("two or more letters group rows under Recentes and Catálogo", () => {
+    mockHook({ data: [recent, base], isLoading: false });
+    const { input } = setup("ar");
+    fireEvent(input, "focus");
+    expect(screen.getByText("Recentes")).toBeTruthy();
+    expect(screen.getByText("Catálogo")).toBeTruthy();
+    expect(screen.queryByText("Usados recentemente")).toBeNull();
+  });
+
+  test("a finished search with no rows offers to use the typed name", () => {
+    mockHook({ data: [], isLoading: false });
+    const { input } = setup("sushi");
+    fireEvent(input, "focus");
+    expect(screen.getByText("Não achamos “sushi” no catálogo")).toBeTruthy();
+    fireEvent.press(screen.getByLabelText("Usar “sushi” mesmo assim"));
+    expect(screen.queryByText("Não achamos “sushi” no catálogo")).toBeNull();
+    expect(input.props.value).toBe("sushi");
+  });
+
+  test("no-result message waits for the search to finish", () => {
+    mockHook({ data: [], isLoading: false, isFetching: true, isPlaceholderData: true });
+    const { input } = setup("sushi");
+    fireEvent(input, "focus");
+    expect(screen.queryByText("Não achamos “sushi” no catálogo")).toBeNull();
+  });
+
+  test("no-result message waits for the debounce to settle", () => {
+    mockHook({ data: [], isLoading: false, isSettled: false });
+    const { input } = setup("sushi");
+    fireEvent(input, "focus");
+    expect(screen.queryByText("Não achamos “sushi” no catálogo")).toBeNull();
+  });
+
+  test("a failed search shows the error with retry and a free-text way out", () => {
+    const refetch = jest.fn();
+    mockHook({ data: undefined, isLoading: false, isError: true, refetch });
+    const { input } = setup("arroz");
+    fireEvent(input, "focus");
+    expect(screen.getByText("Não foi possível buscar agora")).toBeTruthy();
+    fireEvent.press(screen.getByLabelText("Tentar de novo"));
+    expect(refetch).toHaveBeenCalledTimes(1);
+    fireEvent.press(screen.getByLabelText("Usar “arroz” sem o catálogo"));
+    expect(screen.queryByText("Não foi possível buscar agora")).toBeNull();
+  });
+
+  test("a failure does not hide rows that are already loaded", () => {
+    mockHook({ data: [base], isLoading: false, isError: true });
+    const { input } = setup("arr");
+    fireEvent(input, "focus");
+    expect(screen.getByText("Arroz, tipo 1, cozido")).toBeTruthy();
+    expect(screen.queryByText("Não foi possível buscar agora")).toBeNull();
   });
 
   test("loading shows the skeleton and no ActivityIndicator", () => {
